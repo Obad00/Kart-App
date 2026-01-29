@@ -84,6 +84,9 @@ class _LoginPageState extends State<LoginPage>
         _emailCtrl.text.trim(),
         _passwordCtrl.text.trim(),
       );
+      if (mounted && auth.isAuthenticated) {
+        Navigator.of(context).pushReplacementNamed('/my-card');
+      }
     }
   }
 
@@ -361,8 +364,7 @@ class _LoginPageState extends State<LoginPage>
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () =>
-                            Navigator.pushNamed(context, '/register'),
+                        onTap: () => Navigator.pushNamed(context, '/register'),
                         borderRadius: BorderRadius.circular(8),
                         splashColor: Colors.white.withValues(alpha: 0.08),
                         highlightColor: Colors.white.withValues(alpha: 0.05),

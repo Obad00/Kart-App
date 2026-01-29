@@ -105,7 +105,7 @@ class _RegisterPageState extends State<RegisterPage>
 
       if (!mounted) return;
       if (auth.isAuthenticated) {
-        Navigator.pushReplacementNamed(context, '/create-card');
+        Navigator.pushReplacementNamed(context, '/my-card');
       }
     }
   }

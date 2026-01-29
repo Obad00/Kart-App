@@ -1,0 +1,102 @@
+import 'package:dio/dio.dart';
+import '../../core/network/api_client.dart';
+
+class CardService {
+  static const String _qrEndpoint = '/me/card/qr';
+
+  /// Récupère le QR code SVG de la carte digitale de l'utilisateur connecté.
+  ///
+  /// Effectue un appel GET sécurisé vers [_qrEndpoint] avec le token Bearer.
+  /// La réponse est un SVG en String.
+  ///
+  /// Throws:
+  /// - [DioException] avec statusCode 401 si le token est invalide/expiré
+  /// - [DioException] avec statusCode 403 si l'accès est refusé
+  /// - [DioException] avec statusCode 500 en cas d'erreur serveur
+  /// - [DioException] pour autres erreurs réseau/parsing
+  ///
+  /// Returns: Le SVG QR code en String
+  static Future<String> getCardQrCode() async {
+    try {
+      final response = await ApiClient.dio.get<String>(
+        _qrEndpoint,
+        options: Options(
+          responseType: ResponseType.plain,
+          contentType: 'image/svg+xml',
+          headers: {
+            'Accept': 'image/svg+xml',
+          },
+        ),
+      );
+
+      // Vérifier que la réponse n'est pas nulle
+      if (response.data == null || response.data!.isEmpty) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          error: 'QR code SVG vide reçu du serveur',
+          type: DioExceptionType.unknown,
+        );
+      }
+
+      return response.data!;
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  /// Traite les erreurs DIO et les convertit en exceptions significatives.
+  ///
+  /// Gère les cas:
+  /// - 401: Token invalide/expiré
+  /// - 403: Accès refusé (permissions manquantes)
+  /// - 500: Erreur serveur
+  /// - Autres: Erreurs réseau/timeout
+  static void _handleError(DioException error) {
+    final statusCode = error.response?.statusCode;
+
+    switch (statusCode) {
+      case 401:
+        // Token invalide ou expiré - à gérer dans l'app pour rediriger vers login
+        throw DioException(
+          requestOptions: error.requestOptions,
+          error: 'Token invalide ou expiré. Veuillez vous reconnecter.',
+          type: error.type,
+          response: error.response,
+        );
+      case 403:
+        // Accès refusé
+        throw DioException(
+          requestOptions: error.requestOptions,
+          error: 'Accès refusé. Vous n\'avez pas les permissions nécessaires.',
+          type: error.type,
+          response: error.response,
+        );
+      case 500:
+        // Erreur serveur
+        throw DioException(
+          requestOptions: error.requestOptions,
+          error: 'Erreur serveur. Veuillez réessayer plus tard.',
+          type: error.type,
+          response: error.response,
+        );
+      default:
+        // Autres erreurs (timeout, connexion, parsing, etc.)
+        if (error.type == DioExceptionType.connectionTimeout) {
+          throw DioException(
+            requestOptions: error.requestOptions,
+            error: 'Timeout de connexion. Vérifiez votre connexion internet.',
+            type: error.type,
+          );
+        } else if (error.type == DioExceptionType.unknown) {
+          throw DioException(
+            requestOptions: error.requestOptions,
+            error: 'Erreur réseau: ${error.error}',
+            type: error.type,
+          );
+        } else {
+          throw error;
+        }
+    }
+  }
+}
