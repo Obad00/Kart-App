@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
 import 'features/auth/ui/register_page.dart';
 
@@ -19,8 +20,9 @@ class KartApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: '/login',
+        initialRoute: '/splash',
         routes: {
+          '/splash': (_) => const SplashScreen(),
           '/login': (_) => const LoginPage(),
           '/register': (_) => const RegisterPage(),
         },
@@ -28,4 +30,3 @@ class KartApp extends StatelessWidget {
     );
   }
 }
-
