@@ -1,5 +1,15 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
+
+import '../../../shared/services/card_service.dart';
 import '../providers/card_provider.dart';
 
 class MyDigitalCardPage extends StatefulWidget {
@@ -24,6 +34,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   late AnimationController _loadingPulseController;
   late Animation<double> _loadingPulseAnimation;
 
+  // Slow scan-line animation for QR (subtle vertical loop)
+  late AnimationController _scanController;
+  late Animation<double> _scanAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -39,11 +53,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutExpo),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutExpo),
     );
 
     // QR tap micro-interaction (scale bounce)
@@ -65,6 +79,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     _loadingPulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _loadingPulseController, curve: Curves.easeInOut),
     );
+
+    // QR scan line - slow vertical loop to suggest "active" scan
+    _scanController = AnimationController(
+      duration: const Duration(milliseconds: 2200),
+      vsync: this,
+    )..repeat();
+
+    _scanAnimation = Tween<double>(begin: -0.4, end: 1.4).animate(
+      CurvedAnimation(parent: _scanController, curve: Curves.linear),
+    );
   }
 
   void _loadCardQr() {
@@ -74,6 +98,25 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       }
     });
   }
+
+  // Simple card initials helper
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r"\s+"));
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return (p.length >= 2)
+          ? p.substring(0, 2).toUpperCase()
+          : p.substring(0, 1).toUpperCase();
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  // Card press state (micro-interaction)
+  bool _cardPressed = false;
+
+  // Key to capture QR widget as image for export
+  final GlobalKey _qrKey = GlobalKey();
 
   void _onQrTap() {
     _qrTapController.forward().then((_) {
@@ -86,35 +129,78 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     _fadeController.dispose();
     _qrTapController.dispose();
     _loadingPulseController.dispose();
+    _scanController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0A0A0A), Color(0xFF0D0D0D)],
-          ),
-        ),
+        decoration: BoxDecoration(color: colors.surface),
         child: SafeArea(
           child: Stack(
             children: [
-              // Header
+              // Header (avatar, name, settings)
               Positioned(
-                top: 24,
-                left: 24,
-                child: Text(
-                  'Ma Carte KART',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                top: 18,
+                left: 20,
+                right: 20,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
+                      child: Center(
+                        child: Text(
+                          _initials(
+                              'Jean Dupont'), // TODO_TRACKER: Bind to real user via AuthProvider (e.g. context.read<AuthProvider>().user)
+                          style: const TextStyle(
+                              color: Color(0xFF0A0A0A),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Jean Dupont',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16)),
+                          const SizedBox(height: 2),
+                          Text('Product Designer',
+                              style: TextStyle(
+                                  color: colors.onSurface
+                                      .withAlpha((0.75 * 255).round()),
+                                  fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {/* open profile/settings */},
+                      icon: Icon(Icons.more_vert,
+                          color: Theme.of(context).colorScheme.onSurface),
+                      splashRadius: 20,
+                    )
+                  ],
                 ),
               ),
 
@@ -170,34 +256,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             // Card Container with subtle glow
             _buildCardWithGlow(svgQrCode),
 
-            const SizedBox(height: 48),
-
-            // Description
-            Column(
-              children: [
-                Text(
-                  'Votre Code Unique',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Partagez votre carte digitale KART en scannant ce code',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.65),
-                    letterSpacing: 0.2,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -206,43 +265,70 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
   /// Card with subtle white glow effect
   Widget _buildCardWithGlow(String svgQrCode) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        // Main shadow (depth)
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _cardPressed = true),
+      onTapUp: (_) => setState(() => _cardPressed = false),
+      onTapCancel: () => setState(() => _cardPressed = false),
+      child: AnimatedScale(
+        scale: _cardPressed ? 0.98 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeInOut,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            // Main shadow (depth)
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha((0.25 * 255).round()),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
+              ),
+              // Subtle shadow layer 2
+              BoxShadow(
+                color: Colors.black.withAlpha((0.08 * 255).round()),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+              // Subtle white glow (barely visible, premium feel)
+              BoxShadow(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withAlpha((0.03 * 255).round()),
+                blurRadius: 24,
+                offset: const Offset(0, 0),
+                spreadRadius: 8,
+              ),
+            ],
           ),
-          // Subtle shadow layer 2
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-          // Subtle white glow (barely visible, premium feel)
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.03),
-            blurRadius: 24,
-            offset: const Offset(0, 0),
-            spreadRadius: 8,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(48),
-      child: Center(
-        child: GestureDetector(
-          onTap: _onQrTap,
-          child: ScaleTransition(
-            scale: _qrScaleAnimation,
-            child: SizedBox(
-              width: 220,
-              height: 220,
-              child: _buildQrWithGlow(svgQrCode),
-            ),
+          padding: const EdgeInsets.all(36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _onQrTap,
+                child: ScaleTransition(
+                  scale: _qrScaleAnimation,
+                  child: SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: RepaintBoundary(
+                        key: _qrKey, child: _buildQrWithGlow(svgQrCode)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _cardAction(Icons.share, () => _openShareSheet(svgQrCode)),
+                  _cardAction(
+                      Icons.download, () => _exportQrImageAndShare(svgQrCode)),
+                  _cardAction(Icons.more_horiz, () {/* more */}),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -259,12 +345,15 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             0.05 + (_qrScaleAnimation.value < 0.98 ? 0.08 : 0.0);
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             // Glow effect on tap/hover
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withValues(alpha: glowOpacity),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withAlpha((glowOpacity * 255).round()),
                 blurRadius: 20,
                 spreadRadius: 4,
               ),
@@ -294,12 +383,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withAlpha((0.05 * 255).round()),
               borderRadius: BorderRadius.circular(16),
               // Subtle glow on loading container
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.02),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withAlpha((0.02 * 255).round()),
                   blurRadius: 16,
                   spreadRadius: 2,
                 ),
@@ -323,7 +418,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.8),
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withAlpha((0.8 * 255).round()),
             letterSpacing: 0.3,
           ),
         ),
@@ -386,7 +484,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withValues(alpha: 0.65),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withAlpha((0.65 * 255).round()),
                 letterSpacing: 0.2,
                 height: 1.5,
               ),
@@ -412,14 +513,20 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withAlpha((0.05 * 255).round()),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Center(
             child: Icon(
               Icons.qr_code_2,
               size: 40,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withAlpha((0.5 * 255).round()),
             ),
           ),
         ),
@@ -439,7 +546,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: Colors.white.withValues(alpha: 0.65),
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withAlpha((0.65 * 255).round()),
             letterSpacing: 0.2,
           ),
         ),
@@ -460,10 +570,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withAlpha((0.08 * 255).round()),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withAlpha((0.15 * 255).round()),
               width: 1,
             ),
           ),
@@ -481,7 +597,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -492,38 +608,210 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     );
   }
 
-  /// SVG placeholder for QR code display
-  Widget _buildSvgPlaceholder(String svgQrCode) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+  Widget _cardAction(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFF0A0A0A), size: 18),
+        ),
       ),
-      child: Center(
+    );
+  }
+
+  /// Share bottom sheet and helpers
+  void _openShareSheet(String svgQrCode) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF000000),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.qr_code_2,
-              size: 80,
-              color: Colors.black.withValues(alpha: 0.8),
+            ListTile(
+              leading: Icon(Icons.link,
+                  color: Theme.of(context).colorScheme.onSurface),
+              title: Text('Partager le lien public de la carte',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _sharePublicLink();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image, color: Colors.white),
+              title: const Text('Exporter image du QR',
+                  style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _exportQrImageAndShare(svgQrCode);
+              },
             ),
             const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'QR Code SVG',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.black.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _sharePublicLink() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final url = await CardService.getCardShareLink();
+      // Copy to clipboard for quick share and open native share sheet
+      await Clipboard.setData(ClipboardData(text: url));
+      await SharePlus.instance.share(ShareParams(text: url));
+      messenger
+          .showSnackBar(const SnackBar(content: Text('Lien copié et partagé')));
+    } catch (e) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Lien de partage indisponible')));
+    }
+  }
+
+  Future<void> _exportQrImageAndShare(String svgQrCode) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final file = await _captureQrAsPngFile();
+      await SharePlus.instance
+          .share(ShareParams(files: [XFile(file.path)], text: 'Ma carte KART'));
+      messenger.showSnackBar(const SnackBar(content: Text('Image partagée')));
+    } catch (e) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Impossible d\'exporter l\'image')));
+    }
+  }
+
+  Future<File> _captureQrAsPngFile() async {
+    final boundary =
+        _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) throw Exception('QR widget not available');
+
+    // Capture at higher pixel ratio for good quality
+    final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    final ByteData? byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) throw Exception('Failed to encode image');
+
+    final bytes = byteData.buffer.asUint8List();
+    final dir = await getTemporaryDirectory();
+    final file = File(
+        '${dir.path}/kart_qr_${DateTime.now().millisecondsSinceEpoch}.png');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  /// Render the QR SVG securely using flutter_svg.
+  /// Falls back to a graceful message if SVG parsing fails.
+  Widget _buildSvgPlaceholder(String svgQrCode) {
+    try {
+      // Render SVG string directly — ensures the QR is exactly what the backend provided
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(8),
+        child: LayoutBuilder(builder: (context, constraints) {
+          // Stack SVG and subtle scan line (uses _scanAnimation)
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: svg_pkg.SvgPicture.string(
+                  svgQrCode,
+                  fit: BoxFit.contain,
+                  allowDrawingOutsideViewBox: true,
+                ),
+              ),
+
+              // Gentle horizontal scan line that moves vertically
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _scanAnimation,
+                    builder: (context, child) {
+                      final dy = _scanAnimation.value * constraints.maxHeight;
+                      return Transform.translate(
+                        offset: Offset(0, dy),
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Container(
+                            width: double.infinity,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.00),
+                                  Colors.white.withValues(alpha: 0.08),
+                                  Colors.white.withValues(alpha: 0.00),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.03),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
+      );
+    } catch (e) {
+      // If SVG is invalid, show a neutral, elegant fallback
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.broken_image,
+              size: 54,
+              color: Colors.black.withValues(alpha: 0.8),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'QR non valide',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

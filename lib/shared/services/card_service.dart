@@ -3,6 +3,43 @@ import '../../core/network/api_client.dart';
 
 class CardService {
   static const String _qrEndpoint = '/me/card/qr';
+  static const String _shareEndpoint = '/me/card/share';
+
+  /// Récupère un lien public de partage pour la carte de l'utilisateur.
+  ///
+  /// Le backend doit fournir un endpoint sécurisé renvoyant JSON { "url": "https://..." }.
+  /// Si l'endpoint n'existe pas ou retourne une erreur, la méthode propagera une DioException.
+  static Future<String> getCardShareLink() async {
+    try {
+      final response = await ApiClient.dio.get(_shareEndpoint);
+
+      if (response.data == null) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          error: 'Lien de partage introuvable',
+          type: DioExceptionType.unknown,
+        );
+      }
+
+      // Support both Map and plain string responses
+      if (response.data is String && (response.data as String).isNotEmpty) {
+        return response.data as String;
+      }
+
+      if (response.data is Map && response.data['url'] != null) {
+        return response.data['url'] as String;
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        error: 'Format de réponse inattendu pour le lien de partage',
+        type: DioExceptionType.unknown,
+      );
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
 
   /// Récupère le QR code SVG de la carte digitale de l'utilisateur connecté.
   ///

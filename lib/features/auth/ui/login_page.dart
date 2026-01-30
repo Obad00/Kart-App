@@ -85,7 +85,7 @@ class _LoginPageState extends State<LoginPage>
         _passwordCtrl.text.trim(),
       );
       if (mounted && auth.isAuthenticated) {
-        Navigator.of(context).pushReplacementNamed('/my-card');
+        Navigator.of(context).pushReplacementNamed('/home');
       }
     }
   }

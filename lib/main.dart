@@ -6,6 +6,8 @@ import 'features/auth/ui/login_page.dart';
 import 'features/auth/ui/register_page.dart';
 import 'features/digital_card/providers/card_provider.dart';
 import 'features/digital_card/ui/my_digital_card_guard.dart';
+import 'features/navigation/home_shell.dart';
+import 'core/theme/app_theme.dart';
 
 void main() {
   runApp(const KartApp());
@@ -23,12 +25,16 @@ class KartApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.system,
         initialRoute: '/splash',
         routes: {
           '/splash': (_) => const SplashScreen(),
           '/login': (_) => const LoginPage(),
           '/register': (_) => const RegisterPage(),
           '/my-card': (_) => const MyDigitalCardGuard(),
+          '/home': (_) => const HomeShell(),
         },
       ),
     );
