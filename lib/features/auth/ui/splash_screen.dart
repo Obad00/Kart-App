@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+
+// Import destinations so we can use a custom animated transition
 import 'login_page.dart';
+import '../../navigation/home_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -59,20 +64,18 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    // Transition fluide vers Login après l'animation
-    Future.delayed(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const LoginPage(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 600),
-          ),
-        );
+    // When the splash animation completes, wait a tiny moment and navigate. This aligns the transition
+    // with the end of the animation so the switch feels fluid and not abrupt.
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (!mounted) return;
+          final auth = context.read<AuthProvider>();
+          final Widget destinationPage =
+              auth.isAuthenticated ? const HomeShell() : const LoginPage();
+
+          Navigator.of(context).pushReplacement(_createRoute(destinationPage));
+        });
       }
     });
   }
@@ -81,6 +84,36 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Helper that creates a subtle, modern transition: fade + slight slide + tiny scale
+  Route _createRoute(Widget page) {
+    return PageRouteBuilder(
+      settings: RouteSettings(name: page.runtimeType.toString()),
+      transitionDuration: const Duration(milliseconds: 520),
+      reverseTransitionDuration: const Duration(milliseconds: 380),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Simpler, smoother: fade in while sliding upward a tiny bit
+        final curved =
+            CurvedAnimation(parent: animation, curve: Curves.easeInOut);
+        final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+                parent: animation,
+                curve: const Interval(0.0, 1.0, curve: Curves.easeInOut)));
+        final slide =
+            Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero)
+                .animate(curved);
+
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(
+            position: slide,
+            child: child,
+          ),
+        );
+      },
+    );
   }
 
   @override

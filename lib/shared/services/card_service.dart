@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import '../../core/network/api_client.dart';
 
@@ -76,6 +78,51 @@ class CardService {
       }
 
       return response.data!;
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  /// Retrieve a public card by its slug (e.g. 'adama-dabo').
+  /// Example endpoint: GET /api/cards/{slug}
+  static Future<Map<String, dynamic>> getPublicCard(String slug) async {
+    try {
+      final endpoint = '/cards/$slug';
+      final response = await ApiClient.dio.get(endpoint);
+
+      if (response.data == null) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          error: 'Carte introuvable',
+          type: DioExceptionType.unknown,
+        );
+      }
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      // Some backends may return JSON encoded as String
+      if (response.data is String && (response.data as String).isNotEmpty) {
+        try {
+          final parsed = response.data as String;
+          final decoded = json.decode(parsed);
+          if (decoded is Map<String, dynamic>) return decoded;
+        } catch (_) {
+          throw DioException(
+            requestOptions: response.requestOptions,
+            error: 'Format de réponse invalide',
+            type: DioExceptionType.unknown,
+          );
+        }
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        error: 'Format de réponse inattendu',
+        type: DioExceptionType.unknown,
+      );
     } on DioException catch (e) {
       _handleError(e);
       rethrow;

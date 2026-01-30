@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
@@ -28,8 +29,12 @@ class KartApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: ThemeMode.system,
-        initialRoute: '/splash',
+
+        /// 🔐 ROUTE PAR DÉFAUT (OBLIGATOIRE)
+        initialRoute: '/',
+
         routes: {
+          '/': (_) => const SplashScreen(), 
           '/splash': (_) => const SplashScreen(),
           '/login': (_) => const LoginPage(),
           '/register': (_) => const RegisterPage(),

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import '../../auth/providers/auth_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -136,6 +137,19 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    // Global auth info used by header
+    final auth = context.watch<AuthProvider>();
+    final fullName = auth.user != null
+        ? (auth.user!['fullname'] ??
+            ('${auth.user!['firstname'] ?? ''} ${auth.user!['lastname'] ?? ''}')
+                .trim())
+        : 'Utilisateur';
+    final jobTitle = auth.user != null ? (auth.user!['job_title'] ?? '') : '';
+    final company = auth.user != null ? (auth.user!['company'] ?? '') : '';
+    final companyDisplay =
+        company.isNotEmpty ? company : (jobTitle.isNotEmpty ? jobTitle : '');
+    final initials = _initials(fullName);
+
     return Scaffold(
       backgroundColor: colors.surface,
       body: Container(
@@ -150,6 +164,8 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                 right: 20,
                 child: Row(
                   children: [
+                    // Bind user from global AuthProvider
+                    // Avatar
                     Container(
                       width: 44,
                       height: 44,
@@ -166,8 +182,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       ),
                       child: Center(
                         child: Text(
-                          _initials(
-                              'Jean Dupont'), // TODO_TRACKER: Bind to real user via AuthProvider (e.g. context.read<AuthProvider>().user)
+                          initials,
                           style: const TextStyle(
                               color: Color(0xFF0A0A0A),
                               fontWeight: FontWeight.w700,
@@ -180,13 +195,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Jean Dupont',
+                          Text(fullName.isNotEmpty ? fullName : 'Utilisateur',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16)),
                           const SizedBox(height: 2),
-                          Text('Product Designer',
+                          Text(
+                              companyDisplay.isNotEmpty
+                                  ? companyDisplay
+                                  : 'Membre',
                               style: TextStyle(
                                   color: colors.onSurface
                                       .withAlpha((0.75 * 255).round()),
