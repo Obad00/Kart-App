@@ -39,12 +39,20 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   late AnimationController _scanController;
   late Animation<double> _scanAnimation;
 
-  @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-    _loadCardQr();
-  }
+ @override
+void initState() {
+  super.initState();
+  _setupAnimations();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+    final card = context.read<CardProvider>();
+    card.loadMyCardQr();
+    card.loadCardSummary();
+  });
+}
+
+
 
   void _setupAnimations() {
     // Entrance animation (fade + scale)
@@ -140,15 +148,20 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     // Global auth info used by header
     final auth = context.watch<AuthProvider>();
     final fullName = auth.user != null
+    
         ? (auth.user!['fullname'] ??
             ('${auth.user!['firstname'] ?? ''} ${auth.user!['lastname'] ?? ''}')
                 .trim())
         : 'Utilisateur';
-    final jobTitle = auth.user != null ? (auth.user!['job_title'] ?? '') : '';
-    final company = auth.user != null ? (auth.user!['company'] ?? '') : '';
-    final companyDisplay =
-        company.isNotEmpty ? company : (jobTitle.isNotEmpty ? jobTitle : '');
-    final initials = _initials(fullName);
+        final initialsText = _initials(fullName);
+
+final card = context.watch<CardProvider>();
+
+final jobTitle = card.jobTitle ?? '';
+final company  = card.company ?? '';
+
+final companyDisplay =
+    company.isNotEmpty ? company : (jobTitle.isNotEmpty ? jobTitle : 'Membre');
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -182,7 +195,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       ),
                       child: Center(
                         child: Text(
-                          initials,
+                         initialsText,
                           style: const TextStyle(
                               color: Color(0xFF0A0A0A),
                               fontWeight: FontWeight.w700,

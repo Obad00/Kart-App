@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../shared/services/card_service.dart';
+import '../../../core/network/api_client.dart';
 
 /// Provider de gestion d'état pour la carte digitale KART.
 ///
@@ -18,6 +19,26 @@ class CardProvider extends ChangeNotifier {
   String? get qrSvg => _qrSvg;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+
+  String? jobTitle;
+  String? company;
+
+  Future<void> loadCardSummary() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await ApiClient.dio.get('/me/card-summary');
+      jobTitle = res.data['job_title'];
+      company  = res.data['company'];
+    } catch (e) {
+      _error = 'Impossible de charger la carte';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   /// Charge le QR code SVG de la carte personnelle de l'utilisateur.
   ///

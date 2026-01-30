@@ -7,6 +7,21 @@ class CardService {
   static const String _qrEndpoint = '/me/card/qr';
   static const String _shareEndpoint = '/me/card/share';
 
+
+static Future<Map<String, dynamic>> getCardSummary() async {
+  final response = await ApiClient.dio.get('/me/card-summary');
+
+  if (response.data == null || response.data is! Map<String, dynamic>) {
+    throw DioException(
+      requestOptions: response.requestOptions,
+      error: 'Résumé de carte invalide',
+      type: DioExceptionType.unknown,
+    );
+  }
+
+  return response.data as Map<String, dynamic>;
+}
+
   /// Récupère un lien public de partage pour la carte de l'utilisateur.
   ///
   /// Le backend doit fournir un endpoint sécurisé renvoyant JSON { "url": "https://..." }.
