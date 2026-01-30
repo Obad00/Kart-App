@@ -22,6 +22,7 @@ class _LoginPageState extends State<LoginPage>
   int _currentPage = 0;
   bool _emailFocused = false;
   bool _passwordFocused = false;
+  bool _successSnackShown = false;
 
   final List<String> _fieldLabels = ['Email', 'Mot de passe'];
 
@@ -96,7 +97,20 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+  final auth = context.watch<AuthProvider>();
+
+  final routeArgs =
+      ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+  if (!_successSnackShown &&
+      routeArgs != null &&
+      routeArgs.containsKey('successMessage')) {
+    _successSnackShown = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showSuccessSnack(routeArgs['successMessage']);
+    });
+  }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -392,6 +406,55 @@ class _LoginPageState extends State<LoginPage>
       ),
     );
   }
+
+  void _showSuccessSnack(String message) {
+  final snackBar = SnackBar(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    behavior: SnackBarBehavior.floating,
+    duration: const Duration(seconds: 4),
+    content: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.check_circle_outline,
+            color: Colors.black,
+            size: 22,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(snackBar);
+}
+
 
   Widget _buildFieldPage({
     required String label,

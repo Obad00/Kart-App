@@ -104,9 +104,17 @@ class _RegisterPageState extends State<RegisterPage>
       );
 
       if (!mounted) return;
+
       if (auth.isAuthenticated) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(
+          context,
+          '/login',
+          arguments: {
+            'successMessage': 'Compte créé avec succès. Bienvenue sur KART.',
+          },
+        );
       }
+
     }
   }
 
