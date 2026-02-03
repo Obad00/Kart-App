@@ -22,6 +22,21 @@ static Future<Map<String, dynamic>> getCardSummary() async {
   return response.data as Map<String, dynamic>;
 }
 
+static Future<void> createCard({
+    required String jobTitle,
+    required String company,
+  }) async {
+    await ApiClient.dio.post(
+      '/digital-card',
+      data: {
+        'job_title': jobTitle,
+        'company': company,
+        'is_public': true,
+      },
+    );
+  }
+
+
   /// Récupère un lien public de partage pour la carte de l'utilisateur.
   ///
   /// Le backend doit fournir un endpoint sécurisé renvoyant JSON { "url": "https://..." }.
