@@ -23,18 +23,28 @@ static Future<Map<String, dynamic>> getCardSummary() async {
 }
 
 static Future<void> createCard({
-    required String jobTitle,
-    required String company,
-  }) async {
-    await ApiClient.dio.post(
-      '/digital-card',
-      data: {
-        'job_title': jobTitle,
-        'company': company,
-        'is_public': true,
-      },
-    );
-  }
+  required String jobTitle,
+  required String company,
+  String? phone,
+  String? email,
+  String? linkedin,
+  required List<String> activatedFields,
+  bool isPublic = true,
+}) async {
+  await ApiClient.dio.post(
+    '/digital-card',
+    data: {
+      'job_title': jobTitle,
+      'company': company,
+      'phone': phone,
+      'email': email,
+      'linkedin': linkedin,
+      'activated_fields': activatedFields,
+      'is_public': isPublic,
+    },
+  );
+}
+
 
 
   /// Récupère un lien public de partage pour la carte de l'utilisateur.

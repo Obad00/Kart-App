@@ -47,11 +47,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     super.initState();
     _initAnimations();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CardProvider>()
-        ..loadMyCardQr()
-        ..loadCardSummary();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+  final provider = context.read<CardProvider>();
+
+  await provider.loadCardSummary();
+
+  if (provider.status == CardStatus.hasCard) {
+    await provider.loadMyCardQr();
+  }
+});
+
   }
 
   void _initAnimations() {
