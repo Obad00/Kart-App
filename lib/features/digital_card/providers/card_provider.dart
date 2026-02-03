@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../core/network/api_client.dart';
 
@@ -12,33 +11,42 @@ import '../../../core/network/api_client.dart';
 class CardProvider extends ChangeNotifier {
   // États
   String? _qrSvg;
-  bool _isLoading = false;
   String? _error;
 
   // Getters
   String? get qrSvg => _qrSvg;
-  bool get isLoading => _isLoading;
   String? get error => _error;
+
+bool _isQrLoading = false;
+bool _isSummaryLoading = false;
+
+bool get isLoading => _isQrLoading || _isSummaryLoading;
 
 
   String? jobTitle;
   String? company;
 
-  Future<void> loadCardSummary() async {
-    _isLoading = true;
-    notifyListeners();
+Future<void> loadCardSummary() async {
+  _isSummaryLoading = true;
+  notifyListeners();
 
-    try {
-      final res = await ApiClient.dio.get('/me/card-summary');
-      jobTitle = res.data['job_title'];
-      company  = res.data['company'];
-    } catch (e) {
-      _error = 'Impossible de charger la carte';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  try {
+    final res = await ApiClient.dio.get('/me/card-summary');
+
+    // debugPrint('SUMMARY RESPONSE => ${res.data}');
+
+    jobTitle = res.data['job_title'];
+    company  = res.data['company'];
+  } catch (e) {
+    _error = 'Impossible de charger le résumé de la carte';
+  } finally {
+    _isSummaryLoading = false;
+    notifyListeners();
   }
+}
+
+
+
 
   /// Charge le QR code SVG de la carte personnelle de l'utilisateur.
   ///
@@ -54,44 +62,36 @@ class CardProvider extends ChangeNotifier {
   /// - 403: Accès refusé
   /// - 500: Erreur serveur
   /// - Autres: Erreurs réseau/timeout
-  Future<void> loadMyCardQr() async {
-    _error = null;
-    _isLoading = true;
+Future<void> loadMyCardQr() async {
+  _error = null;
+  _isQrLoading = true;
+  notifyListeners();
+
+  try {
+    _qrSvg = await CardService.getCardQrCode();
+  } catch (e) {
+    _qrSvg = null;
+    _error = 'Erreur lors du chargement du QR code';
+  } finally {
+    _isQrLoading = false;
     notifyListeners();
-
-    try {
-      final svgData = await CardService.getCardQrCode();
-
-      _qrSvg = svgData;
-      _error = null;
-    } on DioException catch (e) {
-      _qrSvg = null;
-      _error = e.error is String
-          ? e.error as String
-          : 'Erreur lors du chargement du QR code';
-
-      // Log ou analyse additionnelle si nécessaire
-      debugPrint(
-          'CardProvider Error - Status: ${e.response?.statusCode}, Message: $_error');
-    } catch (e) {
-      _qrSvg = null;
-      _error = 'Erreur inattendue: $e';
-      debugPrint('CardProvider Unexpected Error: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
+}
+
 
   /// Réinitialise les données de la carte.
   ///
   /// Utile lors de la déconnexion ou pour rafraîchir manuellement.
-  void clearCard() {
-    _qrSvg = null;
-    _error = null;
-    _isLoading = false;
-    notifyListeners();
-  }
+ void clearCard() {
+  _qrSvg = null;
+  _error = null;
+  _isQrLoading = false;
+  _isSummaryLoading = false;
+  jobTitle = null;
+  company = null;
+  notifyListeners();
+}
+
 
   /// Vérifie si le QR code a été chargé avec succès.
   bool get hasQrCode => _qrSvg != null && _qrSvg!.isNotEmpty;
