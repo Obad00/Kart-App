@@ -48,15 +48,13 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     _initAnimations();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-  final provider = context.read<CardProvider>();
+      final provider = context.read<CardProvider>();
+      await provider.loadCardSummary();
 
-  await provider.loadCardSummary();
-
-  if (provider.status == CardStatus.hasCard) {
-    await provider.loadMyCardQr();
-  }
-});
-
+      if (provider.status == CardStatus.hasCard) {
+        await provider.loadMyCardQr();
+      }
+    });
   }
 
   void _initAnimations() {
@@ -100,31 +98,30 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   void _reload() => context.read<CardProvider>().loadMyCardQr();
 
   String _initials(String name) {
-    final p = name.trim().split(' ');
-    if (p.length == 1) return p.first.substring(0, 1).toUpperCase();
-    return (p[0][0] + p[1][0]).toUpperCase();
+    final parts = name.trim().split(' ');
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
   @override
-Widget build(BuildContext context) {
-  final auth = context.watch<AuthProvider>();
-  final card = context.watch<CardProvider>();
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final card = context.watch<CardProvider>();
 
-  final user = auth.user;
+    final user = auth.user;
 
-  final fullName = user != null
-      ? (user['fullname'] ??
-          ('${user['firstname'] ?? ''} ${user['lastname'] ?? ''}').trim())
-      : 'Utilisateur';
+    final fullName = user != null
+        ? (user['fullname'] ??
+            ('${user['firstname'] ?? ''} ${user['lastname'] ?? ''}').trim())
+        : 'Utilisateur';
 
-  final initials = _initials(fullName);
+    final initials = _initials(fullName);
 
-  final subtitle = card.company?.isNotEmpty == true
-      ? card.company!
-      : card.jobTitle?.isNotEmpty == true
-          ? card.jobTitle!
-          : 'Membre';
-
+    final subtitle = card.company?.isNotEmpty == true
+        ? card.company!
+        : card.jobTitle?.isNotEmpty == true
+            ? card.jobTitle!
+            : 'Membre';
 
     return Scaffold(
       body: SafeArea(
@@ -135,70 +132,113 @@ Widget build(BuildContext context) {
               left: 20,
               right: 20,
               child: CardHeader(
-              initials: initials,
-              fullName: fullName,
-              subtitle: subtitle,
-            ),
-
+                initials: initials,
+                fullName: fullName,
+                subtitle: subtitle,
+              ),
             ),
 
             Center(
               child: Consumer<CardProvider>(
                 builder: (_, state, __) {
-                if (state.hasError) {
-                return CardErrorState(
-                  message: state.error!,
-                  onRetry: _reload,
-                );
-              }
+                  if (state.hasError) {
+                    return CardErrorState(
+                      message: state.error!,
+                      onRetry: _reload,
+                    );
+                  }
 
-              if (!state.isReady && state.status != CardStatus.noCard) {
-                return const CircularProgressIndicator();
-              }
+                  if (!state.isReady &&
+                      state.status != CardStatus.noCard) {
+                    return const CircularProgressIndicator();
+                  }
 
+                  if (state.status == CardStatus.noCard) {
+                    return NoCardCta(
+                      onCreate: () async {
+                        final navigator = Navigator.of(context);
+                        final messenger =
+                            ScaffoldMessenger.of(context);
+                        final cardProvider =
+                            context.read<CardProvider>();
 
-             if (state.status == CardStatus.noCard) {
-              return NoCardCta(
-                onCreate: () async {
-                  final navigator = Navigator.of(context);
-                  final cardProvider = context.read<CardProvider>();
+                        final created = await navigator.push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const CreateCardPage(),
+                          ),
+                        );
 
-                  final created = await navigator.push(
-                    MaterialPageRoute(
-                      builder: (_) => const CreateCardPage(),
+                        if (!mounted || created != true) return;
+
+                        await cardProvider.loadCardSummary();
+                        await cardProvider.loadMyCardQr();
+
+                        if (!mounted) return;
+
+                       messenger
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: const Color(0xFF0A0A0A),
+                            elevation: 0,
+                            duration: const Duration(seconds: 3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Carte créée avec succès 🎉',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+
+                      },
+                    );
+                  }
+
+                  if (!state.hasQrCode) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  if (!_fadeCtrl.isAnimating &&
+                      _fadeCtrl.value == 0) {
+                    _fadeCtrl.forward();
+                  }
+
+                  return FadeTransition(
+                    opacity: _fade,
+                    child: ScaleTransition(
+                      scale: _scale,
+                      child: QrCard(
+                        qr: _buildQr(state.qrSvg!),
+                        onShare: _shareLink,
+                        onDownload: () =>
+                            _exportQr(state.qrSvg!),
+                      ),
                     ),
                   );
-
-                  if (created != true) return;
-
-                  cardProvider.loadCardSummary();
-                  cardProvider.loadMyCardQr();
-                },
-              );
-            }
-
-
-
-                if (!state.hasQrCode) {
-                  return const CircularProgressIndicator();
-                }
-
-                if (!_fadeCtrl.isAnimating && _fadeCtrl.value == 0) {
-                  _fadeCtrl.forward();
-                }
-
-                return FadeTransition(
-                  opacity: _fade,
-                  child: ScaleTransition(
-                    scale: _scale,
-                    child: QrCard(
-                      qr: _buildQr(state.qrSvg!),
-                      onShare: _shareLink,
-                      onDownload: () => _exportQr(state.qrSvg!),
-                    ),
-                  ),
-                );
-
                 },
               ),
             ),
@@ -210,7 +250,8 @@ Widget build(BuildContext context) {
 
   Widget _buildQr(String svg) {
     return GestureDetector(
-      onTap: () => _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse()),
+      onTap: () =>
+          _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse()),
       child: ScaleTransition(
         scale: _qrScale,
         child: RepaintBoundary(
@@ -223,7 +264,10 @@ Widget build(BuildContext context) {
                   animation: _scan,
                   builder: (_, __) => Transform.translate(
                     offset: Offset(0, _scan.value * 200),
-                    child: Container(height: 6, color: Colors.white24),
+                    child: Container(
+                      height: 6,
+                      color: Colors.white24,
+                    ),
                   ),
                 ),
               ),
@@ -234,20 +278,32 @@ Widget build(BuildContext context) {
     );
   }
 
+  // ✅ PARTAGE LIEN (MODERNE)
   Future<void> _shareLink() async {
     final url = await CardService.getCardShareLink();
+
     await Clipboard.setData(ClipboardData(text: url));
-    await SharePlus.instance.share(ShareParams(text: url));
+
+    await SharePlus.instance.share(
+      ShareParams(text: url),
+    );
   }
 
+  // ✅ PARTAGE QR (MODERNE)
   Future<void> _exportQr(String _) async {
-    final boundary =
-        _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 3);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    final boundary = _qrKey.currentContext!
+        .findRenderObject() as RenderRepaintBoundary;
+
+    final image =
+        await boundary.toImage(pixelRatio: 3);
+    final data =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+
     final file = File(
-        '${(await getTemporaryDirectory()).path}/qr.png')
-      ..writeAsBytesSync(data!.buffer.asUint8List());
+      '${(await getTemporaryDirectory()).path}/qr.png',
+    )..writeAsBytesSync(
+        data!.buffer.asUint8List(),
+      );
 
     await SharePlus.instance.share(
       ShareParams(files: [XFile(file.path)]),
