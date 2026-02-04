@@ -22,6 +22,10 @@ class CardProvider extends ChangeNotifier {
 
   String? jobTitle;
   String? company;
+  String? phone;
+  String? email;
+  String? linkedin;
+
 
   // --- LOADING ---
   bool _isQrLoading = false;
@@ -54,6 +58,9 @@ class CardProvider extends ChangeNotifier {
       } else {
         jobTitle = res.data['job_title'];
         company  = res.data['company'];
+        phone    = res.data['phone'];
+        email    = res.data['email'];
+        linkedin = res.data['linkedin'];
         _status = CardStatus.hasCard;
       }
     } catch (e) {
@@ -84,9 +91,15 @@ class CardProvider extends ChangeNotifier {
   void clearCard() {
     _qrSvg = null;
     _error = null;
+
     jobTitle = null;
     company = null;
+    phone = null;
+    email = null;
+    linkedin = null;
+
     _status = CardStatus.idle;
     notifyListeners();
   }
+
 }

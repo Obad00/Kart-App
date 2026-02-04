@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # URL launcher
+  url_launcher: ^6.2.5
+
 
   # Icons
   cupertino_icons: ^1.0.8

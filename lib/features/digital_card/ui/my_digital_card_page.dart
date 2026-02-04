@@ -169,8 +169,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                   }
 
                   if (state.status == CardStatus.noCard) {
-                    return NoCardCta(
-                      onCreate: () async {
+                    return Center(
+                      child: NoCardCta(
+                        onCreate: () async {
                         final navigator = Navigator.of(context);
                         final messenger =
                             ScaffoldMessenger.of(context);
@@ -230,6 +231,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                         );
 
                       },
+                      ),
                     );
                   }
 
