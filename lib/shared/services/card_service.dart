@@ -6,6 +6,7 @@ import '../../core/network/api_client.dart';
 class CardService {
   static const String _qrEndpoint = '/me/card/qr';
   static const String _shareEndpoint = '/me/card/share';
+static const String _highlightEndpoint = '/highlights';
 
 
 static Future<Map<String, dynamic>> getCardSummary() async {
@@ -223,4 +224,68 @@ static Future<void> createCard({
         }
     }
   }
+
+  static Future<List<Map<String, dynamic>>> fetchHighlights() async {
+  try {
+    final response = await ApiClient.dio.get(_highlightEndpoint);
+
+    if (response.data is List) {
+      return List<Map<String, dynamic>>.from(response.data);
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      error: 'Format de highlights invalide',
+      type: DioExceptionType.unknown,
+    );
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
+  }
+}
+
+static Future<Map<String, dynamic>> createHighlight(String name) async {
+  try {
+    final response = await ApiClient.dio.post(
+      _highlightEndpoint,
+      data: {'name': name},
+    );
+
+    if (response.data is Map<String, dynamic>) {
+      return response.data;
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      error: 'Erreur création highlight',
+      type: DioExceptionType.unknown,
+    );
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
+  }
+}
+
+static Future<void> activateHighlight(int highlightId) async {
+  try {
+    await ApiClient.dio.post(
+      '$_highlightEndpoint/$highlightId/activate',
+    );
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
+  }
+}
+
+static Future<void> deactivateHighlight(int highlightId) async {
+  try {
+    await ApiClient.dio.post(
+      '$_highlightEndpoint/$highlightId/deactivate',
+    );
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
+  }
+}
+
 }

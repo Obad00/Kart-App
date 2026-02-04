@@ -9,6 +9,7 @@ import 'features/digital_card/providers/card_provider.dart';
 import 'features/digital_card/ui/my_digital_card_guard.dart';
 import 'features/navigation/home_shell.dart';
 import 'core/theme/app_theme.dart';
+import 'features/contacts/providers/highlight_provider.dart';
 
 void main() {
   runApp(const KartApp());
@@ -23,6 +24,7 @@ class KartApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CardProvider()),
+        ChangeNotifierProvider(create: (_) => HighlightProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

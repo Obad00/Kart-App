@@ -12,6 +12,9 @@ import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/services/card_service.dart';
 import '../providers/card_provider.dart';
+import '../../contacts/providers/highlight_provider.dart';
+import '../../contacts/widgets/highlight_bar.dart';
+
 
 // widgets
 import '../widgets/card_header.dart';
@@ -47,14 +50,17 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     super.initState();
     _initAnimations();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final provider = context.read<CardProvider>();
-      await provider.loadCardSummary();
+   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final cardProvider = context.read<CardProvider>();
+    final highlightProvider = context.read<HighlightProvider>();
 
-      if (provider.status == CardStatus.hasCard) {
-        await provider.loadMyCardQr();
-      }
-    });
+    await cardProvider.loadCardSummary();
+
+    if (cardProvider.status == CardStatus.hasCard) {
+      await cardProvider.loadMyCardQr();
+      await highlightProvider.loadHighlights(); // ✅
+    }
+  });
   }
 
   void _initAnimations() {
@@ -138,7 +144,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               ),
             ),
 
-            Center(
+        // 👇 HIGHLIGHTS
+                Positioned(
+                  top: 120,
+                  left: 0,
+                  right: 0,
+                  child: const HighlightBar(),
+                ),
+                
+            Padding(
+              padding: const EdgeInsets.only(top: 220),
               child: Consumer<CardProvider>(
                 builder: (_, state, __) {
                   if (state.hasError) {

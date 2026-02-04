@@ -64,14 +64,13 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       child: SafeArea(
         top: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildItem(icon: Icons.credit_card, label: 'Carte', index: 0),
-            _buildItem(icon: Icons.qr_code_scanner, label: 'Scan', index: 1),
-            _buildItem(icon: Icons.people, label: 'Contacts', index: 2),
-            _buildItem(icon: Icons.person, label: 'Profil', index: 3),
-          ],
-        ),
+            children: [
+              Expanded(child: _buildItem(icon: Icons.credit_card, label: 'Carte', index: 0)),
+              Expanded(child: _buildItem(icon: Icons.qr_code_scanner, label: 'Scan', index: 1)),
+              Expanded(child: _buildItem(icon: Icons.people, label: 'Contacts', index: 2)),
+              Expanded(child: _buildItem(icon: Icons.person, label: 'Profil', index: 3)),
+            ],
+          ),
       ),
     );
   }
@@ -102,14 +101,24 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child:Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color, size: selected ? 22 : 20),
             if (selected) ...[
-              const SizedBox(width: 8),
-              Text(label,
-                  style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-            ]
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
