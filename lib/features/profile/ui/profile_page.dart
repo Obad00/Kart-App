@@ -37,7 +37,7 @@ class ProfilePage extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          // 👤 INFOS PERSONNELLES (AUTH)
+          // 👤 INFOS PERSONNELLES
           _section(
             title: 'Informations personnelles',
             children: [
@@ -49,7 +49,7 @@ class ProfilePage extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // 💼 INFOS PROFESSIONNELLES (DIGITAL CARD)
+          // 💼 CARTE DIGITALE
           _section(
             title: 'Carte digitale',
             children: card.status == CardStatus.hasCard
@@ -58,6 +58,17 @@ class ProfilePage extends StatelessWidget {
                     _infoTile(Icons.apartment, 'Entreprise', card.company),
                     _infoTile(Icons.phone, 'Téléphone', card.phone),
                     _linkedinTile(card.linkedin),
+
+                    const Divider(height: 1),
+
+                    // 🎨 THEME
+                    ListTile(
+                      leading: const Icon(Icons.palette_outlined),
+                      title: const Text('Thème de la carte'),
+                      subtitle: Text(_themeLabel(card.theme)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openThemePicker(context),
+                    ),
                   ]
                 : [
                     const ListTile(
@@ -71,58 +82,61 @@ class ProfilePage extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-         ElevatedButton.icon(
-  icon: const Icon(Icons.logout),
-  label: const Text('Se déconnecter'),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.redAccent,
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(vertical: 14),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-    ),
-  ),
-  onPressed: () async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Déconnexion'),
-          content: const Text(
-            'Êtes-vous sûr de vouloir vous déconnecter ?',
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
+          // 🚪 LOGOUT
+          ElevatedButton.icon(
+            icon: const Icon(Icons.logout),
+            label: const Text('Se déconnecter'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Se déconnecter'),
             ),
-          ],
-        );
-      },
-    );
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text('Déconnexion'),
+                    content: const Text(
+                      'Êtes-vous sûr de vouloir vous déconnecter ?',
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(false),
+                        child: const Text('Annuler'),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () =>
+                            Navigator.of(context).pop(true),
+                        child: const Text('Se déconnecter'),
+                      ),
+                    ],
+                  );
+                },
+              );
 
-    if (confirm == true) {
-      await auth.logout();
-      if (context.mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (_) => false);
-      }
-    }
-  },
-),
-
+              if (confirm == true) {
+                await auth.logout();
+                if (context.mounted) {
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil(
+                          '/login', (_) => false);
+                }
+              }
+            },
+          ),
         ],
       ),
     );
@@ -242,10 +256,82 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  void _openThemePicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _ThemePicker(),
+    );
+  }
+
+  String _themeLabel(String? theme) {
+    switch (theme) {
+      case 'dark_minimal':
+        return 'Dark minimal';
+      case 'clean_light':
+        return 'Clean light';
+      default:
+        return 'Classique';
+    }
+  }
+
   String _initials(String name) {
     final parts = name.trim().split(' ');
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+}
+
+// ================= THEME PICKER =================
+
+class _ThemePicker extends StatelessWidget {
+  const _ThemePicker();
+
+  @override
+  Widget build(BuildContext context) {
+    final card = context.watch<CardProvider>();
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Thème de la carte',
+            style:
+                TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+
+          _item(context, card, 'default', 'Classique'),
+          _item(context, card, 'clean_light', 'Clean light'),
+          _item(context, card, 'dark_minimal', 'Dark minimal'),
+        ],
+      ),
+    );
+  }
+
+  Widget _item(
+    BuildContext context,
+    CardProvider card,
+    String value,
+    String label,
+  ) {
+    final selected = card.theme == value;
+
+    return ListTile(
+      title: Text(label),
+      trailing: selected
+          ? const Icon(Icons.check, color: Colors.green)
+          : null,
+      onTap: () async {
+        await card.updateTheme(value);
+        if (context.mounted) Navigator.pop(context);
+      },
+    );
   }
 }

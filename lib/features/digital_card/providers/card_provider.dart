@@ -25,6 +25,8 @@ class CardProvider extends ChangeNotifier {
   String? phone;
   String? email;
   String? linkedin;
+  String? _theme;
+  String? get theme => _theme;
 
 
   // --- LOADING ---
@@ -42,35 +44,42 @@ class CardProvider extends ChangeNotifier {
     _status == CardStatus.hasCard && hasQrCode;
 
   // --- METHODS ---
-  Future<void> loadCardSummary() async {
-    _isSummaryLoading = true;
-    _status = CardStatus.loading;
-    notifyListeners();
+ Future<void> loadCardSummary() async {
+  _isSummaryLoading = true;
+  _status = CardStatus.loading;
+  notifyListeners();
 
-    try {
-      final res = await ApiClient.dio.get('/me/card-summary');
+  try {
+    final res = await ApiClient.dio.get('/me/card-summary');
 
-      if (res.data['job_title'] == null &&
-          res.data['company'] == null) {
-        _status = CardStatus.noCard;
-        jobTitle = null;
-        company = null;
-      } else {
-        jobTitle = res.data['job_title'];
-        company  = res.data['company'];
-        phone    = res.data['phone'];
-        email    = res.data['email'];
-        linkedin = res.data['linkedin'];
-        _status = CardStatus.hasCard;
-      }
-    } catch (e) {
-      _status = CardStatus.error;
-      _error = 'Impossible de charger le résumé de la carte';
-    } finally {
-      _isSummaryLoading = false;
-      notifyListeners();
+    if (res.data['job_title'] == null &&
+        res.data['company'] == null) {
+      _status = CardStatus.noCard;
+      jobTitle = null;
+      company = null;
+      _theme = null;
+    } else {
+      jobTitle = res.data['job_title'];
+      company  = res.data['company'];
+      phone    = res.data['phone'];
+      email    = res.data['email'];
+      linkedin = res.data['linkedin'];
+
+      _theme = res.data['theme']; // ✅ C’EST ÇA QUI MANQUAIT
+      debugPrint('🎨 Theme from API = $_theme');
+
+      _status = CardStatus.hasCard;
     }
+  } catch (e) {
+    _status = CardStatus.error;
+    _error = 'Impossible de charger le résumé de la carte';
+  } finally {
+    _isSummaryLoading = false;
+    notifyListeners();
   }
+}
+
+
 
   Future<void> loadMyCardQr() async {
     _error = null;
@@ -87,6 +96,22 @@ class CardProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+Future<void> updateTheme(String theme) async {
+  _theme = theme;
+  notifyListeners();
+
+  try {
+    await ApiClient.dio.put(
+      '/me/card-summary',
+      data: {'theme': theme},
+    );
+  } catch (e) {
+    // rollback simple si erreur
+    await loadCardSummary();
+  }
+}
+
 
   void clearCard() {
     _qrSvg = null;
