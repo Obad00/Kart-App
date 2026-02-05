@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/services/card_service.dart';
 
+import 'package:dio/dio.dart';
+import '../exceptions/theme_forbidden_exception.dart';
+
+
 enum CardStatus {
   idle,
   loading,
@@ -98,19 +102,26 @@ class CardProvider extends ChangeNotifier {
   }
 
 Future<void> updateTheme(String theme) async {
-  _theme = theme;
-  notifyListeners();
-
   try {
     await ApiClient.dio.put(
       '/me/card-summary',
       data: {'theme': theme},
     );
-  } catch (e) {
-    // rollback simple si erreur
-    await loadCardSummary();
+
+    _theme = theme;
+    notifyListeners();
+  } on DioException catch (e) {
+    if (e.response?.statusCode == 403) {
+      throw ThemeForbiddenException(
+        e.response?.data['message'] ??
+            'Thème réservé aux comptes PRO',
+      );
+    }
+
+    throw Exception('Erreur lors du changement de thème');
   }
 }
+
 
 
   void clearCard() {

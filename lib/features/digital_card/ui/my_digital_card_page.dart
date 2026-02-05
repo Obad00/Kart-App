@@ -121,8 +121,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     final user = auth.user;
 
     final fullName = user != null
-        ? (user['fullname'] ??
-            ('${user['firstname'] ?? ''} ${user['lastname'] ?? ''}').trim())
+        ? '${user.firstname} ${user.lastname}'.trim()
         : 'Utilisateur';
 
     final initials = _initials(fullName);

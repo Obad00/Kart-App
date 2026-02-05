@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import 'package:dio/dio.dart';
+import '../models/user.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
 
+
+  bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
-  Map<String, dynamic>? user;
-  String? error; // ✅ AJOUTÉ
+  User? user;  String? error; // ✅ AJOUTÉ
 
   AuthProvider() {
     _init();
@@ -31,7 +33,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final meResponse = await _api.me();
-      user = meResponse.data;
+      user = User.fromJson(meResponse.data);
     } on DioException catch (e) {
       // In case the token is invalid/expired, perform a silent logout
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {

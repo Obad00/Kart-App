@@ -5,6 +5,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../digital_card/providers/card_provider.dart';
 
+
+import '../../digital_card/exceptions/theme_forbidden_exception.dart';
+
+
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -22,7 +26,7 @@ class ProfilePage extends StatelessWidget {
 
     final colors = Theme.of(context).colorScheme;
     final fullName =
-        '${user['firstname'] ?? ''} ${user['lastname'] ?? ''}'.trim();
+        '${user.firstname} ${user.lastname}'.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -33,7 +37,8 @@ class ProfilePage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           // 👤 HEADER
-          _profileHeader(colors, fullName, user['email']),
+         _profileHeader(colors, fullName, user.email),
+
 
           const SizedBox(height: 28),
 
@@ -41,9 +46,10 @@ class ProfilePage extends StatelessWidget {
           _section(
             title: 'Informations personnelles',
             children: [
-              _infoTile(Icons.person, 'Prénom', user['firstname']),
-              _infoTile(Icons.badge, 'Nom', user['lastname']),
-              _infoTile(Icons.email, 'Email', user['email']),
+              _infoTile(Icons.person, 'Prénom', user.firstname),
+              _infoTile(Icons.badge, 'Nom', user.lastname),
+              _infoTile(Icons.email, 'Email', user.email),
+
             ],
           ),
 
@@ -256,16 +262,18 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _openThemePicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => const _ThemePicker(),
-    );
-  }
+ void _openThemePicker(BuildContext context) {
+  final parentContext = context; // 🔥 CONTEXT STABLE
+
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => _ThemePicker(parentContext: parentContext),
+  );
+}
+
 
   String _themeLabel(String? theme) {
     switch (theme) {
@@ -289,7 +297,9 @@ class ProfilePage extends StatelessWidget {
 // ================= THEME PICKER =================
 
 class _ThemePicker extends StatelessWidget {
-  const _ThemePicker();
+  final BuildContext parentContext;
+
+  const _ThemePicker({required this.parentContext});
 
   @override
   Widget build(BuildContext context) {
@@ -329,9 +339,49 @@ class _ThemePicker extends StatelessWidget {
           ? const Icon(Icons.check, color: Colors.green)
           : null,
       onTap: () async {
-        await card.updateTheme(value);
-        if (context.mounted) Navigator.pop(context);
+        try {
+          await card.updateTheme(value);
+          if (context.mounted) Navigator.pop(context);
+        } on ThemeForbiddenException catch (e) {
+          if (context.mounted) {
+            Navigator.pop(context);
+           _showProDialog(parentContext, e.message);
+          }
+        }
       },
+
     );
   }
+
+
+  void _showProDialog(BuildContext context, String message) {
+ showDialog(
+  context: context,
+  useRootNavigator: true,
+  builder: (_) => AlertDialog(
+      title: const Text('Fonction premium ✨'),
+      content: Text(message),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      actions: [
+       TextButton(
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(),
+          child: const Text('Plus tard'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            Navigator.of(context, rootNavigator: true)
+                .pushNamed('/upgrade');
+          },
+          child: const Text('Passer PRO'),
+        ),
+
+      ],
+    ),
+  );
+}
+
 }
