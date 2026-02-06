@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../shared/services/card_service.dart';
+import '../../auth/providers/auth_provider.dart';
 
 // ───────────────── DESIGN TOKENS ─────────────────
 
@@ -39,6 +42,23 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   bool _isPublic = true;
   bool _isSubmitting = false;
+  bool _companyLocked = false;
+
+  @override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+
+  final auth = context.watch<AuthProvider>();
+  final user = auth.user;
+
+  if (user?.hasCompany == true && !_companyLocked) {
+    setState(() {
+      _companyCtrl.text = user!.company!.name;
+      _companyLocked = true;
+    });
+  }
+}
+
 
   @override
   void dispose() {
@@ -115,7 +135,19 @@ class _CreateCardFormState extends State<CreateCardForm> {
                     controller: _companyCtrl,
                     label: 'Entreprise',
                     required: true,
+                    enabled: !_companyLocked,
                   ),
+                  if (_companyLocked)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Entreprise liée à votre licence',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
                 ],
               ),
 
@@ -234,11 +266,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
     required TextEditingController controller,
     required String label,
     bool required = false,
+    bool enabled = true,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
         controller: controller,
+        enabled: enabled,
         validator: required
             ? (v) => v == null || v.isEmpty ? 'Champ requis' : null
             : null,
@@ -249,37 +283,25 @@ class _CreateCardFormState extends State<CreateCardForm> {
         cursorColor: AppColors.textPrimary,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(
-            color: AppColors.textSecondary,
-          ),
-          floatingLabelStyle: const TextStyle(
-            color: AppColors.textPrimary,
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-
+          labelStyle: const TextStyle(color: AppColors.textSecondary),
+          floatingLabelStyle:
+              const TextStyle(color: AppColors.textPrimary),
           filled: true,
           fillColor: AppColors.surface,
-
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: AppColors.stroke,
-              width: 0.9,
-            ),
+            borderSide: const BorderSide(color: AppColors.stroke),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: AppColors.strokeFocus,
-              width: 1.2,
-            ),
+            borderSide: const BorderSide(color: AppColors.strokeFocus),
           ),
-          errorBorder: OutlineInputBorder(
+          disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Colors.redAccent,
-              width: 1,
+            borderSide: BorderSide(
+              color: AppColors.stroke.withValues(alpha: 0.4),
             ),
           ),
         ),
