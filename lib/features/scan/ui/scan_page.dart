@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/scan_service.dart';
+import 'package:kart_app/core/ui/feedback/feedback_overlay.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
@@ -14,60 +15,76 @@ class _ScanPageState extends State<ScanPage> {
   final ScanService _service = ScanService();
 
   void _onDetect(BarcodeCapture capture) async {
-  if (_isProcessing) return;
+    if (_isProcessing) return;
+    if (capture.barcodes.isEmpty) return;
 
-  // ✅ PROTECTION ABSOLUE
-  if (capture.barcodes.isEmpty) return;
+    final rawValue = capture.barcodes.first.rawValue;
+    if (rawValue == null || rawValue.isEmpty) return;
 
-  final barcode = capture.barcodes.first;
-  final rawValue = barcode.rawValue;
+    final slug = _extractSlug(rawValue);
+    if (slug == null) return;
 
-  if (rawValue == null || rawValue.isEmpty) return;
+    setState(() => _isProcessing = true);
 
-  final slug = _extractSlug(rawValue);
-  if (slug == null) return;
+    try {
+      final result = await _service.scanCard(slug);
 
-  setState(() => _isProcessing = true);
+      if (!mounted) return;
 
-  try {
-    await _service.scanCard(slug);
+      final statusCode = result['statusCode'];
+      final message = result['message'];
 
-    if (!mounted) return;
-    _showSuccess();
-  } catch (e) {
-    if (!mounted) return;
-    _showError();
-  } finally {
-    if (mounted) {
-      setState(() => _isProcessing = false);
+      if (statusCode == 201) {
+        _showSuccess(message);
+      } else if (statusCode == 200) {
+        _showInfo(message);
+      }
+    } on ScanException catch (e) {
+      if (!mounted) return;
+      _showError(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showError('Erreur inconnue');
+    } finally {
+      if (mounted) {
+        await Future.delayed(const Duration(milliseconds: 800));
+        setState(() => _isProcessing = false);
+      }
     }
   }
-}
-
 
   String? _extractSlug(String value) {
     final uri = Uri.tryParse(value);
     if (uri == null) return null;
 
-    // ex: /cards/lamine-dabo
     return uri.pathSegments.isNotEmpty
         ? uri.pathSegments.last
         : null;
   }
 
-  void _showSuccess() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Contact ajouté avec succès ✅'),
-        backgroundColor: Colors.green,
-      ),
+  // ✅ Nouveau contact
+  void _showSuccess(String message) {
+    FeedbackOverlay.showSuccess(
+      context,
+      title: message,
+      subtitle: 'La carte a été ajoutée à vos contacts',
     );
   }
 
-  void _showError() {
+  // ℹ️ Déjà existant
+  void _showInfo(String message) {
+    FeedbackOverlay.showInfo(
+      context,
+      title: message,
+      subtitle: 'Ce contact est déjà enregistré',
+    );
+  }
+
+  // ❌ Erreur backend
+  void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Erreur lors du scan ❌'),
+      SnackBar(
+        content: Text(message),
         backgroundColor: Colors.red,
       ),
     );
