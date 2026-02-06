@@ -5,7 +5,11 @@ class ContactRow extends StatelessWidget {
   final ContactModel contact;
   final VoidCallback? onTap;
 
-  const ContactRow({super.key, required this.contact, this.onTap});
+  const ContactRow({
+    super.key,
+    required this.contact,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +21,11 @@ class ContactRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              child: Text(contact.fullname.isNotEmpty
-                  ? contact.fullname[0]
-                  : '?'),
+              child: Text(
+                contact.fullname.isNotEmpty
+                    ? contact.fullname[0].toUpperCase()
+                    : '?',
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -28,12 +34,20 @@ class ContactRow extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w500,
+                  color: Colors.white,
                 ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.message),
-              onPressed: () {},
+              icon: const Icon(Icons.message, color: Colors.white),
+              onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Messagerie avec ${contact.fullname} à venir'),
+                ),
+              );
+            },
+
             ),
           ],
         ),
