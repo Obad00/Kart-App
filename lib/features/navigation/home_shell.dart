@@ -7,15 +7,23 @@ import '../scan/ui/scan_page.dart';
 import '../contacts/ui/contacts_page.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
-
+  final int initialIndex;
+  const HomeShell({
+      super.key,
+      this.initialIndex = 0,
+    });
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
-  int _index = 0;
+  late int _index;
 
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+  }
   static const List<Widget> _pages = <Widget>[
     MyDigitalCardPage(),
      ScanPage(),

@@ -36,9 +36,12 @@ class _ScanPageState extends State<ScanPage> {
 
       if (statusCode == 201) {
         _showSuccess(message);
+        _goToContacts(); // 👈 REDIRECTION
       } else if (statusCode == 200) {
         _showInfo(message);
+        _goToContacts(); // 👈 REDIRECTION
       }
+
     } on ScanException catch (e) {
       if (!mounted) return;
       _showError(e.message);
@@ -89,6 +92,18 @@ class _ScanPageState extends State<ScanPage> {
       ),
     );
   }
+
+  void _goToContacts() async {
+  await Future.delayed(const Duration(milliseconds: 900));
+
+  if (!mounted) return;
+
+  Navigator.of(context).pushReplacementNamed(
+    '/home',
+    arguments: {'tab': 2}, // 👈 Contacts
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {

@@ -44,7 +44,14 @@ class KartApp extends StatelessWidget {
           '/login': (_) => const LoginPage(),
           '/register': (_) => const RegisterPage(),
           '/my-card': (_) => const MyDigitalCardGuard(),
-          '/home': (_) => const HomeShell(),
+          '/home': (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+            return HomeShell(
+              initialIndex: args?['tab'] ?? 0,
+            );
+          },
         },
       ),
     );
