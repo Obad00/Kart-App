@@ -4,6 +4,7 @@ import '../auth/providers/auth_provider.dart';
 import '../digital_card/ui/my_digital_card_page.dart';
 import '../profile/ui/profile_page.dart';
 import '../scan/ui/scan_page.dart';
+import '../contacts/ui/contacts_page.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -18,7 +19,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   static const List<Widget> _pages = <Widget>[
     MyDigitalCardPage(),
      ScanPage(),
-    _ContactsPlaceholder(),
+     ContactsPage(),
      ProfilePage(), 
    ];
 
@@ -130,15 +131,15 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
 
 
-class _ContactsPlaceholder extends StatelessWidget {
-  const _ContactsPlaceholder();
+// class _ContactsPlaceholder extends StatelessWidget {
+//   const _ContactsPlaceholder();
 
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Text('Contacts',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-      );
-}
+//   @override
+//   Widget build(BuildContext context) => Center(
+//         child: Text('Contacts',
+//             style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+//       );
+// }
 
 // class _ProfilePlaceholder extends StatelessWidget {
 //   const _ProfilePlaceholder();
