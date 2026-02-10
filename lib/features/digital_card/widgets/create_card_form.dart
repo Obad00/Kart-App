@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
@@ -62,96 +63,99 @@ class _CreateCardFormState extends State<CreateCardForm> {
   // ---------------- ACTIONS ----------------
 
   Future<void> _submit() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isSubmitting = true);
+    setState(() => _isSubmitting = true);
 
-  try {
-    final activatedFields = _activeFields.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
+    try {
+      final activatedFields = _activeFields.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toList();
 
-    final data = {
-      'jobTitle': _jobCtrl.text.trim(),
-      'company': _companyCtrl.text.trim(),
-      'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-      'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-      'linkedin': _linkedinCtrl.text.trim().isEmpty ? null : _linkedinCtrl.text.trim(),
-      'activatedFields': activatedFields,
-      'isPublic': _isPublic,
-    };
+      final data = {
+        'jobTitle': _jobCtrl.text.trim(),
+        'company': _companyCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+        'linkedin': _linkedinCtrl.text.trim().isEmpty ? null : _linkedinCtrl.text.trim(),
+        'activatedFields': activatedFields,
+        'isPublic': _isPublic,
+      };
 
-    debugPrint('Données envoyées : $data');
+      // Affiche les données uniquement en mode debug
+      if (kDebugMode) {
+        debugPrint('Données envoyées : $data');
+      }
 
-    await CardService.createCard(
-      jobTitle: data['jobTitle']! as String,
-      company: data['company']! as String,
-      phone: data['phone'] as String?,
-      email: data['email'] as String?,
-      linkedin: data['linkedin'] as String?,
-      activatedFields: activatedFields,
-      isPublic: _isPublic,
-    );
+      await CardService.createCard(
+        jobTitle: data['jobTitle']! as String,
+        company: data['company']! as String,
+        phone: data['phone'] as String?,
+        email: data['email'] as String?,
+        linkedin: data['linkedin'] as String?,
+        activatedFields: activatedFields,
+        isPublic: _isPublic,
+      );
 
-    if (!mounted) return;
-    Navigator.pop(context, true);
+      if (!mounted) return;
+      Navigator.pop(context, true);
 
-  } on DioException catch (e) {
-    // Si le backend renvoie un JSON avec les erreurs
-    if (e.response?.statusCode == 422) {
-      final errors = e.response?.data;
-      String errorMsg = 'Erreur de validation :\n';
+    } on DioException catch (e) {
+      // Erreurs de validation du backend
+      if (e.response?.statusCode == 422) {
+        final errors = e.response?.data;
+        String errorMsg = 'Erreur de validation :\n';
 
-      if (errors is Map) {
-        errors.forEach((key, value) {
-          if (value is List) {
-            errorMsg += '$key : ${value.join(", ")}\n';
-          } else {
-            errorMsg += '$key : $value\n';
-          }
-        });
+        if (errors is Map) {
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorMsg += '$key : ${value.join(", ")}\n';
+            } else {
+              errorMsg += '$key : $value\n';
+            }
+          });
+        } else {
+          errorMsg = e.response?.data.toString() ?? 'Erreur 422';
+        }
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Erreur de validation'),
+              content: Text(errorMsg),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
       } else {
-        errorMsg = e.response?.data.toString() ?? 'Erreur 422';
+        // Autres erreurs réseau ou serveur
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Erreur'),
+              content: Text('Une erreur est survenue : ${e.message}'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
       }
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Erreur de validation'),
-            content: Text(errorMsg),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    } else {
-      // Autres erreurs réseau ou serveur
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Erreur'),
-            content: Text('Une erreur est survenue : ${e.message}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
-  } finally {
-    if (mounted) setState(() => _isSubmitting = false);
   }
-}
 
   void _nextPage() {
     if (_currentPage < 2) {
@@ -179,7 +183,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
         return _jobCtrl.text.isNotEmpty && _companyCtrl.text.isNotEmpty;
       case 1:
       case 2:
-        return true;
+        return true; // tous champs facultatifs
       default:
         return false;
     }
@@ -209,7 +213,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 ),
                 const SizedBox(height: 32),
 
-                /// INDICATOR
+                // INDICATOR
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -229,7 +233,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
                 const SizedBox(height: 40),
 
-                /// PAGES
+                // PAGES
                 Expanded(
                   child: PageView(
                     controller: _pageController,
@@ -267,7 +271,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
                 const SizedBox(height: 24),
 
-                /// BUTTONS
+                // BUTTONS
                 Row(
                   children: [
                     if (_currentPage > 0)
