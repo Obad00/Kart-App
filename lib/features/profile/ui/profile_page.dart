@@ -89,60 +89,70 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 32),
 
           // 🚪 LOGOUT
-          ElevatedButton.icon(
-            icon: const Icon(Icons.logout),
-            label: const Text('Se déconnecter'),
+        InkWell(
+  borderRadius: BorderRadius.circular(14),
+  onTap: () async {
+    // Stocker le context localement pour le showDialog
+    final currentContext = context;
+
+    final confirm = await showDialog<bool>(
+      context: currentContext, // OK, context avant async
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir vous déconnecter ?',
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text('Déconnexion'),
-                    content: const Text(
-                      'Êtes-vous sûr de vouloir vous déconnecter ?',
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(context).pop(false),
-                        child: const Text('Annuler'),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () =>
-                            Navigator.of(context).pop(true),
-                        child: const Text('Se déconnecter'),
-                      ),
-                    ],
-                  );
-                },
-              );
-
-              if (confirm == true) {
-                await auth.logout();
-                if (context.mounted) {
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil(
-                          '/login', (_) => false);
-                }
-              }
-            },
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Se déconnecter'),
           ),
+        ],
+      ),
+    );
+
+    // ✅ Vérifier si le widget est toujours monté avant d'utiliser context
+    if (confirm == true && currentContext.mounted) {
+      await context.read<AuthProvider>().logout();
+      if (currentContext.mounted) {
+        Navigator.of(currentContext)
+            .pushNamedAndRemoveUntil('/login', (_) => false);
+      }
+    }
+  },
+  child: Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    decoration: BoxDecoration(
+      color: Colors.redAccent,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    alignment: Alignment.center,
+    child: const Text(
+      'Se déconnecter',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  ),
+),
+
         ],
       ),
     );

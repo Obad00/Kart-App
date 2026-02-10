@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../providers/company_provider.dart';
+import '../../../shared/widgets/auth_text_field.dart';
+import '../../../shared/widgets/auth_primary_button.dart';
 
 class CreateCompanyPage extends StatefulWidget {
   const CreateCompanyPage({super.key});
@@ -11,8 +12,6 @@ class CreateCompanyPage extends StatefulWidget {
 }
 
 class _CreateCompanyPageState extends State<CreateCompanyPage> {
-  final _formKey = GlobalKey<FormState>();
-
   final _nameCtrl = TextEditingController();
   final _maxUsersCtrl = TextEditingController();
   final _logoCtrl = TextEditingController();
@@ -31,20 +30,19 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_nameCtrl.text.isEmpty || _maxUsersCtrl.text.isEmpty) return;
 
     setState(() => _loading = true);
 
     final provider = context.read<CompanyProvider>();
 
-   await provider.createCompany(
-    name: _nameCtrl.text.trim(),
-    maxUsers: int.parse(_maxUsersCtrl.text.trim()),
-    logo: _logoCtrl.text.trim().isEmpty ? null : _logoCtrl.text.trim(),
-    primaryColor: _colorCtrl.text.trim(),
-    plan: _plan,
-  );
-
+    await provider.createCompany(
+      name: _nameCtrl.text.trim(),
+      maxUsers: int.parse(_maxUsersCtrl.text.trim()),
+      logo: _logoCtrl.text.trim().isEmpty ? null : _logoCtrl.text.trim(),
+      primaryColor: _colorCtrl.text.trim(),
+      plan: _plan,
+    );
 
     setState(() => _loading = false);
 
@@ -61,106 +59,101 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
+        backgroundColor: Colors.black,
         title: const Text('Créer une entreprise'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Configuration entreprise',
-                style: theme.textTheme.headlineLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              'Configuration entreprise',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Branding et paramètres',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Branding et paramètres',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 32),
 
-                ),
-              ),
+            // Champs
+            AuthTextField(
+              label: 'Nom de l’entreprise',
+              controller: _nameCtrl,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 24),
+            AuthTextField(
+              label: 'Nombre de membres',
+              controller: _maxUsersCtrl,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 24),
+            _planDropdown(),
+            const SizedBox(height: 24),
+            AuthTextField(
+              label: 'Couleur principale (hex)',
+              controller: _colorCtrl,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 24),
+            AuthTextField(
+              label: 'Logo (URL)',
+              controller: _logoCtrl,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 36),
 
-              const SizedBox(height: 32),
-
-              _field(
-                controller: _nameCtrl,
-                label: 'Nom de l’entreprise',
-                required: true,
-              ),
-              _field(
-                controller: _maxUsersCtrl,
-                label: 'Nombre de membres',
-                keyboardType: TextInputType.number,
-                required: true,
-              ),
-              _planDropdown(context),
-              _field(
-                controller: _colorCtrl,
-                label: 'Couleur principale (hex)',
-              ),
-              _field(
-                controller: _logoCtrl,
-                label: 'Logo (URL)',
-              ),
-
-              const SizedBox(height: 36),
-
-              ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Créer l’entreprise'),
-              ),
-            ],
-          ),
+            AuthPrimaryButton(
+              label: 'Créer l’entreprise',
+              loading: _loading,
+              onTap: _submit,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    bool required = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        validator: required
-            ? (v) => v == null || v.isEmpty ? 'Champ requis' : null
-            : null,
-        decoration: InputDecoration(labelText: label),
+ Widget _planDropdown() {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      border: Border(
+        bottom: BorderSide(color: Colors.grey[600]!, width: 1),
       ),
-    );
-  }
+    ),
+    child: DropdownButtonFormField<String>(
+      initialValue: _plan, // <-- ici
+      items: const [
+        DropdownMenuItem(value: 'free', child: Text('Free')),
+        DropdownMenuItem(value: 'pro', child: Text('Pro')),
+        DropdownMenuItem(value: 'enterprise', child: Text('Enterprise')),
+      ],
+      onChanged: (v) => setState(() => _plan = v!),
+      dropdownColor: const Color(0xFF0A0A0A),
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(
+        labelText: 'Plan',
+        labelStyle: TextStyle(color: Colors.grey),
+        border: InputBorder.none,
+      ),
+    ),
+  );
+}
 
-  Widget _planDropdown(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: DropdownButtonFormField<String>(
-        initialValue: _plan,
-        items: const [
-          DropdownMenuItem(value: 'free', child: Text('Free')),
-          DropdownMenuItem(value: 'pro', child: Text('Pro')),
-          DropdownMenuItem(value: 'enterprise', child: Text('Enterprise')),
-        ],
-        onChanged: (v) => setState(() => _plan = v!),
-        decoration: const InputDecoration(labelText: 'Plan'),
-      ),
-    );
-  }
 }

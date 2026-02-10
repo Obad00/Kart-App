@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../onboarding/providers/company_provider.dart';
+import '../../../shared/widgets/auth_text_field.dart';
+import '../../../shared/widgets/auth_primary_button.dart';
 
 class JoinCompanyPage extends StatefulWidget {
   const JoinCompanyPage({super.key});
@@ -11,38 +13,84 @@ class JoinCompanyPage extends StatefulWidget {
 
 class _JoinCompanyPageState extends State<JoinCompanyPage> {
   final _codeCtrl = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit(CompanyProvider provider) async {
+    if (_codeCtrl.text.isEmpty) return;
+
+    setState(() => _loading = true);
+
+    await provider.joinCompany(_codeCtrl.text.trim());
+
+    setState(() => _loading = false);
+
+    if (!mounted) return;
+
+    if (provider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error!)),
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CompanyProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Rejoindre une entreprise')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: _codeCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Code licence',
+      backgroundColor: const Color(0xFF0A0A0A),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text('Rejoindre une entreprise'),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              const Text(
+                'Rejoindre une entreprise',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: provider.isLoading
-                  ? null
-                  : () async {
-                      await provider.joinCompany(_codeCtrl.text);
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, '/home');
-                      }
-                    },
-              child: provider.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Rejoindre'),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'Entrez le code licence fourni par votre entreprise.',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              AuthTextField(
+                label: 'Code licence',
+                controller: _codeCtrl,
+                onChanged: (_) => setState(() {}),
+              ),
+
+              const SizedBox(height: 36),
+
+              AuthPrimaryButton(
+                label: 'Rejoindre',
+                loading: _loading || provider.isLoading,
+                onTap: () => _submit(provider),
+              ),
+            ],
+          ),
         ),
       ),
     );

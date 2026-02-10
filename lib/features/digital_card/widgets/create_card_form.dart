@@ -1,22 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import '../../../shared/widgets/auth_text_field.dart';
+import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/widgets/auth_outline_button.dart';
 import '../../../shared/services/card_service.dart';
 import '../../auth/providers/auth_provider.dart';
-
-// ───────────────── DESIGN TOKENS ─────────────────
-
-class AppColors {
-  static const background = Color(0xFF0B0B0F);
-  static const surface = Color(0xFF111318);
-  static const stroke = Color(0xFF2A2D34);
-  static const strokeFocus = Color(0xFF4A4F5A);
-
-  static const textPrimary = Color(0xFFEDEDED);
-  static const textSecondary = Color(0xFF9AA0A6);
-}
-
-// ───────────────── FORM ─────────────────
 
 class CreateCardForm extends StatefulWidget {
   const CreateCardForm({super.key});
@@ -44,21 +33,20 @@ class _CreateCardFormState extends State<CreateCardForm> {
   bool _isSubmitting = false;
   bool _companyLocked = false;
 
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
   @override
-void didChangeDependencies() {
-  super.didChangeDependencies();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
 
-  final auth = context.watch<AuthProvider>();
-  final user = auth.user;
-
-  if (user?.hasCompany == true && !_companyLocked) {
-    setState(() {
+    if (user?.hasCompany == true && !_companyLocked) {
       _companyCtrl.text = user!.company!.name;
       _companyLocked = true;
-    });
+    }
   }
-}
-
 
   @override
   void dispose() {
@@ -67,241 +55,241 @@ void didChangeDependencies() {
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _linkedinCtrl.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
+  // ---------------- ACTIONS ----------------
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
+  setState(() => _isSubmitting = true);
 
-    try {
-      final activatedFields = _activeFields.entries
-          .where((e) => e.value)
-          .map((e) => e.key)
-          .toList();
+  try {
+    final activatedFields = _activeFields.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
 
-      await CardService.createCard(
-        jobTitle: _jobCtrl.text.trim(),
-        company: _companyCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        linkedin: _linkedinCtrl.text.trim(),
-        activatedFields: activatedFields,
-        isPublic: _isPublic,
+    final data = {
+      'jobTitle': _jobCtrl.text.trim(),
+      'company': _companyCtrl.text.trim(),
+      'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+      'linkedin': _linkedinCtrl.text.trim().isEmpty ? null : _linkedinCtrl.text.trim(),
+      'activatedFields': activatedFields,
+      'isPublic': _isPublic,
+    };
+
+    debugPrint('Données envoyées : $data');
+
+    await CardService.createCard(
+      jobTitle: data['jobTitle']! as String,
+      company: data['company']! as String,
+      phone: data['phone'] as String?,
+      email: data['email'] as String?,
+      linkedin: data['linkedin'] as String?,
+      activatedFields: activatedFields,
+      isPublic: _isPublic,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context, true);
+
+  } on DioException catch (e) {
+    // Si le backend renvoie un JSON avec les erreurs
+    if (e.response?.statusCode == 422) {
+      final errors = e.response?.data;
+      String errorMsg = 'Erreur de validation :\n';
+
+      if (errors is Map) {
+        errors.forEach((key, value) {
+          if (value is List) {
+            errorMsg += '$key : ${value.join(", ")}\n';
+          } else {
+            errorMsg += '$key : $value\n';
+          }
+        });
+      } else {
+        errorMsg = e.response?.data.toString() ?? 'Erreur 422';
+      }
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Erreur de validation'),
+            content: Text(errorMsg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // Autres erreurs réseau ou serveur
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Erreur'),
+            content: Text('Une erreur est survenue : ${e.message}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  } finally {
+    if (mounted) setState(() => _isSubmitting = false);
+  }
+}
+
+  void _nextPage() {
+    if (_currentPage < 2) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
       );
-
-      if (!mounted) return;
-      Navigator.pop(context, true);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    } else {
+      _submit();
     }
   }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  bool _isValidPage() {
+    switch (_currentPage) {
+      case 0:
+        return _jobCtrl.text.isNotEmpty && _companyCtrl.text.isNotEmpty;
+      case 1:
+      case 2:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: const Text(
-          'Créer ma carte',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: SafeArea(
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _header(),
-              const SizedBox(height: 36),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              children: [
+                const Text(
+                  'Créer ma carte',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 32),
 
-              _section(
-                title: 'Profil professionnel',
-                children: [
-                  _field(
-                    controller: _jobCtrl,
-                    label: 'Poste',
-                    required: true,
-                  ),
-                  _field(
-                    controller: _companyCtrl,
-                    label: 'Entreprise',
-                    required: true,
-                    enabled: !_companyLocked,
-                  ),
-                  if (_companyLocked)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        'Entreprise liée à votre licence',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
+                /// INDICATOR
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    3,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == i ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _currentPage == i ? Colors.white : Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              _section(
-                title: 'Contacts visibles',
-                subtitle: 'Choisissez ce que vous partagez',
-                children: [
-                  _contactField(
-                    label: 'Téléphone',
-                    controller: _phoneCtrl,
-                    fieldKey: 'phone',
-                  ),
-                  _contactField(
-                    label: 'Email',
-                    controller: _emailCtrl,
-                    fieldKey: 'email',
-                  ),
-                  _contactField(
-                    label: 'LinkedIn',
-                    controller: _linkedinCtrl,
-                    fieldKey: 'linkedin',
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 28),
-
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Carte publique',
-                  style: TextStyle(color: AppColors.textPrimary),
-                ),
-                subtitle: const Text(
-                  'Visible via lien ou QR code',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
                   ),
                 ),
-                value: _isPublic,
-                onChanged: (v) => setState(() => _isPublic = v),
-              ),
 
-              const SizedBox(height: 40),
-              _submitButton(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                const SizedBox(height: 40),
 
-  // ───────────────── UI ─────────────────
+                /// PAGES
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (i) => setState(() => _currentPage = i),
+                    children: [
+                      _twoFields(
+                        'Poste',
+                        _jobCtrl,
+                        'Entreprise',
+                        _companyCtrl,
+                        companyLocked: _companyLocked,
+                        onChanged1: (_) => setState(() {}),
+                        onChanged2: (_) => setState(() {}),
+                      ),
+                      _twoFieldsWithSwitches(
+                        'Téléphone',
+                        _phoneCtrl,
+                        'Email',
+                        _emailCtrl,
+                        activeFields: _activeFields,
+                        onChanged1: (_) => setState(() {}),
+                        onChanged2: (_) => setState(() {}),
+                      ),
+                      _oneFieldWithSwitch(
+                        'LinkedIn',
+                        _linkedinCtrl,
+                        isPublic: _isPublic,
+                        onPublicChanged: (v) => setState(() => _isPublic = v),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ],
+                  ),
+                ),
 
-  Widget _header() {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Créer votre carte',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: 6),
-        Text(
-          'Simple. Élégant. Professionnel.',
-          style: TextStyle(
-            fontSize: 15,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
+                const SizedBox(height: 24),
 
-  Widget _section({
-    required String title,
-    String? subtitle,
-    required List<Widget> children,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        if (subtitle != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        const SizedBox(height: 16),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    bool required = false,
-    bool enabled = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: TextFormField(
-        controller: controller,
-        enabled: enabled,
-        validator: required
-            ? (v) => v == null || v.isEmpty ? 'Champ requis' : null
-            : null,
-        style: const TextStyle(
-          fontSize: 15,
-          color: AppColors.textPrimary,
-        ),
-        cursorColor: AppColors.textPrimary,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
-          floatingLabelStyle:
-              const TextStyle(color: AppColors.textPrimary),
-          filled: true,
-          fillColor: AppColors.surface,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.stroke),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.strokeFocus),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(
-              color: AppColors.stroke.withValues(alpha: 0.4),
+                /// BUTTONS
+                Row(
+                  children: [
+                    if (_currentPage > 0)
+                      Expanded(
+                        child: AuthOutlineButton(
+                          label: 'Retour',
+                          onTap: _previousPage,
+                        ),
+                      )
+                    else
+                      const Expanded(child: SizedBox()),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AuthPrimaryButton(
+                        label: _currentPage == 2 ? 'Créer ma carte' : 'Suivant',
+                        loading: _isSubmitting,
+                        onTap: _isValidPage() ? _nextPage : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -309,55 +297,99 @@ void didChangeDependencies() {
     );
   }
 
-  Widget _contactField({
-    required String label,
-    required TextEditingController controller,
-    required String fieldKey,
+  // ---------------- HELPERS ----------------
+
+  Widget _twoFields(
+    String l1,
+    TextEditingController c1,
+    String l2,
+    TextEditingController c2, {
+    bool companyLocked = false,
+    ValueChanged<String>? onChanged1,
+    ValueChanged<String>? onChanged2,
   }) {
-    return Column(
-      children: [
-        _field(controller: controller, label: label),
-        SwitchListTile.adaptive(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            'Afficher $label',
-            style: const TextStyle(color: AppColors.textPrimary),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AuthTextField(label: l1, controller: c1, onChanged: onChanged1),
+          const SizedBox(height: 32),
+          AuthTextField(
+            label: l2,
+            controller: c2,
+            enabled: !companyLocked,
+            onChanged: onChanged2,
           ),
-          value: _activeFields[fieldKey]!,
-          onChanged: (v) =>
-              setState(() => _activeFields[fieldKey] = v),
-        ),
-      ],
+          if (companyLocked)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Entreprise liée à votre licence',
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _submitButton() {
-    return GestureDetector(
-      onTap: _isSubmitting ? null : _submit,
-      child: Container(
-        height: 56,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: AppColors.textPrimary,
-        ),
-        child: _isSubmitting
-            ? const SizedBox(
-                height: 22,
-                width: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.black,
-                ),
-              )
-            : const Text(
-                'Créer ma carte',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+  Widget _twoFieldsWithSwitches(
+    String l1,
+    TextEditingController c1,
+    String l2,
+    TextEditingController c2, {
+    required Map<String, bool> activeFields,
+    ValueChanged<String>? onChanged1,
+    ValueChanged<String>? onChanged2,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AuthTextField(label: l1, controller: c1, onChanged: onChanged1),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Afficher $l1', style: const TextStyle(color: Colors.white)),
+            value: activeFields[l1.toLowerCase()] ?? false,
+            onChanged: (v) => setState(() => activeFields[l1.toLowerCase()] = v),
+          ),
+          const SizedBox(height: 32),
+          AuthTextField(label: l2, controller: c2, onChanged: onChanged2),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Afficher $l2', style: const TextStyle(color: Colors.white)),
+            value: activeFields[l2.toLowerCase()] ?? false,
+            onChanged: (v) => setState(() => activeFields[l2.toLowerCase()] = v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _oneFieldWithSwitch(
+    String label,
+    TextEditingController ctrl, {
+    required bool isPublic,
+    required ValueChanged<bool> onPublicChanged,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AuthTextField(label: label, controller: ctrl, onChanged: onChanged),
+          const SizedBox(height: 32),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Carte publique', style: TextStyle(color: Colors.white)),
+            subtitle: const Text(
+              'Visible via lien ou QR code',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            value: isPublic,
+            onChanged: onPublicChanged,
+          ),
+        ],
       ),
     );
   }
