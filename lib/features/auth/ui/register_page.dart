@@ -83,7 +83,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (auth.isAuthenticated) {
       Navigator.pushReplacementNamed(
         context,
-        '/onboarding-choice',
+        '/plans',
         arguments: {
           'successMessage': 'Compte créé avec succès 🎉',
         },

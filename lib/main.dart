@@ -19,7 +19,7 @@ import 'features/onboarding/ui/onboarding_choice_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
 import 'features/onboarding/ui/join_company_page.dart';
-
+import 'features/plans/ui/plan_selection_page.dart';
 
 
 
@@ -55,7 +55,9 @@ class KartApp extends StatelessWidget {
           '/login': (_) => const LoginPage(),
           '/register': (_) => const RegisterPage(),
 
-          
+          //Plans
+          '/plans': (_) => const PlanSelectionPage(),
+
           // Onboarding
           '/onboarding-choice': (_) => const OnboardingChoicePage(),
           '/onboarding-company': (_) => const OnboardingCompanyChoicePage(),
