@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -375,6 +376,32 @@ class _CompanyQrCardState extends State<CompanyQrCard>
     );
   }
 
+  /// Logo placeholder pour le centre du QR code
+  Widget _buildCenterLogoPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [widget.primaryColor, _accentDark],
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Text(
+          widget.companyName.isNotEmpty 
+              ? widget.companyName[0].toUpperCase() 
+              : 'K',
+          style: TextStyle(
+            color: _textOnPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQrSection() {
     return GestureDetector(
       onTap: () {
@@ -418,7 +445,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                 child: widget.qrCode,
               ),
               
-              // Logo central sur le QR
+              // Logo central sur le QR - affiche le logo de l'entreprise ou l'initiale
               Positioned(
                 child: Container(
                   width: 48,
@@ -435,27 +462,19 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                     ],
                   ),
                   padding: const EdgeInsets.all(4),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [widget.primaryColor, _accentDark],
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Center(
-                      child: Text(
-                        widget.companyName.isNotEmpty 
-                            ? widget.companyName[0].toUpperCase() 
-                            : 'K',
-                        style: TextStyle(
-                          color: _textOnPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: widget.companyLogo != null && widget.companyLogo!.isNotEmpty
+                        ? Image.network(
+                            widget.companyLogo!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildCenterLogoPlaceholder(),
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return _buildCenterLogoPlaceholder();
+                            },
+                          )
+                        : _buildCenterLogoPlaceholder(),
                   ),
                 ),
               ),

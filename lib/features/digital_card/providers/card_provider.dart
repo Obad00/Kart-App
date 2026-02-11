@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../../shared/services/card_service.dart';
 
 import 'package:dio/dio.dart';
@@ -84,7 +85,19 @@ class CardProvider extends ChangeNotifier {
       // Récupérer les infos de l'entreprise depuis l'objet branding
       final branding = res.data['branding'] as Map<String, dynamic>?;
       if (branding != null) {
-        _companyLogo = branding['logo'];
+        // Construire l'URL complète du logo
+        final logoPath = branding['logo'] as String?;
+        if (logoPath != null && logoPath.isNotEmpty) {
+          // Si c'est déjà une URL complète, l'utiliser directement
+          if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
+            _companyLogo = logoPath;
+          } else {
+            // Sinon, construire l'URL avec le storage
+            _companyLogo = '${ApiEndpoints.storageUrl}/$logoPath';
+          }
+        } else {
+          _companyLogo = null;
+        }
         _companyPrimaryColor = branding['primary_color'];
         // Utiliser le nom de l'entreprise du branding si disponible
         if (branding['company_name'] != null) {
@@ -92,7 +105,16 @@ class CardProvider extends ChangeNotifier {
         }
       } else {
         // Fallback sur les anciennes clés si branding n'existe pas
-        _companyLogo = res.data['company_logo'];
+        final logoPath = res.data['company_logo'] as String?;
+        if (logoPath != null && logoPath.isNotEmpty) {
+          if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
+            _companyLogo = logoPath;
+          } else {
+            _companyLogo = '${ApiEndpoints.storageUrl}/$logoPath';
+          }
+        } else {
+          _companyLogo = null;
+        }
         _companyPrimaryColor = res.data['company_primary_color'];
       }
       
