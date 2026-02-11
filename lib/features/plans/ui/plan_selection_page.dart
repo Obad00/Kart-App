@@ -12,22 +12,77 @@ class PlanSelectionPage extends StatefulWidget {
   State<PlanSelectionPage> createState() => _PlanSelectionPageState();
 }
 
-class _PlanSelectionPageState extends State<PlanSelectionPage> {
+class _PlanSelectionPageState extends State<PlanSelectionPage>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController(viewportFraction: 0.88);
   int _selectedIndex = 0;
+
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+
+  // Couleurs d'accent pour chaque plan
+  final List<Color> _planColors = [
+    Colors.grey[400]!,       // Free
+    const Color(0xFF2563EB), // Pro (bleu)
+    const Color(0xFFFFD700), // Enterprise (or)
+  ];
+
+  // Couleur secondaire pour gradient Pro
+  static const Color _proSecondaryColor = Color(0xFF3B82F6);
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PlanProvider>(context, listen: false).loadPlans();
+      _animController.forward();
     });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _animController.dispose();
     super.dispose();
+  }
+
+  List<String> _getFeaturesForPlan(String? slug) {
+    switch (slug) {
+      case 'free':
+        return [
+          'Carte digitale personnelle',
+          'QR code unique',
+          'Partage illimité',
+        ];
+      case 'pro':
+        return [
+          'Tout de Free +',
+          'Thèmes premium',
+          'Statistiques avancées',
+          'Highlights personnalisés',
+          'Support prioritaire',
+        ];
+      case 'enterprise':
+        return [
+          'Tout de Pro +',
+          'Gestion d\'équipe',
+          'Licences multiples',
+          'Branding entreprise',
+          'Analytics d\'équipe',
+          'Support dédié',
+        ];
+      default:
+        return [];
+    }
   }
 
   @override
@@ -35,19 +90,38 @@ class _PlanSelectionPageState extends State<PlanSelectionPage> {
     final provider = Provider.of<PlanProvider>(context);
     final plans = provider.plans;
 
-    if (provider.loading) {
+    if (provider.loading && plans.isEmpty) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: Color(0xFF0A0A0A),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
       );
     }
 
     if (plans.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0A0A0A),
+      return Scaffold(
+        backgroundColor: const Color(0xFF0A0A0A),
         body: Center(
-          child: Text(
-            'Aucun plan disponible',
-            style: TextStyle(color: Colors.white),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.grey[600],
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Aucun plan disponible',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -60,99 +134,195 @@ class _PlanSelectionPageState extends State<PlanSelectionPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Column(
-            children: [
-              const Text(
-                'Choisissez votre plan',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Balayez pour comparer les offres',
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: plans.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                  itemBuilder: (_, index) {
-                    final plan = plans[index];
-                    final isSelected = index == _selectedIndex;
-                    return AnimatedPadding(
-                      duration: const Duration(milliseconds: 300),
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: isSelected ? 0 : 20),
-                      child: PlanCard(
-                        title: plan['name']!,
-                        price: plan['price']!,
-                        description: plan['description']!,
-                        highlight: isSelected,
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // Icon
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.12),
+                              Colors.white.withOpacity(0.04),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: const Icon(
+                          Icons.workspace_premium_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
                       ),
-                    );
-                  },
+
+                      const SizedBox(height: 20),
+
+                      const Text(
+                        'Choisissez votre plan',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Balayez pour découvrir les offres',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 15,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Page indicator dots
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(plans.length, (i) {
+                          final isSelected = i == _selectedIndex;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: isSelected ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? _planColors[i % _planColors.length]
+                                  : Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: _planColors[i % _planColors.length]
+                                            .withOpacity(0.4),
+                                        blurRadius: 8,
+                                      ),
+                                    ]
+                                  : [],
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              AuthPrimaryButton(
-  label: 'Continuer avec le plan ${plans[_selectedIndex]['name']}',
-  loading: provider.loading,
-  onTap: () async {
-  final plan = plans[_selectedIndex];
-  final planId = plan['id'];
-  final planSlug = plan['slug'];
 
-  // ✅ données capturées avant await
+                const SizedBox(height: 24),
 
-  await provider.subscribePlan(planId);
+                // Plans carousel
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: plans.length,
+                    onPageChanged: (index) {
+                      setState(() => _selectedIndex = index);
+                    },
+                    itemBuilder: (_, index) {
+                      final plan = plans[index];
+                      final isSelected = index == _selectedIndex;
+                      final slug = plan['slug'] as String?;
 
-  // ✅ vérifie que le widget est toujours monté
-  if (!mounted) return;
+                      return AnimatedPadding(
+                        duration: const Duration(milliseconds: 300),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: isSelected ? 0 : 24,
+                        ),
+                        child: PlanCard(
+                          title: plan['name'] ?? '',
+                          price: plan['price'] ?? '',
+                          description: plan['description'] ?? '',
+                          features: _getFeaturesForPlan(slug),
+                          highlight: isSelected,
+                          isPopular: slug == 'pro',
+                          accentColor: _planColors[index % _planColors.length],
+                          secondaryColor: slug == 'pro' ? _proSecondaryColor : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
 
-  // ✅ utilise le context dans un callback post-frame
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!mounted) return;
+                const SizedBox(height: 24),
 
-    if (provider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error!)),
-      );
-      return;
-    }
+                // Buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      AuthPrimaryButton(
+                        label:
+                            'Continuer avec ${plans[_selectedIndex]['name']}',
+                        icon: Icons.arrow_forward_rounded,
+                        loading: provider.loading,
+                        onTap: () async {
+                          final plan = plans[_selectedIndex];
+                          final planId = plan['id'];
+                          final planSlug = plan['slug'];
 
-    if (planSlug == 'enterprise') {
-      Navigator.pushReplacementNamed(
-        context,
-        '/create-company',
-        arguments: {'subscriptionId': provider.currentSubscriptionId},
-      );
-    } else {
-      Navigator.pushReplacementNamed(context, '/home');
-    }
-  });
-},
-),
+                          await provider.subscribePlan(planId);
 
-              const SizedBox(height: 12),
-              AuthOutlineButton(
-                label: 'Choisir plus tard',
-                onTap: () {
-                  // Capture context localement ici aussi
-                  final currentContext = context;
-                  Navigator.pushReplacementNamed(currentContext, '/home');
-                },
-              ),
-            ],
+                          if (!mounted) return;
+
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+
+                            if (provider.error != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(provider.error!),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (planSlug == 'enterprise') {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/create-company',
+                                arguments: {
+                                  'subscriptionId':
+                                      provider.currentSubscriptionId
+                                },
+                              );
+                            } else {
+                              Navigator.pushReplacementNamed(context, '/home');
+                            }
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      AuthOutlineButton(
+                        label: 'Choisir plus tard',
+                        icon: Icons.schedule_rounded,
+                        onTap: () {
+                          Navigator.pushReplacementNamed(context, '/home');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

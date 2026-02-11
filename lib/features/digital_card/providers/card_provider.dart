@@ -32,6 +32,12 @@ class CardProvider extends ChangeNotifier {
   String? _theme;
   String? get theme => _theme;
 
+  // --- COMPANY INFO ---
+  String? _companyLogo;
+  String? _companyPrimaryColor;
+  String? get companyLogo => _companyLogo;
+  String? get companyPrimaryColor => _companyPrimaryColor;
+
 
   // --- LOADING ---
   bool _isQrLoading = false;
@@ -55,6 +61,9 @@ class CardProvider extends ChangeNotifier {
 
   try {
     final res = await ApiClient.dio.get('/me/card-summary');
+    
+    // Debug: afficher la réponse complète
+    debugPrint('📦 Card Summary Response: ${res.data}');
 
     if (res.data['job_title'] == null &&
         res.data['company'] == null) {
@@ -69,12 +78,32 @@ class CardProvider extends ChangeNotifier {
       email    = res.data['email'];
       linkedin = res.data['linkedin'];
 
-      _theme = res.data['theme']; // ✅ C’EST ÇA QUI MANQUAIT
+      _theme = res.data['theme'];
       debugPrint('🎨 Theme from API = $_theme');
+
+      // Récupérer les infos de l'entreprise depuis l'objet branding
+      final branding = res.data['branding'] as Map<String, dynamic>?;
+      if (branding != null) {
+        _companyLogo = branding['logo'];
+        _companyPrimaryColor = branding['primary_color'];
+        // Utiliser le nom de l'entreprise du branding si disponible
+        if (branding['company_name'] != null) {
+          company = branding['company_name'];
+        }
+      } else {
+        // Fallback sur les anciennes clés si branding n'existe pas
+        _companyLogo = res.data['company_logo'];
+        _companyPrimaryColor = res.data['company_primary_color'];
+      }
+      
+      debugPrint('🏢 Company Logo = $_companyLogo');
+      debugPrint('🎨 Company Color = $_companyPrimaryColor');
+      debugPrint('🏢 Is Company User = ${_companyLogo != null || _companyPrimaryColor != null}');
 
       _status = CardStatus.hasCard;
     }
   } catch (e) {
+    debugPrint('❌ Error loading card summary: $e');
     _status = CardStatus.error;
     _error = 'Impossible de charger le résumé de la carte';
   } finally {
@@ -133,6 +162,8 @@ Future<void> updateTheme(String theme) async {
     phone = null;
     email = null;
     linkedin = null;
+    _companyLogo = null;
+    _companyPrimaryColor = null;
 
     _status = CardStatus.idle;
     notifyListeners();

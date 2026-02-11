@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../../shared/utils/company_color_helper.dart';
+import '../../navigation/home_shell.dart';
 import '../providers/contacts_provider.dart';
 import '../widgets/contact_row.dart';
 import '../widgets/contacts_search_bar.dart';
@@ -62,7 +65,7 @@ class ContactsGroupedView extends StatelessWidget {
                               .labelLarge
                               ?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                               ),
                         ),
                       ),
@@ -85,46 +88,149 @@ class ContactsGroupedView extends StatelessWidget {
   // ───────────────── EMPTY STATE UI ─────────────────
 
   Widget _emptyState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final companyColor = context.companyColor;
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.people_outline,
-              size: 72,
-              color: Colors.grey,
+            // Icône animée avec cercles
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutBack,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: child,
+                );
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Cercle externe
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: companyColor.withOpacity(0.05),
+                    ),
+                  ),
+                  // Cercle intermédiaire
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: companyColor.withOpacity(0.1),
+                    ),
+                  ),
+                  // Icône centrale
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          companyColor.withOpacity(0.2),
+                          companyColor.withOpacity(0.1),
+                        ],
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.people_outline_rounded,
+                      size: 32,
+                      color: companyColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            
+            const SizedBox(height: 28),
+            
+            // Titre
+            Text(
               'Aucun contact',
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Scannez une carte ou partagez la vôtre pour commencer.',
+            
+            const SizedBox(height: 10),
+            
+            // Description
+            Text(
+              'Scannez une carte ou partagez\nla vôtre pour commencer',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
+                fontSize: 15,
+                color: colors.onSurface.withOpacity(0.5),
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-            onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Fonctionnalité bientôt disponible'),
+            
+            const SizedBox(height: 32),
+            
+            // Bouton Partager ma carte
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                // Naviguer vers la page Carte (index 0)
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => const HomeShell(initialIndex: 0),
                   ),
                 );
               },
-
-              child: const Text('Partager ma carte'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      companyColor,
+                      companyColor.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: companyColor.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.share_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Partager ma carte',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

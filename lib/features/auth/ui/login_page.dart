@@ -11,18 +11,47 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
   bool _isFormValid() =>
-      _emailCtrl.text.contains('@') &&
-      _passwordCtrl.text.length >= 6;
+      _emailCtrl.text.contains('@') && _passwordCtrl.text.length >= 6;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _animController.forward();
+  }
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
@@ -46,85 +75,237 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Column(
-              children: [
-                /// HEADER
-                const Text(
-                  'KART',
-                  style: TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3.5,
-                    color: Colors.white,
-                  ),
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: SlideTransition(
+            position: _slideAnim,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 32,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Connexion',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    letterSpacing: 1,
-                  ),
-                ),
-
-                const SizedBox(height: 64),
-
-                AuthTextField(
-                  label: 'Email',
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                   onChanged: (_) => setState(() {}),
-                ),
-
-                const SizedBox(height: 32),
-
-                AuthTextField(
-                  label: 'Mot de passe',
-                  controller: _passwordCtrl,
-                  obscureText: true,
-                   onChanged: (_) => setState(() {}),
-                ),
-
-                const SizedBox(height: 48),
-
-                AuthPrimaryButton(
-                  label: 'Connexion',
-                  loading: auth.isLoading,
-                  onTap: _isFormValid()
-                      ? () => _submit(auth)
-                      : null,
-                ),
-
-                const SizedBox(height: 32),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
                   children: [
-                    Text(
-                      'Pas encore de compte ? ',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                    GestureDetector(
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/register'),
-                      child: const Text(
-                        'Créer un compte',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                    // Logo / Brand
+                    _buildLogo(),
+
+                    const SizedBox(height: 56),
+
+                    // Form Card
+                    Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 1,
                         ),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title
+                          const Text(
+                            'Connexion',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            'Accédez à votre carte digitale',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 15,
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Email
+                          AuthTextField(
+                            label: 'Email',
+                            hint: 'votre@email.com',
+                            controller: _emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            prefixIcon: Icons.mail_outline_rounded,
+                            onChanged: (_) => setState(() {}),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Password
+                          AuthTextField(
+                            label: 'Mot de passe',
+                            hint: '••••••••',
+                            controller: _passwordCtrl,
+                            obscureText: true,
+                            prefixIcon: Icons.lock_outline_rounded,
+                            onChanged: (_) => setState(() {}),
+                          ),
+
+                          // Error message
+                          if (auth.error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.red.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Colors.red[300],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        auth.error!,
+                                        style: TextStyle(
+                                          color: Colors.red[300],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 32),
+
+                          // Submit Button
+                          AuthPrimaryButton(
+                            label: 'Se connecter',
+                            icon: Icons.arrow_forward_rounded,
+                            loading: auth.isLoading,
+                            onTap: _isFormValid() ? () => _submit(auth) : null,
+                          ),
+                        ],
+                      ),
                     ),
+
+                    const SizedBox(height: 32),
+
+                    // Register Link
+                    _buildRegisterLink(),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Column(
+      children: [
+        // Logo icon
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.15),
+                Colors.white.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+            ),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.credit_card_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Brand name
+        const Text(
+          'KART',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 6,
+            color: Colors.white,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          'Votre carte de visite digitale',
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontSize: 14,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Pas encore de compte ? ',
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontSize: 15,
+          ),
+        ),
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/register'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'Créer un compte',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

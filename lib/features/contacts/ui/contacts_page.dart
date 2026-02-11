@@ -6,9 +6,11 @@ class ContactsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
+    final colors = Theme.of(context).colorScheme;
+    
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: const SafeArea(
         child: ContactsGroupedView(),
       ),
     );

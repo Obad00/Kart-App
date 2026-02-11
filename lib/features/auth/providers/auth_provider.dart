@@ -55,21 +55,49 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('🔐 Attempting login for: $email');
       final response = await _api.login(email, password);
+      debugPrint('🔐 Login response: ${response.data}');
+      
       final token = response.data['token'];
+      if (token == null) {
+        debugPrint('❌ No token in response');
+        error = 'Erreur: token non reçu';
+        return;
+      }
 
       await ApiClient.setToken(token);
+      debugPrint('✅ Token saved');
 
-      // Load the user's profile after setting token
-      await loadMe();
+      // Utiliser l'utilisateur de la réponse de login si disponible
+      final userData = response.data['user'];
+      if (userData != null) {
+        user = User.fromJson(userData);
+        debugPrint('✅ User loaded from login response: ${user?.email}');
+      } else {
+        // Fallback: charger depuis /me si l'utilisateur n'est pas dans la réponse
+        debugPrint('⚠️ No user in login response, loading from /me...');
+        await loadMe();
+        debugPrint('✅ User loaded from /me: ${user?.email}');
+      }
     } on DioException catch (e) {
+      debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
         error = 'Email ou mot de passe incorrect';
+      } else if (e.response?.statusCode == 422) {
+        // Erreur de validation
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          error = data['message'];
+        } else {
+          error = 'Données invalides';
+        }
       } else {
         error = 'Erreur serveur, réessayez';
       }
-    } catch (_) {
-      error = 'Une erreur est survenue';
+    } catch (e) {
+      debugPrint('❌ Unknown error: $e');
+      error = 'Une erreur est survenue: $e';
     } finally {
       isLoading = false;
       notifyListeners();

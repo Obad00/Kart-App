@@ -17,15 +17,12 @@ import '../../contacts/widgets/highlight_bar.dart';
 
 // widgets
 import '../widgets/card_header.dart';
-import '../widgets/qr_card.dart';
+import '../widgets/company_qr_card.dart';
+import '../widgets/basic_qr_card.dart';
 import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
-
-// theme
-import '../theme/card_theme.dart';
-import '../theme/card_theme_mapper.dart';
 
 class MyDigitalCardPage extends StatefulWidget {
   const MyDigitalCardPage({super.key});
@@ -43,9 +40,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
   late final AnimationController _qrTapCtrl;
   late final Animation<double> _qrScale;
-
-  late final AnimationController _scanCtrl;
-  late final Animation<double> _scan;
 
   final GlobalKey _qrKey = GlobalKey();
 
@@ -88,20 +82,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     _qrScale = Tween(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _qrTapCtrl, curve: Curves.easeInOutCubic),
     );
-
-    _scanCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat();
-
-    _scan = Tween(begin: -0.4, end: 1.4).animate(_scanCtrl);
   }
 
   @override
   void dispose() {
     _fadeCtrl.dispose();
     _qrTapCtrl.dispose();
-    _scanCtrl.dispose();
     super.dispose();
   }
 
@@ -149,14 +135,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
             // Highlights
             const Positioned(
-              top: 120,
+              top: 100,
               left: 0,
               right: 0,
               child: HighlightBar(),
             ),
 
-            Padding(
-              padding: const EdgeInsets.only(top: 220),
+            // QR Card centrée verticalement
+            Positioned(
+              top: 180,
+              left: 0,
+              right: 0,
+              bottom: 20,
               child: Consumer<CardProvider>(
                 builder: (_, state, __) {
                   if (state.hasError) {
@@ -255,28 +245,60 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     _fadeCtrl.forward();
                   }
 
-                  // ✅ VARIABLES MANQUANTES (PROPREMENT)
+                  // QR Widget
                   final Widget qrWidget =
                       _buildQr(state.qrSvg!);
-
-                  final DigitalCardTheme cardTheme =
-                      cardThemeFromBackend(state.theme);
 
                   void share() => _shareLink();
                   void download() =>
                       _exportQr(state.qrSvg!);
+
+                  // Vérifier si l'utilisateur a une entreprise
+                  // On utilise les données du CardProvider (company_logo ou company_primary_color)
+                  // car elles viennent de /me/card-summary qui est plus fiable
+                  final bool isCompanyUser = user?.hasCompany == true ||
+                      (state.companyLogo != null && state.companyLogo!.isNotEmpty) ||
+                      (state.companyPrimaryColor != null && state.companyPrimaryColor!.isNotEmpty);
 
                   return FadeTransition(
                     opacity: _fade,
                     child: ScaleTransition(
                       scale: _scale,
                       child: Center(
-                        child: QrCard(
-                          qr: qrWidget,
-                          onShare: share,
-                          onDownload: download,
-                          theme: cardTheme,
-                        ),
+                        child: isCompanyUser
+                            // Carte Premium pour les utilisateurs Entreprise
+                            ? CompanyQrCard(
+                                qrCode: qrWidget,
+                                companyName: state.company ?? user?.company?.name ?? 'Entreprise',
+                                companyLogo: state.companyLogo,
+                                primaryColor: _parseColor(
+                                  state.companyPrimaryColor,
+                                  const Color(0xFF3B82F6),
+                                ),
+                                subtitle: state.jobTitle,
+                                onShare: share,
+                                onDownload: download,
+                                onTapQr: () {
+                                  QrFullscreenView.show(
+                                    context,
+                                    _buildQrOnly(state.qrSvg!),
+                                  );
+                                },
+                              )
+                            // Carte Basique pour les utilisateurs Freemium
+                            : BasicQrCard(
+                                qrCode: qrWidget,
+                                userName: fullName,
+                                jobTitle: state.jobTitle,
+                                onShare: share,
+                                onDownload: download,
+                                onTapQr: () {
+                                  QrFullscreenView.show(
+                                    context,
+                                    _buildQrOnly(state.qrSvg!),
+                                  );
+                                },
+                              ),
                       ),
                     ),
                   );
@@ -293,6 +315,17 @@ Widget _buildQrOnly(String svg) {
   return svg_pkg.SvgPicture.string(svg);
 }
 
+  Color _parseColor(String? hexColor, Color fallback) {
+    if (hexColor == null || hexColor.isEmpty) return fallback;
+    try {
+      String hex = hexColor.replaceFirst('#', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      return Color(int.parse(hex, radix: 16));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
  Widget _buildQr(String svg) {
   return GestureDetector(
     onTap: () {
@@ -303,23 +336,7 @@ Widget _buildQrOnly(String svg) {
       scale: _qrScale,
       child: RepaintBoundary(
         key: _qrKey,
-        child: Stack(
-          children: [
-            svg_pkg.SvgPicture.string(svg),
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _scan,
-                builder: (_, __) => Transform.translate(
-                  offset: Offset(0, _scan.value * 200),
-                  child: Container(
-                    height: 6,
-                    color: Colors.white24,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: svg_pkg.SvgPicture.string(svg),
       ),
     ),
   );

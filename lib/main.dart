@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 
 import 'features/auth/providers/auth_provider.dart';
@@ -36,6 +37,7 @@ class KartApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
@@ -46,14 +48,16 @@ class KartApp extends StatelessWidget {
         ),
 
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: themeProvider.themeMode,
 
-        /// 🔐 ROUTE PAR DÉFAUT (OBLIGATOIRE)
-        initialRoute: '/',
+            /// 🔐 ROUTE PAR DÉFAUT (OBLIGATOIRE)
+            initialRoute: '/',
 
         routes: {
           '/': (_) => const SplashScreen(), 
@@ -79,6 +83,8 @@ class KartApp extends StatelessWidget {
               initialIndex: args?['tab'] ?? 0,
             );
           },
+        },
+          );
         },
       ),
     );

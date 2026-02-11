@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/network/api_client.dart';
 
 class CardService {
@@ -261,6 +262,11 @@ static Future<Map<String, dynamic>> createHighlight(String name) async {
       type: DioExceptionType.unknown,
     );
   } on DioException catch (e) {
+    // Log détaillé pour débugger
+    debugPrint('❌ Erreur création highlight:');
+    debugPrint('   Status: ${e.response?.statusCode}');
+    debugPrint('   Data: ${e.response?.data}');
+    debugPrint('   Message: ${e.message}');
     _handleError(e);
     rethrow;
   }

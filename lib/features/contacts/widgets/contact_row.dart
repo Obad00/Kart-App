@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/utils/company_color_helper.dart';
 import '../models/contact_model.dart';
 
 class ContactRow extends StatelessWidget {
@@ -13,6 +14,9 @@ class ContactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final companyColor = context.companyColor;
+    
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -21,25 +25,30 @@ class ContactRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
+              backgroundColor: companyColor.withOpacity(0.15),
               child: Text(
                 contact.fullname.isNotEmpty
                     ? contact.fullname[0].toUpperCase()
                     : '?',
+                style: TextStyle(
+                  color: companyColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 contact.fullname,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: colors.onSurface,
                 ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.message, color: Colors.white),
+              icon: Icon(Icons.message, color: companyColor),
               onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

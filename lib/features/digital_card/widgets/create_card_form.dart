@@ -199,39 +199,85 @@ class _CreateCardFormState extends State<CreateCardForm> {
         child: Form(
           key: _formKey,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Column(
               children: [
-                const Text(
-                  'Créer ma carte',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // INDICATOR
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    3,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentPage == i ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _currentPage == i ? Colors.white : Colors.white24,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                // HEADER avec gradient
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Colors.white, Color(0xFFB0B0B0)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ).createShader(bounds),
+                  child: const Text(
+                    'Créer ma carte',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: Colors.white,
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Étape ${_currentPage + 1} sur 3',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                const SizedBox(height: 40),
+                // INDICATOR Premium
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (i) {
+                      final isActive = _currentPage == i;
+                      final isCompleted = _currentPage > i;
+                      return Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: isActive ? 32 : 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              gradient: isActive || isCompleted
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                    )
+                                  : null,
+                              color: isActive || isCompleted ? null : Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(5),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF3B82F6).withOpacity(0.4),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                          if (i < 2) const SizedBox(width: 8),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
 
                 // PAGES
                 Expanded(
@@ -303,6 +349,162 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   // ---------------- HELPERS ----------------
 
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Column(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.15),
+                Colors.white.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+          child: Icon(icon, color: Colors.white, size: 26),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[400],
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildFieldCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.06),
+            Colors.white.withOpacity(0.02),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+          width: 1,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildPremiumSwitch({
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    IconData? icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: value 
+            ? Colors.white.withOpacity(0.08)
+            : Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: value 
+              ? Colors.white.withOpacity(0.15)
+              : Colors.white.withOpacity(0.06),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: value 
+                    ? Colors.white.withOpacity(0.12)
+                    : Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: value ? Colors.white : Colors.grey[500],
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 14),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: value ? Colors.white : Colors.grey[300],
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeColor: Colors.white,
+              activeTrackColor: const Color(0xFF3B82F6),
+              inactiveThumbColor: Colors.grey[400],
+              inactiveTrackColor: Colors.grey[800],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _twoFields(
     String l1,
     TextEditingController c1,
@@ -312,26 +514,67 @@ class _CreateCardFormState extends State<CreateCardForm> {
     ValueChanged<String>? onChanged1,
     ValueChanged<String>? onChanged2,
   }) {
-    return Center(
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AuthTextField(label: l1, controller: c1, onChanged: onChanged1),
-          const SizedBox(height: 32),
-          AuthTextField(
-            label: l2,
-            controller: c2,
-            enabled: !companyLocked,
-            onChanged: onChanged2,
+          _buildSectionHeader(
+            icon: Icons.badge_outlined,
+            title: 'Informations professionnelles',
+            subtitle: 'Ces informations apparaîtront sur votre carte digitale',
           ),
-          if (companyLocked)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'Entreprise liée à votre licence',
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: l1,
+                  controller: c1,
+                  onChanged: onChanged1,
+                  prefixIcon: Icons.work_outline,
+                  hint: 'Ex: Directeur Marketing',
+                ),
+                const SizedBox(height: 24),
+                AuthTextField(
+                  label: l2,
+                  controller: c2,
+                  enabled: !companyLocked,
+                  onChanged: onChanged2,
+                  prefixIcon: Icons.business_outlined,
+                  hint: 'Ex: Kart Technologies',
+                ),
+                if (companyLocked) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.verified_outlined,
+                          color: const Color(0xFF3B82F6),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Entreprise liée à votre licence',
+                          style: TextStyle(
+                            color: const Color(0xFF60A5FA),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -346,24 +589,50 @@ class _CreateCardFormState extends State<CreateCardForm> {
     ValueChanged<String>? onChanged1,
     ValueChanged<String>? onChanged2,
   }) {
-    return Center(
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AuthTextField(label: l1, controller: c1, onChanged: onChanged1),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text('Afficher $l1', style: const TextStyle(color: Colors.white)),
-            value: activeFields[l1.toLowerCase()] ?? false,
-            onChanged: (v) => setState(() => activeFields[l1.toLowerCase()] = v),
+          _buildSectionHeader(
+            icon: Icons.contact_phone_outlined,
+            title: 'Coordonnées',
+            subtitle: 'Choisissez les informations de contact à partager',
           ),
-          const SizedBox(height: 32),
-          AuthTextField(label: l2, controller: c2, onChanged: onChanged2),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text('Afficher $l2', style: const TextStyle(color: Colors.white)),
-            value: activeFields[l2.toLowerCase()] ?? false,
-            onChanged: (v) => setState(() => activeFields[l2.toLowerCase()] = v),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: l1,
+                  controller: c1,
+                  onChanged: onChanged1,
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  hint: 'Ex: +33 6 12 34 56 78',
+                ),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher sur ma carte',
+                  value: activeFields[l1.toLowerCase()] ?? false,
+                  onChanged: (v) => setState(() => activeFields[l1.toLowerCase()] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+                const SizedBox(height: 28),
+                AuthTextField(
+                  label: l2,
+                  controller: c2,
+                  onChanged: onChanged2,
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'Ex: nom@entreprise.com',
+                ),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher sur ma carte',
+                  value: activeFields[l2.toLowerCase()] ?? false,
+                  onChanged: (v) => setState(() => activeFields[l2.toLowerCase()] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -377,21 +646,43 @@ class _CreateCardFormState extends State<CreateCardForm> {
     required ValueChanged<bool> onPublicChanged,
     ValueChanged<String>? onChanged,
   }) {
-    return Center(
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AuthTextField(label: label, controller: ctrl, onChanged: onChanged),
-          const SizedBox(height: 32),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Carte publique', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
-              'Visible via lien ou QR code',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+          _buildSectionHeader(
+            icon: Icons.link_outlined,
+            title: 'Réseaux & Visibilité',
+            subtitle: 'Ajoutez vos liens professionnels et gérez la visibilité',
+          ),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: label,
+                  controller: ctrl,
+                  onChanged: onChanged,
+                  prefixIcon: Icons.link,
+                  hint: 'Ex: linkedin.com/in/votrenom',
+                ),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher sur ma carte',
+                  value: _activeFields['linkedin'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+              ],
             ),
-            value: isPublic,
-            onChanged: onPublicChanged,
+          ),
+          const SizedBox(height: 20),
+          _buildFieldCard(
+            child: _buildPremiumSwitch(
+              title: 'Carte publique',
+              subtitle: 'Accessible via lien ou QR code',
+              value: isPublic,
+              onChanged: onPublicChanged,
+              icon: Icons.public_outlined,
+            ),
           ),
         ],
       ),

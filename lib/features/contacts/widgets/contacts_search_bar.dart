@@ -10,15 +10,19 @@ class ContactsSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: TextField(
         onChanged: onChanged,
+        style: TextStyle(color: colors.onSurface),
         decoration: InputDecoration(
           hintText: 'Rechercher',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(color: colors.onSurface.withOpacity(0.5)),
+          prefixIcon: Icon(Icons.search, color: colors.onSurface.withOpacity(0.5)),
           filled: true,
-          fillColor: Colors.grey.withValues(alpha: 0.15),
+          fillColor: colors.onSurface.withOpacity(0.05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
