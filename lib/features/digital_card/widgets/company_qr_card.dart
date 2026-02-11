@@ -135,52 +135,54 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       onTapDown: (_) => _onTapDown(),
       onTapUp: (_) => _onTapUp(),
       onTapCancel: _onTapUp,
-      child: Container(
-        width: 310,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            // Glow coloré animé
-            BoxShadow(
-              color: widget.primaryColor.withOpacity(_glowAnimation.value * 0.35),
-              blurRadius: 40 + (_glowAnimation.value * 20),
-              spreadRadius: -8,
-            ),
-            // Ombre principale
-            BoxShadow(
-              color: Colors.black.withOpacity(0.35),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
-            // Ombre secondaire
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: IntrinsicHeight(
-            child: Stack(
-              children: [
-                // Background avec gradient
-                Positioned.fill(child: _buildBackground()),
-                
-                // Effet de lumière animé
-                _buildLightEffect(),
-                
-                // Contenu principal
-                _buildContent(),
-                
-                // Bordure brillante
-                _buildShimmerBorder(),
+        child: Center(
+          child: Container(
+            width: 310,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: [
+                // Glow coloré animé
+                BoxShadow(
+                  color: widget.primaryColor.withOpacity(_glowAnimation.value * 0.35),
+                  blurRadius: 40 + (_glowAnimation.value * 20),
+                  spreadRadius: -8,
+                ),
+                // Ombre principale
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.35),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+                // Ombre secondaire
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: IntrinsicHeight(
+                child: Stack(
+                  children: [
+                    // Background avec gradient
+                    Positioned.fill(child: _buildBackground()),
+                    
+                    // Effet de lumière animé
+                    _buildLightEffect(),
+                    
+                    // Contenu principal
+                    _buildContent(),
+                    
+                    // Bordure brillante
+                    _buildShimmerBorder(),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
     );
   }
 
