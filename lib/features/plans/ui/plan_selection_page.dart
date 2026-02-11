@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/plan_provider.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
@@ -11,29 +13,16 @@ class PlanSelectionPage extends StatefulWidget {
 }
 
 class _PlanSelectionPageState extends State<PlanSelectionPage> {
-  final PageController _pageController = PageController(
-    viewportFraction: 0.88,
-  );
+  final PageController _pageController = PageController(viewportFraction: 0.88);
+  int _selectedIndex = 0;
 
-  int _selectedIndex = 1; // Pro par défaut
-
-  final List<Map<String, String>> _plans = [
-    {
-      'title': 'Gratuit',
-      'price': '0 €',
-      'description': 'Carte digitale, QR Code, contacts basiques',
-    },
-    {
-      'title': 'Pro',
-      'price': '9.99 € / mois',
-      'description': 'Thèmes premium, export contacts, analytics',
-    },
-    {
-      'title': 'Enterprise',
-      'price': '29.99 € / mois',
-      'description': 'Équipe, branding entreprise, API',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PlanProvider>(context, listen: false).loadPlans();
+    });
+  }
 
   @override
   void dispose() {
@@ -43,6 +32,31 @@ class _PlanSelectionPageState extends State<PlanSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<PlanProvider>(context);
+    final plans = provider.plans;
+
+    if (provider.loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (plans.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0A0A0A),
+        body: Center(
+          child: Text(
+            'Aucun plan disponible',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    if (_selectedIndex >= plans.length) {
+      _selectedIndex = 0;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(
@@ -50,87 +64,92 @@ class _PlanSelectionPageState extends State<PlanSelectionPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
             children: [
-              /// HEADER
               const Text(
                 'Choisissez votre plan',
-                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
                   color: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 'Balayez pour comparer les offres',
                 style: TextStyle(color: Colors.grey[400]),
               ),
-
               const SizedBox(height: 24),
-
-              /// PLANS – SWIPE HORIZONTAL
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  itemCount: _plans.length,
+                  itemCount: plans.length,
                   onPageChanged: (index) {
-                    setState(() => _selectedIndex = index);
+                    setState(() {
+                      _selectedIndex = index;
+                    });
                   },
-                  itemBuilder: (context, index) {
-                    final plan = _plans[index];
-
+                  itemBuilder: (_, index) {
+                    final plan = plans[index];
+                    final isSelected = index == _selectedIndex;
                     return AnimatedPadding(
                       duration: const Duration(milliseconds: 300),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: index == _selectedIndex ? 0 : 24,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: isSelected ? 0 : 20),
                       child: PlanCard(
-                        title: plan['title']!,
+                        title: plan['name']!,
                         price: plan['price']!,
                         description: plan['description']!,
-                        highlight: index == _selectedIndex,
-                        onTap: () {
-                          setState(() => _selectedIndex = index);
-                          _pageController.animateToPage(
-                            index,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOut,
-                          );
-                        },
+                        highlight: isSelected,
                       ),
                     );
                   },
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              /// ACTION PRINCIPALE
               AuthPrimaryButton(
-                label:
-                    'Continuer avec le plan ${_plans[_selectedIndex]['title']}',
-                onTap: () {
-                  final selectedPlan = _plans[_selectedIndex]['title'];
+  label: 'Continuer avec le plan ${plans[_selectedIndex]['name']}',
+  loading: provider.loading,
+  onTap: () async {
+  final plan = plans[_selectedIndex];
+  final planId = plan['id'];
+  final planSlug = plan['slug'];
 
-                  if (selectedPlan == 'Gratuit') {
-                    Navigator.pushReplacementNamed(context, '/home');
-                  } else {
-                    Navigator.pushReplacementNamed(
-                        context, '/create-company');
-                  }
-                },
-              ),
+  // ✅ données capturées avant await
+
+  await provider.subscribePlan(planId);
+
+  // ✅ vérifie que le widget est toujours monté
+  if (!mounted) return;
+
+  // ✅ utilise le context dans un callback post-frame
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+
+    if (provider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error!)),
+      );
+      return;
+    }
+
+    if (planSlug == 'enterprise') {
+      Navigator.pushReplacementNamed(
+        context,
+        '/create-company',
+        arguments: {'subscriptionId': provider.currentSubscriptionId},
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  });
+},
+),
 
               const SizedBox(height: 12),
-
               AuthOutlineButton(
                 label: 'Choisir plus tard',
                 onTap: () {
-                  Navigator.pushReplacementNamed(context, '/home');
+                  // Capture context localement ici aussi
+                  final currentContext = context;
+                  Navigator.pushReplacementNamed(currentContext, '/home');
                 },
               ),
             ],

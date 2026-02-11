@@ -17,8 +17,22 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
   final _logoCtrl = TextEditingController();
   final _colorCtrl = TextEditingController(text: '#000000');
 
-  String _plan = 'enterprise';
   bool _loading = false;
+
+  // données venant du workflow (PlanSelectionPage)
+  int? _subscriptionId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    if (args != null) {
+      _subscriptionId = args['subscriptionId'];
+    }
+  }
 
   @override
   void dispose() {
@@ -31,28 +45,35 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
 
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _maxUsersCtrl.text.isEmpty) return;
+    if (_subscriptionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Subscription ID manquant")),
+      );
+      return;
+    }
 
     setState(() => _loading = true);
 
-    final provider = context.read<CompanyProvider>();
+    final companyProvider = context.read<CompanyProvider>();
 
-    await provider.createCompany(
+    await companyProvider.createCompany(
       name: _nameCtrl.text.trim(),
       maxUsers: int.parse(_maxUsersCtrl.text.trim()),
       logo: _logoCtrl.text.trim().isEmpty ? null : _logoCtrl.text.trim(),
       primaryColor: _colorCtrl.text.trim(),
-      plan: _plan,
+      subscriptionId: _subscriptionId!,
     );
-
-    setState(() => _loading = false);
 
     if (!mounted) return;
 
-    if (provider.error == null) {
+    setState(() => _loading = false);
+
+    if (companyProvider.error == null) {
+      // Redirection après création entreprise
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error!)),
+        SnackBar(content: Text(companyProvider.error!)),
       );
     }
   }
@@ -64,6 +85,12 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('Créer une entreprise'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, '/plans');
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -71,9 +98,9 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Configuration entreprise',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
@@ -89,32 +116,28 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
             ),
             const SizedBox(height: 32),
 
-            // Champs
             AuthTextField(
               label: 'Nom de l’entreprise',
               controller: _nameCtrl,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
+
             AuthTextField(
               label: 'Nombre de membres',
               controller: _maxUsersCtrl,
               keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
-            _planDropdown(),
-            const SizedBox(height: 24),
+
             AuthTextField(
               label: 'Couleur principale (hex)',
               controller: _colorCtrl,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
+
             AuthTextField(
               label: 'Logo (URL)',
               controller: _logoCtrl,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 36),
 
@@ -128,32 +151,4 @@ class _CreateCompanyPageState extends State<CreateCompanyPage> {
       ),
     );
   }
-
- Widget _planDropdown() {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    decoration: BoxDecoration(
-      border: Border(
-        bottom: BorderSide(color: Colors.grey[600]!, width: 1),
-      ),
-    ),
-    child: DropdownButtonFormField<String>(
-      initialValue: _plan, // <-- ici
-      items: const [
-        DropdownMenuItem(value: 'free', child: Text('Free')),
-        DropdownMenuItem(value: 'pro', child: Text('Pro')),
-        DropdownMenuItem(value: 'enterprise', child: Text('Enterprise')),
-      ],
-      onChanged: (v) => setState(() => _plan = v!),
-      dropdownColor: const Color(0xFF0A0A0A),
-      style: const TextStyle(color: Colors.white),
-      decoration: const InputDecoration(
-        labelText: 'Plan',
-        labelStyle: TextStyle(color: Colors.grey),
-        border: InputBorder.none,
-      ),
-    ),
-  );
-}
-
 }

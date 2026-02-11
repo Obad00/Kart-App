@@ -10,12 +10,14 @@ import 'features/navigation/home_shell.dart';
 import 'features/contacts/providers/highlight_provider.dart';
 import 'features/contacts/providers/contacts_provider.dart';
 import 'features/onboarding/providers/company_provider.dart';
+import 'features/plans/providers/plan_provider.dart';
+import 'features/plans/services/plan_service.dart';
+
 
 import 'features/digital_card/ui/my_digital_card_guard.dart';
 import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
 import 'features/auth/ui/register_page.dart';
-import 'features/onboarding/ui/onboarding_choice_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
 import 'features/onboarding/ui/join_company_page.dart';
@@ -39,6 +41,10 @@ class KartApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
         ChangeNotifierProvider(create: (_) => ContactsProvider()..fetchGroupedContacts(),),
         ChangeNotifierProvider(create: (_) => CompanyProvider()),
+        ChangeNotifierProvider(
+          create: (_) => PlanProvider(service: PlanService()),
+        ),
+
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -59,7 +65,6 @@ class KartApp extends StatelessWidget {
           '/plans': (_) => const PlanSelectionPage(),
 
           // Onboarding
-          '/onboarding-choice': (_) => const OnboardingChoicePage(),
           '/onboarding-company': (_) => const OnboardingCompanyChoicePage(),
           '/create-company': (_) => const CreateCompanyPage(),
           '/join-company': (_) => const JoinCompanyPage(),
