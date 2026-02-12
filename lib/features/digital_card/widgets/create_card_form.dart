@@ -32,22 +32,48 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   bool _isPublic = true;
   bool _isSubmitting = false;
-  bool _companyLocked = false;
+  bool _companyInitialized = false; // ✅ Flag pour éviter la réinitialisation multiple
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // ✅ Initialiser après le premier build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeCompanyField();
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final auth = context.watch<AuthProvider>();
-    final user = auth.user;
-
-    if (user?.hasCompany == true && !_companyLocked) {
-      _companyCtrl.text = user!.company!.name;
-      _companyLocked = true;
-    }
+    _initializeCompanyField();
   }
+
+  void _initializeCompanyField() {
+  if (_companyInitialized) return;
+
+  final auth = context.read<AuthProvider>();
+  final user = auth.user;
+
+  // debugPrint('🔍 User: ${user?.email}');
+  // debugPrint('🔍 Company: ${user?.company?.name}');
+
+  if (user?.company != null) {
+    final companyName = user!.company!.name;
+    
+    Future.microtask(() {
+      if (mounted) {
+        _companyCtrl.text = companyName;
+        _companyInitialized = true;
+        setState(() {});
+        // debugPrint('✅ Champ rempli: $companyName');
+      }
+    });
+  }
+}
 
   @override
   void dispose() {
@@ -76,13 +102,14 @@ class _CreateCardFormState extends State<CreateCardForm> {
       final auth = context.read<AuthProvider>();
       final user = auth.user;
 
+      // ✅ Utiliser le nom de l'entreprise liée OU le texte saisi
       final companyName = user?.hasCompany == true
           ? user!.company!.name
           : _companyCtrl.text.trim();
 
       final data = {
         'jobTitle': _jobCtrl.text.trim(),
-        'company': companyName, // <-- auto-rempli si lié à la licence
+        'company': companyName,
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
         'linkedin': _linkedinCtrl.text.trim().isEmpty
@@ -92,9 +119,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
         'isPublic': _isPublic,
       };
 
-      // Affiche les données uniquement en mode debug
       if (kDebugMode) {
-        debugPrint('Données envoyées : $data');
+        // debugPrint('📤 Données envoyées : $data');
       }
 
       await CardService.createCard(
@@ -306,7 +332,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
                         _jobCtrl,
                         'Entreprise',
                         _companyCtrl,
-                        companyLocked: _companyLocked,
                         onChanged1: (_) => setState(() {}),
                         onChanged2: (_) => setState(() {}),
                       ),
@@ -525,10 +550,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
     TextEditingController c1,
     String l2,
     TextEditingController c2, {
-    bool companyLocked = false,
     ValueChanged<String>? onChanged1,
     ValueChanged<String>? onChanged2,
   }) {
+    // ✅ Vérifier en temps réel si l'utilisateur a une entreprise liée
+    final auth = context.read<AuthProvider>();
+    final isCompanyLinked = auth.user?.hasCompany == true;
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -551,12 +579,12 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 AuthTextField(
                   label: l2,
                   controller: c2,
-                  enabled: !companyLocked,
+                  enabled: !isCompanyLinked, // ✅ Désactiver si entreprise liée
                   onChanged: onChanged2,
                   prefixIcon: Icons.business_outlined,
                   hint: 'Ex: Kart Technologies',
                 ),
-                if (companyLocked) ...[
+                if (isCompanyLinked) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding:

@@ -98,33 +98,24 @@ static Future<void> createCard({
   ///
   /// Returns: Le SVG QR code en String
   static Future<String> getCardQrCode() async {
-    try {
-      final response = await ApiClient.dio.get<String>(
-        _qrEndpoint,
-        options: Options(
-          responseType: ResponseType.plain,
-          contentType: 'image/svg+xml',
-          headers: {
-            'Accept': 'image/svg+xml',
-          },
-        ),
+  try {
+    final response = await ApiClient.dio.get(_qrEndpoint);
+
+    final data = response.data;
+    if (data == null || data['qr'] == null || data['qr'].isEmpty) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        error: 'QR code SVG vide reçu du serveur',
+        type: DioExceptionType.unknown,
       );
-
-      // Vérifier que la réponse n'est pas nulle
-      if (response.data == null || response.data!.isEmpty) {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          error: 'QR code SVG vide reçu du serveur',
-          type: DioExceptionType.unknown,
-        );
-      }
-
-      return response.data!;
-    } on DioException catch (e) {
-      _handleError(e);
-      rethrow;
     }
+
+    return data['qr'] as String;
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
   }
+}
 
   /// Retrieve a public card by its slug (e.g. 'adama-dabo').
   /// Example endpoint: GET /api/cards/{slug}
