@@ -295,18 +295,18 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                               return;
                             }
 
-                            if (planSlug == 'enterprise') {
+                           if (planSlug == 'enterprise') {
                               Navigator.pushReplacementNamed(
                                 context,
-                                '/create-company',
+                                '/onboarding-company',
                                 arguments: {
-                                  'subscriptionId':
-                                      provider.currentSubscriptionId
+                                  'subscriptionId': provider.currentSubscriptionId
                                 },
                               );
                             } else {
                               Navigator.pushReplacementNamed(context, '/home');
                             }
+
                           });
                         },
                       ),
