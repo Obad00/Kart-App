@@ -1,3 +1,4 @@
+// ───────────────── ContactsProvider ─────────────────
 import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../models/highlight_group.dart';
@@ -7,47 +8,56 @@ class ContactsProvider extends ChangeNotifier {
   String? error;
 
   List<HighlightGroup> groups = [];
-
   String _query = '';
 
-  /// 🔍 iOS-style filtering
+  /// 🔍 Retourne les groupes filtrés selon _query
   List<HighlightGroup> get filteredGroups {
     if (_query.isEmpty) return groups;
 
-    return groups
-        .map((group) {
-          final filteredContacts = group.contacts.where((contact) {
-            return contact.fullname
-                .toLowerCase()
-                .contains(_query.toLowerCase());
-          }).toList();
+    final queryLower = _normalize(_query);
 
-          return HighlightGroup(
-            highlight: group.highlight,
-            contacts: filteredContacts,
-          );
-        })
-        .where((group) => group.contacts.isNotEmpty)
-        .toList();
+    final filtered = groups.map((group) {
+      final filteredContacts = group.contacts.where((contact) {
+        final name = _normalize(contact.fullname);
+        final company = _normalize(contact.company ?? '');
+        final email = _normalize(contact.email ?? '');
+        final phone = contact.phone ?? '';
+
+        return name.contains(queryLower) ||
+               company.contains(queryLower) ||
+               email.contains(queryLower) ||
+               phone.contains(queryLower);
+      }).toList();
+
+      if (filteredContacts.isEmpty) return null;
+
+      return HighlightGroup(highlight: group.highlight, contacts: filteredContacts);
+    }).whereType<HighlightGroup>().toList();
+
+    if (kDebugMode) {
+      debugPrint('🔍 Query: $_query');
+      debugPrint('🔍 Original groups: ${groups.map((g) => g.contacts.length).toList()}');
+      debugPrint('🔍 Filtered groups: ${filtered.map((g) => g.contacts.length).toList()}');
+    }
+
+    return filtered;
   }
 
+  /// Met à jour la recherche
   void filterContacts(String value) {
     _query = value.trim();
     notifyListeners();
   }
 
+  /// Chargement des contacts
   Future<void> fetchGroupedContacts() async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      final res =
-          await ApiClient.dio.get('/contacts/grouped-by-highlight');
-
-      groups = (res.data as List)
-          .map((e) => HighlightGroup.fromJson(e))
-          .toList();
+      final res = await ApiClient.dio.get('/contacts/grouped-by-highlight');
+      groups = (res.data as List).map((e) => HighlightGroup.fromJson(e)).toList();
     } catch (e) {
       error = 'Impossible de charger les contacts';
     }
@@ -55,4 +65,24 @@ class ContactsProvider extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+
+  void clear() {
+    groups = [];
+    _query = '';
+    error = null;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  String _normalize(String s) {
+    return s.toLowerCase()
+        .replaceAll(RegExp(r'[éèêë]'), 'e')
+        .replaceAll(RegExp(r'[àáâãä]'), 'a')
+        .replaceAll(RegExp(r'[îïíì]'), 'i')
+        .replaceAll(RegExp(r'[ôöòó]'), 'o')
+        .replaceAll(RegExp(r'[ùúûü]'), 'u')
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  bool get noMatch => _query.isNotEmpty && filteredGroups.isEmpty;
 }
