@@ -397,7 +397,7 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           AuthTextField(
             label: 'Prénom',
-            hint: 'Jean',
+            hint: 'Exemple',
             controller: _firstnameCtrl,
             prefixIcon: Icons.person_outline_rounded,
             onChanged: (_) => setState(() {}),
@@ -405,7 +405,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(height: 24),
           AuthTextField(
             label: 'Nom',
-            hint: 'Dupont',
+            hint: 'Exemple',
             controller: _lastnameCtrl,
             prefixIcon: Icons.badge_outlined,
             onChanged: (_) => setState(() {}),
@@ -419,7 +419,7 @@ class _RegisterPageState extends State<RegisterPage>
     return SingleChildScrollView(
       child: AuthTextField(
         label: 'Adresse email',
-        hint: 'jean.dupont@email.com',
+        hint: 'exemplet@email.com',
         controller: _emailCtrl,
         keyboardType: TextInputType.emailAddress,
         prefixIcon: Icons.mail_outline_rounded,
