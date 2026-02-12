@@ -65,7 +65,7 @@ class ContactsGroupedView extends StatelessWidget {
                               .labelLarge
                               ?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
                         ),
                       ),
@@ -117,7 +117,7 @@ class ContactsGroupedView extends StatelessWidget {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: companyColor.withOpacity(0.05),
+                      color: companyColor.withValues(alpha: 0.05),
                     ),
                   ),
                   // Cercle intermédiaire
@@ -126,7 +126,7 @@ class ContactsGroupedView extends StatelessWidget {
                     height: 90,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: companyColor.withOpacity(0.1),
+                      color: companyColor.withValues(alpha: 0.1),
                     ),
                   ),
                   // Icône centrale
@@ -139,8 +139,8 @@ class ContactsGroupedView extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          companyColor.withOpacity(0.2),
-                          companyColor.withOpacity(0.1),
+                          companyColor.withValues(alpha: 0.2),
+                          companyColor.withValues(alpha: 0.1),
                         ],
                       ),
                     ),
@@ -175,7 +175,7 @@ class ContactsGroupedView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
-                color: colors.onSurface.withOpacity(0.5),
+                color: colors.onSurface.withValues(alpha: 0.5),
                 height: 1.4,
               ),
             ),
@@ -199,13 +199,13 @@ class ContactsGroupedView extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       companyColor,
-                      companyColor.withOpacity(0.8),
+                      companyColor.withValues(alpha: 0.8),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: companyColor.withOpacity(0.4),
+                      color: companyColor.withValues(alpha: 0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

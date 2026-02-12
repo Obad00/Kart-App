@@ -16,7 +16,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -28,12 +29,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    
+
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOut,
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.05),
       end: Offset.zero,
@@ -41,7 +42,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       parent: _animController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animController.forward();
   }
 
@@ -76,7 +77,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             expandedHeight: 0,
             floating: true,
             pinned: true,
-            backgroundColor: colors.surface.withOpacity(0.9),
+            backgroundColor: colors.surface.withValues(alpha: 0.9),
             surfaceTintColor: Colors.transparent,
             title: Text(
               'Mon profil',
@@ -91,12 +92,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 onPressed: () => _showSettings(context),
                 icon: Icon(
                   Icons.settings_outlined,
-                  color: colors.onSurface.withOpacity(0.7),
+                  color: colors.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
           ),
-          
+
           // Contenu
           SliverToBoxAdapter(
             child: FadeTransition(
@@ -108,17 +109,18 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   child: Column(
                     children: [
                       const SizedBox(height: 8),
-                      
+
                       // Header profil
-                      _buildProfileHeader(colors, companyColor, fullName, user.email),
-                      
+                      _buildProfileHeader(
+                          colors, companyColor, fullName, user.email),
+
                       const SizedBox(height: 24),
-                      
+
                       // Stats rapides
                       _buildQuickStats(colors, companyColor, card),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Informations personnelles
                       _buildSection(
                         colors: colors,
@@ -141,9 +143,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Carte digitale
                       _buildSection(
                         colors: colors,
@@ -152,11 +154,20 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         title: 'Carte digitale',
                         children: card.status == CardStatus.hasCard
                             ? [
-                                _buildInfoRow(colors, icon: Icons.work_outline, label: 'Poste', value: card.jobTitle ?? '-'),
+                                _buildInfoRow(colors,
+                                    icon: Icons.work_outline,
+                                    label: 'Poste',
+                                    value: card.jobTitle ?? '-'),
                                 _buildDivider(colors),
-                                _buildInfoRow(colors, icon: Icons.business_outlined, label: 'Entreprise', value: card.company ?? '-'),
+                                _buildInfoRow(colors,
+                                    icon: Icons.business_outlined,
+                                    label: 'Entreprise',
+                                    value: card.company ?? '-'),
                                 _buildDivider(colors),
-                                _buildInfoRow(colors, icon: Icons.phone_outlined, label: 'Téléphone', value: card.phone ?? '-'),
+                                _buildInfoRow(colors,
+                                    icon: Icons.phone_outlined,
+                                    label: 'Téléphone',
+                                    value: card.phone ?? '-'),
                                 _buildDivider(colors),
                                 _buildLinkedInRow(colors, card.linkedin),
                               ]
@@ -164,9 +175,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                 _buildEmptyCardState(colors, companyColor),
                               ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Apparence
                       if (card.status == CardStatus.hasCard) ...[
                         _buildSection(
@@ -180,10 +191,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         ),
                         const SizedBox(height: 16),
                       ],
-                      
+
                       // Actions
                       _buildActionButtons(colors, context),
-                      
+
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -196,7 +207,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildProfileHeader(ColorScheme colors, Color companyColor, String fullName, String? email) {
+  Widget _buildProfileHeader(
+      ColorScheme colors, Color companyColor, String fullName, String? email) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -204,13 +216,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            companyColor.withOpacity(0.1),
-            companyColor.withOpacity(0.05),
+            companyColor.withValues(alpha: 0.1),
+            companyColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: companyColor.withOpacity(0.1),
+          color: companyColor.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -225,7 +237,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   gradient: LinearGradient(
                     colors: [
                       companyColor,
-                      companyColor.withOpacity(0.7),
+                      companyColor.withValues(alpha: 0.7),
                     ],
                   ),
                 ),
@@ -264,9 +276,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               ),
             ],
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Infos utilisateur
           Expanded(
             child: Column(
@@ -286,14 +298,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                     Icon(
                       Icons.email_outlined,
                       size: 14,
-                      color: colors.onSurface.withOpacity(0.5),
+                      color: colors.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         email ?? '',
                         style: TextStyle(
-                          color: colors.onSurface.withOpacity(0.6),
+                          color: colors.onSurface.withValues(alpha: 0.6),
                           fontSize: 13,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -304,7 +316,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               ],
             ),
           ),
-          
+
           // Bouton éditer
           IconButton(
             onPressed: () {},
@@ -325,7 +337,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildQuickStats(ColorScheme colors, Color companyColor, CardProvider card) {
+  Widget _buildQuickStats(
+      ColorScheme colors, Color companyColor, CardProvider card) {
     return Row(
       children: [
         Expanded(
@@ -371,10 +384,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: colors.onSurface.withOpacity(0.03),
+        color: colors.onSurface.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colors.onSurface.withOpacity(0.05),
+          color: colors.onSurface.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -398,7 +411,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             label,
             style: TextStyle(
               fontSize: 11,
-              color: colors.onSurface.withOpacity(0.5),
+              color: colors.onSurface.withValues(alpha: 0.5),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -416,10 +429,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: colors.onSurface.withOpacity(0.02),
+        color: colors.onSurface.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colors.onSurface.withOpacity(0.05),
+          color: colors.onSurface.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -433,7 +446,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: companyColor.withOpacity(0.1),
+                    color: companyColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -455,10 +468,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               ],
             ),
           ),
-          
+
           // Contenu
           ...children,
-          
+
           const SizedBox(height: 8),
         ],
       ),
@@ -485,7 +498,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               Icon(
                 icon,
                 size: 20,
-                color: colors.onSurface.withOpacity(0.4),
+                color: colors.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -496,7 +509,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       label,
                       style: TextStyle(
                         fontSize: 11,
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.3,
                       ),
@@ -518,7 +531,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: colors.onSurface.withOpacity(0.3),
+                  color: colors.onSurface.withValues(alpha: 0.3),
                 ),
             ],
           ),
@@ -532,14 +545,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Divider(
         height: 1,
-        color: colors.onSurface.withOpacity(0.06),
+        color: colors.onSurface.withValues(alpha: 0.06),
       ),
     );
   }
 
   Widget _buildLinkedInRow(ColorScheme colors, String? url) {
     final hasUrl = url != null && url.isNotEmpty;
-    
+
     return _buildInfoRow(
       colors,
       icon: Icons.link,
@@ -558,7 +571,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           ? Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A66C2).withOpacity(0.1),
+                color: const Color(0xFF0A66C2).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -579,13 +592,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: companyColor.withOpacity(0.08),
+              color: companyColor.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.credit_card_off_outlined,
               size: 32,
-              color: companyColor.withOpacity(0.6),
+              color: companyColor.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 16),
@@ -603,7 +616,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: colors.onSurface.withOpacity(0.5),
+              color: colors.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 16),
@@ -616,7 +629,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: companyColor.withOpacity(0.3)),
+                side: BorderSide(color: companyColor.withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -625,7 +638,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildThemeSelector(ColorScheme colors, Color companyColor, CardProvider card) {
+  Widget _buildThemeSelector(
+      ColorScheme colors, Color companyColor, CardProvider card) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -633,7 +647,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           Icon(
             Icons.color_lens_outlined,
             size: 20,
-            color: colors.onSurface.withOpacity(0.4),
+            color: colors.onSurface.withValues(alpha: 0.4),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -644,7 +658,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   'Thème de la carte',
                   style: TextStyle(
                     fontSize: 11,
-                    color: colors.onSurface.withOpacity(0.5),
+                    color: colors.onSurface.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -667,7 +681,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: companyColor.withOpacity(0.2)),
+                side: BorderSide(color: companyColor.withValues(alpha: 0.2)),
               ),
             ),
             child: const Text(
@@ -685,9 +699,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       children: [
         // Toggle Mode Light/Dark
         const ThemeToggleWidget(),
-        
+
         const SizedBox(height: 16),
-        
+
         // Bouton Déconnexion
         Material(
           color: Colors.transparent,
@@ -698,10 +712,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.08),
+                color: Colors.red.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.red.withOpacity(0.15),
+                  color: Colors.red.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
@@ -726,15 +740,15 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             ),
           ),
         ),
-        
+
         const SizedBox(height: 20),
-        
+
         // Version de l'app
         Text(
           'KART v1.0.0',
           style: TextStyle(
             fontSize: 11,
-            color: colors.onSurface.withOpacity(0.3),
+            color: colors.onSurface.withValues(alpha: 0.3),
             fontWeight: FontWeight.w500,
             letterSpacing: 1,
           ),
@@ -745,7 +759,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
   void _showSettings(BuildContext context) {
     HapticFeedback.lightImpact();
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -771,12 +785,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              
+
               // Titre
               Text(
                 'Paramètres',
@@ -787,36 +801,42 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Section Apparence
               Text(
                 'APPARENCE',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Toggle de thème
               const ThemeToggleWidget(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Section Compte
               Text(
                 'COMPTE',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Options de compte
               _buildSettingsItem(
                 context,
@@ -824,7 +844,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 title: 'Changer le mot de passe',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigation vers changement de mot de passe
+                  // Navigation vers changement de mot de passe
                 },
               ),
               const SizedBox(height: 8),
@@ -834,7 +854,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 title: 'Notifications',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigation vers paramètres notifications
+                  // Navigation vers paramètres notifications
                 },
               ),
               const SizedBox(height: 8),
@@ -844,24 +864,27 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 title: 'Confidentialité',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigation vers paramètres confidentialité
+                  // Navigation vers paramètres confidentialité
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Section Support
               Text(
                 'SUPPORT',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               _buildSettingsItem(
                 context,
                 icon: Icons.help_outline,
@@ -881,10 +904,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 subtitle: 'Version 1.0.0',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Afficher infos app
+                  // Afficher infos app
                 },
               ),
-              
+
               const SizedBox(height: 32),
             ],
           ),
@@ -892,7 +915,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
-  
+
   Widget _buildSettingsItem(
     BuildContext context, {
     required IconData icon,
@@ -919,7 +942,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               Icon(
                 icon,
                 size: 22,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -940,7 +966,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -950,7 +979,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -972,7 +1004,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -1083,11 +1115,12 @@ class _ThemePicker extends StatelessWidget {
     final card = context.watch<CardProvider>();
     final auth = context.watch<AuthProvider>();
     final colors = Theme.of(context).colorScheme;
-    
+
     // Vérifier si l'utilisateur est premium ou entreprise
     final bool isPremiumOrCompany = auth.user?.isPro == true ||
         auth.user?.hasCompany == true ||
-        (card.companyPrimaryColor != null && card.companyPrimaryColor!.isNotEmpty);
+        (card.companyPrimaryColor != null &&
+            card.companyPrimaryColor!.isNotEmpty);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1099,19 +1132,19 @@ class _ThemePicker extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: colors.onSurface.withOpacity(0.15),
+              color: colors.onSurface.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Titre
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(0.1),
+                  color: colors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -1132,12 +1165,18 @@ class _ThemePicker extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          _themeItem(context, card, colors, 'default', 'Classique', Icons.light_mode_outlined, isPremium: false, isPremiumOrCompany: isPremiumOrCompany),
+          _themeItem(context, card, colors, 'default', 'Classique',
+              Icons.light_mode_outlined,
+              isPremium: false, isPremiumOrCompany: isPremiumOrCompany),
           const SizedBox(height: 10),
-          _themeItem(context, card, colors, 'clean_light', 'Clean light', Icons.wb_sunny_outlined, isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
+          _themeItem(context, card, colors, 'clean_light', 'Clean light',
+              Icons.wb_sunny_outlined,
+              isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
           const SizedBox(height: 10),
-          _themeItem(context, card, colors, 'dark_minimal', 'Dark minimal', Icons.dark_mode_outlined, isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
-          
+          _themeItem(context, card, colors, 'dark_minimal', 'Dark minimal',
+              Icons.dark_mode_outlined,
+              isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
+
           const SizedBox(height: 16),
         ],
       ),
@@ -1160,11 +1199,12 @@ class _ThemePicker extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isLocked 
+        onTap: isLocked
             ? () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
-                _showProDialog(parentContext, 'Ce thème est réservé aux comptes Premium et Entreprise');
+                _showProDialog(parentContext,
+                    'Ce thème est réservé aux comptes Premium et Entreprise');
               }
             : () async {
                 HapticFeedback.lightImpact();
@@ -1183,16 +1223,16 @@ class _ThemePicker extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: selected 
-                ? colors.primary.withOpacity(0.1)
+            color: selected
+                ? colors.primary.withValues(alpha: 0.1)
                 : isLocked
-                    ? colors.onSurface.withOpacity(0.02)
-                    : colors.onSurface.withOpacity(0.03),
+                    ? colors.onSurface.withValues(alpha: 0.02)
+                    : colors.onSurface.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected 
-                  ? colors.primary.withOpacity(0.3)
-                  : colors.onSurface.withOpacity(0.06),
+              color: selected
+                  ? colors.primary.withValues(alpha: 0.3)
+                  : colors.onSurface.withValues(alpha: 0.06),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -1201,11 +1241,11 @@ class _ThemePicker extends StatelessWidget {
               Icon(
                 icon,
                 size: 22,
-                color: isLocked 
-                    ? colors.onSurface.withOpacity(0.3)
-                    : selected 
-                        ? colors.primary 
-                        : colors.onSurface.withOpacity(0.5),
+                color: isLocked
+                    ? colors.onSurface.withValues(alpha: 0.3)
+                    : selected
+                        ? colors.primary
+                        : colors.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1214,15 +1254,16 @@ class _ThemePicker extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                    color: isLocked 
-                        ? colors.onSurface.withOpacity(0.4)
+                    color: isLocked
+                        ? colors.onSurface.withValues(alpha: 0.4)
                         : colors.onSurface,
                   ),
                 ),
               ),
               if (isLocked)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -1279,7 +1320,7 @@ class _ThemePicker extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.15),
+                color: Colors.amber.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(

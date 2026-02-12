@@ -84,12 +84,12 @@ class _AuthTextFieldState extends State<AuthTextField>
     final borderColor = isFocused
         ? Colors.white
         : hasText
-            ? Colors.white.withOpacity(0.4)
-            : Colors.white.withOpacity(0.12);
+            ? Colors.white.withValues(alpha: 0.4)
+            : Colors.white.withValues(alpha: 0.12);
 
     final bgColor = isFocused
-        ? Colors.white.withOpacity(0.06)
-        : Colors.white.withOpacity(0.03);
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.white.withValues(alpha: 0.03);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -102,102 +102,102 @@ class _AuthTextFieldState extends State<AuthTextField>
           );
         },
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: TextStyle(
-              fontSize: isFocused || hasText ? 12 : 14,
-              color: isFocused ? Colors.white : Colors.grey[400],
-              fontWeight: isFocused ? FontWeight.w600 : FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
-            child: Text(widget.label),
-          ),
-          const SizedBox(height: 10),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: widget.errorText != null
-                    ? Colors.red.withOpacity(0.7)
-                    : borderColor,
-                width: isFocused ? 1.5 : 1,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: isFocused || hasText ? 12 : 14,
+                color: isFocused ? Colors.white : Colors.grey[400],
+                fontWeight: isFocused ? FontWeight.w600 : FontWeight.w500,
+                letterSpacing: 0.5,
               ),
-              boxShadow: isFocused
-                  ? [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.04),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
+              child: Text(widget.label),
             ),
-            child: TextField(
-              controller: widget.controller,
-              focusNode: _focusNode,
-              obscureText: _obscure,
-              keyboardType: widget.keyboardType,
-              enabled: widget.enabled,
-              onChanged: (v) {
-                setState(() {});
-                widget.onChanged?.call(v);
-              },
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.3,
-              ),
-              cursorColor: Colors.white,
-              cursorWidth: 1.5,
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w400,
+            const SizedBox(height: 10),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: widget.errorText != null
+                      ? Colors.red.withValues(alpha: 0.7)
+                      : borderColor,
+                  width: isFocused ? 1.5 : 1,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 18,
-                ),
-                border: InputBorder.none,
-                prefixIcon: widget.prefixIcon != null
-                    ? Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 12),
-                        child: Icon(
-                          widget.prefixIcon,
-                          color: isFocused ? Colors.white : Colors.grey[500],
-                          size: 20,
+                boxShadow: isFocused
+                    ? [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
                         ),
-                      )
-                    : null,
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 48,
-                  minHeight: 48,
-                ),
-                suffixIcon: _buildSuffixIcon(isMatching),
+                      ]
+                    : [],
               ),
-            ),
-          ),
-          if (widget.errorText != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8, left: 4),
-              child: Text(
-                widget.errorText!,
-                style: TextStyle(
-                  color: Colors.red[300],
-                  fontSize: 12,
+              child: TextField(
+                controller: widget.controller,
+                focusNode: _focusNode,
+                obscureText: _obscure,
+                keyboardType: widget.keyboardType,
+                enabled: widget.enabled,
+                onChanged: (v) {
+                  setState(() {});
+                  widget.onChanged?.call(v);
+                },
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+                cursorColor: Colors.white,
+                cursorWidth: 1.5,
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  hintStyle: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w400,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 18,
+                  ),
+                  border: InputBorder.none,
+                  prefixIcon: widget.prefixIcon != null
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 16, right: 12),
+                          child: Icon(
+                            widget.prefixIcon,
+                            color: isFocused ? Colors.white : Colors.grey[500],
+                            size: 20,
+                          ),
+                        )
+                      : null,
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  suffixIcon: _buildSuffixIcon(isMatching),
                 ),
               ),
             ),
-        ],
-      ),
+            if (widget.errorText != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Text(
+                  widget.errorText!,
+                  style: TextStyle(
+                    color: Colors.red[300],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -220,7 +220,7 @@ class _AuthTextFieldState extends State<AuthTextField>
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

@@ -55,26 +55,26 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
               end: Alignment.bottomRight,
               colors: [
                 widget.theme.background,
-                widget.theme.background.withOpacity(0.95),
+                widget.theme.background.withValues(alpha: 0.95),
               ],
             ),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: widget.theme.border.withOpacity(0.3),
+              color: widget.theme.border.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               // Glow animé
               BoxShadow(
-                color: widget.theme.foreground.withOpacity(
-                  0.05 + (_pulseAnimation.value * 0.08),
+                color: widget.theme.foreground.withValues(
+                  alpha: 0.05 + (_pulseAnimation.value * 0.08),
                 ),
                 blurRadius: 40 + (_pulseAnimation.value * 20),
                 spreadRadius: -5,
               ),
               // Ombre principale
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 30,
                 offset: const Offset(0, 15),
               ),
@@ -85,7 +85,7 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
             children: [
               // Label "Scannez-moi"
               _buildScanLabel(),
-              
+
               const SizedBox(height: 12),
 
               // QR Code avec frame décoratif
@@ -106,10 +106,10 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: widget.theme.foreground.withOpacity(0.08),
+        color: widget.theme.foreground.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.theme.foreground.withOpacity(0.15),
+          color: widget.theme.foreground.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -118,13 +118,13 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
           Icon(
             Icons.qr_code_scanner_rounded,
             size: 14,
-            color: widget.theme.foreground.withOpacity(0.8),
+            color: widget.theme.foreground.withValues(alpha: 0.8),
           ),
           const SizedBox(width: 6),
           Text(
             'SCANNEZ-MOI',
             style: TextStyle(
-              color: widget.theme.foreground.withOpacity(0.8),
+              color: widget.theme.foreground.withValues(alpha: 0.8),
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
@@ -143,7 +143,7 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: widget.theme.foreground.withOpacity(0.1),
+            color: widget.theme.foreground.withValues(alpha: 0.1),
             blurRadius: 20,
             spreadRadius: -5,
           ),
@@ -168,7 +168,7 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
   List<Widget> _buildCorners() {
     const cornerSize = 24.0;
     const cornerWidth = 3.0;
-    final cornerColor = widget.theme.foreground.withOpacity(0.3);
+    final cornerColor = widget.theme.foreground.withValues(alpha: 0.3);
 
     return [
       // Top-left
@@ -287,21 +287,23 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
               ? LinearGradient(
                   colors: [
                     widget.theme.foreground,
-                    widget.theme.foreground.withOpacity(0.8),
+                    widget.theme.foreground.withValues(alpha: 0.8),
                   ],
                 )
               : null,
-          color: isPrimary ? null : widget.theme.foreground.withOpacity(0.08),
+          color: isPrimary
+              ? null
+              : widget.theme.foreground.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
           border: isPrimary
               ? null
               : Border.all(
-                  color: widget.theme.foreground.withOpacity(0.15),
+                  color: widget.theme.foreground.withValues(alpha: 0.15),
                 ),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: widget.theme.foreground.withOpacity(0.3),
+                    color: widget.theme.foreground.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -316,7 +318,7 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
               size: 16,
               color: isPrimary
                   ? widget.theme.background
-                  : widget.theme.foreground.withOpacity(0.8),
+                  : widget.theme.foreground.withValues(alpha: 0.8),
             ),
             const SizedBox(width: 6),
             Text(
@@ -324,7 +326,7 @@ class _QrCardState extends State<QrCard> with SingleTickerProviderStateMixin {
               style: TextStyle(
                 color: isPrimary
                     ? widget.theme.background
-                    : widget.theme.foreground.withOpacity(0.8),
+                    : widget.theme.foreground.withValues(alpha: 0.8),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),

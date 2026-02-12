@@ -61,8 +61,8 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-  }
+ final argb = color.toARGB32();
+  return '#${argb.toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';  }
 
   Color? _hexToColor(String hex) {
     try {
@@ -110,10 +110,10 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
             ),
           ),
           child: Column(
@@ -131,12 +131,12 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         color: _selectedColor,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: _selectedColor.withOpacity(0.4),
+                            color: _selectedColor.withValues(alpha: 0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -152,7 +152,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   // Input Hex
                   Expanded(
                     child: Container(
@@ -161,10 +161,10 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Row(
@@ -190,7 +190,8 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 8),
                               ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.allow(
@@ -215,7 +216,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                 spacing: 8,
                 runSpacing: 8,
                 children: _presetColors.map((color) {
-                  final isSelected = _selectedColor.value == color.value;
+                final isSelected = _selectedColor.toARGB32() == color.toARGB32();
                   return GestureDetector(
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -231,13 +232,13 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         border: Border.all(
                           color: isSelected
                               ? Colors.white
-                              : Colors.white.withOpacity(0.1),
+                              : Colors.white.withValues(alpha: 0.1),
                           width: isSelected ? 2.5 : 1,
                         ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: color.withOpacity(0.5),
+                                  color: color.withValues(alpha: 0.5),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -311,7 +312,8 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
     _lightness = hsl.lightness;
   }
 
-  Color get _currentColor => HSLColor.fromAHSL(1.0, _hue, _saturation, _lightness).toColor();
+  Color get _currentColor =>
+      HSLColor.fromAHSL(1.0, _hue, _saturation, _lightness).toColor();
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +327,7 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -351,7 +353,7 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: _currentColor.withOpacity(0.4),
+                  color: _currentColor.withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -471,7 +473,7 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
                 elevation: 4,
               ),
               thumbColor: Colors.white,
-              overlayColor: Colors.white.withOpacity(0.2),
+              overlayColor: Colors.white.withValues(alpha: 0.2),
             ),
             child: Slider(
               value: value,

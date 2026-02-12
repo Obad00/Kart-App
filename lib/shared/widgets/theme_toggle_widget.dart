@@ -27,9 +27,9 @@ class ThemeToggleWidget extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: isLightMode 
-                  ? Colors.amber.withOpacity(0.15)
-                  : Colors.indigo.withOpacity(0.15),
+              color: isLightMode
+                  ? Colors.amber.withValues(alpha: 0.15)
+                  : Colors.indigo.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -56,7 +56,10 @@ class ThemeToggleWidget extends StatelessWidget {
                   isLightMode ? 'Mode clair activé' : 'Mode sombre activé',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -69,8 +72,8 @@ class ThemeToggleWidget extends StatelessWidget {
   }
 
   Widget _buildThemeSwitch(
-    BuildContext context, 
-    ThemeProvider themeProvider, 
+    BuildContext context,
+    ThemeProvider themeProvider,
     bool isLightMode,
   ) {
     return GestureDetector(
@@ -93,9 +96,9 @@ class ThemeToggleWidget extends StatelessWidget {
                 ),
           boxShadow: [
             BoxShadow(
-              color: isLightMode 
-                  ? Colors.amber.withOpacity(0.3)
-                  : Colors.indigo.withOpacity(0.3),
+              color: isLightMode
+                  ? Colors.amber.withValues(alpha: 0.3)
+                  : Colors.indigo.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

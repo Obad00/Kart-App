@@ -72,7 +72,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: _lightCardBg,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.08),
+        shadowColor: Colors.black.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -93,7 +93,7 @@ class AppTheme {
           borderSide: const BorderSide(color: _accentBlue, width: 1.5),
         ),
         labelStyle: const TextStyle(color: _lightTextSecondary),
-        hintStyle: TextStyle(color: _lightTextSecondary.withOpacity(0.6)),
+        hintStyle: TextStyle(color: _lightTextSecondary.withValues(alpha: 0.6)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -119,9 +119,8 @@ class AppTheme {
         elevation: 8,
       ),
       dividerColor: const Color(0xFFE5E7EB),
-      splashColor: _accentBlue.withOpacity(0.1),
-      highlightColor: _accentBlue.withOpacity(0.05),
-    );
+splashColor: _accentBlue.withValues(alpha: 0.1),
+highlightColor: _accentBlue.withValues(alpha: 0.05)    );
   }
 
   static ThemeData dark() {

@@ -22,7 +22,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
   // Couleurs d'accent pour chaque plan
   final List<Color> _planColors = [
-    Colors.grey[400]!,       // Free
+    Colors.grey[400]!, // Free
     const Color(0xFF2563EB), // Pro (bleu)
     const Color(0xFFFFD700), // Enterprise (or)
   ];
@@ -152,8 +152,8 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.white.withOpacity(0.12),
-                              Colors.white.withOpacity(0.04),
+                              Colors.white.withValues(alpha: 0.12),
+                              Colors.white.withValues(alpha: 0.04),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -204,13 +204,14 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? _planColors[i % _planColors.length]
-                                  : Colors.white.withOpacity(0.2),
+                                  : Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: _planColors[i % _planColors.length]
-                                            .withOpacity(0.4),
+                                        color:
+                                            _planColors[i % _planColors.length]
+                                                .withValues(alpha: 0.4),
                                         blurRadius: 8,
                                       ),
                                     ]
@@ -252,7 +253,8 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                           highlight: isSelected,
                           isPopular: slug == 'pro',
                           accentColor: _planColors[index % _planColors.length],
-                          secondaryColor: slug == 'pro' ? _proSecondaryColor : null,
+                          secondaryColor:
+                              slug == 'pro' ? _proSecondaryColor : null,
                         ),
                       );
                     },
@@ -308,9 +310,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                           });
                         },
                       ),
-
                       const SizedBox(height: 12),
-
                       AuthOutlineButton(
                         label: 'Choisir plus tard',
                         icon: Icons.schedule_rounded,

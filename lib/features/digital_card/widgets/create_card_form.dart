@@ -73,12 +73,21 @@ class _CreateCardFormState extends State<CreateCardForm> {
           .map((e) => e.key)
           .toList();
 
+      final auth = context.read<AuthProvider>();
+      final user = auth.user;
+
+      final companyName = user?.hasCompany == true
+          ? user!.company!.name
+          : _companyCtrl.text.trim();
+
       final data = {
         'jobTitle': _jobCtrl.text.trim(),
-        'company': _companyCtrl.text.trim(),
+        'company': companyName, // <-- auto-rempli si lié à la licence
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-        'linkedin': _linkedinCtrl.text.trim().isEmpty ? null : _linkedinCtrl.text.trim(),
+        'linkedin': _linkedinCtrl.text.trim().isEmpty
+            ? null
+            : _linkedinCtrl.text.trim(),
         'activatedFields': activatedFields,
         'isPublic': _isPublic,
       };
@@ -100,7 +109,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-
     } on DioException catch (e) {
       // Erreurs de validation du backend
       if (e.response?.statusCode == 422) {
@@ -232,12 +240,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
                 // INDICATOR Premium
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.06),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                   ),
                   child: Row(
@@ -254,15 +263,21 @@ class _CreateCardFormState extends State<CreateCardForm> {
                             decoration: BoxDecoration(
                               gradient: isActive || isCompleted
                                   ? const LinearGradient(
-                                      colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                      colors: [
+                                        Color(0xFF3B82F6),
+                                        Color(0xFF2563EB)
+                                      ],
                                     )
                                   : null,
-                              color: isActive || isCompleted ? null : Colors.white.withOpacity(0.15),
+                              color: isActive || isCompleted
+                                  ? null
+                                  : Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(5),
                               boxShadow: isActive
                                   ? [
                                       BoxShadow(
-                                        color: const Color(0xFF3B82F6).withOpacity(0.4),
+                                        color: const Color(0xFF3B82F6)
+                                            .withValues(alpha: 0.4),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -362,15 +377,15 @@ class _CreateCardFormState extends State<CreateCardForm> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.05),
+                Colors.white.withValues(alpha: 0.15),
+                Colors.white.withValues(alpha: 0.05),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -407,15 +422,15 @@ class _CreateCardFormState extends State<CreateCardForm> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.06),
-            Colors.white.withOpacity(0.02),
+            Colors.white.withValues(alpha: 0.06),
+            Colors.white.withValues(alpha: 0.02),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -433,14 +448,14 @@ class _CreateCardFormState extends State<CreateCardForm> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: value 
-            ? Colors.white.withOpacity(0.08)
-            : Colors.white.withOpacity(0.03),
+        color: value
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: value 
-              ? Colors.white.withOpacity(0.15)
-              : Colors.white.withOpacity(0.06),
+          color: value
+              ? Colors.white.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
@@ -451,9 +466,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: value 
-                    ? Colors.white.withOpacity(0.12)
-                    : Colors.white.withOpacity(0.05),
+                color: value
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -494,7 +509,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
             child: Switch.adaptive(
               value: value,
               onChanged: onChanged,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: const Color(0xFF3B82F6),
               inactiveThumbColor: Colors.grey[400],
               inactiveTrackColor: Colors.grey[800],
@@ -544,12 +559,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 if (companyLocked) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withOpacity(0.15),
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: const Color(0xFF3B82F6).withOpacity(0.3),
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -612,7 +628,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher sur ma carte',
                   value: activeFields[l1.toLowerCase()] ?? false,
-                  onChanged: (v) => setState(() => activeFields[l1.toLowerCase()] = v),
+                  onChanged: (v) =>
+                      setState(() => activeFields[l1.toLowerCase()] = v),
                   icon: Icons.visibility_outlined,
                 ),
                 const SizedBox(height: 28),
@@ -628,7 +645,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher sur ma carte',
                   value: activeFields[l2.toLowerCase()] ?? false,
-                  onChanged: (v) => setState(() => activeFields[l2.toLowerCase()] = v),
+                  onChanged: (v) =>
+                      setState(() => activeFields[l2.toLowerCase()] = v),
                   icon: Icons.visibility_outlined,
                 ),
               ],
@@ -668,7 +686,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher sur ma carte',
                   value: _activeFields['linkedin'] ?? false,
-                  onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
+                  onChanged: (v) =>
+                      setState(() => _activeFields['linkedin'] = v),
                   icon: Icons.visibility_outlined,
                 ),
               ],

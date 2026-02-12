@@ -19,10 +19,10 @@ class ContactsSearchBar extends StatelessWidget {
         style: TextStyle(color: colors.onSurface),
         decoration: InputDecoration(
           hintText: 'Rechercher',
-          hintStyle: TextStyle(color: colors.onSurface.withOpacity(0.5)),
-          prefixIcon: Icon(Icons.search, color: colors.onSurface.withOpacity(0.5)),
+          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+          prefixIcon: Icon(Icons.search, color: colors.onSurface.withValues(alpha: 0.5)),
           filled: true,
-          fillColor: colors.onSurface.withOpacity(0.05),
+          fillColor: colors.onSurface.withValues(alpha: 0.05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,

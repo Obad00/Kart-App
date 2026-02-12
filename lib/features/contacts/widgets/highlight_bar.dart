@@ -13,11 +13,12 @@ class HighlightBar extends StatelessWidget {
     final provider = context.watch<HighlightProvider>();
     final cardProvider = context.watch<CardProvider>();
     final authProvider = context.watch<AuthProvider>();
-    
+
     // Récupérer la couleur de l'entreprise
     final bool isCompanyUser = authProvider.user?.hasCompany == true ||
-        (cardProvider.companyPrimaryColor != null && cardProvider.companyPrimaryColor!.isNotEmpty);
-    
+        (cardProvider.companyPrimaryColor != null &&
+            cardProvider.companyPrimaryColor!.isNotEmpty);
+
     final Color companyColor = _parseColor(cardProvider.companyPrimaryColor);
 
     if (provider.isLoading) {
@@ -35,7 +36,12 @@ class HighlightBar extends StatelessWidget {
         itemCount: provider.highlights.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (_, index) {
-          if (index == 0) return _AddHighlightButton(accentColor: companyColor, isCompanyUser: isCompanyUser);
+          if (index == 0) {
+            return _AddHighlightButton(
+              accentColor: companyColor,
+              isCompanyUser: isCompanyUser,
+            );
+          }
 
           final highlight = provider.highlights[index - 1];
           return _HighlightItem(
@@ -44,10 +50,11 @@ class HighlightBar extends StatelessWidget {
             isCompanyUser: isCompanyUser,
           );
         },
+
       ),
     );
   }
-  
+
   Color _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return const Color(0xFF3B82F6);
     try {
@@ -75,27 +82,28 @@ class _HighlightItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.read<HighlightProvider>();
     final colors = Theme.of(context).colorScheme;
-    
+
     // Créer les couleurs du gradient basées sur la couleur de l'entreprise
-    final Color gradientStart = isCompanyUser 
-        ? accentColor 
+    final Color gradientStart = isCompanyUser
+        ? accentColor
         : const Color(0xFFE1306C); // Rose Instagram par défaut
-    final Color gradientEnd = isCompanyUser 
-        ? HSLColor.fromColor(accentColor).withLightness(
-            (HSLColor.fromColor(accentColor).lightness + 0.15).clamp(0.0, 1.0)
-          ).toColor()
+    final Color gradientEnd = isCompanyUser
+        ? HSLColor.fromColor(accentColor)
+            .withLightness((HSLColor.fromColor(accentColor).lightness + 0.15)
+                .clamp(0.0, 1.0))
+            .toColor()
         : const Color(0xFFF77737); // Orange Instagram par défaut
 
     // Couleur de fond adaptée au thème
     final Color backgroundColor = colors.surface;
-    
+
     // Couleur de bordure pour les highlights inactifs
-    final Color inactiveBorderColor = isCompanyUser 
-        ? accentColor.withOpacity(0.3)
-        : colors.onSurface.withOpacity(0.2);
+    final Color inactiveBorderColor = isCompanyUser
+        ? accentColor.withValues(alpha: 0.3)
+        : colors.onSurface.withValues(alpha: 0.2);
 
     return GestureDetector(
-onTap: () => provider.toggleHighlight(highlight),
+      onTap: () => provider.toggleHighlight(highlight),
       child: Column(
         children: [
           Container(
@@ -119,7 +127,7 @@ onTap: () => provider.toggleHighlight(highlight),
               boxShadow: highlight.isActive && isCompanyUser
                   ? [
                       BoxShadow(
-                        color: accentColor.withOpacity(0.4),
+                        color: accentColor.withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -136,9 +144,9 @@ onTap: () => provider.toggleHighlight(highlight),
               child: Text(
                 highlight.name[0].toUpperCase(),
                 style: TextStyle(
-                  color: highlight.isActive 
+                  color: highlight.isActive
                       ? (isCompanyUser ? accentColor : gradientStart)
-                      : colors.onSurface.withOpacity(0.7),
+                      : colors.onSurface.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
@@ -155,10 +163,11 @@ onTap: () => provider.toggleHighlight(highlight),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
-                color: highlight.isActive 
+                color: highlight.isActive
                     ? (isCompanyUser ? accentColor : gradientStart)
-                    : colors.onSurface.withOpacity(0.6),
-                fontWeight: highlight.isActive ? FontWeight.w600 : FontWeight.normal,
+                    : colors.onSurface.withValues(alpha: 0.6),
+                fontWeight:
+                    highlight.isActive ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ),
@@ -171,7 +180,7 @@ onTap: () => provider.toggleHighlight(highlight),
 class _AddHighlightButton extends StatelessWidget {
   final Color accentColor;
   final bool isCompanyUser;
-  
+
   const _AddHighlightButton({
     required this.accentColor,
     required this.isCompanyUser,
@@ -180,24 +189,24 @@ class _AddHighlightButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    
+
     // Couleur de bordure adaptée
-    final borderColor = isCompanyUser 
-        ? accentColor.withOpacity(0.5) 
-        : colors.onSurface.withOpacity(0.2);
-    
+    final borderColor = isCompanyUser
+        ? accentColor.withValues(alpha: 0.5)
+        : colors.onSurface.withValues(alpha: 0.2);
+
     // Couleur de fond
-    final bgColor = isCompanyUser 
-        ? accentColor.withOpacity(0.1) 
-        : colors.onSurface.withOpacity(0.05);
-    
+    final bgColor = isCompanyUser
+        ? accentColor.withValues(alpha: 0.1)
+        : colors.onSurface.withValues(alpha: 0.05);
+
     // Couleur de l'icône et du texte
-    final contentColor = isCompanyUser 
-        ? accentColor 
-        : colors.onSurface.withOpacity(0.6);
+    final contentColor =
+        isCompanyUser ? accentColor : colors.onSurface.withValues(alpha: 0.6);
 
     return GestureDetector(
-      onTap: () => _openCreateHighlightModal(context, accentColor, isCompanyUser),
+      onTap: () =>
+          _openCreateHighlightModal(context, accentColor, isCompanyUser),
       child: Column(
         children: [
           Container(
@@ -212,13 +221,13 @@ class _AddHighlightButton extends StatelessWidget {
               color: bgColor,
             ),
             child: Icon(
-              Icons.add, 
+              Icons.add,
               color: contentColor,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Nouveau', 
+            'Nouveau',
             style: TextStyle(
               fontSize: 11,
               color: contentColor,
@@ -230,7 +239,8 @@ class _AddHighlightButton extends StatelessWidget {
   }
 }
 
-void _openCreateHighlightModal(BuildContext context, Color accentColor, bool isCompanyUser) {
+void _openCreateHighlightModal(
+    BuildContext context, Color accentColor, bool isCompanyUser) {
   final controller = TextEditingController();
 
   showModalBottomSheet(
@@ -275,7 +285,6 @@ void _openCreateHighlightModal(BuildContext context, Color accentColor, bool isC
               ],
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: controller,
               maxLength: 20,
@@ -283,12 +292,14 @@ void _openCreateHighlightModal(BuildContext context, Color accentColor, bool isC
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Ex: Salon Dakar 2026',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-                counterStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                hintStyle:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                counterStyle:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                 filled: true,
-                fillColor: isCompanyUser 
-                    ? accentColor.withOpacity(0.15) 
-                    : Colors.white.withOpacity(0.1),
+                fillColor: isCompanyUser
+                    ? accentColor.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -302,21 +313,19 @@ void _openCreateHighlightModal(BuildContext context, Color accentColor, bool isC
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: isCompanyUser ? accentColor : Colors.white,
-                 foregroundColor: isCompanyUser ? Colors.white : Colors.black,
-                 padding: const EdgeInsets.symmetric(vertical: 14),
-                 shape: RoundedRectangleBorder(
-                   borderRadius: BorderRadius.circular(12),
-                 ),
-               ),
-               onPressed: () async {
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isCompanyUser ? accentColor : Colors.white,
+                  foregroundColor: isCompanyUser ? Colors.white : Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () async {
                   final name = controller.text.trim();
                   if (name.isEmpty) return;
 
@@ -333,7 +342,8 @@ void _openCreateHighlightModal(BuildContext context, Color accentColor, bool isC
                   } catch (e) {
                     scaffoldMessenger.showSnackBar(
                       SnackBar(
-                        content: Text('Erreur: ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
+                        content: Text(
+                            'Erreur: ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
                         backgroundColor: Colors.red,
                       ),
                     );

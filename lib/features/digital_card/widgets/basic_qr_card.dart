@@ -69,7 +69,7 @@ class _BasicQrCardState extends State<BasicQrCard>
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 30,
                       offset: const Offset(0, 15),
                     ),
@@ -92,7 +92,7 @@ class _BasicQrCardState extends State<BasicQrCard>
                 ),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
@@ -106,10 +106,10 @@ class _BasicQrCardState extends State<BasicQrCard>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Row(
@@ -151,7 +151,7 @@ class _BasicQrCardState extends State<BasicQrCard>
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             blurRadius: 20,
                             spreadRadius: -5,
                           ),
@@ -177,7 +177,8 @@ class _BasicQrCardState extends State<BasicQrCard>
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  if (widget.jobTitle != null && widget.jobTitle!.isNotEmpty) ...[
+                  if (widget.jobTitle != null &&
+                      widget.jobTitle!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.jobTitle!,
@@ -249,10 +250,10 @@ class _ActionButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Icon(
