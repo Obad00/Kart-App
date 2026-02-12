@@ -139,25 +139,27 @@ class _BasicQrCardState extends State<BasicQrCard>
 
                   const SizedBox(height: 20),
 
-                  // QR Code container
-                  GestureDetector(
-                    onTap: widget.onTapQr,
-                    child: Container(
-                      width: 170,
-                      height: 170,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            spreadRadius: -5,
-                          ),
-                        ],
+                  // QR Code container flexible pour s'adapter à l'espace
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: widget.onTapQr,
+                      child: Container(
+                        width: 170,
+                        height: 170,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              blurRadius: 20,
+                              spreadRadius: -5,
+                            ),
+                          ],
+                        ),
+                        child: widget.qrCode,
                       ),
-                      child: widget.qrCode,
                     ),
                   ),
 
@@ -177,8 +179,7 @@ class _BasicQrCardState extends State<BasicQrCard>
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  if (widget.jobTitle != null &&
-                      widget.jobTitle!.isNotEmpty) ...[
+                  if (widget.jobTitle != null && widget.jobTitle!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.jobTitle!,
