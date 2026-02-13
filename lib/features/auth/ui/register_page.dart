@@ -202,10 +202,10 @@ class _RegisterPageState extends State<RegisterPage>
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
+                          color: Colors.red.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -254,7 +254,7 @@ class _RegisterPageState extends State<RegisterPage>
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -270,7 +270,7 @@ class _RegisterPageState extends State<RegisterPage>
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -310,12 +310,12 @@ class _RegisterPageState extends State<RegisterPage>
             decoration: BoxDecoration(
               color: isActive
                   ? Colors.white
-                  : Colors.white.withOpacity(0.15),
+                  : Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(2),
               boxShadow: isCurrent
                   ? [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         blurRadius: 8,
                       ),
                     ]
@@ -340,8 +340,8 @@ class _RegisterPageState extends State<RegisterPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.12),
-                  Colors.white.withOpacity(0.04),
+                  Colors.white.withValues(alpha: 0.12),
+                  Colors.white.withValues(alpha: 0.04),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -397,7 +397,7 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           AuthTextField(
             label: 'Prénom',
-            hint: 'Jean',
+            hint: 'Exemple',
             controller: _firstnameCtrl,
             prefixIcon: Icons.person_outline_rounded,
             onChanged: (_) => setState(() {}),
@@ -405,7 +405,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(height: 24),
           AuthTextField(
             label: 'Nom',
-            hint: 'Dupont',
+            hint: 'Exemple',
             controller: _lastnameCtrl,
             prefixIcon: Icons.badge_outlined,
             onChanged: (_) => setState(() {}),
@@ -419,7 +419,7 @@ class _RegisterPageState extends State<RegisterPage>
     return SingleChildScrollView(
       child: AuthTextField(
         label: 'Adresse email',
-        hint: 'jean.dupont@email.com',
+        hint: 'exemplet@email.com',
         controller: _emailCtrl,
         keyboardType: TextInputType.emailAddress,
         prefixIcon: Icons.mail_outline_rounded,
@@ -497,8 +497,8 @@ class _RegisterPageState extends State<RegisterPage>
                 margin: EdgeInsets.only(right: i < 4 ? 4 : 0),
                 decoration: BoxDecoration(
                   color: i < strength
-                      ? color.withOpacity(0.8)
-                      : Colors.white.withOpacity(0.1),
+                      ? color.withValues(alpha: 0.8)
+                      : Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -509,7 +509,7 @@ class _RegisterPageState extends State<RegisterPage>
         Text(
           'Force du mot de passe : $label',
           style: TextStyle(
-            color: color.withOpacity(0.8),
+            color: color.withValues(alpha: 0.8),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -568,7 +568,7 @@ class _RegisterPageState extends State<RegisterPage>
               vertical: 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(

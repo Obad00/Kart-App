@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -135,54 +134,53 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       onTapDown: (_) => _onTapDown(),
       onTapUp: (_) => _onTapUp(),
       onTapCancel: _onTapUp,
-        child: Center(
-          child: Container(
-            width: 310,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                // Glow coloré animé
-                BoxShadow(
-                  color: widget.primaryColor.withOpacity(_glowAnimation.value * 0.35),
-                  blurRadius: 40 + (_glowAnimation.value * 20),
-                  spreadRadius: -8,
-                ),
-                // Ombre principale
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.35),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                ),
-                // Ombre secondaire
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+      child: Container(
+        width: 310,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            // Glow coloré animé
+            BoxShadow(
+              color: widget.primaryColor
+                  .withValues(alpha: _glowAnimation.value * 0.35),
+              blurRadius: 40 + (_glowAnimation.value * 20),
+              spreadRadius: -8,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(26),
-              child: IntrinsicHeight(
-                child: Stack(
-                  children: [
-                    // Background avec gradient
-                    Positioned.fill(child: _buildBackground()),
-                    
-                    // Effet de lumière animé
-                    _buildLightEffect(),
-                    
-                    // Contenu principal
-                    _buildContent(),
-                    
-                    // Bordure brillante
-                    _buildShimmerBorder(),
-                  ],
-                ),
-              ),
+            // Ombre principale
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+            ),
+            // Ombre secondaire
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: IntrinsicHeight(
+            child: Stack(
+              children: [
+                // Background avec gradient
+                Positioned.fill(child: _buildBackground()),
+
+                // Effet de lumière animé
+                _buildLightEffect(),
+
+                // Contenu principal
+                _buildContent(),
+
+                // Bordure brillante
+                _buildShimmerBorder(),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -224,14 +222,14 @@ class _CompanyQrCardState extends State<CompanyQrCard>
           children: [
             // Header avec logo et nom
             _buildHeader(),
-            
+
             const SizedBox(height: 18),
-            
+
             // QR Code avec frame stylisée
             _buildQrSection(),
-            
+
             const SizedBox(height: 18),
-            
+
             // Footer avec texte + Actions
             _buildFooterWithActions(),
           ],
@@ -245,9 +243,9 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       children: [
         // Logo de l'entreprise
         _buildLogo(),
-        
+
         const SizedBox(width: 12),
-        
+
         // Infos entreprise
         Expanded(
           child: Column(
@@ -269,7 +267,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                 Text(
                   widget.subtitle!,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -280,7 +278,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
             ],
           ),
         ),
-        
+
         // Badge coloré
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -291,7 +289,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: widget.primaryColor.withOpacity(0.4),
+                color: widget.primaryColor.withValues(alpha: 0.4),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -321,17 +319,17 @@ class _CompanyQrCardState extends State<CompanyQrCard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            widget.primaryColor.withOpacity(0.2),
-            widget.primaryColor.withOpacity(0.1),
+            widget.primaryColor.withValues(alpha: 0.2),
+            widget.primaryColor.withValues(alpha: 0.1),
           ],
         ),
         border: Border.all(
-          color: widget.primaryColor.withOpacity(0.3),
+          color: widget.primaryColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.primaryColor.withOpacity(0.2),
+            color: widget.primaryColor.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -365,8 +363,8 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       ),
       child: Center(
         child: Text(
-          widget.companyName.isNotEmpty 
-              ? widget.companyName[0].toUpperCase() 
+          widget.companyName.isNotEmpty
+              ? widget.companyName[0].toUpperCase()
               : 'K',
           style: TextStyle(
             color: _textOnPrimary,
@@ -391,8 +389,8 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       ),
       child: Center(
         child: Text(
-          widget.companyName.isNotEmpty 
-              ? widget.companyName[0].toUpperCase() 
+          widget.companyName.isNotEmpty
+              ? widget.companyName[0].toUpperCase()
               : 'K',
           style: TextStyle(
             color: _textOnPrimary,
@@ -418,14 +416,14 @@ class _CompanyQrCardState extends State<CompanyQrCard>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              widget.primaryColor.withOpacity(0.5),
-              widget.primaryColor.withOpacity(0.2),
-              _accentLight.withOpacity(0.3),
+              widget.primaryColor.withValues(alpha: 0.5),
+              widget.primaryColor.withValues(alpha: 0.2),
+              _accentLight.withValues(alpha: 0.3),
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: widget.primaryColor.withOpacity(0.3),
+              color: widget.primaryColor.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -446,7 +444,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                 height: 190,
                 child: widget.qrCode,
               ),
-              
+
               // Logo central sur le QR - affiche le logo de l'entreprise ou l'initiale
               Positioned(
                 child: Container(
@@ -457,7 +455,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -466,11 +464,13 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                   padding: const EdgeInsets.all(4),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: widget.companyLogo != null && widget.companyLogo!.isNotEmpty
+                    child: widget.companyLogo != null &&
+                            widget.companyLogo!.isNotEmpty
                         ? Image.network(
                             widget.companyLogo!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildCenterLogoPlaceholder(),
+                            errorBuilder: (_, __, ___) =>
+                                _buildCenterLogoPlaceholder(),
                             loadingBuilder: (context, child, progress) {
                               if (progress == null) return child;
                               return _buildCenterLogoPlaceholder();
@@ -509,17 +509,17 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                   colors: [widget.primaryColor, _accentLight],
                 )
               : null,
-          color: isPrimary ? null : Colors.white.withOpacity(0.1),
+          color: isPrimary ? null : Colors.white.withValues(alpha: 0.1),
           border: Border.all(
             color: isPrimary
-                ? widget.primaryColor.withOpacity(0.5)
-                : Colors.white.withOpacity(0.2),
+                ? widget.primaryColor.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.2),
             width: 1.5,
           ),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: widget.primaryColor.withOpacity(0.4),
+                    color: widget.primaryColor.withValues(alpha: 0.4),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -529,7 +529,8 @@ class _CompanyQrCardState extends State<CompanyQrCard>
         child: Icon(
           icon,
           size: 18,
-          color: isPrimary ? _textOnPrimary : Colors.white.withOpacity(0.9),
+          color:
+              isPrimary ? _textOnPrimary : Colors.white.withValues(alpha: 0.9),
         ),
       ),
     );
@@ -552,7 +553,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF22C55E).withOpacity(0.5),
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.5),
                     blurRadius: 6,
                   ),
                 ],
@@ -562,7 +563,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
             Text(
               'Scannez pour me contacter',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -632,8 +633,8 @@ class _LightEffectPainter extends CustomPainter {
         ),
         radius: 1.2,
         colors: [
-          color.withOpacity(0.15),
-          color.withOpacity(0.05),
+          color.withValues(alpha: 0.15),
+          color.withValues(alpha: 0.05),
           Colors.transparent,
         ],
         stops: const [0.0, 0.4, 1.0],
@@ -677,9 +678,9 @@ class _ShimmerBorderPainter extends CustomPainter {
         endAngle: math.pi * 2,
         colors: [
           Colors.transparent,
-          color.withOpacity(0.3),
-          color.withOpacity(0.6),
-          color.withOpacity(0.3),
+          color.withValues(alpha: 0.3),
+          color.withValues(alpha: 0.6),
+          color.withValues(alpha: 0.3),
           Colors.transparent,
         ],
         stops: const [0.0, 0.2, 0.5, 0.8, 1.0],

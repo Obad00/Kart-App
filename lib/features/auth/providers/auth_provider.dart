@@ -7,10 +7,10 @@ import '../models/user.dart';
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
 
-
   bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
-  User? user;  String? error; // ✅ AJOUTÉ
+  User? user;
+  String? error;
 
   AuthProvider() {
     _init();
@@ -32,16 +32,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // debugPrint('📡 Fetching user from /me...');
       final meResponse = await _api.me();
+      // debugPrint('📡 /me response: ${meResponse.data}');
       user = User.fromJson(meResponse.data);
+      // debugPrint('✅ User parsed: ${user?.email}, company: ${user?.company?.name}');
     } on DioException catch (e) {
+      // debugPrint('❌ Error loading /me: ${e.response?.statusCode}');
       // In case the token is invalid/expired, perform a silent logout
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
       } else {
         error = 'Impossible de récupérer l\'utilisateur';
       }
-    } catch (_) {
+    } catch (e) {
+      // debugPrint('❌ Unknown error in loadMe: $e');
       error = 'Une erreur est survenue';
     } finally {
       isLoading = false;
@@ -55,33 +60,28 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('🔐 Attempting login for: $email');
+      // debugPrint('🔐 Attempting login for: $email');
       final response = await _api.login(email, password);
-      debugPrint('🔐 Login response: ${response.data}');
+      // debugPrint('🔐 Login response: ${response.data}');
       
       final token = response.data['token'];
       if (token == null) {
-        debugPrint('❌ No token in response');
+        // debugPrint('❌ No token in response');
         error = 'Erreur: token non reçu';
         return;
       }
 
       await ApiClient.setToken(token);
-      debugPrint('✅ Token saved');
+      // debugPrint('✅ Token saved');
 
-      // Utiliser l'utilisateur de la réponse de login si disponible
-      final userData = response.data['user'];
-      if (userData != null) {
-        user = User.fromJson(userData);
-        debugPrint('✅ User loaded from login response: ${user?.email}');
-      } else {
-        // Fallback: charger depuis /me si l'utilisateur n'est pas dans la réponse
-        debugPrint('⚠️ No user in login response, loading from /me...');
-        await loadMe();
-        debugPrint('✅ User loaded from /me: ${user?.email}');
-      }
+      // ✅ TOUJOURS charger depuis /me pour avoir la relation company
+      // debugPrint('🔄 Loading user from /me to get company relation...');
+      await loadMe();
+      // debugPrint('✅ User fully loaded: ${user?.email}');
+      // debugPrint('✅ Company: ${user?.company?.name}');
+      
     } on DioException catch (e) {
-      debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
+      // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
         error = 'Email ou mot de passe incorrect';
       } else if (e.response?.statusCode == 422) {
@@ -96,7 +96,7 @@ class AuthProvider extends ChangeNotifier {
         error = 'Erreur serveur, réessayez';
       }
     } catch (e) {
-      debugPrint('❌ Unknown error: $e');
+      // debugPrint('❌ Unknown error: $e');
       error = 'Une erreur est survenue: $e';
     } finally {
       isLoading = false;

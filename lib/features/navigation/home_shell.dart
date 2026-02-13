@@ -11,9 +11,9 @@ import '../contacts/ui/contacts_page.dart';
 class HomeShell extends StatefulWidget {
   final int initialIndex;
   const HomeShell({
-      super.key,
-      this.initialIndex = 0,
-    });
+    super.key,
+    this.initialIndex = 0,
+  });
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -27,7 +27,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _index = widget.initialIndex;
-    
+
     // Créer les contrôleurs d'animation pour chaque item
     _scaleControllers = List.generate(
       4,
@@ -36,7 +36,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         vsync: this,
       ),
     );
-    
+
     _scaleAnimations = _scaleControllers.map((controller) {
       return Tween<double>(begin: 1.0, end: 0.85).animate(
         CurvedAnimation(parent: controller, curve: Curves.easeInOut),
@@ -54,10 +54,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
   static const List<Widget> _pages = <Widget>[
     MyDigitalCardPage(),
-     ScanPage(),
-     ContactsPage(),
-     ProfilePage(), 
-   ];
+    ScanPage(),
+    ContactsPage(),
+    ProfilePage(),
+  ];
 
   void _onTap(int idx) {
     if (_index == idx) return;
@@ -106,7 +106,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         color: colors.surface,
         boxShadow: [
           BoxShadow(
-            color: colors.onSurface.withOpacity(0.04),
+            color: colors.onSurface.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -119,7 +119,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
           child: Container(
             height: 56,
             decoration: BoxDecoration(
-              color: colors.onSurface.withOpacity(0.03),
+              color: colors.onSurface.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -168,10 +168,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     final selected = _index == index;
     final colors = Theme.of(context).colorScheme;
     final cardProvider = context.watch<CardProvider>();
-    
+
     // Utiliser la couleur de l'entreprise si disponible
     final primaryColor = _getCompanyColor(cardProvider) ?? colors.primary;
-    final inactiveColor = colors.onSurface.withOpacity(0.4);
+    final inactiveColor = colors.onSurface.withValues(alpha: 0.4);
 
     return Expanded(
       child: GestureDetector(
@@ -190,8 +190,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
             margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
             decoration: BoxDecoration(
-              color: selected 
-                  ? primaryColor.withOpacity(0.12)
+              color: selected
+                  ? primaryColor.withValues(alpha: 0.12)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -216,7 +216,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                             gradient: LinearGradient(
                               colors: [
                                 primaryColor,
-                                primaryColor.withOpacity(0.8),
+                                primaryColor.withValues(alpha: 0.8),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -224,7 +224,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: [
                               BoxShadow(
-                                color: primaryColor.withOpacity(0.3),
+                                color: primaryColor.withValues(alpha: 0.3),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),

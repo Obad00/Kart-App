@@ -25,7 +25,7 @@ class ContactRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: companyColor.withOpacity(0.15),
+              backgroundColor: companyColor.withValues(alpha: 0.15),
               child: Text(
                 contact.fullname.isNotEmpty
                     ? contact.fullname[0].toUpperCase()

@@ -18,7 +18,7 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
     with SingleTickerProviderStateMixin {
   final _nameCtrl = TextEditingController();
   final _maxUsersCtrl = TextEditingController();
-  
+
   String? _logoPath;
   Color _primaryColor = const Color(0xFF2563EB);
 
@@ -47,7 +47,8 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
       _subscriptionId = args['subscriptionId'];
     }
@@ -62,8 +63,9 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-  }
+final argb = color.toARGB32();
+  return '#${argb.toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';
+    }
 
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _maxUsersCtrl.text.isEmpty) {
@@ -227,13 +229,16 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
                     height: 2,
                     color: isCompleted || isActive
                         ? const Color(0xFF2563EB)
-                        : Colors.white.withOpacity(0.1),
+                        : Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
               GestureDetector(
                 onTap: () {
-                  if (index < _currentStep) setState(() => _currentStep = index);
-                },
+                if (index < _currentStep) {
+                  setState(() => _currentStep = index);
+                }
+              },
+
                 child: Column(
                   children: [
                     AnimatedContainer(
@@ -245,18 +250,19 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
                         color: isCompleted
                             ? const Color(0xFF2563EB)
                             : isActive
-                                ? const Color(0xFF2563EB).withOpacity(0.2)
-                                : Colors.white.withOpacity(0.05),
+                                ? const Color(0xFF2563EB).withValues(alpha: 0.2)
+                                : Colors.white.withValues(alpha: 0.05),
                         border: Border.all(
                           color: isActive || isCompleted
                               ? const Color(0xFF2563EB)
-                              : Colors.white.withOpacity(0.1),
+                              : Colors.white.withValues(alpha: 0.1),
                           width: 2,
                         ),
                       ),
                       child: Center(
                         child: isCompleted
-                            ? const Icon(Icons.check, size: 18, color: Colors.white)
+                            ? const Icon(Icons.check,
+                                size: 18, color: Colors.white)
                             : Text(
                                 '${index + 1}',
                                 style: TextStyle(
@@ -272,9 +278,12 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
                     Text(
                       steps[index],
                       style: TextStyle(
-                        color: isActive || isCompleted ? Colors.white : Colors.grey[500],
+                        color: isActive || isCompleted
+                            ? Colors.white
+                            : Colors.grey[500],
                         fontSize: 12,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -286,7 +295,7 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
                     height: 2,
                     color: isCompleted
                         ? const Color(0xFF2563EB)
-                        : Colors.white.withOpacity(0.1),
+                        : Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
             ],
@@ -298,10 +307,14 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
 
   Widget _buildCurrentStep() {
     switch (_currentStep) {
-      case 0: return _buildStep1();
-      case 1: return _buildStep2();
-      case 2: return _buildStep3();
-      default: return _buildStep1();
+      case 0:
+        return _buildStep1();
+      case 1:
+        return _buildStep2();
+      case 2:
+        return _buildStep3();
+      default:
+        return _buildStep1();
     }
   }
 
@@ -332,18 +345,21 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF2563EB).withOpacity(0.1),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.2)),
+            border: Border.all(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Color(0xFF3B82F6), size: 22),
+              const Icon(Icons.info_outline,
+                  color: Color(0xFF3B82F6), size: 22),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   'Le nombre de membres determine combien de cartes peuvent etre creees.',
-                  style: TextStyle(color: Colors.grey[300], fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                      color: Colors.grey[300], fontSize: 13, height: 1.4),
                 ),
               ),
             ],
@@ -379,7 +395,11 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Apercu de votre carte', style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w500)),
+        Text('Apercu de votre carte',
+            style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(20),
@@ -387,44 +407,68 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [_primaryColor.withOpacity(0.15), _primaryColor.withOpacity(0.05)],
+              colors: [
+                _primaryColor.withValues(alpha: 0.15),
+                _primaryColor.withValues(alpha: 0.05)
+              ],
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _primaryColor.withOpacity(0.3)),
+            border: Border.all(color: _primaryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
               Container(
-                width: 56, height: 56,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   color: _primaryColor,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: _primaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: _primaryColor.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4))
+                  ],
                 ),
                 child: _logoPath != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(_logoPath!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(Icons.business, color: Colors.white.withOpacity(0.8), size: 28)),
+                        child: Image.network(_logoPath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.business,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                size: 28)),
                       )
-                    : Icon(Icons.business, color: Colors.white.withOpacity(0.8), size: 28),
+                    : Icon(Icons.business,
+                        color: Colors.white.withValues(alpha: 0.8), size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_nameCtrl.text.isEmpty ? 'Votre Entreprise' : _nameCtrl.text,
-                      style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    Text(
+                        _nameCtrl.text.isEmpty
+                            ? 'Votre Entreprise'
+                            : _nameCtrl.text,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    Text('Carte digitale professionnelle', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                    Text('Carte digitale professionnelle',
+                        style:
+                            TextStyle(color: Colors.grey[400], fontSize: 12)),
                   ],
                 ),
               ),
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.qr_code_rounded, color: _primaryColor, size: 24),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10)),
+                child:
+                    Icon(Icons.qr_code_rounded, color: _primaryColor, size: 24),
               ),
             ],
           ),
@@ -459,23 +503,30 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.green[400], size: 20),
+              Icon(Icons.check_circle_outline,
+                  color: Colors.green[400], size: 20),
               const SizedBox(width: 10),
-              const Text('Recapitulatif', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+              const Text('Recapitulatif',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 16),
-          _buildSummaryRow('Entreprise', _nameCtrl.text.isEmpty ? '-' : _nameCtrl.text),
-          _buildSummaryRow('Membres', _maxUsersCtrl.text.isEmpty ? '-' : _maxUsersCtrl.text),
+          _buildSummaryRow(
+              'Entreprise', _nameCtrl.text.isEmpty ? '-' : _nameCtrl.text),
+          _buildSummaryRow(
+              'Membres', _maxUsersCtrl.text.isEmpty ? '-' : _maxUsersCtrl.text),
           _buildSummaryRow('Couleur', _colorToHex(_primaryColor)),
           _buildSummaryRow('Logo', _logoPath != null ? 'Ajoute' : 'Non defini'),
         ],
@@ -493,9 +544,18 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
           Row(
             children: [
               if (label == 'Couleur')
-                Container(width: 16, height: 16, margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(4))),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                Container(
+                    width: 16,
+                    height: 16,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                        color: _primaryColor,
+                        borderRadius: BorderRadius.circular(4))),
+              Text(value,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ],
@@ -503,13 +563,16 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
     );
   }
 
-  Widget _buildStepHeader({required IconData icon, required String title, required String subtitle}) {
+  Widget _buildStepHeader(
+      {required IconData icon,
+      required String title,
+      required String subtitle}) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF2563EB).withOpacity(0.15),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: const Color(0xFF3B82F6), size: 24),
@@ -519,9 +582,14 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+              Text(subtitle,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 13)),
             ],
           ),
         ),
@@ -534,7 +602,8 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0A),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Row(
         children: [
@@ -545,12 +614,17 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: const Center(
-                    child: Text('Precedent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                    child: Text('Precedent',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15)),
                   ),
                 ),
               ),
@@ -568,5 +642,4 @@ class _CreateCompanyPageState extends State<CreateCompanyPage>
       ),
     );
   }
-
 }

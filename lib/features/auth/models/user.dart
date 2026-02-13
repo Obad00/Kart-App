@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../onboarding/models/company.dart';
 
 class User {
@@ -20,6 +21,24 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    debugPrint('👤 Parsing User from JSON:');
+    debugPrint('   - email: ${json['email']}');
+    debugPrint('   - company_id: ${json['company_id']}');
+    debugPrint('   - company (raw): ${json['company']}');
+    
+    Company? parsedCompany;
+    
+    try {
+      if (json['company'] != null) {
+        parsedCompany = Company.fromJson(json['company']);
+        debugPrint('✅ Company parsed successfully: ${parsedCompany.name}');
+      } else {
+        debugPrint('⚠️ No company data in JSON');
+      }
+    } catch (e) {
+      debugPrint('❌ Error parsing Company: $e');
+    }
+    
     return User(
       id: json['id'],
       firstname: json['firstname'],
@@ -27,13 +46,10 @@ class User {
       email: json['email'],
       plan: json['plan'] ?? 'free',
       companyId: json['company_id'],
-      company: json['company'] != null
-          ? Company.fromJson(json['company'])
-          : null,
+      company: parsedCompany,
     );
   }
 
   bool get isPro => plan != 'free';
-  // Vérifie si l'utilisateur a une entreprise (soit via company_id, soit via l'objet company)
   bool get hasCompany => companyId != null || company != null;
 }

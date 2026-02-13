@@ -91,12 +91,12 @@ class _AuthOutlineButtonState extends State<AuthOutlineButton>
           ),
           decoration: BoxDecoration(
             color: _isHovered
-                ? Colors.white.withOpacity(0.08)
+                ? Colors.white.withValues(alpha: 0.08)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isEnabled
-                  ? Colors.white.withOpacity(_isHovered ? 0.5 : 0.25)
+                  ? Colors.white.withValues(alpha: _isHovered ? 0.5 : 0.25)
                   : Colors.grey[700]!,
               width: 1.5,
             ),
