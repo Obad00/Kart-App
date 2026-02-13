@@ -23,6 +23,9 @@ import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
+import '../../scan/ui/card_scan_switcher_page.dart';
+
+
 
 class MyDigitalCardPage extends StatefulWidget {
   const MyDigitalCardPage({super.key});
@@ -330,8 +333,15 @@ Widget _buildQrOnly(String svg) {
   return GestureDetector(
     onTap: () {
       _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
-      QrFullscreenView.show(context, _buildQrOnly(svg));
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CardScanSwitcherPage(),
+        ),
+      );
     },
+
     child: ScaleTransition(
       scale: _qrScale,
       child: RepaintBoundary(
