@@ -4,21 +4,25 @@ import '../models/contact_model.dart';
 
 class ContactRow extends StatelessWidget {
   final ContactModel contact;
-  final VoidCallback? onTap;
+  final VoidCallback? onMessageTap;
+  final VoidCallback? onMailTap;
+  final bool isSelected;
 
   const ContactRow({
     super.key,
     required this.contact,
-    this.onTap,
+    this.onMessageTap,
+    this.onMailTap,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final companyColor = context.companyColor;
-    
-    return InkWell(
-      onTap: onTap,
+
+    return Container(
+      color: isSelected ? companyColor.withValues(alpha: 0.1) : Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -47,16 +51,25 @@ class ContactRow extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.message, color: companyColor),
-              onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Messagerie avec ${contact.fullname} à venir'),
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.message, color: companyColor),
+                  onPressed: onMessageTap ??
+                      () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Messagerie avec ${contact.fullname} à venir'),
+                          ),
+                        );
+                      },
                 ),
-              );
-            },
-
+                IconButton(
+                  icon: const Icon(Icons.mail_outline, color: Colors.green),
+                  onPressed: onMailTap,
+                ),
+              ],
             ),
           ],
         ),

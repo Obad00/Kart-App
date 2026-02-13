@@ -66,6 +66,35 @@ class ContactsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Envoi d'un message via l'API
+  Future<void> sendMessage({
+    required List<int> contactIds,
+    required String content,
+    required String type, // "single" ou "group"
+  }) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/messages/send',
+        data: {
+          'contact_ids': contactIds,
+          'content': content,
+          'type': type,
+        },
+      );
+
+      if (response.statusCode != 201) {
+        throw Exception('Erreur lors de l’envoi du message');
+      }
+
+      if (kDebugMode) {
+        debugPrint('📩 Message envoyé avec succès: ${response.data}');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ Erreur sendMessage: $e');
+      rethrow;
+    }
+  }
+
   void clear() {
     groups = [];
     _query = '';
