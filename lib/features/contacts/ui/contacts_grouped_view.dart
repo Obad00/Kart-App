@@ -631,10 +631,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                             return ContactRow(
                               contact: c,
                               isSelected: isSelected,
-                              onMessageTap: () {
-                                HapticFeedback.lightImpact();
-                                _toggleSelection(c.id);
-                              },
                               onMailTap: () {
                                 HapticFeedback.lightImpact();
                                 if (!_selectedContacts.contains(c.id)) {

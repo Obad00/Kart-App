@@ -23,6 +23,7 @@ import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
 import 'features/onboarding/ui/join_company_page.dart';
 import 'features/plans/ui/plan_selection_page.dart';
+import 'package:kart_app/features/scan/ui/scan_page.dart';
 
 
 
@@ -73,7 +74,8 @@ class KartApp extends StatelessWidget {
           '/create-company': (_) => const CreateCompanyPage(),
           '/join-company': (_) => const JoinCompanyPage(),
 
-
+          
+           '/scan': (_) => const ScanPage(),
           '/my-card': (_) => const MyDigitalCardGuard(),
           '/home': (context) {
             final args =

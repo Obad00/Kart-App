@@ -16,6 +16,7 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.4.0
 
   # HTTP client (API Laravel)
   dio: ^5.4.0
