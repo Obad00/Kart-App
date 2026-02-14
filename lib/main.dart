@@ -86,6 +86,14 @@ class KartApp extends StatelessWidget {
             );
           },
         },
+
+        builder: (context, child) {
+  return ScrollConfiguration(
+    behavior: const ScrollBehavior().copyWith(scrollbars: false),
+    child: child!,
+  );
+},
+
           );
         },
       ),
