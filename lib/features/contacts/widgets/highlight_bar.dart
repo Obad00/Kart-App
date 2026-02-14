@@ -103,7 +103,46 @@ class _HighlightItem extends StatelessWidget {
         : colors.onSurface.withValues(alpha: 0.2);
 
     return GestureDetector(
-      onTap: () => provider.toggleHighlight(highlight),
+onTap: () async {
+  final bool isCurrentlyActive = highlight.isActive;
+
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          isCurrentlyActive
+              ? 'Désactiver ce highlight ?'
+              : 'Activer ce highlight ?',
+        ),
+        content: Text(
+          isCurrentlyActive
+              ? 'Voulez-vous désactiver "${highlight.name}" ?'
+              : 'Voulez-vous activer "${highlight.name}" ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              isCurrentlyActive ? 'Désactiver' : 'Activer',
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirm == true) {
+    provider.toggleHighlight(highlight);
+  }
+},
       child: Column(
         children: [
           Container(
