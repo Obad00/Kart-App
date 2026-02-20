@@ -96,16 +96,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
   void _reload() => context.read<CardProvider>().loadMyCardQr();
 
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
+  
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final card = context.watch<CardProvider>();
 
     final user = auth.user;
 
@@ -113,13 +108,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         ? '${user.firstname} ${user.lastname}'.trim()
         : 'Utilisateur';
 
-    final initials = _initials(fullName);
-
-    final subtitle = card.company?.isNotEmpty == true
-        ? card.company!
-        : card.jobTitle?.isNotEmpty == true
-            ? card.jobTitle!
-            : 'Membre';
+   
 
     return Scaffold(
       body: SafeArea(
@@ -129,16 +118,13 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               top: 18,
               left: 20,
               right: 20,
-              child: CardHeader(
-                initials: initials,
-                fullName: fullName,
-                subtitle: subtitle,
-              ),
+              child: const CardHeader(),
+
             ),
 
             // Highlights
             const Positioned(
-              top: 100,
+              top: 80,
               left: 0,
               right: 0,
               child: HighlightBar(),
