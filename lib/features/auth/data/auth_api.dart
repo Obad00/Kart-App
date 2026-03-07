@@ -20,6 +20,13 @@ class AuthApi {
     );
   }
 
+  Future<Response> googleLogin(String googleToken) {
+    return ApiClient.dio.post(
+      ApiEndpoints.googleToken,
+      data: {'token': googleToken},
+    );
+  }
+
   Future<Response> me() {
     return ApiClient.dio.get(ApiEndpoints.me);
   }

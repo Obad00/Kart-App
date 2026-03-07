@@ -6,6 +6,8 @@ class User {
   final String firstname;
   final String lastname;
   final String email;
+  final String? avatar;
+  final String? phone;
   final String plan;
   final int? companyId;
   final Company? company;
@@ -15,6 +17,8 @@ class User {
     required this.firstname,
     required this.lastname,
     required this.email,
+    this.avatar,
+    this.phone,
     required this.plan,
     this.companyId,
     this.company,
@@ -25,9 +29,9 @@ class User {
     debugPrint('   - email: ${json['email']}');
     debugPrint('   - company_id: ${json['company_id']}');
     debugPrint('   - company (raw): ${json['company']}');
-    
+
     Company? parsedCompany;
-    
+
     try {
       if (json['company'] != null) {
         parsedCompany = Company.fromJson(json['company']);
@@ -38,12 +42,14 @@ class User {
     } catch (e) {
       debugPrint('❌ Error parsing Company: $e');
     }
-    
+
     return User(
       id: json['id'],
       firstname: json['firstname'],
       lastname: json['lastname'],
       email: json['email'],
+      avatar: json['avatar'],
+      phone: json['phone'],
       plan: json['plan'] ?? 'free',
       companyId: json['company_id'],
       company: parsedCompany,
@@ -52,4 +58,5 @@ class User {
 
   bool get isPro => plan != 'free';
   bool get hasCompany => companyId != null || company != null;
+  String get fullName => '$firstname $lastname';
 }

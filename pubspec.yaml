@@ -42,6 +42,18 @@ dependencies:
   # Image picker
   image_picker: ^1.0.7
 
+  # Google Sign-In
+  google_sign_in: ^6.2.1
+
+  # WebView for payment
+  webview_flutter: ^4.7.0
+
+  # Image cropper for card scanner
+  image_cropper: ^5.0.1
+
+  # Lottie animations
+  lottie: ^3.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

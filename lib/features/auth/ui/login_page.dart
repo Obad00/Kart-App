@@ -198,6 +198,41 @@ class _LoginPageState extends State<LoginPage>
                             loading: auth.isLoading,
                             onTap: _isFormValid() ? () => _submit(auth) : null,
                           ),
+
+                          const SizedBox(height: 24),
+
+                          // Divider with "ou"
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  'ou',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Google Sign-In Button
+                          _buildGoogleButton(auth),
                         ],
                       ),
                     ),
@@ -271,6 +306,69 @@ class _LoginPageState extends State<LoginPage>
         ),
       ],
     );
+  }
+
+  Widget _buildGoogleButton(AuthProvider auth) {
+    return GestureDetector(
+      onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: auth.isGoogleLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.network(
+                    'https://www.google.com/favicon.ico',
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.g_mobiledata,
+                      color: Colors.black87,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Continuer avec Google',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Future<void> _submitGoogle(AuthProvider auth) async {
+    await auth.loginWithGoogle();
+
+    if (!mounted) return;
+
+    if (auth.isAuthenticated) {
+      if (auth.isNewUser) {
+        Navigator.pushReplacementNamed(context, '/complete-profile');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
   }
 
   Widget _buildRegisterLink() {

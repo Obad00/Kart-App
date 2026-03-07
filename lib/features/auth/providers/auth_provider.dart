@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import 'package:dio/dio.dart';
@@ -6,9 +7,14 @@ import '../models/user.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
 
   bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
+  bool isGoogleLoading = false;
+  bool isNewUser = false;
   User? user;
   String? error;
 
@@ -17,7 +23,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Ensure ApiClient has the token from storage (if any) and try to load the current user
     await ApiClient.init();
     final token = await ApiClient.getToken();
     if (token != null) {
@@ -25,28 +30,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Loads the authenticated user's profile from /api/me
   Future<void> loadMe() async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      // debugPrint('📡 Fetching user from /me...');
       final meResponse = await _api.me();
-      // debugPrint('📡 /me response: ${meResponse.data}');
       user = User.fromJson(meResponse.data);
-      // debugPrint('✅ User parsed: ${user?.email}, company: ${user?.company?.name}');
     } on DioException catch (e) {
-      // debugPrint('❌ Error loading /me: ${e.response?.statusCode}');
-      // In case the token is invalid/expired, perform a silent logout
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
       } else {
         error = 'Impossible de récupérer l\'utilisateur';
       }
     } catch (e) {
-      // debugPrint('❌ Unknown error in loadMe: $e');
       error = 'Une erreur est survenue';
     } finally {
       isLoading = false;
@@ -140,10 +138,65 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await ApiClient.clearToken();
     user = null;
     error = null;
+    isNewUser = false;
     notifyListeners();
+  }
+
+  Future<void> loginWithGoogle() async {
+    isGoogleLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        isGoogleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+
+      if (accessToken == null) {
+        error = 'Impossible d\'obtenir le token Google';
+        isGoogleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final response = await _api.googleLogin(accessToken);
+      final token = response.data['token'];
+
+      if (token == null) {
+        error = 'Erreur: token non reçu';
+        isGoogleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      await ApiClient.setToken(token);
+      isNewUser = response.data['is_new_user'] == true;
+
+      await loadMe();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        error = 'Token Google invalide';
+      } else if (e.response?.data != null && e.response?.data['message'] != null) {
+        error = e.response?.data['message'];
+      } else {
+        error = 'Erreur de connexion Google';
+      }
+    } catch (e) {
+      error = 'Erreur de connexion avec Google';
+    } finally {
+      isGoogleLoading = false;
+      notifyListeners();
+    }
   }
 
   bool get isAuthenticated => user != null;
