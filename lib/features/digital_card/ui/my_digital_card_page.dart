@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +20,7 @@ import '../widgets/company_qr_card.dart';
 import '../widgets/basic_qr_card.dart';
 import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
+import '../widgets/share_bottom_sheet.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
 import '../../scan/ui/card_scan_switcher_page.dart';
@@ -133,6 +133,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                 initials: initials,
                 fullName: fullName,
                 subtitle: subtitle,
+                onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
               ),
             ),
 
@@ -353,13 +354,35 @@ Widget _buildQrOnly(String svg) {
 }
 
   Future<void> _shareLink() async {
-    final url = await CardService.getCardShareLink();
+    final cardProvider = context.read<CardProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.user;
 
-    await Clipboard.setData(ClipboardData(text: url));
+    try {
+      final url = await CardService.getCardShareLink();
 
-    await SharePlus.instance.share(
-      ShareParams(text: url),
-    );
+      if (!mounted) return;
+
+      final fullName = user != null
+          ? '${user.firstname} ${user.lastname}'.trim()
+          : 'Utilisateur';
+
+      await ShareBottomSheet.show(
+        context,
+        shareUrl: url,
+        userName: fullName,
+        jobTitle: cardProvider.jobTitle,
+        company: cardProvider.company,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors du partage : $e'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
   }
 
   Future<void> _exportQr(String _) async {

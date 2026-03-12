@@ -20,6 +20,10 @@ import 'features/payment/models/payment.dart';
 // Card Scanner
 import 'features/card_scanner/providers/card_scan_provider.dart';
 
+// Leads
+import 'features/leads/providers/leads_provider.dart';
+import 'features/leads/ui/leads_page.dart';
+
 import 'features/digital_card/ui/my_digital_card_guard.dart';
 import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
@@ -64,6 +68,7 @@ class KartApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlanProvider(service: PlanService())),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
         ChangeNotifierProvider(create: (_) => CardScanProvider()),
+        ChangeNotifierProvider(create: (_) => LeadsProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -107,6 +112,7 @@ class KartApp extends StatelessWidget {
 
           '/scan': (_) => const ScanPage(),
           '/my-card': (_) => const MyDigitalCardGuard(),
+          '/leads': (_) => const LeadsPage(),
           '/home': (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;

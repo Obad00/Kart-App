@@ -7,7 +7,9 @@ import '../../core/network/api_client.dart';
 class CardService {
   static const String _qrEndpoint = '/me/card/qr';
   static const String _shareEndpoint = '/me/card/share';
-static const String _highlightEndpoint = '/highlights';
+  static const String _shareLogEndpoint = '/me/card/share-log';
+  static const String _leadsEndpoint = '/me/card/leads';
+  static const String _highlightEndpoint = '/highlights';
 
 
 static Future<Map<String, dynamic>> getCardSummary() async {
@@ -285,4 +287,75 @@ static Future<void> deactivateHighlight(int highlightId) async {
   }
 }
 
+  /// Enregistre un partage de carte avec le canal utilisé
+  /// [channel] : whatsapp, email, sms, linkedin, copy, other
+  /// [message] : Le message personnalisé envoyé (optionnel)
+  static Future<void> logShare({
+    required String channel,
+    String? message,
+  }) async {
+    try {
+      await ApiClient.dio.post(
+        _shareLogEndpoint,
+        data: {
+          'channel': channel,
+          if (message != null) 'message': message,
+        },
+      );
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  /// Récupère la liste des leads (personnes ayant scanné/vu la carte)
+  static Future<Map<String, dynamic>> getLeads() async {
+    try {
+      final response = await ApiClient.dio.get(_leadsEndpoint);
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        error: 'Format de réponse invalide pour les leads',
+        type: DioExceptionType.unknown,
+      );
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  /// Enregistre une vue/lead sur une carte publique
+  /// Appelé depuis la page publique quand quelqu'un scanne le QR
+  static Future<Map<String, dynamic>> registerCardView({
+    required String slug,
+    String? name,
+    String? email,
+    String? phone,
+    String source = 'qr_scan',
+  }) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/cards/$slug/view',
+        data: {
+          if (name != null) 'name': name,
+          if (email != null) 'email': email,
+          if (phone != null) 'phone': phone,
+          'source': source,
+        },
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      return {'success': true};
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
 }

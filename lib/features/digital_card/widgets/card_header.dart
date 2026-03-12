@@ -4,12 +4,14 @@ class CardHeader extends StatelessWidget {
   final String initials;
   final String fullName;
   final String subtitle;
+  final VoidCallback? onLeadsTap;
 
   const CardHeader({
     super.key,
     required this.initials,
     required this.fullName,
     required this.subtitle,
+    this.onLeadsTap,
   });
   
   
@@ -68,6 +70,13 @@ class CardHeader extends StatelessWidget {
             ],
           ),
         ),
+        // Bouton pour voir les leads/contacts
+        if (onLeadsTap != null)
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Mes contacts',
+            onPressed: onLeadsTap,
+          ),
         IconButton(
           icon: const Icon(Icons.more_vert),
           onPressed: () {},

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/public_card_service.dart';
+import '../../../shared/services/card_service.dart';
+import '../widgets/lead_capture_sheet.dart';
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -48,6 +50,29 @@ class _PublicCardPageState extends State<PublicCardPage>
       card = data;
       isLoading = false;
     });
+
+    // Enregistrer automatiquement la vue (sans coordonnees)
+    _registerView();
+  }
+
+  Future<void> _registerView() async {
+    try {
+      await CardService.registerCardView(
+        slug: widget.slug,
+        source: 'qr_scan',
+      );
+    } catch (_) {
+      // Ignorer les erreurs silencieusement
+    }
+  }
+
+  void _openLeadCaptureSheet() {
+    final ownerName = card?['fullname'] ?? 'ce contact';
+    LeadCaptureSheet.show(
+      context,
+      slug: widget.slug,
+      ownerName: ownerName,
+    );
   }
 
   @override
@@ -188,12 +213,43 @@ class _PublicCardPageState extends State<PublicCardPage>
 
           const SizedBox(height: 24),
 
-          Text(
-            'Contactez-moi',
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.6),
-              fontSize: 11,
-              letterSpacing: 0.3,
+          // Bouton pour partager ses coordonnees
+          GestureDetector(
+            onTap: _openLeadCaptureSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                ),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.swap_horiz_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Echanger nos contacts',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
