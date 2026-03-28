@@ -11,8 +11,8 @@ class HighlightModel {
 
   factory HighlightModel.fromJson(Map<String, dynamic> json) {
     return HighlightModel(
-      id: json['id'],
-      name: json['name'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] ?? '',
       isActive: json['is_active'] == true || json['is_active'] == 1,
     );
   }

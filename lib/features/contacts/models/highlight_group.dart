@@ -11,11 +11,16 @@ class HighlightGroup {
   });
 
   factory HighlightGroup.fromJson(Map<String, dynamic> json) {
+    final highlightData = json['highlight'];
+    final contactsData = json['contacts'];
+
     return HighlightGroup(
-      highlight: HighlightModel.fromJson(json['highlight']),
-      contacts: (json['contacts'] as List)
-          .map((e) => ContactModel.fromJson(e))
-          .toList(),
+      highlight: highlightData != null
+          ? HighlightModel.fromJson(highlightData as Map<String, dynamic>)
+          : HighlightModel(id: 0, name: 'Unknown', isActive: false),
+      contacts: contactsData is List
+          ? contactsData.map((e) => ContactModel.fromJson(e as Map<String, dynamic>)).toList()
+          : [],
     );
   }
 }

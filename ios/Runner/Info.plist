@@ -46,8 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Cette application a besoin d'acceder a votre galerie pour choisir un logo</string>
+	<string>KART a besoin d'accéder à votre galerie pour scanner des cartes de visite ou choisir un logo</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Cette application a besoin d'acceder a votre camera pour prendre une photo du logo</string>
+	<string>KART a besoin d'accéder à votre caméra pour scanner des QR codes et des cartes de visite</string>
 </dict>
 </plist>

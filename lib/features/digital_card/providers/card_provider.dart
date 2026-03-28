@@ -62,9 +62,7 @@ class CardProvider extends ChangeNotifier {
 
   try {
     final res = await ApiClient.dio.get('/me/card-summary');
-    
-    // Debug: afficher la réponse complète
-    debugPrint('📦 Card Summary Response: ${res.data}');
+    debugPrint('📦 Card Summary Response: \\${res.data}');
 
     if (res.data['job_title'] == null &&
         res.data['company'] == null) {

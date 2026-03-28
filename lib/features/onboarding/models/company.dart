@@ -40,8 +40,8 @@ class Company {
     // debugPrint('   - license_code: ${json['license_code']}');
     
     return Company(
-      id: json['id'],
-      name: json['name'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] ?? '',
       logo: json['logo'],
       primaryColor: json['primary_color'],
       secondaryColor: json['secondary_color'],
@@ -49,9 +49,9 @@ class Company {
       cardTheme: json['card_theme'] ?? 'default',
       fontFamily: json['font_family'],
       brandingEnabled: json['branding_enabled'] == 1 || json['branding_enabled'] == true,
-      licenseCode: json['license_code'],
-      maxUsers: json['max_users'] ?? 1,
-      subscriptionId: json['subscription_id'],
+      licenseCode: json['license_code'] ?? '',
+      maxUsers: int.tryParse(json['max_users']?.toString() ?? '1') ?? 1,
+      subscriptionId: json['subscription_id'] != null ? int.tryParse(json['subscription_id'].toString()) : null,
       isActive: json['is_active'] == 1 || json['is_active'] == true,
     );
   }

@@ -1,4 +1,4 @@
-package com.example.kart_app
+package space.stickerboy.kart
 
 import io.flutter.embedding.android.FlutterActivity
 

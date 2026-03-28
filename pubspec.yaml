@@ -49,7 +49,7 @@ dependencies:
   webview_flutter: ^4.7.0
 
   # Image cropper for card scanner
-  image_cropper: ^5.0.1
+  image_cropper: ^8.0.2
 
   # Lottie animations
   lottie: ^3.1.0
@@ -60,5 +60,26 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
 
+  # App icon generator
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icon/
+
+# App Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1A1A1A"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false

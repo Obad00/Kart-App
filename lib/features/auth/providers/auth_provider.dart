@@ -37,14 +37,17 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final meResponse = await _api.me();
+      debugPrint('👤 /me response: \\${meResponse.data}');
       user = User.fromJson(meResponse.data);
     } on DioException catch (e) {
+      debugPrint('❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
       } else {
         error = 'Impossible de récupérer l\'utilisateur';
       }
     } catch (e) {
+      debugPrint('❌ /me unknown error: \\${e.toString()}');
       error = 'Une erreur est survenue';
     } finally {
       isLoading = false;
@@ -60,11 +63,12 @@ class AuthProvider extends ChangeNotifier {
     try {
       // debugPrint('🔐 Attempting login for: $email');
       final response = await _api.login(email, password);
-      // debugPrint('🔐 Login response: ${response.data}');
+      debugPrint('🔐 Login response: ${response.data}');
       
-      final token = response.data['token'];
-      if (token == null) {
-        // debugPrint('❌ No token in response');
+      // Handle both 'access_token' and 'token' field names from backend
+      final token = response.data['access_token'] ?? response.data['token'];
+      if (token == null || token is! String) {
+        debugPrint('❌ No token in response: ${response.data}');
         error = 'Erreur: token non reçu';
         return;
       }
@@ -105,6 +109,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> register({
     required String firstname,
     required String lastname,
+    required String phone,
     required String email,
     required String password,
     required String passwordConfirmation,
@@ -114,23 +119,46 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _api.register({
+      await _api.register({
         'firstname': firstname,
         'lastname': lastname,
+        'phone': phone,
         'email': email,
         'password': password,
         'password_confirmation': passwordConfirmation,
+        'role': 'user',
       });
 
-      final token = response.data['token'];
-      await ApiClient.setToken(token);
-
-      // Load profile after registration
-      await loadMe();
-    } on DioException catch (_) {
-      error = 'Erreur lors de l\'inscription';
-    } catch (_) {
-      error = 'Erreur lors de l\'inscription';
+      // Registration successful, now login automatically
+      await login(email, password);
+    } on DioException catch (e) {
+      debugPrint('❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
+      if (e.response?.statusCode == 422) {
+        // Erreur de validation
+        final data = e.response?.data;
+        if (data is Map && data['errors'] != null) {
+          // Laravel renvoie les erreurs de validation dans 'errors'
+          final errors = data['errors'] as Map;
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            error = firstError.first.toString();
+          } else {
+            error = data['message'] ?? 'Données invalides';
+          }
+        } else if (data is Map && data['message'] != null) {
+          error = data['message'];
+        } else {
+          error = 'Données invalides';
+        }
+      } else if (e.type == DioExceptionType.connectionError ||
+                 e.type == DioExceptionType.connectionTimeout) {
+        error = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
+      } else {
+        error = 'Erreur serveur: ${e.response?.statusCode ?? "inconnue"}';
+      }
+    } catch (e) {
+      debugPrint('❌ Register unknown error: $e');
+      error = 'Erreur inattendue: $e';
     } finally {
       isLoading = false;
       notifyListeners();
@@ -170,9 +198,10 @@ class AuthProvider extends ChangeNotifier {
       }
 
       final response = await _api.googleLogin(accessToken);
-      final token = response.data['token'];
+      // Handle both 'access_token' and 'token' field names from backend
+      final token = response.data['access_token'] ?? response.data['token'];
 
-      if (token == null) {
+      if (token == null || token is! String) {
         error = 'Erreur: token non reçu';
         isGoogleLoading = false;
         notifyListeners();

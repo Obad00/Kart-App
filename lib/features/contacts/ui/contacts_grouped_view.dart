@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../navigation/home_shell.dart';
 import '../providers/contacts_provider.dart';
-import '../widgets/contact_row.dart';
+import '../widgets/contact_card.dart';
 
 class ContactsGroupedView extends StatefulWidget {
   const ContactsGroupedView({super.key});
@@ -590,56 +590,135 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.only(bottom: 24),
                     itemCount: provider.filteredGroups.length,
                     itemBuilder: (context, index) {
                       final group = provider.filteredGroups[index];
-                      
+
+                      // Calculate card index for staggered animation
+                      int cardIndexOffset = 0;
+                      for (int i = 0; i < index; i++) {
+                        cardIndexOffset += provider.filteredGroups[i].contacts.length;
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Section Header
+                          // Section Header with modern design
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 4,
-                                  height: 20,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: companyColor,
-                                    borderRadius: BorderRadius.circular(2),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        companyColor.withValues(alpha: 0.15),
+                                        companyColor.withValues(alpha: 0.05),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: companyColor.withValues(alpha: 0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: companyColor,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: companyColor.withValues(alpha: 0.4),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        group.highlight.name.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: companyColor,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  group.highlight.name.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                                    letterSpacing: 1.2,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${group.contacts.length}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          // Contacts
-                          ...group.contacts.map((c) {
-                            final isSelected = _selectedContacts.contains(c.id);
-                            return ContactRow(
-                              contact: c,
-                              isSelected: isSelected,
-                              onMailTap: () {
-                                HapticFeedback.lightImpact();
-                                if (!_selectedContacts.contains(c.id)) {
-                                  _toggleSelection(c.id);
-                                }
-                                _openEmailPopup(c.email ?? '');
+                          // Contacts Grid
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                // Responsive grid: 2 columns on mobile, adapt for larger screens
+                                final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                                final childAspectRatio = constraints.maxWidth > 600 ? 0.85 : 0.75;
+
+                                return GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: childAspectRatio,
+                                  ),
+                                  itemCount: group.contacts.length,
+                                  itemBuilder: (context, contactIndex) {
+                                    final c = group.contacts[contactIndex];
+                                    final isSelected = _selectedContacts.contains(c.id);
+                                    return ContactCard(
+                                      contact: c,
+                                      isSelected: isSelected,
+                                      index: cardIndexOffset + contactIndex,
+                                      onMailTap: () {
+                                        HapticFeedback.lightImpact();
+                                        if (!_selectedContacts.contains(c.id)) {
+                                          _toggleSelection(c.id);
+                                        }
+                                        _openEmailPopup(c.email ?? '');
+                                      },
+                                    );
+                                  },
+                                );
                               },
-                            );
-                          }),
+                            ),
+                          ),
                         ],
                       );
                     },

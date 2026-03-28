@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_endpoints.dart';
 
 class ApiClient {
@@ -13,18 +15,41 @@ class ApiClient {
   );
 
   static const _storage = FlutterSecureStorage();
+  static const _tokenKey = 'auth_token';
+  static bool _useSecureStorage = true;
 
   static Future<void> setToken(String token) async {
-    await _storage.write(key: 'token', value: token);
+    try {
+      if (_useSecureStorage) {
+        await _storage.write(key: _tokenKey, value: token);
+      }
+    } catch (e) {
+      debugPrint('⚠️ SecureStorage failed, using SharedPreferences: $e');
+      _useSecureStorage = false;
+    }
+
+    if (!_useSecureStorage) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+    }
+
     dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
   static Future<String?> getToken() async {
-    return await _storage.read(key: 'token');
+    try {
+      if (_useSecureStorage) {
+        return await _storage.read(key: _tokenKey);
+      }
+    } catch (e) {
+      debugPrint('⚠️ SecureStorage read failed, using SharedPreferences: $e');
+      _useSecureStorage = false;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 
-  /// Initialize the client on app start by reading any persisted token
-  /// and injecting the Authorization header if present.
   static Future<void> init() async {
     final token = await getToken();
     if (token != null) {
@@ -33,7 +58,16 @@ class ApiClient {
   }
 
   static Future<void> clearToken() async {
-    await _storage.delete(key: 'token');
+    try {
+      if (_useSecureStorage) {
+        await _storage.delete(key: _tokenKey);
+      }
+    } catch (e) {
+      debugPrint('⚠️ SecureStorage delete failed: $e');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
     dio.options.headers.remove('Authorization');
   }
 }

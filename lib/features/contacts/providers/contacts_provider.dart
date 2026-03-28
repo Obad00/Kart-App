@@ -57,8 +57,15 @@ class ContactsProvider extends ChangeNotifier {
 
     try {
       final res = await ApiClient.dio.get('/contacts/grouped-by-highlight');
-      groups = (res.data as List).map((e) => HighlightGroup.fromJson(e)).toList();
+      final data = res.data;
+      if (data is List) {
+        groups = data.map((e) => HighlightGroup.fromJson(e as Map<String, dynamic>)).toList();
+      } else {
+        groups = [];
+        debugPrint('⚠️ Unexpected response format for contacts: ${data.runtimeType}');
+      }
     } catch (e) {
+      debugPrint('❌ Error fetching contacts: $e');
       error = 'Impossible de charger les contacts';
     }
 

@@ -44,14 +44,15 @@ class User {
     }
 
     return User(
-      id: json['id'],
-      firstname: json['firstname'],
-      lastname: json['lastname'],
-      email: json['email'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      // Handle both 'firstname'/'name' and nested 'user' object from backend
+      firstname: json['firstname'] ?? json['name'] ?? '',
+      lastname: json['lastname'] ?? '',
+      email: json['email'] ?? '',
       avatar: json['avatar'],
       phone: json['phone'],
       plan: json['plan'] ?? 'free',
-      companyId: json['company_id'],
+      companyId: json['company_id'] != null ? int.tryParse(json['company_id'].toString()) : null,
       company: parsedCompany,
     );
   }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 
 class PlanService {
@@ -6,6 +7,7 @@ class PlanService {
 
   Future<List<Map<String, dynamic>>> fetchPlans() async {
     final res = await _dio.get('/plans');
+    debugPrint('📦 Plans Response: \\${res.data}');
     if (res.data is List) return List<Map<String, dynamic>>.from(res.data);
     throw Exception('Format de réponse invalide');
   }

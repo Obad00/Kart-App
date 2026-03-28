@@ -16,11 +16,11 @@ class _RegisterPageState extends State<RegisterPage>
     with TickerProviderStateMixin {
   final _firstnameCtrl = TextEditingController();
   final _lastnameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _passwordConfirmCtrl = TextEditingController();
 
-  final _pageController = PageController();
   int _currentPage = 0;
 
   late AnimationController _animController;
@@ -44,10 +44,10 @@ class _RegisterPageState extends State<RegisterPage>
   void dispose() {
     _firstnameCtrl.dispose();
     _lastnameCtrl.dispose();
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _passwordConfirmCtrl.dispose();
-    _pageController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -63,7 +63,7 @@ class _RegisterPageState extends State<RegisterPage>
       case 0:
         return _firstnameCtrl.text.isNotEmpty && _lastnameCtrl.text.isNotEmpty;
       case 1:
-        return _emailCtrl.text.contains('@');
+        return _emailCtrl.text.contains('@') && _phoneCtrl.text.length >= 8;
       case 2:
         return _isPasswordValid();
       default:
@@ -74,23 +74,22 @@ class _RegisterPageState extends State<RegisterPage>
   // ---------------- ACTIONS ----------------
 
   void _nextPage() {
-    _pageController.nextPage(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOutCubic,
-    );
+    if (_currentPage < 2) {
+      setState(() => _currentPage++);
+    }
   }
 
   void _previousPage() {
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOutCubic,
-    );
+    if (_currentPage > 0) {
+      setState(() => _currentPage--);
+    }
   }
 
   Future<void> _submit(AuthProvider auth) async {
     await auth.register(
       firstname: _firstnameCtrl.text.trim(),
       lastname: _lastnameCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim(),
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       passwordConfirmation: _passwordConfirmCtrl.text,
@@ -116,7 +115,7 @@ class _RegisterPageState extends State<RegisterPage>
       case 0:
         return 'Qui êtes-vous ?';
       case 1:
-        return 'Votre email';
+        return 'Vos coordonnées';
       case 2:
         return 'Sécurisez votre compte';
       default:
@@ -129,7 +128,7 @@ class _RegisterPageState extends State<RegisterPage>
       case 0:
         return 'Commençons par votre identité';
       case 1:
-        return 'Pour accéder à votre carte digitale';
+        return 'Pour vous contacter et accéder à votre carte';
       case 2:
         return 'Choisissez un mot de passe sécurisé';
       default:
@@ -153,14 +152,21 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 20,
+              bottom: bottomPadding > 0 ? bottomPadding + 20 : 20,
+            ),
             child: Column(
               children: [
                 // Header with back button
@@ -178,19 +184,17 @@ class _RegisterPageState extends State<RegisterPage>
 
                 const SizedBox(height: 32),
 
-                // Form pages
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    children: [
-                      _buildNameStep(),
-                      _buildEmailStep(),
-                      _buildPasswordStep(),
-                    ],
-                  ),
+                // Form pages - using AnimatedSwitcher instead of PageView
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _currentPage == 0
+                      ? _buildNameStep()
+                      : _currentPage == 1
+                          ? _buildEmailStep()
+                          : _buildPasswordStep(),
                 ),
+
+                const SizedBox(height: 32),
 
                 // Error message
                 if (auth.error != null)
@@ -417,13 +421,26 @@ class _RegisterPageState extends State<RegisterPage>
 
   Widget _buildEmailStep() {
     return SingleChildScrollView(
-      child: AuthTextField(
-        label: 'Adresse email',
-        hint: 'exemplet@email.com',
-        controller: _emailCtrl,
-        keyboardType: TextInputType.emailAddress,
-        prefixIcon: Icons.mail_outline_rounded,
-        onChanged: (_) => setState(() {}),
+      child: Column(
+        children: [
+          AuthTextField(
+            label: 'Numéro de téléphone',
+            hint: '+221 77 123 45 67',
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            prefixIcon: Icons.phone_outlined,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 24),
+          AuthTextField(
+            label: 'Adresse email',
+            hint: 'exemple@email.com',
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: Icons.mail_outline_rounded,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
       ),
     );
   }
