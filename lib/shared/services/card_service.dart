@@ -290,6 +290,7 @@ static Future<void> deactivateHighlight(int highlightId) async {
   /// Enregistre un partage de carte avec le canal utilisé
   /// [channel] : whatsapp, email, sms, linkedin, copy, other
   /// [message] : Le message personnalisé envoyé (optionnel)
+  /// Note: Cette méthode ne propage pas les erreurs pour ne pas bloquer le partage
   static Future<void> logShare({
     required String channel,
     String? message,
@@ -303,8 +304,10 @@ static Future<void> deactivateHighlight(int highlightId) async {
         },
       );
     } on DioException catch (e) {
-      _handleError(e);
-      rethrow;
+      // Log l'erreur silencieusement pour ne pas bloquer le partage
+      debugPrint('⚠️ Erreur log partage (non bloquante): ${e.message}');
+    } catch (e) {
+      debugPrint('⚠️ Erreur log partage: $e');
     }
   }
 

@@ -8,6 +8,7 @@ import '../../../shared/utils/company_color_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../digital_card/exceptions/theme_forbidden_exception.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
+import '../widgets/edit_profile_form.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -317,9 +318,9 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ),
 
-          // Bouton éditer
+          // Bouton editer
           IconButton(
-            onPressed: () {},
+            onPressed: () => _openEditProfileForm(context),
             style: IconButton.styleFrom(
               backgroundColor: colors.surface,
               shape: RoundedRectangleBorder(
@@ -754,6 +755,22 @@ class _ProfilePageState extends State<ProfilePage>
           ),
         ),
       ],
+    );
+  }
+
+  void _openEditProfileForm(BuildContext context) {
+    HapticFeedback.lightImpact();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: const EditProfileForm(),
+      ),
     );
   }
 

@@ -9,6 +9,10 @@ class Lead {
   final String? phone;
   final String source;
   final DateTime viewedAt;
+  final String? device;
+  final String? location;
+  final String? ipAddress;
+  final String? userAgent;
 
   Lead({
     required this.id,
@@ -17,6 +21,10 @@ class Lead {
     this.phone,
     required this.source,
     required this.viewedAt,
+    this.device,
+    this.location,
+    this.ipAddress,
+    this.userAgent,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -27,6 +35,10 @@ class Lead {
       phone: json['phone'] as String?,
       source: json['source'] as String? ?? 'unknown',
       viewedAt: DateTime.parse(json['viewed_at'] as String),
+      device: json['device'] as String?,
+      location: json['location'] as String?,
+      ipAddress: json['ip_address'] as String?,
+      userAgent: json['user_agent'] as String?,
     );
   }
 
@@ -35,7 +47,7 @@ class Lead {
     if (name != null && name!.isNotEmpty) return name!;
     if (email != null && email!.isNotEmpty) return email!;
     if (phone != null && phone!.isNotEmpty) return phone!;
-    return 'Visiteur anonyme';
+    return 'Visiteur #$id';
   }
 
   /// Retourne true si le lead a des coordonnees

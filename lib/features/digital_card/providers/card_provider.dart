@@ -33,6 +33,12 @@ class CardProvider extends ChangeNotifier {
   String? _theme;
   String? get theme => _theme;
 
+  // --- SLUG & SHARE URL ---
+  String? _slug;
+  String? _shareUrl;
+  String? get slug => _slug;
+  String? get shareUrl => _shareUrl;
+
   // --- COMPANY INFO ---
   String? _companyLogo;
   String? _companyPrimaryColor;
@@ -76,6 +82,12 @@ class CardProvider extends ChangeNotifier {
       phone    = res.data['phone'];
       email    = res.data['email'];
       linkedin = res.data['linkedin'];
+
+      // Recuperer le slug et l'URL de partage
+      _slug = res.data['slug'] as String?;
+      _shareUrl = res.data['share_url'] as String?;
+      debugPrint('🔗 Slug = $_slug');
+      debugPrint('🔗 Share URL = $_shareUrl');
 
       _theme = res.data['theme'];
       debugPrint('🎨 Theme from API = $_theme');

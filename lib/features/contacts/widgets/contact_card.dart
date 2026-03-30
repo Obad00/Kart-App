@@ -160,104 +160,144 @@ class _ContactCardState extends State<ContactCard>
                 ),
                 child: Stack(
                   children: [
-                    // Background decoration
-                    Positioned(
-                      top: -30,
-                      right: -30,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              avatarColor.withValues(alpha: 0.15),
-                              avatarColor.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Shimmer effect line
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 1,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              (isDark ? Colors.white : avatarColor)
-                                  .withValues(alpha: 0.2),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                     // Content
                     Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Header with Avatar and Actions
-                          Row(
-                            children: [
-                              // Avatar with glow effect
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: avatarColor.withValues(alpha: 0.4),
-                                      blurRadius: 12,
-                                      spreadRadius: 0,
-                                    ),
-                                  ],
+                          // Avatar
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  avatarColor,
+                                  avatarColor.withValues(alpha: 0.7),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: avatarColor.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
-                                child: Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        avatarColor,
-                                        avatarColor.withValues(alpha: 0.8),
-                                      ],
-                                    ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                _getInitials(widget.contact.fullname),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          // Info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Nom
+                                Text(
+                                  widget.contact.fullname,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      _getInitials(widget.contact.fullname),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.5,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                // Email ou entreprise
+                                if (widget.contact.email != null &&
+                                    widget.contact.email!.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.email_outlined,
+                                        size: 14,
+                                        color: isDark ? Colors.white54 : Colors.black45,
                                       ),
-                                    ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          widget.contact.email!,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark ? Colors.white54 : Colors.black54,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else if (widget.contact.company != null &&
+                                    widget.contact.company!.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.business_rounded,
+                                        size: 14,
+                                        color: isDark ? Colors.white54 : Colors.black45,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          widget.contact.company!,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark ? Colors.white54 : Colors.black54,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                              const Spacer(),
-                              // Action buttons
-                              _ActionButton(
-                                icon: Icons.mail_rounded,
-                                color: companyColor,
-                                onTap: widget.onMailTap,
-                                isDark: isDark,
-                              ),
-                              if (widget.contact.cardSlug != null) ...[
-                                const SizedBox(width: 8),
+                                // Telephone
+                                if (widget.contact.phone != null &&
+                                    widget.contact.phone!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone_outlined,
+                                        size: 14,
+                                        color: isDark ? Colors.white54 : Colors.black45,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        widget.contact.phone!,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isDark ? Colors.white54 : Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          // Action buttons
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.contact.cardSlug != null)
                                 _ActionButton(
                                   icon: Icons.credit_card_rounded,
-                                  color: avatarColor,
+                                  color: companyColor,
                                   onTap: () {
                                     HapticFeedback.lightImpact();
                                     Navigator.push(
@@ -271,75 +311,6 @@ class _ContactCardState extends State<ContactCard>
                                   },
                                   isDark: isDark,
                                 ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          // Name
-                          Text(
-                            widget.contact.fullname,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : Colors.black87,
-                              letterSpacing: -0.3,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          // Company
-                          if (widget.contact.company != null &&
-                              widget.contact.company!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.business_rounded,
-                                  size: 14,
-                                  color: isDark
-                                      ? Colors.white54
-                                      : Colors.black45,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    widget.contact.company!,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          // Contact info chips
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if (widget.contact.email != null &&
-                                  widget.contact.email!.isNotEmpty)
-                                _InfoChip(
-                                  icon: Icons.email_outlined,
-                                  text: widget.contact.email!,
-                                  color: companyColor,
-                                  isDark: isDark,
-                                ),
-                              if (widget.contact.phone != null &&
-                                  widget.contact.phone!.isNotEmpty)
-                                _InfoChip(
-                                  icon: Icons.phone_outlined,
-                                  text: widget.contact.phone!,
-                                  color: avatarColor,
-                                  isDark: isDark,
-                                ),
                             ],
                           ),
                         ],
@@ -348,25 +319,25 @@ class _ContactCardState extends State<ContactCard>
                     // Selection indicator
                     if (widget.isSelected)
                       Positioned(
-                        top: 12,
-                        left: 12,
+                        top: 8,
+                        right: 8,
                         child: Container(
-                          width: 24,
-                          height: 24,
+                          width: 20,
+                          height: 20,
                           decoration: BoxDecoration(
                             color: companyColor,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
                                 color: companyColor.withValues(alpha: 0.4),
-                                blurRadius: 8,
+                                blurRadius: 6,
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.check_rounded,
                             color: Colors.white,
-                            size: 16,
+                            size: 14,
                           ),
                         ),
                       ),
@@ -403,13 +374,13 @@ class _ActionButton extends StatelessWidget {
           HapticFeedback.lightImpact();
           onTap?.call();
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: color.withValues(alpha: 0.2),
               width: 1,
@@ -418,7 +389,7 @@ class _ActionButton extends StatelessWidget {
           child: Icon(
             icon,
             color: color,
-            size: 20,
+            size: 18,
           ),
         ),
       ),

@@ -328,7 +328,11 @@ void _openCreateHighlightModal(
               controller: controller,
               maxLength: 20,
               cursorColor: isCompanyUser ? accentColor : Colors.white,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
               decoration: InputDecoration(
                 hintText: 'Ex: Salon Dakar 2026',
                 hintStyle:
@@ -339,9 +343,20 @@ void _openCreateHighlightModal(
                 fillColor: isCompanyUser
                     ? accentColor.withValues(alpha: 0.15)
                     : Colors.white.withValues(alpha: 0.1),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

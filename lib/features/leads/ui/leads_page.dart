@@ -236,7 +236,18 @@ class _LeadsPageState extends State<LeadsPage> {
   }
 
   Widget _buildLeadCard(Lead lead) {
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm', 'fr_FR');
+    // Format de date simple sans dependance de locale
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+
+    // Determiner la premiere lettre pour l'avatar
+    String avatarLetter = '?';
+    if (lead.name != null && lead.name!.isNotEmpty) {
+      avatarLetter = lead.name![0].toUpperCase();
+    } else if (lead.email != null && lead.email!.isNotEmpty) {
+      avatarLetter = lead.email![0].toUpperCase();
+    } else if (lead.phone != null && lead.phone!.isNotEmpty) {
+      avatarLetter = '#';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -245,7 +256,9 @@ class _LeadsPageState extends State<LeadsPage> {
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: lead.hasContactInfo
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -270,9 +283,7 @@ class _LeadsPageState extends State<LeadsPage> {
                 ),
                 child: Center(
                   child: Text(
-                    lead.hasContactInfo
-                        ? lead.displayName[0].toUpperCase()
-                        : '?',
+                    avatarLetter,
                     style: TextStyle(
                       color: lead.hasContactInfo
                           ? Colors.white
@@ -290,8 +301,9 @@ class _LeadsPageState extends State<LeadsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nom ou identifiant
                     Text(
-                      lead.displayName,
+                      lead.name ?? lead.displayName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -303,11 +315,14 @@ class _LeadsPageState extends State<LeadsPage> {
                       children: [
                         _buildSourceBadge(lead.sourceLabel),
                         const SizedBox(width: 8),
-                        Text(
-                          dateFormat.format(lead.viewedAt),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 11,
+                        Expanded(
+                          child: Text(
+                            dateFormat.format(lead.viewedAt),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -317,31 +332,49 @@ class _LeadsPageState extends State<LeadsPage> {
               ),
 
               // Actions
-              if (lead.hasContactInfo) ...[
-                if (lead.email != null)
-                  _buildActionButton(
-                    Icons.email_outlined,
-                    () => _launchEmail(lead.email!),
-                  ),
-                if (lead.phone != null)
-                  _buildActionButton(
-                    Icons.phone_outlined,
-                    () => _launchPhone(lead.phone!),
-                  ),
-              ],
+              if (lead.email != null && lead.email!.isNotEmpty)
+                _buildActionButton(
+                  Icons.email_outlined,
+                  () => _launchEmail(lead.email!),
+                ),
+              if (lead.phone != null && lead.phone!.isNotEmpty)
+                _buildActionButton(
+                  Icons.phone_outlined,
+                  () => _launchPhone(lead.phone!),
+                ),
             ],
           ),
 
-          // Details supplementaires
-          if (lead.hasContactInfo) ...[
-            const SizedBox(height: 12),
-            Divider(color: Colors.white.withValues(alpha: 0.1)),
-            const SizedBox(height: 8),
-            if (lead.email != null)
-              _buildDetailRow(Icons.email_outlined, lead.email!),
-            if (lead.phone != null)
-              _buildDetailRow(Icons.phone_outlined, lead.phone!),
-          ],
+          // Details supplementaires - toujours afficher les infos disponibles
+          const SizedBox(height: 12),
+          Divider(color: Colors.white.withValues(alpha: 0.1)),
+          const SizedBox(height: 8),
+
+          // Infos de contact
+          if (lead.email != null && lead.email!.isNotEmpty)
+            _buildDetailRow(Icons.email_outlined, lead.email!),
+          if (lead.phone != null && lead.phone!.isNotEmpty)
+            _buildDetailRow(Icons.phone_outlined, lead.phone!),
+
+          // Infos techniques du visiteur
+          if (lead.device != null && lead.device!.isNotEmpty)
+            _buildDetailRow(Icons.phone_android_outlined, lead.device!),
+          if (lead.location != null && lead.location!.isNotEmpty)
+            _buildDetailRow(Icons.location_on_outlined, lead.location!),
+
+          // Si aucune info, afficher un message
+          if (!lead.hasContactInfo && lead.device == null && lead.location == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'Aucune information disponible',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
         ],
       ),
     );

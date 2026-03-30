@@ -125,10 +125,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       body: SafeArea(
         child: Stack(
           children: [
+            // Header avec menu hamburger et profil
             Positioned(
-              top: 18,
-              left: 20,
-              right: 20,
+              top: 12,
+              left: 16,
+              right: 16,
               child: CardHeader(
                 initials: initials,
                 fullName: fullName,
@@ -137,9 +138,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               ),
             ),
 
-            // Highlights
+            // Highlights - remontes juste sous le header
             const Positioned(
-              top: 100,
+              top: 70,
               left: 0,
               right: 0,
               child: HighlightBar(),
@@ -147,7 +148,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
             // QR Card centrée verticalement
             Positioned(
-              top: 180,
+              top: 160,
               left: 0,
               right: 0,
               bottom: 20,
@@ -359,13 +360,44 @@ Widget _buildQrOnly(String svg) {
     final user = authProvider.user;
 
     try {
-      final url = await CardService.getCardShareLink();
+      String? url;
+
+      // 1. Essayer d'utiliser l'URL de partage du CardProvider
+      if (cardProvider.shareUrl != null && cardProvider.shareUrl!.isNotEmpty) {
+        url = cardProvider.shareUrl;
+        debugPrint('🔗 Using shareUrl from provider: $url');
+      }
+      // 2. Sinon, essayer de generer l'URL avec le slug
+      else if (cardProvider.slug != null && cardProvider.slug!.isNotEmpty) {
+        url = 'https://kart.business/card/${cardProvider.slug}';
+        debugPrint('🔗 Generated URL with slug: $url');
+      }
+      // 3. Sinon, appeler l'API
+      else {
+        try {
+          url = await CardService.getCardShareLink();
+          debugPrint('🔗 Got URL from API: $url');
+        } catch (e) {
+          debugPrint('⚠️ API error, trying fallback: $e');
+        }
+      }
+
+      // 4. Dernier recours: generer le slug a partir du nom
+      if ((url == null || url.isEmpty) && user != null) {
+        final generatedSlug = _generateSlug(user.firstname, user.lastname);
+        url = 'https://kart.business/card/$generatedSlug';
+        debugPrint('🔗 Generated URL from name: $url');
+      }
 
       if (!mounted) return;
 
       final fullName = user != null
           ? '${user.firstname} ${user.lastname}'.trim()
           : 'Utilisateur';
+
+      if (url == null || url.isEmpty) {
+        throw Exception('Impossible de generer le lien de partage');
+      }
 
       await ShareBottomSheet.show(
         context,
@@ -374,15 +406,24 @@ Widget _buildQrOnly(String svg) {
         jobTitle: cardProvider.jobTitle,
         company: cardProvider.company,
       );
-    } catch (e) {
+    } catch (e, stack) {
       if (!mounted) return;
+      debugPrint('Erreur lors du partage : $e\n$stack');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors du partage : $e'),
+          content: Text('Erreur: ${e.toString().replaceAll('Exception: ', '')}'),
           backgroundColor: Colors.red[700],
         ),
       );
     }
+  }
+
+  /// Genere un slug a partir du prenom et nom
+  String _generateSlug(String firstname, String lastname) {
+    final slug = '${firstname.toLowerCase()}-${lastname.toLowerCase()}'
+        .replaceAll(RegExp(r'[^a-z0-9\-]'), '')
+        .replaceAll(RegExp(r'-+'), '-');
+    return slug;
   }
 
   Future<void> _exportQr(String _) async {

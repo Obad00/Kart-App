@@ -34,7 +34,7 @@ class OnboardingCompanyChoicePage extends StatelessWidget {
 
             // Title
             const Text(
-              'Comment souhaitez-vous continuer ?',
+              'Configurez votre entreprise',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -47,7 +47,7 @@ class OnboardingCompanyChoicePage extends StatelessWidget {
             const SizedBox(height: 8),
 
             Text(
-              'Vous pouvez créer votre propre entreprise ou rejoindre une équipe existante.',
+              'Creez votre entreprise et gerez votre equipe.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey[400],
@@ -60,8 +60,8 @@ class OnboardingCompanyChoicePage extends StatelessWidget {
             // CREATE COMPANY
             CompanyChoiceCard(
               icon: Icons.business_rounded,
-              title: 'Créer une entreprise',
-              subtitle: 'Vous serez administrateur de votre équipe',
+              title: 'Creer une entreprise',
+              subtitle: 'Vous serez administrateur de votre equipe',
               onTap: () {
                 Navigator.pushNamed(
                   context,
@@ -70,18 +70,6 @@ class OnboardingCompanyChoicePage extends StatelessWidget {
                     'subscriptionId': subscriptionId,
                   },
                 );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // JOIN COMPANY
-            CompanyChoiceCard(
-              icon: Icons.group_add_rounded,
-              title: 'Rejoindre une entreprise',
-              subtitle: 'Vous avez un code de licence',
-              onTap: () {
-                Navigator.pushNamed(context, '/join-company');
               },
             ),
 

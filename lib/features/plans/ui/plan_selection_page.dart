@@ -4,6 +4,7 @@ import '../providers/plan_provider.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
+import '../widgets/join_company_card.dart';
 
 class PlanSelectionPage extends StatefulWidget {
   const PlanSelectionPage({super.key});
@@ -16,13 +17,14 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
     with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController(viewportFraction: 0.88);
   int _selectedIndex = 0;
+  bool _isJoinCompanySelected = true; // Par defaut, le premier item est "Rejoindre entreprise"
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
-  // Couleurs d'accent pour chaque plan
+  // Couleurs d'accent pour chaque plan (sans Free)
   final List<Color> _planColors = [
-    Colors.grey[400]!, // Free
+    const Color(0xFF10B981), // Rejoindre entreprise (vert)
     const Color(0xFF2563EB), // Pro (bleu)
     const Color(0xFFFFD700), // Enterprise (or)
   ];
@@ -57,40 +59,44 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
   List<String> _getFeaturesForPlan(String? slug) {
     switch (slug) {
-      case 'free':
+      case 'pro':
         return [
           'Carte digitale personnelle',
           'QR code unique',
-          'Partage illimité',
-        ];
-      case 'pro':
-        return [
-          'Tout de Free +',
-          'Thèmes premium',
-          'Statistiques avancées',
-          'Highlights personnalisés',
+          'Partage illimite',
+          'Themes premium',
+          'Statistiques avancees',
           'Support prioritaire',
         ];
       case 'enterprise':
         return [
           'Tout de Pro +',
-          'Gestion d\'équipe',
+          'Gestion d\'equipe',
           'Licences multiples',
           'Branding entreprise',
-          'Analytics d\'équipe',
-          'Support dédié',
+          'Analytics d\'equipe',
+          'Support dedie',
         ];
       default:
         return [];
     }
   }
 
+  // Filtrer les plans pour enlever le plan Free
+  List<Map<String, dynamic>> _getFilteredPlans(List<Map<String, dynamic>> plans) {
+    return plans.where((plan) => plan['slug'] != 'free').toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<PlanProvider>(context);
-    final plans = provider.plans;
+    final allPlans = provider.plans;
+    // Filtrer pour enlever le plan Free
+    final plans = _getFilteredPlans(allPlans);
+    // Total des items = 1 (rejoindre entreprise) + plans payants
+    final totalItems = plans.length + 1;
 
-    if (provider.loading && plans.isEmpty) {
+    if (provider.loading && allPlans.isEmpty) {
       return const Scaffold(
         backgroundColor: Color(0xFF0A0A0A),
         body: Center(
@@ -101,7 +107,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
       );
     }
 
-    if (plans.isEmpty) {
+    if (allPlans.isEmpty) {
       return Scaffold(
         backgroundColor: const Color(0xFF0A0A0A),
         body: Center(
@@ -127,7 +133,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
       );
     }
 
-    if (_selectedIndex >= plans.length) {
+    if (_selectedIndex >= totalItems) {
       _selectedIndex = 0;
     }
 
@@ -194,7 +200,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       // Page indicator dots
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(plans.length, (i) {
+                        children: List.generate(totalItems, (i) {
                           final isSelected = i == _selectedIndex;
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
@@ -230,13 +236,34 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
-                    itemCount: plans.length,
+                    itemCount: totalItems,
                     onPageChanged: (index) {
-                      setState(() => _selectedIndex = index);
+                      setState(() {
+                        _selectedIndex = index;
+                        _isJoinCompanySelected = index == 0;
+                      });
                     },
                     itemBuilder: (_, index) {
-                      final plan = plans[index];
                       final isSelected = index == _selectedIndex;
+
+                      // Premier item = Rejoindre une entreprise
+                      if (index == 0) {
+                        return AnimatedPadding(
+                          duration: const Duration(milliseconds: 300),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: isSelected ? 0 : 24,
+                          ),
+                          child: JoinCompanyCard(
+                            highlight: isSelected,
+                            accentColor: _planColors[0],
+                          ),
+                        );
+                      }
+
+                      // Les autres items = plans payants
+                      final planIndex = index - 1;
+                      final plan = plans[planIndex];
                       final slug = plan['slug'] as String?;
 
                       return AnimatedPadding(
@@ -269,12 +296,28 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                   child: Column(
                     children: [
                       AuthPrimaryButton(
-                        label:
-                            'Continuer avec ${plans[_selectedIndex]['name']}',
-                        icon: Icons.arrow_forward_rounded,
+                        label: _isJoinCompanySelected || _selectedIndex == 0
+                            ? 'Rejoindre une entreprise'
+                            : 'Continuer avec ${plans.isNotEmpty && _selectedIndex > 0 && _selectedIndex - 1 < plans.length ? plans[_selectedIndex - 1]['name'] : 'ce plan'}',
+                        icon: _isJoinCompanySelected || _selectedIndex == 0
+                            ? Icons.business_rounded
+                            : Icons.arrow_forward_rounded,
                         loading: provider.loading,
                         onTap: () async {
-                          final plan = plans[_selectedIndex];
+                          if (_isJoinCompanySelected || _selectedIndex == 0) {
+                            // Rediriger vers la page pour rejoindre une entreprise
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/join-company',
+                            );
+                            return;
+                          }
+
+                          final planIndex = _selectedIndex - 1;
+                          if (planIndex < 0 || planIndex >= plans.length) {
+                            return; // Index invalide, ne rien faire
+                          }
+                          final plan = plans[planIndex];
                           final planId = plan['id'];
                           final planSlug = plan['slug'];
 

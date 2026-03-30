@@ -26,7 +26,10 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     debugPrint('👤 Parsing User from JSON:');
+    debugPrint('   - firstname: ${json['firstname']}');
+    debugPrint('   - lastname: ${json['lastname']}');
     debugPrint('   - email: ${json['email']}');
+    debugPrint('   - phone: ${json['phone']}');
     debugPrint('   - company_id: ${json['company_id']}');
     debugPrint('   - company (raw): ${json['company']}');
 

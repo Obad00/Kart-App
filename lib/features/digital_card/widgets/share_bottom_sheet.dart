@@ -150,8 +150,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
       }
 
       if (shared) {
-        // Logger le partage côté backend
-        await CardService.logShare(
+        // Logger le partage côté backend (non bloquant)
+        CardService.logShare(
           channel: channel.name,
           message: message,
         );
@@ -160,7 +160,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           Navigator.of(context).pop(channel);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Erreur lors du partage via canal $channel : $e\n$stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

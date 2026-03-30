@@ -174,6 +174,76 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updateProfile({
+    required String firstname,
+    required String lastname,
+    String? phone,
+    String? email,
+    String? password,
+    String? passwordConfirmation,
+  }) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final data = <String, dynamic>{
+        'firstname': firstname,
+        'lastname': lastname,
+      };
+
+      if (phone != null && phone.isNotEmpty) {
+        data['phone'] = phone;
+      }
+
+      if (email != null && email.isNotEmpty) {
+        data['email'] = email;
+      }
+
+      if (password != null && password.isNotEmpty) {
+        data['password'] = password;
+        if (passwordConfirmation != null) {
+          data['password_confirmation'] = passwordConfirmation;
+        }
+      }
+
+      await _api.updateProfile(data);
+
+      // Recharger les donnees de l'utilisateur
+      await loadMe();
+
+      return true;
+    } on DioException catch (e) {
+      debugPrint('Update profile error: ${e.response?.statusCode} - ${e.response?.data}');
+      if (e.response?.statusCode == 422) {
+        final data = e.response?.data;
+        if (data is Map && data['errors'] != null) {
+          final errors = data['errors'] as Map;
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            error = firstError.first.toString();
+          } else {
+            error = data['message'] ?? 'Donnees invalides';
+          }
+        } else if (data is Map && data['message'] != null) {
+          error = data['message'];
+        } else {
+          error = 'Donnees invalides';
+        }
+      } else {
+        error = 'Erreur lors de la mise a jour du profil';
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Update profile unknown error: $e');
+      error = 'Une erreur est survenue';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loginWithGoogle() async {
     isGoogleLoading = true;
     error = null;

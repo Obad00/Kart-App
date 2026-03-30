@@ -30,4 +30,11 @@ class AuthApi {
   Future<Response> me() {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
+
+  Future<Response> updateProfile(Map<String, dynamic> data) {
+    return ApiClient.dio.put(
+      ApiEndpoints.me,
+      data: data,
+    );
+  }
 }

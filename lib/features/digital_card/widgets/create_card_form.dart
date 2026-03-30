@@ -53,27 +53,44 @@ class _CreateCardFormState extends State<CreateCardForm> {
   }
 
   void _initializeCompanyField() {
-  if (_companyInitialized) return;
+    if (_companyInitialized) return;
 
-  final auth = context.read<AuthProvider>();
-  final user = auth.user;
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
 
-  // debugPrint('🔍 User: ${user?.email}');
-  // debugPrint('🔍 Company: ${user?.company?.name}');
+    debugPrint('📝 Initializing card form with user data:');
+    debugPrint('   - User: ${user?.firstname} ${user?.lastname}');
+    debugPrint('   - Phone: ${user?.phone}');
+    debugPrint('   - Email: ${user?.email}');
+    debugPrint('   - Company: ${user?.company?.name}');
 
-  if (user?.company != null) {
-    final companyName = user!.company!.name;
-    
     Future.microtask(() {
-      if (mounted) {
-        _companyCtrl.text = companyName;
+      if (mounted && user != null) {
+        // Pre-remplir le nom de l'entreprise si disponible
+        if (user.company != null && user.company!.name.isNotEmpty) {
+          _companyCtrl.text = user.company!.name;
+          debugPrint('✅ Company pre-filled: ${user.company!.name}');
+        }
+
+        // Pre-remplir le telephone si disponible
+        if (user.phone != null && user.phone!.isNotEmpty) {
+          _phoneCtrl.text = user.phone!;
+          _activeFields['phone'] = true;
+          debugPrint('✅ Phone pre-filled: ${user.phone}');
+        }
+
+        // Pre-remplir l'email si disponible
+        if (user.email.isNotEmpty) {
+          _emailCtrl.text = user.email;
+          _activeFields['email'] = true;
+          debugPrint('✅ Email pre-filled: ${user.email}');
+        }
+
         _companyInitialized = true;
         setState(() {});
-        // debugPrint('✅ Champ rempli: $companyName');
       }
     });
   }
-}
 
   @override
   void dispose() {
@@ -327,30 +344,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
                     physics: const NeverScrollableScrollPhysics(),
                     onPageChanged: (i) => setState(() => _currentPage = i),
                     children: [
-                      _twoFields(
-                        'Poste',
-                        _jobCtrl,
-                        'Entreprise',
-                        _companyCtrl,
-                        onChanged1: (_) => setState(() {}),
-                        onChanged2: (_) => setState(() {}),
-                      ),
-                      _twoFieldsWithSwitches(
-                        'Téléphone',
-                        _phoneCtrl,
-                        'Email',
-                        _emailCtrl,
-                        activeFields: _activeFields,
-                        onChanged1: (_) => setState(() {}),
-                        onChanged2: (_) => setState(() {}),
-                      ),
-                      _oneFieldWithSwitch(
-                        'LinkedIn',
-                        _linkedinCtrl,
-                        isPublic: _isPublic,
-                        onPublicChanged: (v) => setState(() => _isPublic = v),
-                        onChanged: (_) => setState(() {}),
-                      ),
+                      _buildProfessionalInfoPage(),
+                      _buildContactInfoPage(),
+                      _buildSocialAndVisibilityPage(),
                     ],
                   ),
                 ),
@@ -383,6 +379,221 @@ class _CreateCardFormState extends State<CreateCardForm> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ---------------- PAGES ----------------
+
+  Widget _buildProfessionalInfoPage() {
+    final auth = context.read<AuthProvider>();
+    final isCompanyLinked = auth.user?.hasCompany == true;
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildSectionHeader(
+            icon: Icons.badge_outlined,
+            title: 'Informations professionnelles',
+            subtitle: 'Ces informations apparaitront sur votre carte digitale',
+          ),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: 'Votre poste',
+                  controller: _jobCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.work_outline,
+                  hint: 'Ex: Directeur Marketing, Developpeur...',
+                ),
+                const SizedBox(height: 24),
+                AuthTextField(
+                  label: 'Nom de l\'entreprise',
+                  controller: _companyCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.business_outlined,
+                  hint: 'Ex: Kart Technologies, Ma Societe...',
+                ),
+                if (isCompanyLinked) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.verified_outlined,
+                          color: const Color(0xFF3B82F6),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Entreprise liee a votre licence',
+                          style: TextStyle(
+                            color: const Color(0xFF60A5FA),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactInfoPage() {
+    final auth = context.read<AuthProvider>();
+    final hasPhonePrefilled = auth.user?.phone != null && auth.user!.phone!.isNotEmpty;
+    final hasEmailPrefilled = auth.user?.email != null && auth.user!.email.isNotEmpty;
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildSectionHeader(
+            icon: Icons.contact_phone_outlined,
+            title: 'Coordonnees de contact',
+            subtitle: 'Ces informations seront visibles sur votre carte',
+          ),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: 'Numero de telephone',
+                  controller: _phoneCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  hint: 'Ex: +221 77 123 45 67',
+                ),
+                if (hasPhonePrefilled) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.grey[500],
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Pre-rempli depuis votre profil',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher le telephone sur ma carte',
+                  value: _activeFields['phone'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['phone'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+                const SizedBox(height: 28),
+                AuthTextField(
+                  label: 'Adresse email professionnelle',
+                  controller: _emailCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'Ex: nom@entreprise.com',
+                ),
+                if (hasEmailPrefilled) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.grey[500],
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Pre-rempli depuis votre profil',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher l\'email sur ma carte',
+                  value: _activeFields['email'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['email'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialAndVisibilityPage() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildSectionHeader(
+            icon: Icons.link_outlined,
+            title: 'Reseaux sociaux et visibilite',
+            subtitle: 'Ajoutez vos liens professionnels',
+          ),
+          _buildFieldCard(
+            child: Column(
+              children: [
+                AuthTextField(
+                  label: 'Profil LinkedIn',
+                  controller: _linkedinCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.link,
+                  hint: 'Ex: linkedin.com/in/votrenom',
+                ),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Afficher LinkedIn sur ma carte',
+                  value: _activeFields['linkedin'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['linkedin'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildFieldCard(
+            child: _buildPremiumSwitch(
+              title: 'Rendre ma carte publique',
+              subtitle: 'Accessible via un lien ou QR code',
+              value: _isPublic,
+              onChanged: (v) => setState(() => _isPublic = v),
+              icon: Icons.public_outlined,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -545,194 +756,4 @@ class _CreateCardFormState extends State<CreateCardForm> {
     );
   }
 
-  Widget _twoFields(
-    String l1,
-    TextEditingController c1,
-    String l2,
-    TextEditingController c2, {
-    ValueChanged<String>? onChanged1,
-    ValueChanged<String>? onChanged2,
-  }) {
-    // ✅ Vérifier en temps réel si l'utilisateur a une entreprise liée
-    final auth = context.read<AuthProvider>();
-    final isCompanyLinked = auth.user?.hasCompany == true;
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.badge_outlined,
-            title: 'Informations professionnelles',
-            subtitle: 'Ces informations apparaîtront sur votre carte digitale',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: l1,
-                  controller: c1,
-                  onChanged: onChanged1,
-                  prefixIcon: Icons.work_outline,
-                  hint: 'Ex: Directeur Marketing',
-                ),
-                const SizedBox(height: 24),
-                AuthTextField(
-                  label: l2,
-                  controller: c2,
-                  enabled: !isCompanyLinked, // ✅ Désactiver si entreprise liée
-                  onChanged: onChanged2,
-                  prefixIcon: Icons.business_outlined,
-                  hint: 'Ex: Kart Technologies',
-                ),
-                if (isCompanyLinked) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.verified_outlined,
-                          color: const Color(0xFF3B82F6),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Entreprise liée à votre licence',
-                          style: TextStyle(
-                            color: const Color(0xFF60A5FA),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _twoFieldsWithSwitches(
-    String l1,
-    TextEditingController c1,
-    String l2,
-    TextEditingController c2, {
-    required Map<String, bool> activeFields,
-    ValueChanged<String>? onChanged1,
-    ValueChanged<String>? onChanged2,
-  }) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.contact_phone_outlined,
-            title: 'Coordonnées',
-            subtitle: 'Choisissez les informations de contact à partager',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: l1,
-                  controller: c1,
-                  onChanged: onChanged1,
-                  prefixIcon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  hint: 'Ex: +33 6 12 34 56 78',
-                ),
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher sur ma carte',
-                  value: activeFields[l1.toLowerCase()] ?? false,
-                  onChanged: (v) =>
-                      setState(() => activeFields[l1.toLowerCase()] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-                const SizedBox(height: 28),
-                AuthTextField(
-                  label: l2,
-                  controller: c2,
-                  onChanged: onChanged2,
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  hint: 'Ex: nom@entreprise.com',
-                ),
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher sur ma carte',
-                  value: activeFields[l2.toLowerCase()] ?? false,
-                  onChanged: (v) =>
-                      setState(() => activeFields[l2.toLowerCase()] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _oneFieldWithSwitch(
-    String label,
-    TextEditingController ctrl, {
-    required bool isPublic,
-    required ValueChanged<bool> onPublicChanged,
-    ValueChanged<String>? onChanged,
-  }) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.link_outlined,
-            title: 'Réseaux & Visibilité',
-            subtitle: 'Ajoutez vos liens professionnels et gérez la visibilité',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: label,
-                  controller: ctrl,
-                  onChanged: onChanged,
-                  prefixIcon: Icons.link,
-                  hint: 'Ex: linkedin.com/in/votrenom',
-                ),
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher sur ma carte',
-                  value: _activeFields['linkedin'] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _activeFields['linkedin'] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildFieldCard(
-            child: _buildPremiumSwitch(
-              title: 'Carte publique',
-              subtitle: 'Accessible via lien ou QR code',
-              value: isPublic,
-              onChanged: onPublicChanged,
-              icon: Icons.public_outlined,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
