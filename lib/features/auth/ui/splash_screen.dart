@@ -64,20 +64,31 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    // When the splash animation completes, wait a tiny moment and navigate. This aligns the transition
-    // with the end of the animation so the switch feels fluid and not abrupt.
+    // When the splash animation completes, wait for auth initialization then navigate
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 220), () {
-          if (!mounted) return;
-          final auth = context.read<AuthProvider>();
-          final Widget destinationPage =
-              auth.isAuthenticated ? const HomeShell() : const LoginPage();
-
-          Navigator.of(context).pushReplacement(_createRoute(destinationPage));
-        });
+        _navigateAfterInit();
       }
     });
+  }
+
+  Future<void> _navigateAfterInit() async {
+    final auth = context.read<AuthProvider>();
+
+    // Attendre que l'auth provider ait terminé son initialisation
+    await auth.waitForInit();
+
+    // Petit délai pour une transition fluide
+    await Future.delayed(const Duration(milliseconds: 150));
+
+    if (!mounted) return;
+
+    debugPrint('🔐 Auth state after init: isAuthenticated=${auth.isAuthenticated}, user=${auth.user?.email}');
+
+    final Widget destinationPage =
+        auth.isAuthenticated ? const HomeShell() : const LoginPage();
+
+    Navigator.of(context).pushReplacement(_createRoute(destinationPage));
   }
 
   @override

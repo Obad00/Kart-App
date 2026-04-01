@@ -18,15 +18,36 @@ class AuthProvider extends ChangeNotifier {
   User? user;
   String? error;
 
+  /// Indique si l'initialisation (vérification du token) est terminée
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   AuthProvider() {
     _init();
   }
 
   Future<void> _init() async {
-    await ApiClient.init();
-    final token = await ApiClient.getToken();
-    if (token != null) {
-      await loadMe();
+    try {
+      await ApiClient.init();
+      final token = await ApiClient.getToken();
+      debugPrint('🔑 Token found on startup: ${token != null ? "Yes" : "No"}');
+      if (token != null) {
+        await loadMe();
+      }
+    } catch (e) {
+      debugPrint('❌ Auth init error: $e');
+    } finally {
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
+
+  /// Attend que l'initialisation soit terminée
+  Future<void> waitForInit() async {
+    if (_isInitialized) return;
+    // Attendre jusqu'à ce que l'initialisation soit terminée
+    while (!_isInitialized) {
+      await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 

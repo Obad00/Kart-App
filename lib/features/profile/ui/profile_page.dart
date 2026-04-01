@@ -9,6 +9,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../../digital_card/exceptions/theme_forbidden_exception.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../widgets/edit_profile_form.dart';
+import '../../digital_card/ui/create_card_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -622,7 +623,21 @@ class _ProfilePageState extends State<ProfilePage>
           ),
           const SizedBox(height: 16),
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final cardProvider = context.read<CardProvider>();
+
+              final created = await navigator.push(
+                MaterialPageRoute(
+                  builder: (_) => const CreateCardPage(),
+                ),
+              );
+
+              if (created == true) {
+                await cardProvider.loadCardSummary();
+                await cardProvider.loadMyCardQr();
+              }
+            },
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Créer ma carte'),
             style: TextButton.styleFrom(

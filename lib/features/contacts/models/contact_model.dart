@@ -5,6 +5,7 @@ class ContactModel {
   final String? phone;
   final String? company;
   final String? cardSlug;
+  final String? linkedin;
 
   ContactModel({
     required this.id,
@@ -13,6 +14,7 @@ class ContactModel {
     this.phone,
     this.company,
     this.cardSlug,
+    this.linkedin,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class ContactModel {
       phone: json['phone'],
       company: json['company'],
       cardSlug: json['card_slug'],
+      linkedin: json['linkedin'],
     );
   }
 }

@@ -285,12 +285,83 @@ void _openCreateHighlightModal(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF1A1A1A),
+    backgroundColor: Colors.transparent,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (modalContext) {
-      return Padding(
+      return _CreateHighlightSheet(
+        controller: controller,
+        accentColor: accentColor,
+        isCompanyUser: isCompanyUser,
+        parentContext: context,
+      );
+    },
+  );
+}
+
+class _CreateHighlightSheet extends StatefulWidget {
+  final TextEditingController controller;
+  final Color accentColor;
+  final bool isCompanyUser;
+  final BuildContext parentContext;
+
+  const _CreateHighlightSheet({
+    required this.controller,
+    required this.accentColor,
+    required this.isCompanyUser,
+    required this.parentContext,
+  });
+
+  @override
+  State<_CreateHighlightSheet> createState() => _CreateHighlightSheetState();
+}
+
+class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    final name = widget.controller.text.trim();
+    if (name.isEmpty || _isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    final provider = widget.parentContext.read<HighlightProvider>();
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(widget.parentContext);
+
+    try {
+      await provider.createHighlight(name);
+      if (navigator.mounted) {
+        navigator.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              'Erreur: ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Padding(
         padding: EdgeInsets.only(
           left: 20,
           right: 20,
@@ -301,48 +372,59 @@ void _openCreateHighlightModal(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Row(
               children: [
-                if (isCompanyUser)
+                if (widget.isCompanyUser)
                   Container(
                     width: 4,
                     height: 24,
                     margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      color: accentColor,
+                      color: widget.accentColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                const Text(
+                Text(
                   'Nouveau highlight',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: textColor,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              controller: widget.controller,
               maxLength: 20,
-              cursorColor: isCompanyUser ? accentColor : Colors.white,
-              style: const TextStyle(
-                color: Colors.white,
+              autofocus: true,
+              cursorColor: widget.isCompanyUser ? widget.accentColor : colors.primary,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
                 hintText: 'Ex: Salon Dakar 2026',
-                hintStyle:
-                    TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-                counterStyle:
-                    TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
+                counterStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
                 filled: true,
-                fillColor: isCompanyUser
-                    ? accentColor.withValues(alpha: 0.15)
-                    : Colors.white.withValues(alpha: 0.1),
+                fillColor: widget.isCompanyUser
+                    ? widget.accentColor.withValues(alpha: isDark ? 0.15 : 0.1)
+                    : colors.onSurface.withValues(alpha: 0.05),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
@@ -354,14 +436,14 @@ void _openCreateHighlightModal(
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: colors.onSurface.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: isCompanyUser ? accentColor : Colors.white54,
+                    color: widget.isCompanyUser ? widget.accentColor : colors.primary,
                     width: 1.5,
                   ),
                 ),
@@ -372,43 +454,40 @@ void _openCreateHighlightModal(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isCompanyUser ? accentColor : Colors.white,
-                  foregroundColor: isCompanyUser ? Colors.white : Colors.black,
+                  backgroundColor: widget.isCompanyUser
+                      ? widget.accentColor
+                      : const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  disabledBackgroundColor: (widget.isCompanyUser
+                      ? widget.accentColor
+                      : const Color(0xFF3B82F6)).withValues(alpha: 0.5),
                 ),
-                onPressed: () async {
-                  final name = controller.text.trim();
-                  if (name.isEmpty) return;
-
-                  // ✅ capturer AVANT l'await
-                  final provider = context.read<HighlightProvider>();
-                  final navigator = Navigator.of(modalContext);
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-                  try {
-                    await provider.createHighlight(name);
-                    if (navigator.mounted) {
-                      navigator.pop();
-                    }
-                  } catch (e) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Erreur: ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
-                        backgroundColor: Colors.red,
+                onPressed: _isLoading ? null : _submit,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Créer',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    );
-                  }
-                },
-                child: const Text('Créer'),
               ),
             ),
           ],
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }

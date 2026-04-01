@@ -244,8 +244,11 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -255,18 +258,20 @@ class _CreateCardFormState extends State<CreateCardForm> {
               children: [
                 // HEADER avec gradient
                 ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Colors.white, Color(0xFFB0B0B0)],
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: isDark
+                        ? [Colors.white, const Color(0xFFB0B0B0)]
+                        : [colors.onSurface, colors.onSurface.withValues(alpha: 0.7)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ).createShader(bounds),
-                  child: const Text(
+                  child: Text(
                     'Créer ma carte',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : colors.onSurface,
                     ),
                   ),
                 ),
@@ -275,7 +280,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   'Étape ${_currentPage + 1} sur 3',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[500],
+                    color: colors.onSurface.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -286,10 +291,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: colors.onSurface.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: colors.onSurface.withValues(alpha: 0.06),
                     ),
                   ),
                   child: Row(
@@ -314,7 +319,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                                   : null,
                               color: isActive || isCompleted
                                   ? null
-                                  : Colors.white.withValues(alpha: 0.15),
+                                  : colors.onSurface.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(5),
                               boxShadow: isActive
                                   ? [
@@ -605,6 +610,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
     required String title,
     required String subtitle,
   }) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         Container(
@@ -613,27 +621,27 @@ class _CreateCardFormState extends State<CreateCardForm> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white.withValues(alpha: 0.15),
-                Colors.white.withValues(alpha: 0.05),
+                colors.onSurface.withValues(alpha: 0.15),
+                colors.onSurface.withValues(alpha: 0.05),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: colors.onSurface.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
-          child: Icon(icon, color: Colors.white, size: 26),
+          child: Icon(icon, color: colors.onSurface, size: 26),
         ),
         const SizedBox(height: 16),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: colors.onSurface,
             letterSpacing: 0.5,
           ),
         ),
@@ -643,7 +651,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[400],
+            color: colors.onSurface.withValues(alpha: 0.5),
             height: 1.4,
           ),
         ),
@@ -653,20 +661,22 @@ class _CreateCardFormState extends State<CreateCardForm> {
   }
 
   Widget _buildFieldCard({required Widget child}) {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.06),
-            Colors.white.withValues(alpha: 0.02),
+            colors.onSurface.withValues(alpha: 0.06),
+            colors.onSurface.withValues(alpha: 0.02),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: colors.onSurface.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -681,17 +691,20 @@ class _CreateCardFormState extends State<CreateCardForm> {
     required ValueChanged<bool> onChanged,
     IconData? icon,
   }) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: value
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.03),
+            ? colors.onSurface.withValues(alpha: 0.08)
+            : colors.onSurface.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: value
-              ? Colors.white.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.06),
+              ? colors.onSurface.withValues(alpha: 0.15)
+              : colors.onSurface.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
@@ -703,13 +716,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
               height: 36,
               decoration: BoxDecoration(
                 color: value
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.05),
+                    ? colors.onSurface.withValues(alpha: 0.12)
+                    : colors.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
-                color: value ? Colors.white : Colors.grey[500],
+                color: value ? colors.onSurface : colors.onSurface.withValues(alpha: 0.5),
                 size: 18,
               ),
             ),
@@ -722,7 +735,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: value ? Colors.white : Colors.grey[300],
+                    color: value ? colors.onSurface : colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -732,7 +745,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: colors.onSurface.withValues(alpha: 0.5),
                       fontSize: 12,
                     ),
                   ),
@@ -745,10 +758,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
             child: Switch.adaptive(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF3B82F6),
-              inactiveThumbColor: Colors.grey[400],
-              inactiveTrackColor: Colors.grey[800],
+              activeThumbColor: isDark ? Colors.white : const Color(0xFF3B82F6),
+              activeTrackColor: isDark ? const Color(0xFF3B82F6) : const Color(0xFF3B82F6).withValues(alpha: 0.5),
+              inactiveThumbColor: colors.onSurface.withValues(alpha: 0.4),
+              inactiveTrackColor: colors.onSurface.withValues(alpha: 0.2),
             ),
           ),
         ],

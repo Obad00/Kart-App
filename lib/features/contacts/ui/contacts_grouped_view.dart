@@ -687,15 +687,16 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                               builder: (context, constraints) {
                                 // Responsive grid: 2 columns on mobile, adapt for larger screens
                                 final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
-                                final childAspectRatio = constraints.maxWidth > 600 ? 0.85 : 0.75;
+                                // Aspect ratio ajusté pour les cartes glassmorphism plus grandes
+                                final childAspectRatio = constraints.maxWidth > 600 ? 0.65 : 0.58;
 
                                 return GridView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 8,
+                                    mainAxisSpacing: 8,
                                     childAspectRatio: childAspectRatio,
                                   ),
                                   itemCount: group.contacts.length,

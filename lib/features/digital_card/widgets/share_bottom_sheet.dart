@@ -256,10 +256,15 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).colorScheme;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -280,7 +285,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: colors.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -288,10 +293,10 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
               const SizedBox(height: 20),
 
               // Titre
-              const Text(
+              Text(
                 'Partager ma carte',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
@@ -300,7 +305,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
               Text(
                 'Choisissez comment partager votre carte',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: textColor.withValues(alpha: 0.6),
                   fontSize: 14,
                 ),
               ),
@@ -344,7 +349,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 Text(
                   'Message',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: textColor.withValues(alpha: 0.8),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -352,23 +357,23 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: colors.onSurface.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: colors.onSurface.withValues(alpha: 0.1),
                     ),
                   ),
                   child: TextField(
                     controller: _messageController,
                     maxLines: 4,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 14,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Votre message...',
                       hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: textColor.withValues(alpha: 0.4),
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.all(16),
@@ -447,6 +452,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     Color color,
   ) {
     final isSelected = _selectedChannel == channel;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).colorScheme;
+    final defaultTextColor = isDark ? Colors.white70 : Colors.black54;
 
     return GestureDetector(
       onTap: () => _updateMessageForChannel(channel),
@@ -457,7 +465,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withValues(alpha: 0.1),
+            color: isSelected ? color : colors.onSurface.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -466,14 +474,14 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           children: [
             Icon(
               icon,
-              color: isSelected ? color : Colors.white70,
+              color: isSelected ? color : defaultTextColor,
               size: 28,
             ),
             const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.white70,
+                color: isSelected ? color : defaultTextColor,
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -485,26 +493,30 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).colorScheme;
+    final textColor = isDark ? Colors.white70 : Colors.black54;
+
     return GestureDetector(
       onTap: _isLoading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: colors.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: colors.onSurface.withValues(alpha: 0.1),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white70, size: 20),
+            Icon(icon, color: textColor, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
