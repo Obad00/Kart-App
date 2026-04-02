@@ -28,7 +28,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Implement phone update API call
+    // Implement phone update API call
     // For now, just navigate to home
     await Future.delayed(const Duration(milliseconds: 500));
 

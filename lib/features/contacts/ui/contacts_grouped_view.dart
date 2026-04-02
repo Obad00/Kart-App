@@ -1,8 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../navigation/home_shell.dart';
-import '../../digital_card/providers/card_provider.dart';
 import '../models/contact_model.dart';
 import '../providers/contacts_provider.dart';
 import '../widgets/contact_card.dart';
@@ -54,11 +54,73 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     });
   }
 
+  Future<void> _shareContact({
+    required ContactModel contact,
+    required String message,
+    required void Function(bool value) setLoading,
+  }) async {
+    final slug = contact.cardSlug ?? '';
+
+    if (slug.isEmpty) {
+      _showSnackBar(
+        title: 'Carte introuvable',
+        subtitle: 'Ce contact n\'a pas de carte associée.',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await context.read<ContactsProvider>().shareContact(
+            slug: slug,
+            message: message.trim().isNotEmpty ? message.trim() : null,
+          );
+
+      if (!mounted) return;
+      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      _showSnackBar(
+        title: 'Envoyé',
+        subtitle: 'Votre carte a été envoyée à ${contact.fullname}',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } on DioException catch (e) {
+      debugPrint(
+          '❌ _shareContact DioException status=${e.response?.statusCode}');
+      String errorMessage = 'Échec de l\'envoi';
+      if (e.response?.data is Map) {
+        final message = e.response?.data['message'];
+        if (message != null) {
+          errorMessage = message.toString();
+        }
+      }
+
+      _showSnackBar(
+        title: 'Erreur',
+        subtitle: errorMessage,
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    } catch (e) {
+      _showSnackBar(
+        title: 'Erreur',
+        subtitle: e.toString(),
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  }
+
   Future<void> _sendEmails() async {
     if (_selectedContacts.isEmpty) return;
 
     final content = _emailController.text.trim();
-    
+
     if (content.isEmpty) {
       _showSnackBar(
         title: 'Attention',
@@ -85,10 +147,9 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
         icon: Icons.check_circle_rounded,
         iconColor: Colors.green,
       );
-      
+
       _emailController.clear();
       setState(() => _selectedContacts.clear());
-      
     } catch (e) {
       if (!mounted) return;
       _showSnackBar(
@@ -107,7 +168,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     required Color iconColor,
   }) {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Container(
@@ -163,7 +224,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
   void _openEmailPopup(String contactEmail) {
     _emailController.text = '';
     final selectedExampleNotifier = ValueNotifier<String?>(null);
-    
+
     // Couleur bleue thème
     const companyColor = _themeBlue;
 
@@ -235,7 +296,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 '${_selectedContacts.length} destinataires',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -246,12 +310,15 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         onPressed: () => Navigator.of(dialogContext).pop(),
                         icon: Icon(
                           Icons.close_rounded,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
                         ),
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 24),
 
                   // Message Field
@@ -260,7 +327,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.1),
                       ),
                     ),
                     child: TextField(
@@ -274,7 +344,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       decoration: InputDecoration(
                         hintText: "Écrivez votre message...",
                         hintStyle: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.4),
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.all(16),
@@ -290,11 +363,14 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
                       letterSpacing: 0.5,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 12),
 
                   ...exampleMessages.map((msg) {
@@ -326,7 +402,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                   border: Border.all(
                                     color: isSelected
                                         ? companyColor.withValues(alpha: 0.3)
-                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.08),
                                     width: 1.5,
                                   ),
                                 ),
@@ -340,7 +419,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                         border: Border.all(
                                           color: isSelected
                                               ? companyColor
-                                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.3),
                                           width: 2,
                                         ),
                                       ),
@@ -363,10 +445,14 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                         msg,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
                                           color: isSelected
                                               ? companyColor
-                                              : Theme.of(context).colorScheme.onSurface,
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
                                         ),
                                       ),
                                     ),
@@ -399,7 +485,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
                             ),
                           ),
                         ),
@@ -411,7 +500,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           onPressed: _sendEmails,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: companyColor,
-                            foregroundColor: Colors.black, // ✅ Texte blanc explicite
+                            foregroundColor:
+                                Colors.black, // ✅ Texte blanc explicite
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -421,14 +511,18 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.send_rounded, size: 18, color: Colors.black), // ✅ Icône blanche explicite
+                              Icon(Icons.send_rounded,
+                                  size: 18,
+                                  color: Colors
+                                      .black), // ✅ Icône blanche explicite
                               const SizedBox(width: 8),
                               const Text(
                                 'Envoyer',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black, // ✅ Texte blanc explicite
+                                  color:
+                                      Colors.black, // ✅ Texte blanc explicite
                                 ),
                               ),
                             ],
@@ -455,7 +549,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
@@ -509,7 +604,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -518,7 +614,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 'Renvoyer votre carte',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -528,7 +627,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           onPressed: () => Navigator.of(dialogContext).pop(),
                           icon: Icon(
                             Icons.close_rounded,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -540,27 +642,40 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.1),
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInfoRow(Icons.person_rounded, 'Nom', contact.fullname),
-                          if (contact.email != null && contact.email!.isNotEmpty) ...[
+                          _buildInfoRow(
+                              Icons.person_rounded, 'Nom', contact.fullname),
+                          if (contact.email != null &&
+                              contact.email!.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            _buildInfoRow(Icons.email_rounded, 'Email', contact.email!),
+                            _buildInfoRow(
+                                Icons.email_rounded, 'Email', contact.email!),
                           ],
-                          if (contact.phone != null && contact.phone!.isNotEmpty) ...[
+                          if (contact.phone != null &&
+                              contact.phone!.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            _buildInfoRow(Icons.phone_rounded, 'Téléphone', contact.phone!),
+                            _buildInfoRow(Icons.phone_rounded, 'Téléphone',
+                                contact.phone!),
                           ],
-                          if (contact.company != null && contact.company!.isNotEmpty) ...[
+                          if (contact.company != null &&
+                              contact.company!.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            _buildInfoRow(Icons.business_rounded, 'Entreprise', contact.company!),
+                            _buildInfoRow(Icons.business_rounded, 'Entreprise',
+                                contact.company!),
                           ],
                         ],
                       ),
@@ -574,7 +689,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -586,7 +704,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.1),
                         ),
                       ),
                       child: TextField(
@@ -600,7 +721,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         decoration: InputDecoration(
                           hintText: "Ajoutez un message personnel...",
                           hintStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.4),
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.all(16),
@@ -615,7 +739,9 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       children: [
                         Expanded(
                           child: TextButton(
-                            onPressed: isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                            onPressed: isLoading
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -627,7 +753,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -636,62 +765,16 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : () async {
-                              final cardProvider = context.read<CardProvider>();
-                              final contactsProvider = context.read<ContactsProvider>();
-                              final slug = cardProvider.slug;
-
-                              if (slug == null || slug.isEmpty) {
-                                _showSnackBar(
-                                  title: 'Erreur',
-                                  subtitle: 'Aucune carte disponible',
-                                  icon: Icons.error_rounded,
-                                  iconColor: Colors.red,
-                                );
-                                return;
-                              }
-
-                              if (contact.email == null || contact.email!.isEmpty) {
-                                _showSnackBar(
-                                  title: 'Erreur',
-                                  subtitle: 'Email du contact requis',
-                                  icon: Icons.error_rounded,
-                                  iconColor: Colors.red,
-                                );
-                                return;
-                              }
-
-                              setDialogState(() => isLoading = true);
-
-                              try {
-                                await contactsProvider.shareContact(
-                                  slug: slug,
-                                  fullname: contact.fullname,
-                                  email: contact.email!,
-                                  phone: contact.phone,
-                                  company: contact.company,
-                                  message: messageController.text.trim(),
-                                );
-
-                                if (!mounted) return;
-                                Navigator.of(dialogContext).pop();
-                                _showSnackBar(
-                                  title: 'Envoyé',
-                                  subtitle: 'Votre carte a été envoyée à ${contact.fullname}',
-                                  icon: Icons.check_circle_rounded,
-                                  iconColor: Colors.green,
-                                );
-                              } catch (e) {
-                                setDialogState(() => isLoading = false);
-                                if (!mounted) return;
-                                _showSnackBar(
-                                  title: 'Erreur',
-                                  subtitle: "Échec de l'envoi",
-                                  icon: Icons.error_rounded,
-                                  iconColor: Colors.red,
-                                );
-                              }
-                            },
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                                    await _shareContact(
+                                      contact: contact,
+                                      message: messageController.text.trim(),
+                                      setLoading: (value) => setDialogState(
+                                          () => isLoading = value),
+                                    );
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
@@ -707,13 +790,15 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                                      Icon(Icons.send_rounded,
+                                          size: 18, color: Colors.white),
                                       SizedBox(width: 8),
                                       Text(
                                         'Envoyer',
@@ -757,7 +842,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
                 ),
               ),
               const SizedBox(height: 2),
@@ -811,7 +899,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                   decoration: InputDecoration(
                     hintText: 'Rechercher un contact...',
                     hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.4),
                       fontSize: 15,
                     ),
                     prefixIcon: Icon(
@@ -823,7 +914,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         ? IconButton(
                             icon: Icon(
                               Icons.close_rounded,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
                               size: 20,
                             ),
                             onPressed: () {
@@ -862,13 +956,17 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(companyColor),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(companyColor),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Chargement des contacts...',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -934,7 +1032,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       // Calculate card index for staggered animation
                       int cardIndexOffset = 0;
                       for (int i = 0; i < index; i++) {
-                        cardIndexOffset += provider.filteredGroups[i].contacts.length;
+                        cardIndexOffset +=
+                            provider.filteredGroups[i].contacts.length;
                       }
 
                       return Column(
@@ -959,7 +1058,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     ),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: companyColor.withValues(alpha: 0.2),
+                                      color:
+                                          companyColor.withValues(alpha: 0.2),
                                       width: 1,
                                     ),
                                   ),
@@ -974,7 +1074,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: companyColor.withValues(alpha: 0.4),
+                                              color: companyColor.withValues(
+                                                  alpha: 0.4),
                                               blurRadius: 4,
                                             ),
                                           ],
@@ -1000,7 +1101,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -1008,7 +1112,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
                                     ),
                                   ),
                                 ),
@@ -1022,14 +1129,17 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                             child: LayoutBuilder(
                               builder: (context, constraints) {
                                 // Responsive grid: 2 columns on mobile, adapt for larger screens
-                                final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                                final crossAxisCount =
+                                    constraints.maxWidth > 600 ? 3 : 2;
                                 // Aspect ratio ajusté pour éviter l'espace vide
-                                final childAspectRatio = constraints.maxWidth > 600 ? 0.85 : 0.80;
+                                final childAspectRatio =
+                                    constraints.maxWidth > 600 ? 0.85 : 0.80;
 
                                 return GridView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: crossAxisCount,
                                     crossAxisSpacing: 8,
                                     mainAxisSpacing: 8,
@@ -1038,7 +1148,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                   itemCount: group.contacts.length,
                                   itemBuilder: (context, contactIndex) {
                                     final c = group.contacts[contactIndex];
-                                    final isSelected = _selectedContacts.contains(c.id);
+                                    final isSelected =
+                                        _selectedContacts.contains(c.id);
                                     return ContactCard(
                                       contact: c,
                                       isSelected: isSelected,
@@ -1125,7 +1236,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
                 height: 1.6,
               ),
             ),
@@ -1182,7 +1296,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
             Icon(
               Icons.search_off_rounded,
               size: 80,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.2),
             ),
             const SizedBox(height: 24),
             Text(
@@ -1199,7 +1316,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
                 height: 1.6,
               ),
             ),

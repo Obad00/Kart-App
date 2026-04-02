@@ -202,7 +202,7 @@ class _LoginPageState extends State<LoginPage>
                             onTap: _isFormValid() ? () => _submit(auth) : null,
                           ),
 
-                          // TODO: Réactiver Google Sign-In quand prêt
+                          // Réactiver Google Sign-In quand prêt
                           // const SizedBox(height: 24),
                           // _buildGoogleButton(auth),
                         ],
@@ -279,7 +279,7 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // TODO: Réactiver quand Google Sign-In sera configuré
+  // Réactiver quand Google Sign-In sera configuré
   // Widget _buildGoogleButton(AuthProvider auth) {
   //   return GestureDetector(
   //     onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),

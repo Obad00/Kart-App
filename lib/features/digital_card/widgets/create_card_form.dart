@@ -32,7 +32,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   bool _isPublic = true;
   bool _isSubmitting = false;
-  bool _companyInitialized = false; // ✅ Flag pour éviter la réinitialisation multiple
+  bool _companyInitialized =
+      false; // ✅ Flag pour éviter la réinitialisation multiple
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
@@ -261,7 +262,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   shaderCallback: (bounds) => LinearGradient(
                     colors: isDark
                         ? [Colors.white, const Color(0xFFB0B0B0)]
-                        : [colors.onSurface, colors.onSurface.withValues(alpha: 0.7)],
+                        : [
+                            colors.onSurface,
+                            colors.onSurface.withValues(alpha: 0.7)
+                          ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ).createShader(bounds),
@@ -463,8 +467,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   Widget _buildContactInfoPage() {
     final auth = context.read<AuthProvider>();
-    final hasPhonePrefilled = auth.user?.phone != null && auth.user!.phone!.isNotEmpty;
-    final hasEmailPrefilled = auth.user?.email != null && auth.user!.email.isNotEmpty;
+    final hasPhonePrefilled =
+        auth.user?.phone != null && auth.user!.phone!.isNotEmpty;
+    final hasEmailPrefilled =
+        auth.user?.email != null && auth.user!.email.isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(
@@ -509,8 +515,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher le telephone sur ma carte',
                   value: _activeFields['phone'] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _activeFields['phone'] = v),
+                  onChanged: (v) => setState(() => _activeFields['phone'] = v),
                   icon: Icons.visibility_outlined,
                 ),
                 const SizedBox(height: 28),
@@ -546,8 +551,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher l\'email sur ma carte',
                   value: _activeFields['email'] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _activeFields['email'] = v),
+                  onChanged: (v) => setState(() => _activeFields['email'] = v),
                   icon: Icons.visibility_outlined,
                 ),
               ],
@@ -611,7 +615,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
     required String subtitle,
   }) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -722,7 +725,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
               ),
               child: Icon(
                 icon,
-                color: value ? colors.onSurface : colors.onSurface.withValues(alpha: 0.5),
+                color: value
+                    ? colors.onSurface
+                    : colors.onSurface.withValues(alpha: 0.5),
                 size: 18,
               ),
             ),
@@ -735,7 +740,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: value ? colors.onSurface : colors.onSurface.withValues(alpha: 0.7),
+                    color: value
+                        ? colors.onSurface
+                        : colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -759,7 +766,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
               value: value,
               onChanged: onChanged,
               activeThumbColor: isDark ? Colors.white : const Color(0xFF3B82F6),
-              activeTrackColor: isDark ? const Color(0xFF3B82F6) : const Color(0xFF3B82F6).withValues(alpha: 0.5),
+              activeTrackColor: isDark
+                  ? const Color(0xFF3B82F6)
+                  : const Color(0xFF3B82F6).withValues(alpha: 0.5),
               inactiveThumbColor: colors.onSurface.withValues(alpha: 0.4),
               inactiveTrackColor: colors.onSurface.withValues(alpha: 0.2),
             ),
@@ -768,5 +777,4 @@ class _CreateCardFormState extends State<CreateCardForm> {
       ),
     );
   }
-
 }

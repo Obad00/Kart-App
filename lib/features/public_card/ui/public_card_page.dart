@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
-import '../widgets/lead_capture_sheet.dart';
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -66,15 +65,6 @@ class _PublicCardPageState extends State<PublicCardPage>
     }
   }
 
-  void _openLeadCaptureSheet() {
-    final ownerName = card?['fullname'] ?? 'ce contact';
-    LeadCaptureSheet.show(
-      context,
-      slug: widget.slug,
-      ownerName: ownerName,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -82,161 +72,369 @@ class _PublicCardPageState extends State<PublicCardPage>
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: theme.colorScheme.primary,
+      body: SafeArea(
+        child: isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF3B82F6),
+                ),
+              )
+            : Stack(
+                children: [
+                  // Carte centrée verticalement et horizontalement
+                  Center(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: AnimatedBuilder(
+                        animation: _floatAnimation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _floatAnimation.value),
+                            child: child,
+                          );
+                        },
+                        child: _buildCard(theme, isLightMode),
+                      ),
+                    ),
+                  ),
+
+                  // Bouton retour par dessus
+                  Positioned(
+                    top: 16,
+                    left: 8,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back,
+                          color: theme.colorScheme.onSurface),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
               ),
-            )
-          : Stack(
-              children: [
-                Center(
-                  child: AnimatedBuilder(
-                    animation: _floatAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, _floatAnimation.value),
-                        child: child,
-                      );
-                    },
-                    child: _buildCard(theme, isLightMode),
-                  ),
-                ),
-                Positioned(
-                  top: 50,
-                  left: 16,
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back,
-                        color: theme.colorScheme.onSurface),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ],
-            ),
+      ),
     );
   }
 
   Widget _buildCard(ThemeData theme, bool isLightMode) {
-    final cardColor = isLightMode ? Colors.white : Colors.grey[900]!;
-    final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.1);
-    final shadowColor = Colors.black.withValues(alpha: 0.3);
+    final media = MediaQuery.of(context);
+    final double cardWidth = (media.size.width * 0.92).clamp(280.0, 500.0);
     final textColor = theme.colorScheme.onSurface;
 
     return Container(
-      width: 300,
-      padding: const EdgeInsets.all(24),
+      width: cardWidth,
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Badge KART
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: textColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: borderColor),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            // Fond avec dégradé
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isLightMode
+                      ? [Colors.white, const Color(0xFFF8FAFF)]
+                      : [const Color(0xFF1A1A2E), const Color(0xFF16213E)],
+                ),
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: textColor.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
+
+            // Cercle décoratif top-right
+            Positioned(
+              top: -40,
+              right: -40,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                      const Color(0xFF3B82F6).withValues(alpha: 0.0),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
+              ),
+            ),
+
+            // Cercle décoratif bottom-left
+            Positioned(
+              bottom: -30,
+              left: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Contenu principal
+            Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Badge KART avec style pill
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                          const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                          ).createShader(bounds),
+                          child: const Text(
+                            'KART',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Avatar initiales
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF3B82F6).withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getInitials(card?['fullname'] ?? ''),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Nom
+                  Text(
+                    card?['fullname'] ?? '',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  if ((card?['job_title'] ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      card?['job_title'] ?? '',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.55),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+
+                  if ((card?['company'] ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: textColor.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        card?['company'] ?? '',
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  // Divider stylisé
+                  Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          textColor.withValues(alpha: 0.1),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  if ((card?['fields'] ?? {}).isNotEmpty)
+                    ..._buildFields(card?['fields'], textColor, cardData: card),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Ajoute aussi cette méthode helper dans la classe :
+  String _getInitials(String fullname) {
+    final parts = fullname.trim().split(' ');
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
+
+  List<Widget> _buildFields(Map<String, dynamic>? fields, Color textColor,
+      {Map<String, dynamic>? cardData}) {
+    final List<Widget> widgets = [];
+
+    if (fields == null) {
+      return widgets;
+    }
+
+    if (fields.containsKey('email')) {
+      widgets.add(
+          _buildFieldRow(Icons.email_outlined, fields['email'], textColor));
+    }
+
+    // Téléphone : chercher dans fields D'ABORD, sinon fallback sur card['phone'] racine
+    final phone = fields['phone'] ?? fields['téléphone'] ?? cardData?['phone'];
+    if (phone != null && phone.toString().isNotEmpty) {
+      widgets.add(
+        _buildFieldRow(Icons.phone_outlined, phone.toString(), textColor),
+      );
+    }
+
+    debugPrint('🔗 LinkedIn raw value: ${fields['linkedin']}');
+    final linkedinRaw = fields['linkedin'] ?? fields['LinkedIn'];
+    final linkedin = linkedinRaw?.toString().trim();
+    if (linkedin != null && linkedin.isNotEmpty) {
+      widgets.add(
+        GestureDetector(
+          onTap: () async {
+            try {
+              final uri = Uri.parse(linkedin);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            } catch (_) {}
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A66C2).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: FaIcon(
+                      FontAwesomeIcons.linkedin,
+                      size: 16,
+                      color: Color(0xFF0A66C2),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Text(
-                  'KART',
+                  'LinkedIn',
                   style: TextStyle(
-                    color: textColor.withValues(alpha: 0.7),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
+                    color: const Color(0xFF0A66C2).withValues(alpha: 0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Nom
-          Text(
-            card?['fullname'] ?? '',
-            style: TextStyle(
-              color: textColor,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if ((card?['job_title'] ?? '').isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              card?['job_title'] ?? '',
-              style: TextStyle(
-                color: textColor.withValues(alpha: 0.7),
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-          if ((card?['company'] ?? '').isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              card?['company'] ?? '',
-              style: TextStyle(
-                color: textColor.withValues(alpha: 0.7),
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-          const SizedBox(height: 16),
-
-          if ((card?['fields'] ?? {}).isNotEmpty)
-            ..._buildFields(card?['fields'], textColor),
-
-          const SizedBox(height: 24),
-
-          // Bouton pour partager ses coordonnees
-
-
-// Nouvelle méthode pour ouvrir la popup de partage/contact (logique similaire à la liste)
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildFields(Map<String, dynamic>? fields, Color textColor) {
-    final List<Widget> widgets = [];
-
-    if (fields == null) return widgets;
-
-    if (fields.containsKey('email')) {
-      widgets.add(_buildFieldRow(Icons.email_outlined, fields['email'], textColor));
-    }
-
-    if (fields.containsKey('phone')) {
-      widgets.add(_buildFieldRow(Icons.phone_outlined, fields['phone'], textColor));
-    }
-
-    if (fields.containsKey('linkedin')) {
-      widgets.add(_buildLinkedInIcon(fields['linkedin'], textColor));
+        ),
+      );
     }
 
     return widgets;
@@ -244,39 +442,36 @@ class _PublicCardPageState extends State<PublicCardPage>
 
   Widget _buildFieldRow(IconData icon, String value, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: textColor.withValues(alpha: 0.7), size: 18),
-          const SizedBox(width: 8),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF3B82F6),
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
           Flexible(
             child: Text(
               value,
-              style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.75),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLinkedInIcon(String url, Color iconColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: GestureDetector(
-        onTap: () async {
-          final uri = Uri.parse(url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        },
-        child: const FaIcon(
-          FontAwesomeIcons.linkedin,
-          size: 18,
-          color: Color(0xFF3B82F6),
-        ),
       ),
     );
   }

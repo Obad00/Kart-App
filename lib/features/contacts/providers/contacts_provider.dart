@@ -16,28 +16,34 @@ class ContactsProvider extends ChangeNotifier {
 
     final queryLower = _normalize(_query);
 
-    final filtered = groups.map((group) {
-      final filteredContacts = group.contacts.where((contact) {
-        final name = _normalize(contact.fullname);
-        final company = _normalize(contact.company ?? '');
-        final email = _normalize(contact.email ?? '');
-        final phone = contact.phone ?? '';
+    final filtered = groups
+        .map((group) {
+          final filteredContacts = group.contacts.where((contact) {
+            final name = _normalize(contact.fullname);
+            final company = _normalize(contact.company ?? '');
+            final email = _normalize(contact.email ?? '');
+            final phone = contact.phone ?? '';
 
-        return name.contains(queryLower) ||
-               company.contains(queryLower) ||
-               email.contains(queryLower) ||
-               phone.contains(queryLower);
-      }).toList();
+            return name.contains(queryLower) ||
+                company.contains(queryLower) ||
+                email.contains(queryLower) ||
+                phone.contains(queryLower);
+          }).toList();
 
-      if (filteredContacts.isEmpty) return null;
+          if (filteredContacts.isEmpty) return null;
 
-      return HighlightGroup(highlight: group.highlight, contacts: filteredContacts);
-    }).whereType<HighlightGroup>().toList();
+          return HighlightGroup(
+              highlight: group.highlight, contacts: filteredContacts);
+        })
+        .whereType<HighlightGroup>()
+        .toList();
 
     if (kDebugMode) {
       debugPrint('🔍 Query: $_query');
-      debugPrint('🔍 Original groups: ${groups.map((g) => g.contacts.length).toList()}');
-      debugPrint('🔍 Filtered groups: ${filtered.map((g) => g.contacts.length).toList()}');
+      debugPrint(
+          '🔍 Original groups: ${groups.map((g) => g.contacts.length).toList()}');
+      debugPrint(
+          '🔍 Filtered groups: ${filtered.map((g) => g.contacts.length).toList()}');
     }
 
     return filtered;
@@ -59,10 +65,13 @@ class ContactsProvider extends ChangeNotifier {
       final res = await ApiClient.dio.get('/contacts/grouped-by-highlight');
       final data = res.data;
       if (data is List) {
-        groups = data.map((e) => HighlightGroup.fromJson(e as Map<String, dynamic>)).toList();
+        groups = data
+            .map((e) => HighlightGroup.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         groups = [];
-        debugPrint('⚠️ Unexpected response format for contacts: ${data.runtimeType}');
+        debugPrint(
+            '⚠️ Unexpected response format for contacts: ${data.runtimeType}');
       }
     } catch (e) {
       debugPrint('❌ Error fetching contacts: $e');
@@ -105,24 +114,15 @@ class ContactsProvider extends ChangeNotifier {
   /// Partager/Relancer un contact via l'API
   Future<void> shareContact({
     required String slug,
-    required String fullname,
-    required String email,
-    String? phone,
-    String? company,
     String? message,
   }) async {
     try {
       final response = await ApiClient.dio.post(
         '/cards/$slug/share-contact',
         data: {
-          'fullname': fullname,
-          'email': email,
-          if (phone != null && phone.isNotEmpty) 'phone': phone,
-          if (company != null && company.isNotEmpty) 'company': company,
           if (message != null && message.isNotEmpty) 'message': message,
         },
       );
-
       if (kDebugMode) {
         debugPrint('📤 Contact relancé avec succès: ${response.data}');
       }
@@ -141,7 +141,8 @@ class ContactsProvider extends ChangeNotifier {
   }
 
   String _normalize(String s) {
-    return s.toLowerCase()
+    return s
+        .toLowerCase()
         .replaceAll(RegExp(r'[éèêë]'), 'e')
         .replaceAll(RegExp(r'[àáâãä]'), 'a')
         .replaceAll(RegExp(r'[îïíì]'), 'i')
