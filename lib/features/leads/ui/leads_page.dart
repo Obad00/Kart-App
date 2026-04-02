@@ -24,28 +24,30 @@ class _LeadsPageState extends State<LeadsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colors.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Mes contacts',
           style: TextStyle(
-            color: Colors.white,
+            color: colors.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           Consumer<LeadsProvider>(
             builder: (_, provider, __) {
               return IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white70),
+                icon: Icon(Icons.refresh, color: colors.onSurface.withValues(alpha: 0.7)),
                 onPressed:
                     provider.isLoading ? null : () => provider.refresh(),
               );
@@ -56,8 +58,8 @@ class _LeadsPageState extends State<LeadsPage> {
       body: Consumer<LeadsProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.leads.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            return Center(
+              child: CircularProgressIndicator(color: colors.primary),
             );
           }
 
@@ -90,7 +92,7 @@ class _LeadsPageState extends State<LeadsPage> {
           }
 
           if (provider.leads.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
 
           return RefreshIndicator(
@@ -99,7 +101,7 @@ class _LeadsPageState extends State<LeadsPage> {
             child: Column(
               children: [
                 // Stats header
-                _buildStatsHeader(provider),
+                _buildStatsHeader(context, provider),
 
                 // Liste des leads
                 Expanded(
@@ -108,7 +110,7 @@ class _LeadsPageState extends State<LeadsPage> {
                     itemCount: provider.leads.length,
                     itemBuilder: (context, index) {
                       final lead = provider.leads[index];
-                      return _buildLeadCard(lead);
+                      return _buildLeadCard(context, lead);
                     },
                   ),
                 ),
@@ -120,7 +122,9 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -131,12 +135,12 @@ class _LeadsPageState extends State<LeadsPage> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: colors.onSurface.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.people_outline,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: colors.onSurface.withValues(alpha: 0.3),
                 size: 40,
               ),
             ),
@@ -144,7 +148,7 @@ class _LeadsPageState extends State<LeadsPage> {
             Text(
               'Aucun contact pour le moment',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: colors.onSurface.withValues(alpha: 0.8),
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -153,7 +157,7 @@ class _LeadsPageState extends State<LeadsPage> {
             Text(
               'Partagez votre carte pour commencer a collecter des contacts',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: colors.onSurface.withValues(alpha: 0.5),
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,
@@ -164,15 +168,17 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildStatsHeader(LeadsProvider provider) {
+  Widget _buildStatsHeader(BuildContext context, LeadsProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF3B82F6).withValues(alpha: 0.2),
-            const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+            const Color(0xFF3B82F6).withValues(alpha: 0.15),
+            const Color(0xFF8B5CF6).withValues(alpha: 0.08),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -184,6 +190,7 @@ class _LeadsPageState extends State<LeadsPage> {
         children: [
           Expanded(
             child: _buildStatItem(
+              context,
               icon: Icons.visibility_outlined,
               value: '${provider.total}',
               label: 'Vues totales',
@@ -192,10 +199,11 @@ class _LeadsPageState extends State<LeadsPage> {
           Container(
             width: 1,
             height: 40,
-            color: Colors.white.withValues(alpha: 0.1),
+            color: colors.onSurface.withValues(alpha: 0.1),
           ),
           Expanded(
             child: _buildStatItem(
+              context,
               icon: Icons.person_add_outlined,
               value: '${provider.contactCount}',
               label: 'Contacts',
@@ -206,19 +214,22 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildStatItem({
+  Widget _buildStatItem(
+    BuildContext context, {
     required IconData icon,
     required String value,
     required String label,
   }) {
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         Icon(icon, color: const Color(0xFF3B82F6), size: 24),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: colors.onSurface,
             fontSize: 24,
             fontWeight: FontWeight.w700,
           ),
@@ -227,7 +238,7 @@ class _LeadsPageState extends State<LeadsPage> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: colors.onSurface.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),
@@ -235,7 +246,10 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildLeadCard(Lead lead) {
+  Widget _buildLeadCard(BuildContext context, Lead lead) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Format de date simple sans dependance de locale
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
@@ -253,13 +267,22 @@ class _LeadsPageState extends State<LeadsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: lead.hasContactInfo
               ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.1),
+              : colors.onSurface.withValues(alpha: 0.1),
         ),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +301,7 @@ class _LeadsPageState extends State<LeadsPage> {
                       : null,
                   color: lead.hasContactInfo
                       ? null
-                      : Colors.white.withValues(alpha: 0.1),
+                      : colors.onSurface.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -287,7 +310,7 @@ class _LeadsPageState extends State<LeadsPage> {
                     style: TextStyle(
                       color: lead.hasContactInfo
                           ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
+                          : colors.onSurface.withValues(alpha: 0.5),
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                     ),
@@ -304,8 +327,8 @@ class _LeadsPageState extends State<LeadsPage> {
                     // Nom ou identifiant
                     Text(
                       lead.name ?? lead.displayName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -313,13 +336,13 @@ class _LeadsPageState extends State<LeadsPage> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        _buildSourceBadge(lead.sourceLabel),
+                        _buildSourceBadge(source: lead.sourceLabel),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             dateFormat.format(lead.viewedAt),
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: colors.onSurface.withValues(alpha: 0.5),
                               fontSize: 11,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -334,11 +357,13 @@ class _LeadsPageState extends State<LeadsPage> {
               // Actions
               if (lead.email != null && lead.email!.isNotEmpty)
                 _buildActionButton(
+                  context,
                   Icons.email_outlined,
                   () => _launchEmail(lead.email!),
                 ),
               if (lead.phone != null && lead.phone!.isNotEmpty)
                 _buildActionButton(
+                  context,
                   Icons.phone_outlined,
                   () => _launchPhone(lead.phone!),
                 ),
@@ -347,20 +372,20 @@ class _LeadsPageState extends State<LeadsPage> {
 
           // Details supplementaires - toujours afficher les infos disponibles
           const SizedBox(height: 12),
-          Divider(color: Colors.white.withValues(alpha: 0.1)),
+          Divider(color: colors.onSurface.withValues(alpha: 0.1)),
           const SizedBox(height: 8),
 
           // Infos de contact
           if (lead.email != null && lead.email!.isNotEmpty)
-            _buildDetailRow(Icons.email_outlined, lead.email!),
+            _buildDetailRow(context, Icons.email_outlined, lead.email!),
           if (lead.phone != null && lead.phone!.isNotEmpty)
-            _buildDetailRow(Icons.phone_outlined, lead.phone!),
+            _buildDetailRow(context, Icons.phone_outlined, lead.phone!),
 
           // Infos techniques du visiteur
           if (lead.device != null && lead.device!.isNotEmpty)
-            _buildDetailRow(Icons.phone_android_outlined, lead.device!),
+            _buildDetailRow(context, Icons.phone_android_outlined, lead.device!),
           if (lead.location != null && lead.location!.isNotEmpty)
-            _buildDetailRow(Icons.location_on_outlined, lead.location!),
+            _buildDetailRow(context, Icons.location_on_outlined, lead.location!),
 
           // Si aucune info, afficher un message
           if (!lead.hasContactInfo && lead.device == null && lead.location == null)
@@ -369,7 +394,7 @@ class _LeadsPageState extends State<LeadsPage> {
               child: Text(
                 'Aucune information disponible',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: colors.onSurface.withValues(alpha: 0.4),
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                 ),
@@ -380,11 +405,11 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildSourceBadge(String source) {
+  Widget _buildSourceBadge({required String source}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+        color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -398,7 +423,9 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 
-  Widget _buildActionButton(IconData icon, VoidCallback onTap) {
+  Widget _buildActionButton(BuildContext context, IconData icon, VoidCallback onTap) {
+    final colors = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -406,25 +433,27 @@ class _LeadsPageState extends State<LeadsPage> {
         height: 36,
         margin: const EdgeInsets.only(left: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: colors.onSurface.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white70, size: 18),
+        child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.7), size: 18),
       ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String value) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String value) {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.5), size: 16),
+          Icon(icon, color: colors.onSurface.withValues(alpha: 0.5), size: 16),
           const SizedBox(width: 8),
           Text(
             value,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: colors.onSurface.withValues(alpha: 0.7),
               fontSize: 13,
             ),
           ),

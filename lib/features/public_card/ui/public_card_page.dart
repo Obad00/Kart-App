@@ -214,44 +214,9 @@ class _PublicCardPageState extends State<PublicCardPage>
           const SizedBox(height: 24),
 
           // Bouton pour partager ses coordonnees
-          GestureDetector(
-            onTap: _openLeadCaptureSheet,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                ),
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.swap_horiz_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Echanger nos contacts',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+
+
+// Nouvelle méthode pour ouvrir la popup de partage/contact (logique similaire à la liste)
         ],
       ),
     );
@@ -310,6 +275,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         child: const FaIcon(
           FontAwesomeIcons.linkedin,
           size: 18,
+          color: Color(0xFF3B82F6),
         ),
       ),
     );

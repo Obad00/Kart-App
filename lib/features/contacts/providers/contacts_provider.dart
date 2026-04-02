@@ -90,7 +90,7 @@ class ContactsProvider extends ChangeNotifier {
       );
 
       if (response.statusCode != 201) {
-        throw Exception('Erreur lors de l’envoi du message');
+        throw Exception("Erreur lors de l'envoi du message");
       }
 
       if (kDebugMode) {
@@ -98,6 +98,36 @@ class ContactsProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('❌ Erreur sendMessage: $e');
+      rethrow;
+    }
+  }
+
+  /// Partager/Relancer un contact via l'API
+  Future<void> shareContact({
+    required String slug,
+    required String fullname,
+    required String email,
+    String? phone,
+    String? company,
+    String? message,
+  }) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/cards/$slug/share-contact',
+        data: {
+          'fullname': fullname,
+          'email': email,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+          if (company != null && company.isNotEmpty) 'company': company,
+          if (message != null && message.isNotEmpty) 'message': message,
+        },
+      );
+
+      if (kDebugMode) {
+        debugPrint('📤 Contact relancé avec succès: ${response.data}');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ Erreur shareContact: $e');
       rethrow;
     }
   }
