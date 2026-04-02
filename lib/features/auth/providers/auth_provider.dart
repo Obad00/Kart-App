@@ -1,15 +1,24 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
 
+const String _kGoogleSignInClientId =
+    String.fromEnvironment('GOOGLE_SIGN_IN_CLIENT_ID', defaultValue: '');
+
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
+    clientId: kIsWeb && _kGoogleSignInClientId.isNotEmpty
+        ? _kGoogleSignInClientId
+        : null,
   );
+
+  bool get _isGoogleSignInConfigured =>
+      !kIsWeb || _kGoogleSignInClientId.isNotEmpty;
 
   bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
@@ -61,7 +70,8 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('👤 /me response: \\${meResponse.data}');
       user = User.fromJson(meResponse.data);
     } on DioException catch (e) {
-      debugPrint('❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
+      debugPrint(
+          '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
       } else {
@@ -85,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
       // debugPrint('🔐 Attempting login for: $email');
       final response = await _api.login(email, password);
       debugPrint('🔐 Login response: ${response.data}');
-      
+
       // Handle both 'access_token' and 'token' field names from backend
       final token = response.data['access_token'] ?? response.data['token'];
       if (token == null || token is! String) {
@@ -102,7 +112,6 @@ class AuthProvider extends ChangeNotifier {
       await loadMe();
       // debugPrint('✅ User fully loaded: ${user?.email}');
       // debugPrint('✅ Company: ${user?.company?.name}');
-      
     } on DioException catch (e) {
       // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
@@ -153,7 +162,8 @@ class AuthProvider extends ChangeNotifier {
       // Registration successful, now login automatically
       await login(email, password);
     } on DioException catch (e) {
-      debugPrint('❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
+      debugPrint(
+          '❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 422) {
         // Erreur de validation
         final data = e.response?.data;
@@ -172,7 +182,7 @@ class AuthProvider extends ChangeNotifier {
           error = 'Données invalides';
         }
       } else if (e.type == DioExceptionType.connectionError ||
-                 e.type == DioExceptionType.connectionTimeout) {
+          e.type == DioExceptionType.connectionTimeout) {
         error = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
       } else {
         error = 'Erreur serveur: ${e.response?.statusCode ?? "inconnue"}';
@@ -187,7 +197,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _googleSignIn.signOut();
+    if (kIsWeb && !_isGoogleSignInConfigured) {
+      debugPrint(
+          'GoogleSignIn logout skipped: missing web client ID configuration');
+    } else {
+      try {
+        await _googleSignIn.signOut();
+      } catch (e, st) {
+        debugPrint('GoogleSignIn signOut error: $e\n$st');
+      }
+    }
+
     await ApiClient.clearToken();
     user = null;
     error = null;
@@ -235,7 +255,8 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } on DioException catch (e) {
-      debugPrint('Update profile error: ${e.response?.statusCode} - ${e.response?.data}');
+      debugPrint(
+          'Update profile error: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 422) {
         final data = e.response?.data;
         if (data is Map && data['errors'] != null) {
@@ -271,6 +292,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (kIsWeb && !_isGoogleSignInConfigured) {
+        error =
+            'Google sign-in non configuré pour le web. Ajoutez un client_id dans web/index.html ou utilisez --dart-define=GOOGLE_SIGN_IN_CLIENT_ID=...';
+        isGoogleLoading = false;
+        notifyListeners();
+        return;
+      }
+
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         isGoogleLoading = false;
@@ -306,7 +335,8 @@ class AuthProvider extends ChangeNotifier {
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         error = 'Token Google invalide';
-      } else if (e.response?.data != null && e.response?.data['message'] != null) {
+      } else if (e.response?.data != null &&
+          e.response?.data['message'] != null) {
         error = e.response?.data['message'];
       } else {
         error = 'Erreur de connexion Google';
