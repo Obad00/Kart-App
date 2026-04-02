@@ -387,7 +387,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       );
     }
 
-    debugPrint('🔗 LinkedIn raw value: ${fields['linkedin']}');
+    // debugPrint('🔗 LinkedIn raw value: ${fields['linkedin']}');
     final linkedinRaw = fields['linkedin'] ?? fields['LinkedIn'];
     final linkedin = linkedinRaw?.toString().trim();
     if (linkedin != null && linkedin.isNotEmpty) {
