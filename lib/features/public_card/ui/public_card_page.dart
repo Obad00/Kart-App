@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
+
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -14,32 +14,53 @@ class PublicCardPage extends StatefulWidget {
 }
 
 class _PublicCardPageState extends State<PublicCardPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _service = PublicCardService();
   Map<String, dynamic>? card;
   bool isLoading = true;
 
-  late final AnimationController _floatController;
-  late final Animation<double> _floatAnimation;
+  late AnimationController _floatController;
+  late Animation<double> _floatAnimation;
+  late AnimationController _appearController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _load();
 
+    // Animation flottante
     _floatController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(seconds: 5),
     )..repeat(reverse: true);
 
-    _floatAnimation = Tween<double>(begin: 0, end: 6).animate(
+    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
+
+    // Animation d'apparition
+    _appearController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _appearController, curve: Curves.easeOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
+      CurvedAnimation(parent: _appearController, curve: Curves.easeOutBack),
+    );
+
+    _appearController.forward();
   }
 
   @override
   void dispose() {
     _floatController.dispose();
+    _appearController.dispose();
     super.dispose();
   }
 
@@ -50,7 +71,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       isLoading = false;
     });
 
-    // Enregistrer automatiquement la vue (sans coordonnees)
+    // Enregistrer automatiquement la vue
     _registerView();
   }
 
@@ -65,413 +86,371 @@ class _PublicCardPageState extends State<PublicCardPage>
     }
   }
 
+  String _getInitials(String name) {
+    List<String> parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return '';
+  }
+
+  String _getFieldValue(String key) {
+    final fields = card?['fields'];
+    if (fields is Map<String, dynamic>) {
+      final value = fields[key];
+      if (value is String && value.isNotEmpty) return value.trim();
+    }
+    return '';
+  }
+
+  Future<void> _openUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } catch (_) {
+      // Ignorer les erreurs de lancement URL.
+    }
+  }
+
+  Future<void> _openPhone(String phone) async {
+    if (phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _openEmail(String email) async {
+    if (email.isEmpty) return;
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLightMode = theme.brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (card == null) {
+      return Scaffold(
+        body: Center(child: Text('Carte non trouvée')),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: const Color(0xFF3B82F6),
-                ),
-              )
-            : Stack(
-                children: [
-                  // Carte centrée verticalement et horizontalement
-                  Center(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: AnimatedBuilder(
-                        animation: _floatAnimation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(0, _floatAnimation.value),
-                            child: child,
-                          );
-                        },
-                        child: _buildCard(theme, isLightMode),
-                      ),
-                    ),
-                  ),
-
-                  // Bouton retour par dessus
-                  Positioned(
-                    top: 16,
-                    left: 8,
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back,
-                          color: theme.colorScheme.onSurface),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
-              ),
+      appBar: AppBar(
+        title: Text(card!['fullname'] ?? 'Carte'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
+        foregroundColor: isDark ? Colors.white : Colors.black,
+        elevation: 0,
       ),
-    );
-  }
-
-  Widget _buildCard(ThemeData theme, bool isLightMode) {
-    final media = MediaQuery.of(context);
-    final double cardWidth = (media.size.width * 0.92).clamp(280.0, 500.0);
-    final textColor = theme.colorScheme.onSurface;
-
-    return Container(
-      width: cardWidth,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF0F0F23), const Color(0xFF1A1A2E)]
+                : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
           ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: Stack(
-          children: [
-            // Fond avec dégradé
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isLightMode
-                      ? [Colors.white, const Color(0xFFF8FAFF)]
-                      : [const Color(0xFF1A1A2E), const Color(0xFF16213E)],
-                ),
-              ),
-            ),
-
-            // Cercle décoratif top-right
-            Positioned(
-              top: -40,
-              right: -40,
-              child: Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                      const Color(0xFF3B82F6).withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Cercle décoratif bottom-left
-            Positioned(
-              bottom: -30,
-              left: -30,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF8B5CF6).withValues(alpha: 0.12),
-                      const Color(0xFF8B5CF6).withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Contenu principal
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Badge KART avec style pill
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF3B82F6).withValues(alpha: 0.12),
-                          const Color(0xFF8B5CF6).withValues(alpha: 0.12),
-                        ],
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: AnimatedBuilder(
+                  animation: _floatAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _floatAnimation.value),
+                      child: child,
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Card(
+                      elevation: 20,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        side: BorderSide(
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.35),
+                          width: 1,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                            ),
+                      color: isDark ? Colors.black : Colors.white,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFF3B82F6).withValues(alpha: 0.05),
+                              const Color(0xFF2563EB).withValues(alpha: 0.02),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                          ).createShader(bounds),
-                          child: const Text(
-                            'KART',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Avatar
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFF2563EB),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _getInitials(card!['fullname'] ?? ''),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            // Nom
+                            Text(
+                              card!['fullname'] ?? '',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            // Job
+                            if (card!['job_title'] != null && card!['job_title'].isNotEmpty)
+                              Text(
+                                card!['job_title'],
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF6B7280),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            const SizedBox(height: 4),
+                            // Company
+                            if (card!['company'] != null && card!['company'].isNotEmpty)
+                              Text(
+                                card!['company'],
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            const SizedBox(height: 16),
+                            // Contact Info
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                children: [
+                                  // Phone
+                                  if (card!['phone'] != null && card!['phone'].isNotEmpty)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () => _openPhone(card!['phone']),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 6),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.phone,
+                                              size: 18,
+                                              color: const Color(0xFF2563EB),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              card!['phone'],
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                color: Color(0xFF374151),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 8),
+                                  // Email
+                                  if (card!['fields'] != null && card!['fields']['email'] != null && card!['fields']['email'].isNotEmpty)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () => _openEmail(card!['fields']['email']),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 6),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.email,
+                                              size: 18,
+                                              color: const Color(0xFF2563EB),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              card!['fields']['email'],
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                color: Color(0xFF374151),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            // Social Links - Réseaux sociaux modernes (mode adaptatif)
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                _buildModernSocialButton(
+                                  '𝕏',
+                                  'X',
+                                  () => _openUrl(_getFieldValue('x')),
+                                  enabled: _getFieldValue('x').isNotEmpty,
+                                ),
+                                _buildModernSocialButton(
+                                  '💼',
+                                  'LinkedIn',
+                                  () => _openUrl(_getFieldValue('linkedin')),
+                                  enabled: _getFieldValue('linkedin').isNotEmpty,
+                                ),
+                                _buildModernSocialButton(
+                                  '📷',
+                                  'Instagram',
+                                  () => _openUrl(_getFieldValue('instagram')),
+                                  enabled: _getFieldValue('instagram').isNotEmpty,
+                                ),
+                                _buildModernSocialButton(
+                                  '📘',
+                                  'Facebook',
+                                  () => _openUrl(_getFieldValue('facebook')),
+                                  enabled: _getFieldValue('facebook').isNotEmpty,
+                                ),
+                                _buildModernSocialButton(
+                                  '🐙',
+                                  'GitHub',
+                                  () => _openUrl(_getFieldValue('github')),
+                                  enabled: _getFieldValue('github').isNotEmpty,
+                                ),
+                                _buildModernSocialButton(
+                                  '🌐',
+                                  'Web',
+                                  () => _openUrl(_getFieldValue('website')),
+                                  enabled: _getFieldValue('website').isNotEmpty,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Avatar initiales
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              const Color(0xFF3B82F6).withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _getInitials(card?['fullname'] ?? ''),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Nom
-                  Text(
-                    card?['fullname'] ?? '',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  if ((card?['job_title'] ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      card?['job_title'] ?? '',
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.55),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-
-                  if ((card?['company'] ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: textColor.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        card?['company'] ?? '',
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  // Divider stylisé
-                  Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          textColor.withValues(alpha: 0.1),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  if ((card?['fields'] ?? {}).isNotEmpty)
-                    ..._buildFields(card?['fields'], textColor, cardData: card),
-                ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // Ajoute aussi cette méthode helper dans la classe :
-  String _getInitials(String fullname) {
-    final parts = fullname.trim().split(' ');
-    if (parts.isEmpty) return '';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
-  }
-
-  List<Widget> _buildFields(Map<String, dynamic>? fields, Color textColor,
-      {Map<String, dynamic>? cardData}) {
-    final List<Widget> widgets = [];
-
-    if (fields == null) {
-      return widgets;
-    }
-
-    if (fields.containsKey('email')) {
-      widgets.add(
-          _buildFieldRow(Icons.email_outlined, fields['email'], textColor));
-    }
-
-    // Téléphone : chercher dans fields D'ABORD, sinon fallback sur card['phone'] racine
-    final phone = fields['phone'] ?? fields['téléphone'] ?? cardData?['phone'];
-    if (phone != null && phone.toString().isNotEmpty) {
-      widgets.add(
-        _buildFieldRow(Icons.phone_outlined, phone.toString(), textColor),
-      );
-    }
-
-    // debugPrint('🔗 LinkedIn raw value: ${fields['linkedin']}');
-    final linkedinRaw = fields['linkedin'] ?? fields['LinkedIn'];
-    final linkedin = linkedinRaw?.toString().trim();
-    if (linkedin != null && linkedin.isNotEmpty) {
-      widgets.add(
-        GestureDetector(
-          onTap: () async {
-            try {
-              final uri = Uri.parse(linkedin);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            } catch (_) {}
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A66C2).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: FaIcon(
-                      FontAwesomeIcons.linkedin,
-                      size: 16,
-                      color: Color(0xFF0A66C2),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'LinkedIn',
-                  style: TextStyle(
-                    color: const Color(0xFF0A66C2).withValues(alpha: 0.9),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+  Widget _buildModernSocialButton(String emoji, String label, VoidCallback onTap, {bool enabled = true}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: enabled
+                ? const Color(0xFF3B82F6).withValues(alpha: 0.08)
+                : const Color(0xFF9CA3AF).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: enabled
+                  ? const Color(0xFF2563EB).withValues(alpha: 0.35)
+                  : const Color(0xFF9CA3AF).withValues(alpha: 0.35),
+              width: 1,
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                emoji,
+                style: TextStyle(fontSize: 16, color: enabled ? const Color(0xFF3B82F6) : const Color(0xFF6B7280)),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? const Color(0xFF3B82F6) : const Color(0xFF6B7280),
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    }
-
-    return widgets;
-  }
-
-  Widget _buildFieldRow(IconData icon, String value, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF3B82F6),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: textColor.withValues(alpha: 0.75),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
       ),
     );
   }

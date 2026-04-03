@@ -4,6 +4,7 @@ class ContactModel {
   final String? email;
   final String? phone;
   final String? company;
+  final String? job;
   final String? cardSlug;
   final String? linkedin;
 
@@ -13,6 +14,7 @@ class ContactModel {
     this.email,
     this.phone,
     this.company,
+    this.job,
     this.cardSlug,
     this.linkedin,
   });
@@ -24,6 +26,7 @@ class ContactModel {
       email: json['email'],
       phone: json['phone'],
       company: json['company'],
+      job: json['job'],
       cardSlug: json['card_slug'],
       linkedin: json['linkedin'],
     );

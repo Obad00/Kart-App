@@ -44,16 +44,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     super.dispose();
   }
 
-  void _toggleSelection(int contactId) {
-    setState(() {
-      if (_selectedContacts.contains(contactId)) {
-        _selectedContacts.remove(contactId);
-      } else {
-        _selectedContacts.add(contactId);
-      }
-    });
-  }
-
   Future<void> _shareContact({
     required ContactModel contact,
     required String message,
@@ -582,15 +572,15 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFF10B981).withValues(alpha: 0.2),
-                                const Color(0xFF10B981).withValues(alpha: 0.1),
+                                const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                const Color(0xFF3B82F6).withValues(alpha: 0.1),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
                             Icons.send_rounded,
-                            color: Color(0xFF10B981),
+                            color: Color(0xFF3B82F6),
                             size: 24,
                           ),
                         ),
@@ -776,7 +766,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     );
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: const Color(0xFF3B82F6),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1029,13 +1019,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                     itemBuilder: (context, index) {
                       final group = provider.filteredGroups[index];
 
-                      // Calculate card index for staggered animation
-                      int cardIndexOffset = 0;
-                      for (int i = 0; i < index; i++) {
-                        cardIndexOffset +=
-                            provider.filteredGroups[i].contacts.length;
-                      }
-
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1124,46 +1107,33 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           ),
 
                           // Contacts Grid
-                          Padding(
+                       Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: LayoutBuilder(
                               builder: (context, constraints) {
-                                // Responsive grid: 2 columns on mobile, adapt for larger screens
-                                final crossAxisCount =
-                                    constraints.maxWidth > 600 ? 3 : 2;
-                                // Aspect ratio ajusté pour éviter l'espace vide
-                                final childAspectRatio =
-                                    constraints.maxWidth > 600 ? 0.85 : 0.80;
+                                final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
 
                                 return GridView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: crossAxisCount,
                                     crossAxisSpacing: 8,
                                     mainAxisSpacing: 8,
-                                    childAspectRatio: childAspectRatio,
+                                    childAspectRatio: 0.75,
                                   ),
                                   itemCount: group.contacts.length,
                                   itemBuilder: (context, contactIndex) {
                                     final c = group.contacts[contactIndex];
-                                    final isSelected =
-                                        _selectedContacts.contains(c.id);
                                     return ContactCard(
                                       contact: c,
-                                      isSelected: isSelected,
-                                      index: cardIndexOffset + contactIndex,
-                                      onMailTap: () {
-                                        HapticFeedback.lightImpact();
-                                        if (!_selectedContacts.contains(c.id)) {
-                                          _toggleSelection(c.id);
-                                        }
-                                        _openEmailPopup(c.email ?? '');
-                                      },
-                                      onShareTap: () {
+                                      onShare: () {
                                         HapticFeedback.lightImpact();
                                         _openShareContactPopup(c);
+                                      },
+                                      onEmailTap: () {
+                                        HapticFeedback.lightImpact();
+                                        _openEmailPopup(c.email ?? '');
                                       },
                                     );
                                   },
