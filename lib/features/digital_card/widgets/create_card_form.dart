@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
-import '../../../shared/widgets/auth_outline_button.dart';
 import '../../../shared/services/card_service.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -35,8 +34,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
   bool _companyInitialized =
       false; // ✅ Flag pour éviter la réinitialisation multiple
 
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
 
   @override
   void initState() {
@@ -100,7 +97,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _linkedinCtrl.dispose();
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -209,483 +205,272 @@ class _CreateCardFormState extends State<CreateCardForm> {
     }
   }
 
-  void _nextPage() {
-    if (_currentPage < 2) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
-    } else {
-      _submit();
-    }
-  }
-
-  void _previousPage() {
-    if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
-    }
-  }
-
-  bool _isValidPage() {
-    switch (_currentPage) {
-      case 0:
-        return _jobCtrl.text.isNotEmpty && _companyCtrl.text.isNotEmpty;
-      case 1:
-      case 2:
-        return true; // tous champs facultatifs
-      default:
-        return false;
-    }
+  bool _isFormValid() {
+    return _jobCtrl.text.isNotEmpty && _companyCtrl.text.isNotEmpty;
   }
 
   // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = context.read<AuthProvider>();
+    final isCompanyLinked = auth.user?.hasCompany == true;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: colors.surface,
+      backgroundColor: const Color(0xFF0A0A0A),
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Form(
           key: _formKey,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: 28,
+              right: 28,
+              top: 32,
+              bottom: bottomPadding > 0 ? bottomPadding + 32 : 32,
+            ),
             child: Column(
               children: [
-                // HEADER avec gradient
-                ShaderMask(
-                  shaderCallback: (bounds) => LinearGradient(
-                    colors: isDark
-                        ? [Colors.white, const Color(0xFFB0B0B0)]
-                        : [
-                            colors.onSurface,
-                            colors.onSurface.withValues(alpha: 0.7)
-                          ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ).createShader(bounds),
-                  child: Text(
-                    'Créer ma carte',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                      color: isDark ? Colors.white : colors.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Étape ${_currentPage + 1} sur 3',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colors.onSurface.withValues(alpha: 0.5),
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // INDICATOR Premium
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: colors.onSurface.withValues(alpha: 0.06),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(3, (i) {
-                      final isActive = _currentPage == i;
-                      final isCompleted = _currentPage > i;
-                      return Row(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: isActive ? 32 : 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              gradient: isActive || isCompleted
-                                  ? const LinearGradient(
-                                      colors: [
-                                        Color(0xFF3B82F6),
-                                        Color(0xFF2563EB)
-                                      ],
-                                    )
-                                  : null,
-                              color: isActive || isCompleted
-                                  ? null
-                                  : colors.onSurface.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(5),
-                              boxShadow: isActive
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(0xFF3B82F6)
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                          ),
-                          if (i < 2) const SizedBox(width: 8),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // PAGES
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    children: [
-                      _buildProfessionalInfoPage(),
-                      _buildContactInfoPage(),
-                      _buildSocialAndVisibilityPage(),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // BUTTONS
+                // HEADER
                 Row(
                   children: [
-                    if (_currentPage > 0)
-                      Expanded(
-                        child: AuthOutlineButton(
-                          label: 'Retour',
-                          onTap: _previousPage,
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      )
-                    else
-                      const Expanded(child: SizedBox()),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AuthPrimaryButton(
-                        label: _currentPage == 2 ? 'Créer ma carte' : 'Suivant',
-                        loading: _isSubmitting,
-                        onTap: _isValidPage() ? _nextPage : null,
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                     ),
+                    const Spacer(),
+                    const Text(
+                      'KART',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 3,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 42),
                   ],
+                ),
+
+                const SizedBox(height: 56),
+
+                // Form Card
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      const Text(
+                        'Créer ma carte',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Remplissez vos informations professionnelles',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 15,
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Professional Info
+                      AuthTextField(
+                        label: 'Votre poste',
+                        controller: _jobCtrl,
+                        onChanged: (_) => setState(() {}),
+                        prefixIcon: Icons.work_outline,
+                        hint: 'Ex: Directeur Marketing, Developpeur...',
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      AuthTextField(
+                        label: 'Nom de l\'entreprise',
+                        controller: _companyCtrl,
+                        enabled: !isCompanyLinked,
+                        onChanged: (_) => setState(() {}),
+                        prefixIcon: Icons.business_outlined,
+                        hint: 'Ex: Kart Technologies, Ma Societe...',
+                      ),
+                      if (isCompanyLinked) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.verified_outlined,
+                                color: const Color(0xFF3B82F6),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Entreprise liee a votre licence',
+                                style: TextStyle(
+                                  color: const Color(0xFF60A5FA),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 32),
+
+                      // Contact Info
+                      Text(
+                        'Coordonnees de contact',
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      AuthTextField(
+                        label: 'Numero de telephone',
+                        controller: _phoneCtrl,
+                        onChanged: (_) => setState(() {}),
+                        prefixIcon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        hint: 'Ex: +221 77 123 45 67',
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildPremiumSwitch(
+                        title: 'Afficher le telephone sur ma carte',
+                        value: _activeFields['phone'] ?? false,
+                        onChanged: (v) => setState(() => _activeFields['phone'] = v),
+                        icon: Icons.visibility_outlined,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      AuthTextField(
+                        label: 'Adresse email professionnelle',
+                        controller: _emailCtrl,
+                        onChanged: (_) => setState(() {}),
+                        prefixIcon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        hint: 'Ex: nom@entreprise.com',
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildPremiumSwitch(
+                        title: 'Afficher l\'email sur ma carte',
+                        value: _activeFields['email'] ?? false,
+                        onChanged: (v) => setState(() => _activeFields['email'] = v),
+                        icon: Icons.visibility_outlined,
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Social & Visibility
+                      Text(
+                        'Reseaux sociaux et visibilite',
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      AuthTextField(
+                        label: 'Profil LinkedIn',
+                        controller: _linkedinCtrl,
+                        onChanged: (_) => setState(() {}),
+                        prefixIcon: Icons.link,
+                        hint: 'Ex: linkedin.com/in/votrenom',
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildPremiumSwitch(
+                        title: 'Afficher LinkedIn sur ma carte',
+                        value: _activeFields['linkedin'] ?? false,
+                        onChanged: (v) =>
+                            setState(() => _activeFields['linkedin'] = v),
+                        icon: Icons.visibility_outlined,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildPremiumSwitch(
+                        title: 'Rendre ma carte publique',
+                        subtitle: 'Accessible via un lien ou QR code',
+                        value: _isPublic,
+                        onChanged: (v) => setState(() => _isPublic = v),
+                        icon: Icons.public_outlined,
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Submit Button
+                      AuthPrimaryButton(
+                        label: 'Créer ma carte',
+                        icon: Icons.check_rounded,
+                        loading: _isSubmitting,
+                        onTap: _isFormValid() ? _submit : null,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ---------------- PAGES ----------------
-
-  Widget _buildProfessionalInfoPage() {
-    final auth = context.read<AuthProvider>();
-    final isCompanyLinked = auth.user?.hasCompany == true;
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.badge_outlined,
-            title: 'Informations professionnelles',
-            subtitle: 'Ces informations apparaitront sur votre carte digitale',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: 'Votre poste',
-                  controller: _jobCtrl,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.work_outline,
-                  hint: 'Ex: Directeur Marketing, Developpeur...',
-                ),
-                const SizedBox(height: 24),
-                AuthTextField(
-                  label: 'Nom de l\'entreprise',
-                  controller: _companyCtrl,
-                  enabled: !isCompanyLinked,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.business_outlined,
-                  hint: 'Ex: Kart Technologies, Ma Societe...',
-                ),
-                if (isCompanyLinked) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.verified_outlined,
-                          color: const Color(0xFF3B82F6),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Entreprise liee a votre licence',
-                          style: TextStyle(
-                            color: const Color(0xFF60A5FA),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContactInfoPage() {
-    final auth = context.read<AuthProvider>();
-    final hasPhonePrefilled =
-        auth.user?.phone != null && auth.user!.phone!.isNotEmpty;
-    final hasEmailPrefilled =
-        auth.user?.email != null && auth.user!.email.isNotEmpty;
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.contact_phone_outlined,
-            title: 'Coordonnees de contact',
-            subtitle: 'Ces informations seront visibles sur votre carte',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: 'Numero de telephone',
-                  controller: _phoneCtrl,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  hint: 'Ex: +221 77 123 45 67',
-                ),
-                if (hasPhonePrefilled) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.grey[500],
-                        size: 14,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Pre-rempli depuis votre profil',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher le telephone sur ma carte',
-                  value: _activeFields['phone'] ?? false,
-                  onChanged: (v) => setState(() => _activeFields['phone'] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-                const SizedBox(height: 28),
-                AuthTextField(
-                  label: 'Adresse email professionnelle',
-                  controller: _emailCtrl,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  hint: 'Ex: nom@entreprise.com',
-                ),
-                if (hasEmailPrefilled) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.grey[500],
-                        size: 14,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Pre-rempli depuis votre profil',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher l\'email sur ma carte',
-                  value: _activeFields['email'] ?? false,
-                  onChanged: (v) => setState(() => _activeFields['email'] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSocialAndVisibilityPage() {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildSectionHeader(
-            icon: Icons.link_outlined,
-            title: 'Reseaux sociaux et visibilite',
-            subtitle: 'Ajoutez vos liens professionnels',
-          ),
-          _buildFieldCard(
-            child: Column(
-              children: [
-                AuthTextField(
-                  label: 'Profil LinkedIn',
-                  controller: _linkedinCtrl,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.link,
-                  hint: 'Ex: linkedin.com/in/votrenom',
-                ),
-                const SizedBox(height: 12),
-                _buildPremiumSwitch(
-                  title: 'Afficher LinkedIn sur ma carte',
-                  value: _activeFields['linkedin'] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _activeFields['linkedin'] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildFieldCard(
-            child: _buildPremiumSwitch(
-              title: 'Rendre ma carte publique',
-              subtitle: 'Accessible via un lien ou QR code',
-              value: _isPublic,
-              onChanged: (v) => setState(() => _isPublic = v),
-              icon: Icons.public_outlined,
-            ),
-          ),
-        ],
       ),
     );
   }
 
   // ---------------- HELPERS ----------------
-
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                colors.onSurface.withValues(alpha: 0.15),
-                colors.onSurface.withValues(alpha: 0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colors.onSurface.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-          child: Icon(icon, color: colors.onSurface, size: 26),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: colors.onSurface,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            color: colors.onSurface.withValues(alpha: 0.5),
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 32),
-      ],
-    );
-  }
-
-  Widget _buildFieldCard({required Widget child}) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colors.onSurface.withValues(alpha: 0.06),
-            colors.onSurface.withValues(alpha: 0.02),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colors.onSurface.withValues(alpha: 0.08),
-          width: 1,
-        ),
-      ),
-      child: child,
-    );
-  }
 
   Widget _buildPremiumSwitch({
     required String title,

@@ -109,27 +109,59 @@ onTap: () async {
   final confirm = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
+      final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+      final dialogBgColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+      final textColor = isDark ? Colors.white : Colors.black87;
+      final subtitleColor = isDark ? Colors.white70 : Colors.black54;
+
       return AlertDialog(
+        backgroundColor: dialogBgColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.0),
+            width: 1,
+          ),
         ),
+        elevation: isDark ? 12 : 24,
         title: Text(
           isCurrentlyActive
               ? 'Désactiver ce highlight ?'
               : 'Activer ce highlight ?',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
         ),
         content: Text(
           isCurrentlyActive
               ? 'Voulez-vous désactiver "${highlight.name}" ?'
               : 'Voulez-vous activer "${highlight.name}" ?',
+          style: TextStyle(
+            color: subtitleColor,
+            fontSize: 15,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
+            style: TextButton.styleFrom(
+              foregroundColor: subtitleColor,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isCompanyUser ? accentColor : const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: Text(
               isCurrentlyActive ? 'Désactiver' : 'Activer',
             ),

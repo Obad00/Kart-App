@@ -98,8 +98,10 @@ class _ScanPageState extends State<ScanPage> {
 
   if (!mounted) return;
 
-  Navigator.of(context).pushReplacementNamed(
+  // Navigate to home and remove all routes until root to prevent navigation errors
+  Navigator.of(context).pushNamedAndRemoveUntil(
     '/home',
+    (route) => route.isFirst,
     arguments: {'tab': 2}, // 👈 Contacts
   );
 }
@@ -107,36 +109,197 @@ class _ScanPageState extends State<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? Colors.black : Colors.white;
+    final iconColor = isDark ? Colors.white : Colors.black;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_rounded, color: iconColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Scanner une carte Kart',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: Stack(
         children: [
+          // Camera Scanner
           MobileScanner(
             onDetect: _onDetect,
           ),
 
-          Align(
-            alignment: Alignment.topCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Scanne une carte KART',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+          // Frame overlay for better alignment
+          Center(
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isDark ? Colors.white : Colors.black,
+                  width: 3,
                 ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Stack(
+                children: [
+                  // Corner brackets for visual guidance
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: _buildCorner(),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Transform.rotate(
+                      angle: 1.5708, // 90 degrees
+                      child: _buildCorner(),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: Transform.rotate(
+                      angle: -1.5708, // -90 degrees
+                      child: _buildCorner(),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Transform.rotate(
+                      angle: 3.14159, // 180 degrees
+                      child: _buildCorner(),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
+          // Overlay to darken outside the frame
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              bgColor.withValues(alpha: 0.5),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    backgroundBlendMode: BlendMode.dstOut,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white : Colors.black,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Instructions
+          Positioned(
+            bottom: 60,
+            left: 0,
+            right: 0,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.7)
+                    : Colors.white.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : Colors.black.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: isDark ? Colors.white : Colors.black,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Alignez le code QR dans le cadre',
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : Colors.black.withValues(alpha: 0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Loading indicator
           if (_isProcessing)
-            const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            Container(
+              color: bgColor.withValues(alpha: 0.7),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: isDark ? Colors.white : Colors.black),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Traitement en cours...',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCorner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cornerColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: cornerColor, width: 4),
+          left: BorderSide(color: cornerColor, width: 4),
+        ),
       ),
     );
   }

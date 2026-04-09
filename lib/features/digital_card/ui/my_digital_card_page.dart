@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../auth/providers/auth_provider.dart';
-import '../../../shared/services/card_service.dart';
 import '../providers/card_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../contacts/widgets/highlight_bar.dart';
@@ -23,7 +22,6 @@ import '../widgets/card_error_state.dart';
 import '../widgets/share_bottom_sheet.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
-import '../../scan/ui/card_scan_switcher_page.dart';
 
 
 
@@ -336,11 +334,10 @@ Widget _buildQrOnly(String svg) {
     onTap: () {
       _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
 
-      Navigator.push(
+      // Show fullscreen QR instead of navigating to switcher page
+      QrFullscreenView.show(
         context,
-        MaterialPageRoute(
-          builder: (_) => const CardScanSwitcherPage(),
-        ),
+        _buildQrOnly(svg),
       );
     },
 
@@ -362,31 +359,26 @@ Widget _buildQrOnly(String svg) {
     try {
       String? url;
 
+      debugPrint('🔗 Starting share process...');
+      debugPrint('🔗 ShareUrl from provider: ${cardProvider.shareUrl}');
+      debugPrint('🔗 Slug from provider: ${cardProvider.slug}');
+      debugPrint('🔗 User: ${user?.firstname} ${user?.lastname}');
+
       // 1. Essayer d'utiliser l'URL de partage du CardProvider
       if (cardProvider.shareUrl != null && cardProvider.shareUrl!.isNotEmpty) {
         url = cardProvider.shareUrl;
-        debugPrint('🔗 Using shareUrl from provider: $url');
+        debugPrint('✅ Using shareUrl from provider: $url');
       }
       // 2. Sinon, essayer de generer l'URL avec le slug
       else if (cardProvider.slug != null && cardProvider.slug!.isNotEmpty) {
         url = 'https://kart.business/card/${cardProvider.slug}';
-        debugPrint('🔗 Generated URL with slug: $url');
+        debugPrint('✅ Generated URL with slug: $url');
       }
-      // 3. Sinon, appeler l'API
-      else {
-        try {
-          url = await CardService.getCardShareLink();
-          debugPrint('🔗 Got URL from API: $url');
-        } catch (e) {
-          debugPrint('⚠️ API error, trying fallback: $e');
-        }
-      }
-
-      // 4. Dernier recours: generer le slug a partir du nom
-      if ((url == null || url.isEmpty) && user != null) {
+      // 3. Dernier recours: generer le slug a partir du nom
+      else if (user != null) {
         final generatedSlug = _generateSlug(user.firstname, user.lastname);
         url = 'https://kart.business/card/$generatedSlug';
-        debugPrint('🔗 Generated URL from name: $url');
+        debugPrint('✅ Generated URL from name: $url');
       }
 
       if (!mounted) return;
@@ -396,8 +388,10 @@ Widget _buildQrOnly(String svg) {
           : 'Utilisateur';
 
       if (url == null || url.isEmpty) {
-        throw Exception('Impossible de generer le lien de partage');
+        throw Exception('Impossible de générer le lien de partage. Veuillez réessayer.');
       }
+
+      debugPrint('✅ Opening share sheet with URL: $url');
 
       await ShareBottomSheet.show(
         context,
@@ -408,11 +402,12 @@ Widget _buildQrOnly(String svg) {
       );
     } catch (e, stack) {
       if (!mounted) return;
-      debugPrint('Erreur lors du partage : $e\n$stack');
+      debugPrint('❌ Erreur lors du partage : $e\n$stack');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: ${e.toString().replaceAll('Exception: ', '')}'),
+          content: Text('Erreur lors du partage: ${e.toString().replaceAll('Exception: ', '')}'),
           backgroundColor: Colors.red[700],
+          duration: const Duration(seconds: 4),
         ),
       );
     }

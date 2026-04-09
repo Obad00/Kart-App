@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
+import '../widgets/lead_capture_sheet.dart';
 
 
 class PublicCardPage extends StatefulWidget {
@@ -84,6 +86,14 @@ class _PublicCardPageState extends State<PublicCardPage>
     } catch (_) {
       // Ignorer les erreurs silencieusement
     }
+  }
+
+  Future<void> _showContactForm() async {
+    await LeadCaptureSheet.show(
+      context,
+      slug: widget.slug,
+      ownerName: card!['fullname'] ?? 'le proprietaire',
+    );
   }
 
   String _getInitials(String name) {
@@ -304,16 +314,16 @@ class _PublicCardPageState extends State<PublicCardPage>
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.phone,
+                                              Icons.phone_outlined,
                                               size: 18,
                                               color: const Color(0xFF2563EB),
                                             ),
                                             const SizedBox(width: 12),
                                             Text(
                                               card!['phone'],
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 16,
-                                                color: Color(0xFF374151),
+                                                color: isDark ? Colors.white70 : const Color(0xFF374151),
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -333,16 +343,16 @@ class _PublicCardPageState extends State<PublicCardPage>
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.email,
+                                              Icons.email_outlined,
                                               size: 18,
                                               color: const Color(0xFF2563EB),
                                             ),
                                             const SizedBox(width: 12),
                                             Text(
                                               card!['fields']['email'],
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 16,
-                                                color: Color(0xFF374151),
+                                                color: isDark ? Colors.white70 : const Color(0xFF374151),
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -353,49 +363,75 @@ class _PublicCardPageState extends State<PublicCardPage>
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 32),
-                            // Social Links - Réseaux sociaux modernes (mode adaptatif)
+                            const SizedBox(height: 24),
+                            // Bouton "Restons en contact"
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showContactForm(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3B82F6),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFF3B82F6).withValues(alpha: 0.4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.person_add_outlined, size: 20),
+                                label: const Text(
+                                  'Restons en contact',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Social Links - Using FontAwesome icons like contact card
                             Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
+                              spacing: 8,
+                              runSpacing: 8,
                               alignment: WrapAlignment.center,
                               children: [
-                                _buildModernSocialButton(
-                                  '𝕏',
-                                  'X',
-                                  () => _openUrl(_getFieldValue('x')),
-                                  enabled: _getFieldValue('x').isNotEmpty,
-                                ),
-                                _buildModernSocialButton(
-                                  '💼',
-                                  'LinkedIn',
-                                  () => _openUrl(_getFieldValue('linkedin')),
-                                  enabled: _getFieldValue('linkedin').isNotEmpty,
-                                ),
-                                _buildModernSocialButton(
-                                  '📷',
-                                  'Instagram',
-                                  () => _openUrl(_getFieldValue('instagram')),
-                                  enabled: _getFieldValue('instagram').isNotEmpty,
-                                ),
-                                _buildModernSocialButton(
-                                  '📘',
-                                  'Facebook',
-                                  () => _openUrl(_getFieldValue('facebook')),
-                                  enabled: _getFieldValue('facebook').isNotEmpty,
-                                ),
-                                _buildModernSocialButton(
-                                  '🐙',
-                                  'GitHub',
-                                  () => _openUrl(_getFieldValue('github')),
-                                  enabled: _getFieldValue('github').isNotEmpty,
-                                ),
-                                _buildModernSocialButton(
-                                  '🌐',
-                                  'Web',
-                                  () => _openUrl(_getFieldValue('website')),
-                                  enabled: _getFieldValue('website').isNotEmpty,
-                                ),
+                                if (_getFieldValue('x').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.xTwitter,
+                                    color: const Color(0xFF000000),
+                                    onTap: () => _openUrl(_getFieldValue('x')),
+                                  ),
+                                if (_getFieldValue('linkedin').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.linkedin,
+                                    color: const Color(0xFF0A66C2),
+                                    onTap: () => _openUrl(_getFieldValue('linkedin')),
+                                  ),
+                                if (_getFieldValue('instagram').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.instagram,
+                                    color: const Color(0xFFE4405F),
+                                    onTap: () => _openUrl(_getFieldValue('instagram')),
+                                  ),
+                                if (_getFieldValue('facebook').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.facebook,
+                                    color: const Color(0xFF1877F2),
+                                    onTap: () => _openUrl(_getFieldValue('facebook')),
+                                  ),
+                                if (_getFieldValue('github').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.github,
+                                    color: const Color(0xFF333333),
+                                    onTap: () => _openUrl(_getFieldValue('github')),
+                                  ),
+                                if (_getFieldValue('website').isNotEmpty)
+                                  _buildSocialButton(
+                                    icon: FontAwesomeIcons.globe,
+                                    color: const Color(0xFF6366F1),
+                                    onTap: () => _openUrl(_getFieldValue('website')),
+                                  ),
                               ],
                             ),
                           ],
@@ -412,43 +448,37 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  Widget _buildModernSocialButton(String emoji, String label, VoidCallback onTap, {bool enabled = true}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: enabled
-                ? const Color(0xFF3B82F6).withValues(alpha: 0.08)
-                : const Color(0xFF9CA3AF).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: enabled
-                  ? const Color(0xFF2563EB).withValues(alpha: 0.35)
-                  : const Color(0xFF9CA3AF).withValues(alpha: 0.35),
-              width: 1,
-            ),
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: color.withValues(alpha: 0.4),
+            width: 1.5,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                emoji,
-                style: TextStyle(fontSize: 16, color: enabled ? const Color(0xFF3B82F6) : const Color(0xFF6B7280)),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? const Color(0xFF3B82F6) : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 18,
+            color: color,
           ),
         ),
       ),

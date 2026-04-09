@@ -472,10 +472,19 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : defaultTextColor,
-              size: 28,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: isSelected ? color : defaultTextColor,
+                  size: 20,
+                ),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -511,7 +520,16 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: textColor, size: 20),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Icon(icon, color: textColor, size: 20),
+              ),
+            ),
             const SizedBox(width: 8),
             Text(
               label,

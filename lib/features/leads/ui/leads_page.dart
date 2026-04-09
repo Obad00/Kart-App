@@ -253,14 +253,28 @@ class _LeadsPageState extends State<LeadsPage> {
     // Format de date simple sans dependance de locale
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-    // Determiner la premiere lettre pour l'avatar
+    // Determiner la premiere lettre ou icône pour l'avatar
     String avatarLetter = '?';
-    if (lead.name != null && lead.name!.isNotEmpty) {
+    IconData? avatarIcon;
+
+    // PRIORITÉ 1: Utilisateurs Kart enregistrés
+    if (lead.isKartUser && lead.userFirstname != null && lead.userLastname != null) {
+      avatarLetter = '${lead.userFirstname![0]}${lead.userLastname![0]}'.toUpperCase();
+    }
+    // PRIORITÉ 2: Nom saisi manuellement
+    else if (lead.name != null && lead.name!.isNotEmpty) {
       avatarLetter = lead.name![0].toUpperCase();
     } else if (lead.email != null && lead.email!.isNotEmpty) {
       avatarLetter = lead.email![0].toUpperCase();
-    } else if (lead.phone != null && lead.phone!.isNotEmpty) {
-      avatarLetter = '#';
+    } else {
+      // Pour les visiteurs anonymes, utiliser des icônes basées sur les infos disponibles
+      if (lead.location != null && lead.location!.isNotEmpty) {
+        avatarIcon = Icons.location_on_outlined;
+      } else if (lead.device != null && lead.device!.isNotEmpty) {
+        avatarIcon = Icons.devices_outlined;
+      } else {
+        avatarIcon = Icons.person_outline;
+      }
     }
 
     return Container(
@@ -305,16 +319,22 @@ class _LeadsPageState extends State<LeadsPage> {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(
-                    avatarLetter,
-                    style: TextStyle(
-                      color: lead.hasContactInfo
-                          ? Colors.white
-                          : colors.onSurface.withValues(alpha: 0.5),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: avatarIcon != null
+                      ? Icon(
+                          avatarIcon,
+                          color: colors.onSurface.withValues(alpha: 0.5),
+                          size: 24,
+                        )
+                      : Text(
+                          avatarLetter,
+                          style: TextStyle(
+                            color: lead.hasContactInfo
+                                ? Colors.white
+                                : colors.onSurface.withValues(alpha: 0.5),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -324,9 +344,9 @@ class _LeadsPageState extends State<LeadsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nom ou identifiant
+                    // Nom ou identifiant - toujours utiliser displayName pour les vraies infos
                     Text(
-                      lead.name ?? lead.displayName,
+                      lead.displayName,
                       style: TextStyle(
                         color: colors.onSurface,
                         fontSize: 16,
@@ -334,6 +354,28 @@ class _LeadsPageState extends State<LeadsPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
+
+                    // Job et compagnie si c'est un utilisateur Kart
+                    if (lead.isKartUser && (lead.userJobTitle != null || lead.userCompany != null))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          [
+                            if (lead.userJobTitle != null && lead.userJobTitle!.isNotEmpty)
+                              lead.userJobTitle,
+                            if (lead.userCompany != null && lead.userCompany!.isNotEmpty)
+                              lead.userCompany,
+                          ].join(' • '),
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                    // Badge source et date
                     Row(
                       children: [
                         _buildSourceBadge(source: lead.sourceLabel),
@@ -374,6 +416,33 @@ class _LeadsPageState extends State<LeadsPage> {
           const SizedBox(height: 12),
           Divider(color: colors.onSurface.withValues(alpha: 0.1)),
           const SizedBox(height: 8),
+
+          // Infos de l'utilisateur Kart si disponibles
+          if (lead.isKartUser)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (lead.userJobTitle != null && lead.userJobTitle!.isNotEmpty)
+                  _buildDetailRow(context, Icons.work_outline, lead.userJobTitle!),
+                if (lead.userCompany != null && lead.userCompany!.isNotEmpty)
+                  _buildDetailRow(context, Icons.business_outlined, lead.userCompany!),
+                if (lead.userFirstname != null || lead.userLastname != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      'Utilisateur Kart inscrit',
+                      style: TextStyle(
+                        color: const Color(0xFF3B82F6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Divider(color: colors.onSurface.withValues(alpha: 0.1)),
+                const SizedBox(height: 8),
+              ],
+            ),
 
           // Infos de contact
           if (lead.email != null && lead.email!.isNotEmpty)

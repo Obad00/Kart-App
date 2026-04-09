@@ -1,5 +1,6 @@
 // ───────────────── ContactsProvider ─────────────────
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../models/highlight_group.dart';
 
@@ -117,17 +118,30 @@ class ContactsProvider extends ChangeNotifier {
     String? message,
   }) async {
     try {
+      if (kDebugMode) {
+        debugPrint('📤 Tentative de partage du contact: /cards/$slug/share-contact');
+        debugPrint('📤 Message: ${message ?? "null"}');
+      }
+
       final response = await ApiClient.dio.post(
         '/cards/$slug/share-contact',
         data: {
           if (message != null && message.isNotEmpty) 'message': message,
         },
       );
+
       if (kDebugMode) {
-        debugPrint('📤 Contact relancé avec succès: ${response.data}');
+        debugPrint('✅ Contact partagé avec succès: ${response.data}');
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('❌ Erreur shareContact: $e');
+      if (kDebugMode) {
+        debugPrint('❌ Erreur shareContact: $e');
+        if (e is DioException) {
+          debugPrint('❌ Status: ${e.response?.statusCode}');
+          debugPrint('❌ Response: ${e.response?.data}');
+          debugPrint('❌ URL: ${e.requestOptions.uri}');
+        }
+      }
       rethrow;
     }
   }

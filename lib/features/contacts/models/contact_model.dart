@@ -7,6 +7,10 @@ class ContactModel {
   final String? job;
   final String? cardSlug;
   final String? linkedin;
+  final String? twitter;
+  final String? facebook;
+  final String? instagram;
+  final String? website;
 
   ContactModel({
     required this.id,
@@ -17,6 +21,10 @@ class ContactModel {
     this.job,
     this.cardSlug,
     this.linkedin,
+    this.twitter,
+    this.facebook,
+    this.instagram,
+    this.website,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +37,10 @@ class ContactModel {
       job: json['job'],
       cardSlug: json['card_slug'],
       linkedin: json['linkedin'],
+      twitter: json['twitter'],
+      facebook: json['facebook'],
+      instagram: json['instagram'],
+      website: json['website'],
     );
   }
 }

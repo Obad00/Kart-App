@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/network/api_client.dart';
+import 'device_info_service.dart';
 
 class CardService {
   static const String _qrEndpoint = '/me/card/qr';
@@ -333,6 +334,7 @@ static Future<void> deactivateHighlight(int highlightId) async {
 
   /// Enregistre une vue/lead sur une carte publique
   /// Appelé depuis la page publique quand quelqu'un scanne le QR
+  /// Collecte automatiquement les informations de l'appareil
   static Future<Map<String, dynamic>> registerCardView({
     required String slug,
     String? name,
@@ -341,6 +343,15 @@ static Future<void> deactivateHighlight(int highlightId) async {
     String source = 'qr_scan',
   }) async {
     try {
+      // Collecter automatiquement les informations de l'appareil
+      final deviceInfo = await DeviceInfoService.getDeviceInfo();
+      final userAgent = await DeviceInfoService.getUserAgent();
+
+      debugPrint('📱 Device info collected:');
+      debugPrint('   Device: ${deviceInfo['device']}');
+      debugPrint('   Platform: ${deviceInfo['platform']}');
+      debugPrint('   User Agent: $userAgent');
+
       final response = await ApiClient.dio.post(
         '/cards/$slug/view',
         data: {
@@ -348,6 +359,10 @@ static Future<void> deactivateHighlight(int highlightId) async {
           if (email != null) 'email': email,
           if (phone != null) 'phone': phone,
           'source': source,
+          // Informations collectées automatiquement
+          'device': deviceInfo['device'],
+          'platform': deviceInfo['platform'],
+          'user_agent': userAgent,
         },
       );
 

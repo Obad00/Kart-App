@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   AppTheme._();
@@ -38,32 +39,32 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black12,
       ),
-      textTheme: base.textTheme.copyWith(
-        headlineLarge: const TextStyle(
+      textTheme: GoogleFonts.archivoTextTheme(base.textTheme).copyWith(
+        headlineLarge: GoogleFonts.archivo(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: _lightTextPrimary,
           letterSpacing: -0.5,
         ),
-        headlineMedium: const TextStyle(
+        headlineMedium: GoogleFonts.archivo(
           fontSize: 24,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        titleLarge: const TextStyle(
+        titleLarge: GoogleFonts.archivo(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        bodyLarge: const TextStyle(
+        bodyLarge: GoogleFonts.archivo(
           fontSize: 16,
           color: _lightTextPrimary,
         ),
-        bodyMedium: const TextStyle(
+        bodyMedium: GoogleFonts.archivo(
           fontSize: 14,
           color: _lightTextSecondary,
         ),
-        labelMedium: const TextStyle(
+        labelMedium: GoogleFonts.archivo(
           fontSize: 12,
           color: _lightTextSecondary,
           fontWeight: FontWeight.w500,
@@ -135,8 +136,9 @@ highlightColor: _accentBlue.withValues(alpha: 0.05)    );
         onPrimary: _softBlack,
         onSurface: _softWhite,
       ),
-      textTheme:
-          base.textTheme.apply(bodyColor: _softWhite, displayColor: _softWhite),
+      textTheme: GoogleFonts.archivoTextTheme(
+        base.textTheme.apply(bodyColor: _softWhite, displayColor: _softWhite),
+      ),
       cardTheme: const CardThemeData(
         color: _surface,
         elevation: 6,

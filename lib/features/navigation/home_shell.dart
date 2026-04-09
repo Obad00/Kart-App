@@ -5,7 +5,7 @@ import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
 import '../digital_card/ui/my_digital_card_page.dart';
 import '../profile/ui/profile_page.dart';
-import '../scan/ui/scan_page.dart';
+import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
 
 class HomeShell extends StatefulWidget {
@@ -54,7 +54,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
   static const List<Widget> _pages = <Widget>[
     MyDigitalCardPage(),
-    ScanPage(),
+    CardScanSwitcherPage(),
     ContactsPage(),
     ProfilePage(),
   ];

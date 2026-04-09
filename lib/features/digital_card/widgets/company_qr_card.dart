@@ -571,7 +571,7 @@ class _CompanyQrCardState extends State<CompanyQrCard>
           ],
         ),
         const SizedBox(height: 12),
-        // Boutons en dessous
+        // Share and Download buttons
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

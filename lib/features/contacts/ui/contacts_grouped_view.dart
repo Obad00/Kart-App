@@ -80,8 +80,18 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     } on DioException catch (e) {
       debugPrint(
           '❌ _shareContact DioException status=${e.response?.statusCode}');
+      debugPrint('❌ Response data: ${e.response?.data}');
+
       String errorMessage = 'Échec de l\'envoi';
-      if (e.response?.data is Map) {
+
+      // Handle different status codes
+      if (e.response?.statusCode == 500) {
+        errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
+      } else if (e.response?.statusCode == 404) {
+        errorMessage = 'Carte introuvable';
+      } else if (e.response?.statusCode == 403) {
+        errorMessage = 'Vous n\'avez pas les permissions nécessaires';
+      } else if (e.response?.data is Map) {
         final message = e.response?.data['message'];
         if (message != null) {
           errorMessage = message.toString();
@@ -89,15 +99,16 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
       }
 
       _showSnackBar(
-        title: 'Erreur',
+        title: 'Erreur d\'envoi',
         subtitle: errorMessage,
         icon: Icons.error_rounded,
         iconColor: Colors.red,
       );
     } catch (e) {
+      debugPrint('❌ _shareContact Exception: $e');
       _showSnackBar(
         title: 'Erreur',
-        subtitle: e.toString(),
+        subtitle: 'Une erreur inattendue s\'est produite',
         icon: Icons.error_rounded,
         iconColor: Colors.red,
       );

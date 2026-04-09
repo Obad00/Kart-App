@@ -72,64 +72,59 @@ class KartApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
-            themeMode: themeProvider.themeMode,
+          return ScrollConfiguration(
+            behavior: const ScrollBehavior().copyWith(scrollbars: false),
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light(),
+              darkTheme: AppTheme.dark(),
+              themeMode: themeProvider.themeMode,
 
-            /// 🔐 ROUTE PAR DÉFAUT (OBLIGATOIRE)
-            initialRoute: '/',
+              /// 🔐 ROUTE PAR DÉFAUT (OBLIGATOIRE)
+              initialRoute: '/',
 
-        routes: {
-          '/': (_) => const SplashScreen(),
-          '/splash': (_) => const SplashScreen(),
-          '/login': (_) => const LoginPage(),
-          '/register': (_) => const RegisterPage(),
-          '/complete-profile': (_) => const CompleteProfilePage(),
+              routes: {
+                '/': (_) => const SplashScreen(),
+                '/splash': (_) => const SplashScreen(),
+                '/login': (_) => const LoginPage(),
+                '/register': (_) => const RegisterPage(),
+                '/complete-profile': (_) => const CompleteProfilePage(),
 
-          // Plans
-          '/plans': (_) => const PlanSelectionPage(),
+                // Plans
+                '/plans': (_) => const PlanSelectionPage(),
 
-          // Payment
-          '/payment/plans': (_) => const PlansScreen(),
-          '/payment/methods': (_) => const PaymentMethodScreen(),
-          '/payment/processing': (_) => const PaymentProcessingScreen(),
-          '/payment/result': (context) {
-            final payment = ModalRoute.of(context)?.settings.arguments as Payment;
-            return PaymentResultScreen(payment: payment);
-          },
+                // Payment
+                '/payment/plans': (_) => const PlansScreen(),
+                '/payment/methods': (_) => const PaymentMethodScreen(),
+                '/payment/processing': (_) => const PaymentProcessingScreen(),
+                '/payment/result': (context) {
+                  final payment = ModalRoute.of(context)?.settings.arguments as Payment;
+                  return PaymentResultScreen(payment: payment);
+                },
 
-          // Card Scanner
-          '/card-scanner': (_) => const CardScannerScreen(),
-          '/card-scanner/preview': (_) => const ImagePreviewScreen(),
-          '/card-scanner/result': (_) => const ScanResultScreen(),
+                // Card Scanner
+                '/card-scanner': (_) => const CardScannerScreen(),
+                '/card-scanner/preview': (_) => const ImagePreviewScreen(),
+                '/card-scanner/result': (_) => const ScanResultScreen(),
 
-          // Onboarding
-          '/onboarding-company': (_) => const OnboardingCompanyChoicePage(),
-          '/create-company': (_) => const CreateCompanyPage(),
-          '/join-company': (_) => const JoinCompanyPage(),
+                // Onboarding
+                '/onboarding-company': (_) => const OnboardingCompanyChoicePage(),
+                '/create-company': (_) => const CreateCompanyPage(),
+                '/join-company': (_) => const JoinCompanyPage(),
 
-          '/scan': (_) => const ScanPage(),
-          '/my-card': (_) => const MyDigitalCardGuard(),
-          '/leads': (_) => const LeadsPage(),
-          '/home': (context) {
-            final args =
-                ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                '/scan': (_) => const ScanPage(),
+                '/my-card': (_) => const MyDigitalCardGuard(),
+                '/leads': (_) => const LeadsPage(),
+                '/home': (context) {
+                  final args =
+                      ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-            return HomeShell(
-              initialIndex: args?['tab'] ?? 0,
-            );
-          },
-        },
-
-        builder: (context, child) {
-  return ScrollConfiguration(
-    behavior: const ScrollBehavior().copyWith(scrollbars: false),
-    child: child!,
-  );
-},
-
+                  return HomeShell(
+                    initialIndex: args?['tab'] ?? 0,
+                  );
+                },
+              },
+            ),
           );
         },
       ),

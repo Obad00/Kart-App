@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
 
@@ -168,37 +170,7 @@ class ContactCardState extends State<ContactCard>
                     const SizedBox(height: 12),
 
                     // Boutons sociaux
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildSocialButton(
-                          const Text('X',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2563EB))),
-                          () => HapticFeedback.lightImpact(),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildSocialButton(
-                          const Text('in',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2563EB))),
-                          () => HapticFeedback.lightImpact(),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildSocialButton(
-                          const Icon(Icons.email,
-                              size: 15, color: Color(0xFF2563EB)),
-                          () {
-                            HapticFeedback.lightImpact();
-                            widget.onEmailTap();
-                          },
-                        ),
-                      ],
-                    ),
+                    _buildSocialButtons(),
                   ],
                 ),
               ),
@@ -238,19 +210,183 @@ class ContactCardState extends State<ContactCard>
     );
   }
 
-  Widget _buildSocialButton(Widget child, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildSocialButtons() {
+    final List<Widget> buttons = [];
+
+    // LinkedIn button
+    if (_hasValidValue(widget.contact.linkedin)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.linkedin,
+          color: const Color(0xFF0A66C2),
+          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.linkedin!, 'linkedin')),
         ),
-        child: Center(child: child),
+      );
+    }
+
+    // Twitter/X button
+    if (_hasValidValue(widget.contact.twitter)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.xTwitter,
+          color: const Color(0xFF000000),
+          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.twitter!, 'twitter')),
+        ),
+      );
+    }
+
+    // Facebook button
+    if (_hasValidValue(widget.contact.facebook)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.facebook,
+          color: const Color(0xFF1877F2),
+          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.facebook!, 'facebook')),
+        ),
+      );
+    }
+
+    // Instagram button
+    if (_hasValidValue(widget.contact.instagram)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.instagram,
+          color: const Color(0xFFE4405F),
+          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.instagram!, 'instagram')),
+        ),
+      );
+    }
+
+    // Website button
+    if (_hasValidValue(widget.contact.website)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.globe,
+          color: const Color(0xFF6366F1),
+          onTap: () => _launchUrl(widget.contact.website!),
+        ),
+      );
+    }
+
+    // Phone button (WhatsApp if available)
+    if (_hasValidValue(widget.contact.phone)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: FontAwesomeIcons.whatsapp,
+          color: const Color(0xFF25D366),
+          onTap: () => _launchUrl('https://wa.me/${widget.contact.phone!.replaceAll(RegExp(r'[^\d+]'), '')}'),
+        ),
+      );
+    }
+
+    // Email button
+    if (_hasValidValue(widget.contact.email)) {
+      buttons.add(
+        _buildSocialButton(
+          icon: Icons.email,
+          color: const Color(0xFF2563EB),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            widget.onEmailTap();
+          },
+        ),
+      );
+    }
+
+    // If no social buttons, show a placeholder
+    if (buttons.isEmpty) {
+      return const SizedBox(height: 8);
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: buttons,
+    );
+  }
+
+  /// Check if a field has a valid value (not null, not empty, not "null" string)
+  bool _hasValidValue(String? value) {
+    if (value == null) return false;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.toLowerCase() == 'null') return false;
+    return true;
+  }
+
+  String _formatSocialUrl(String value, String platform) {
+    // If already a full URL, return as is
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+
+    // Remove @ if present
+    final username = value.replaceFirst('@', '');
+
+    // Format based on platform
+    switch (platform) {
+      case 'linkedin':
+        return 'https://www.linkedin.com/in/$username';
+      case 'twitter':
+        return 'https://twitter.com/$username';
+      case 'facebook':
+        return 'https://www.facebook.com/$username';
+      case 'instagram':
+        return 'https://www.instagram.com/$username';
+      default:
+        return value;
+    }
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: color.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 18,
+            color: color,
+          ),
+        ),
       ),
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
   }
 }
