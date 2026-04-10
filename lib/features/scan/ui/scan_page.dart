@@ -185,35 +185,38 @@ class _ScanPageState extends State<ScanPage> {
               ),
             ),
 
-          /// HEADER
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
+        /// HEADER
+SafeArea(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Row(
+      children: [
 
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () {
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                        '/home',
-                        (route) => false,
-                        arguments: {'tab': 0},
-                      );
-                    },
-                  ),
-
-                  const Spacer(),
-
-                  const Icon(
-                    Icons.flash_off,
-                    color: Colors.white,
-                  ),
-
-                ],
-              ),
-            ),
+        IconButton(
+          icon: Icon(
+            Icons.close,
+            color: isDark ? Colors.white : Colors.black,
           ),
+          onPressed: () {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home',
+              (route) => false,
+              arguments: {'tab': 0},
+            );
+          },
+        ),
+
+        const Spacer(),
+
+        Icon(
+          Icons.flash_off,
+          color: isDark ? Colors.white : Colors.black,
+        ),
+
+      ],
+    ),
+  ),
+),
 
          /// TEXT INSTRUCTION
         if (_mode == ScanMode.qr)

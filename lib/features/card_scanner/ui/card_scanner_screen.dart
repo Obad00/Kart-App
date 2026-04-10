@@ -24,14 +24,17 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
       );
 
       if (image != null && mounted) {
-        context.read<CardScanProvider>().setSelectedImage(File(image.path));
+        context.read<CardScanProvider>().setSelectedImage(
+              File(image.path),
+            );
+
         Navigator.pushNamed(context, '/card-scanner/preview');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Impossible d\'accéder à l\'image'),
+            content: Text("Impossible d'accéder à l'image"),
             backgroundColor: Colors.red,
           ),
         );
@@ -41,63 +44,99 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final textPrimary =
+        isDark ? Colors.white : Colors.black87;
+
+    final textSecondary =
+        isDark ? const Color(0xFF9CA3AF) : Colors.black54;
+
+    final bgColor =
+        isDark ? const Color(0xFF0A0A0A) : (Colors.grey[50] ?? Colors.white);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: bgColor,
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
+        // leading: IconButton(
+        //   icon: Icon(
+        //     Icons.arrow_back_ios_rounded,
+        //     color: isDark ? Colors.white : Colors.black,
+        //   ),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
+        title: Text(
           'Scanner une carte',
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+
+      body: SafeArea(
         child: Column(
           children: [
-            const Spacer(),
-            _buildIllustration(),
-            const SizedBox(height: 40),
-            _buildTitle(),
-            const SizedBox(height: 12),
-            _buildDescription(),
-            const Spacer(),
-            _buildCameraButton(),
-            const SizedBox(height: 16),
-            _buildGalleryButton(),
-            const SizedBox(height: 32),
-            _buildTips(),
-            const SizedBox(height: 24),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+
+                    _buildIllustration(isDark),
+                    const SizedBox(height: 40),
+
+                    _buildTitle(textPrimary),
+                    const SizedBox(height: 12),
+
+                    _buildDescription(textSecondary),
+
+                    const SizedBox(height: 40),
+
+                    _buildCameraButton(),
+                    const SizedBox(height: 16),
+
+                    _buildGalleryButton(isDark),
+
+                    const SizedBox(height: 40),
+
+                    _buildTips(isDark),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildIllustration() {
+  // =========================
+  // UI PARTS
+  // =========================
+
+  Widget _buildIllustration(bool isDark) {
     return Container(
       width: 160,
       height: 160,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.1),
-            Colors.white.withValues(alpha: 0.05),
+            (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.08),
+            (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.03),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: (isDark ? Colors.white : Colors.black)
+              .withValues(alpha: 0.08),
         ),
       ),
       child: Stack(
@@ -106,7 +145,8 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
           Icon(
             Icons.credit_card_rounded,
             size: 72,
-            color: Colors.white.withValues(alpha: 0.3),
+            color: (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.3),
           ),
           Positioned(
             right: 32,
@@ -114,13 +154,13 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? Colors.white : Colors.black,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.document_scanner_rounded,
                 size: 24,
-                color: Color(0xFF0A0A0A),
+                color: isDark ? Colors.black : Colors.white,
               ),
             ),
           ),
@@ -129,26 +169,26 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
     );
   }
 
-  Widget _buildTitle() {
-    return const Text(
+  Widget _buildTitle(Color color) {
+    return Text(
       'Scannez une carte de visite',
+      textAlign: TextAlign.center,
       style: TextStyle(
-        color: Colors.white,
+        color: color,
         fontSize: 24,
         fontWeight: FontWeight.w700,
       ),
-      textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(Color color) {
     return Text(
       'Prenez une photo ou sélectionnez une image\npour extraire automatiquement les informations',
+      textAlign: TextAlign.center,
       style: TextStyle(
-        color: Colors.grey[400],
+        color: color,
         fontSize: 15,
       ),
-      textAlign: TextAlign.center,
     );
   }
 
@@ -171,16 +211,27 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
     );
   }
 
-  Widget _buildGalleryButton() {
+  Widget _buildGalleryButton(bool isDark) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: () => _pickImage(ImageSource.gallery),
-        icon: const Icon(Icons.photo_library_rounded),
-        label: const Text('Choisir depuis la galerie'),
+        icon: Icon(
+          Icons.photo_library_rounded,
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+        label: Text(
+          'Choisir depuis la galerie',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+          side: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.2),
+          ),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -190,9 +241,9 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
     );
   }
 
-  Widget _buildTips() {
+  Widget _buildTips(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
@@ -212,8 +263,10 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
             child: Text(
               'Assurez-vous que la carte est bien éclairée et lisible',
               style: TextStyle(
-                color: Colors.amber[100],
-                fontSize: 13,
+                color: isDark
+                    ? Colors.amber[100]
+                    : Colors.amber[900],
+                fontSize: 12,
               ),
             ),
           ),
