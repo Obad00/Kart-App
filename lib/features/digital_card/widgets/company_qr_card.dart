@@ -11,8 +11,8 @@ class CompanyQrCard extends StatefulWidget {
   final String? companyLogo;
   final Color primaryColor;
   final String? subtitle;
-  final VoidCallback onShare;
-  final VoidCallback onDownload;
+final VoidCallback? onShare;
+final VoidCallback? onDownload;
   final VoidCallback? onTapQr;
 
   const CompanyQrCard({
@@ -22,8 +22,8 @@ class CompanyQrCard extends StatefulWidget {
     this.companyLogo,
     required this.primaryColor,
     this.subtitle,
-    required this.onShare,
-    required this.onDownload,
+this.onShare,
+this.onDownload,
     this.onTapQr,
   });
 
@@ -577,13 +577,13 @@ class _CompanyQrCardState extends State<CompanyQrCard>
           children: [
             _buildIconButton(
               icon: Icons.share_rounded,
-              onTap: widget.onShare,
+              onTap: widget.onShare ?? () {},
               isPrimary: false,
             ),
             const SizedBox(width: 16),
             _buildIconButton(
               icon: Icons.download_rounded,
-              onTap: widget.onDownload,
+              onTap: widget.onDownload ?? () {},
               isPrimary: true,
             ),
           ],

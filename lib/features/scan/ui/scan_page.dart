@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../services/scan_service.dart';
+import '../../card_scanner/ui/card_scanner_screen.dart';
+import '../../digital_card/ui/my_digital_card_page.dart';
+
 import 'package:kart_app/core/ui/feedback/feedback_overlay.dart';
 
 class ScanPage extends StatefulWidget {
@@ -10,312 +14,334 @@ class ScanPage extends StatefulWidget {
   State<ScanPage> createState() => _ScanPageState();
 }
 
+enum ScanMode { qr, myCard, physical }
+
 class _ScanPageState extends State<ScanPage> {
+
+  ScanMode _mode = ScanMode.qr;
+
   bool _isProcessing = false;
+
   final ScanService _service = ScanService();
 
   void _onDetect(BarcodeCapture capture) async {
+
     if (_isProcessing) return;
+
     if (capture.barcodes.isEmpty) return;
 
     final rawValue = capture.barcodes.first.rawValue;
-    if (rawValue == null || rawValue.isEmpty) return;
+
+    if (rawValue == null) return;
 
     final slug = _extractSlug(rawValue);
+
     if (slug == null) return;
 
     setState(() => _isProcessing = true);
 
     try {
+
       final result = await _service.scanCard(slug);
 
       if (!mounted) return;
 
       final statusCode = result['statusCode'];
+
       final message = result['message'];
 
       if (statusCode == 201) {
         _showSuccess(message);
-        _goToContacts(); // 👈 REDIRECTION
-      } else if (statusCode == 200) {
-        _showInfo(message);
-        _goToContacts(); // 👈 REDIRECTION
+        _goToContacts();
       }
 
-    } on ScanException catch (e) {
-      if (!mounted) return;
-      _showError(e.message);
-    } catch (_) {
-      if (!mounted) return;
+      else if (statusCode == 200) {
+        _showInfo(message);
+        _goToContacts();
+      }
+
+    }
+
+    catch (_) {
       _showError('Erreur inconnue');
-    } finally {
+    }
+
+    finally {
+
+      await Future.delayed(const Duration(milliseconds: 800));
+
       if (mounted) {
-        await Future.delayed(const Duration(milliseconds: 800));
         setState(() => _isProcessing = false);
       }
+
     }
+
   }
 
   String? _extractSlug(String value) {
+
     final uri = Uri.tryParse(value);
+
     if (uri == null) return null;
 
     return uri.pathSegments.isNotEmpty
         ? uri.pathSegments.last
         : null;
+
   }
 
-  // ✅ Nouveau contact
   void _showSuccess(String message) {
+
     FeedbackOverlay.showSuccess(
       context,
       title: message,
       subtitle: 'La carte a été ajoutée à vos contacts',
     );
+
   }
 
-  // ℹ️ Déjà existant
   void _showInfo(String message) {
+
     FeedbackOverlay.showInfo(
       context,
       title: message,
       subtitle: 'Ce contact est déjà enregistré',
     );
+
   }
 
-  // ❌ Erreur backend
   void _showError(String message) {
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
       ),
     );
+
   }
 
   void _goToContacts() async {
-  await Future.delayed(const Duration(milliseconds: 900));
 
-  if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 900));
 
-  // Safely navigate back - check if there's something to pop first
-  if (Navigator.of(context).canPop()) {
+    if (!mounted) return;
+
     Navigator.of(context).pop();
-  } else {
-    // If can't pop, go to home
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/home',
-      (route) => false,
-      arguments: {'tab': 2}, // Contacts tab
-    );
-  }
-}
 
+  }
 
   @override
   Widget build(BuildContext context) {
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final bgColor = isDark ? Colors.black : Colors.white;
-    final iconColor = isDark ? Colors.white : Colors.black;
-    final textColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
+
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: iconColor),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/home',
-                (route) => false,
-                arguments: {'tab': 2},
-              );
-            }
-          },
-        ),
-        title: Text(
-          'Scanner une carte Kart',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
+
       body: Stack(
+
         children: [
-          // Camera Scanner
-          MobileScanner(
-            onDetect: _onDetect,
-          ),
 
-          // Frame overlay for better alignment
-          Center(
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isDark ? Colors.white : Colors.black,
-                  width: 3,
+          /// CAMERA QR
+          if (_mode == ScanMode.qr)
+            MobileScanner(
+              onDetect: _onDetect,
+            ),
+
+          /// MA CARTE
+         if (_mode == ScanMode.myCard)
+         const MyDigitalCardPage(minimal: true),
+
+
+          /// SCAN PHYSIQUE
+          if (_mode == ScanMode.physical)
+            const CardScannerScreen(),
+
+          /// FRAME QR
+          if (_mode == ScanMode.qr)
+            Center(
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Stack(
-                children: [
-                  // Corner brackets for visual guidance
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    child: _buildCorner(),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Transform.rotate(
-                      angle: 1.5708, // 90 degrees
-                      child: _buildCorner(),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: Transform.rotate(
-                      angle: -1.5708, // -90 degrees
-                      child: _buildCorner(),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Transform.rotate(
-                      angle: 3.14159, // 180 degrees
-                      child: _buildCorner(),
-                    ),
-                  ),
-                ],
               ),
             ),
-          ),
 
-          // Overlay to darken outside the frame
-          ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              bgColor.withValues(alpha: 0.5),
-              BlendMode.srcOut,
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    backgroundBlendMode: BlendMode.dstOut,
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    width: 280,
-                    height: 280,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white : Colors.black,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Instructions
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 32),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.7)
-                    : Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.black.withValues(alpha: 0.2),
-                ),
-              ),
+          /// HEADER
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: isDark ? Colors.white : Colors.black,
-                    size: 24,
+
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/home',
+                        (route) => false,
+                        arguments: {'tab': 0},
+                      );
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Alignez le code QR dans le cadre',
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : Colors.black.withValues(alpha: 0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+
+                  const Spacer(),
+
+                  const Icon(
+                    Icons.flash_off,
+                    color: Colors.white,
                   ),
+
                 ],
               ),
             ),
           ),
 
-          // Loading indicator
-          if (_isProcessing)
-            Container(
-              color: bgColor.withValues(alpha: 0.7),
+          /// TEXT INSTRUCTION
+          if (_mode == ScanMode.qr)
+            const Positioned(
+              bottom: 180,
+              left: 0,
+              right: 0,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: isDark ? Colors.white : Colors.black),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Traitement en cours...',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  "Scanner un Code QR pour partager votre KART",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
+
+          /// BOTTOM SWITCHER
+          Positioned(
+            bottom: 40,
+            left: 20,
+            right: 20,
+            child: Container(
+
+              height: 60,
+
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(40),
+              ),
+
+              child: Row(
+
+                children: [
+
+                  _button(
+                    title: "Scanner une KART",
+                    active: _mode == ScanMode.qr,
+                    onTap: () {
+                      setState(() {
+                        _mode = ScanMode.qr;
+                      });
+                    },
+                  ),
+
+                  _button(
+                    title: "Ma KART",
+                    active: _mode == ScanMode.myCard,
+                    onTap: () {
+                      setState(() {
+                        _mode = ScanMode.myCard;
+                      });
+                    },
+                  ),
+
+                  _button(
+                    title: "Carte physique",
+                    active: _mode == ScanMode.physical,
+                    onTap: () {
+                      setState(() {
+                        _mode = ScanMode.physical;
+                      });
+                    },
+                  ),
+
+                ],
+              ),
+            ),
+          ),
+
+          /// LOADING
+          if (_isProcessing)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+
         ],
+
       ),
+
     );
+
   }
 
-  Widget _buildCorner() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cornerColor = isDark ? Colors.white : Colors.black;
+  Widget _button({
+    required String title,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
 
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: cornerColor, width: 4),
-          left: BorderSide(color: cornerColor, width: 4),
+    return Expanded(
+
+      child: GestureDetector(
+
+        onTap: onTap,
+
+        child: Container(
+
+          margin: const EdgeInsets.all(4),
+
+          decoration: BoxDecoration(
+
+            color: active ? Colors.white : Colors.transparent,
+
+            borderRadius: BorderRadius.circular(30),
+
+          ),
+
+          child: Center(
+
+            child: Text(
+
+              title,
+
+              style: TextStyle(
+
+                color: active ? Colors.black : Colors.white,
+
+                fontWeight: FontWeight.w600,
+
+              ),
+
+            ),
+
+          ),
+
         ),
+
       ),
+
     );
+
   }
+
 }

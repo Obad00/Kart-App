@@ -22,15 +22,23 @@ import '../widgets/card_error_state.dart';
 import '../widgets/share_bottom_sheet.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
+import '../../scan/ui/scan_page.dart';
 
 
 
 class MyDigitalCardPage extends StatefulWidget {
-  const MyDigitalCardPage({super.key});
+
+  final bool minimal;
+
+  const MyDigitalCardPage({
+    super.key,
+    this.minimal = false,
+  });
 
   @override
   State<MyDigitalCardPage> createState() => _MyDigitalCardPageState();
 }
+
 
 class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     with TickerProviderStateMixin {
@@ -124,19 +132,21 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         child: Stack(
           children: [
             // Header avec menu hamburger et profil
-            Positioned(
-              top: 12,
-              left: 16,
-              right: 16,
-              child: CardHeader(
-                initials: initials,
-                fullName: fullName,
-                subtitle: subtitle,
-                onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
+            if (!widget.minimal)
+              Positioned(
+                top: 12,
+                left: 16,
+                right: 16,
+                child: CardHeader(
+                  initials: initials,
+                  fullName: fullName,
+                  subtitle: subtitle,
+                  onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
+                ),
               ),
-            ),
 
             // Highlights - remontes juste sous le header
+            if (!widget.minimal)
             const Positioned(
               top: 70,
               left: 0,
@@ -144,9 +154,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               child: HighlightBar(),
             ),
 
+
             // QR Card centrée verticalement
             Positioned(
-              top: 160,
+              top: widget.minimal ? 40 : 160,
               left: 0,
               right: 0,
               bottom: 20,
@@ -252,9 +263,16 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                   final Widget qrWidget =
                       _buildQr(state.qrSvg!);
 
-                  void share() => _shareLink();
-                  void download() =>
-                      _exportQr(state.qrSvg!);
+                void share() {
+                    if (widget.minimal) return;
+                    _shareLink();
+                  }
+
+                  void download() {
+                    if (widget.minimal) return;
+                    _exportQr(state.qrSvg!);
+                  }
+
 
                   // Vérifier si l'utilisateur a une entreprise
                   // On utilise les données du CardProvider (company_logo ou company_primary_color)
@@ -279,8 +297,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                                   const Color(0xFF3B82F6),
                                 ),
                                 subtitle: state.jobTitle,
-                                onShare: share,
-                                onDownload: download,
+                               onShare: widget.minimal ? null : share,
+                               onDownload: widget.minimal ? null : download,
+
                                 onTapQr: () {
                                   QrFullscreenView.show(
                                     context,
@@ -332,14 +351,18 @@ Widget _buildQrOnly(String svg) {
  Widget _buildQr(String svg) {
   return GestureDetector(
     onTap: () {
+
       _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
 
-      // Show fullscreen QR instead of navigating to switcher page
-      QrFullscreenView.show(
+      Navigator.push(
         context,
-        _buildQrOnly(svg),
+        MaterialPageRoute(
+          builder: (_) => const ScanPage(),
+        ),
       );
+
     },
+
 
     child: ScaleTransition(
       scale: _qrScale,
