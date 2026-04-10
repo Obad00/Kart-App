@@ -401,7 +401,7 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           AuthTextField(
             label: 'Prénom',
-            hint: 'John',
+            hint: 'Prénom',
             controller: _firstnameCtrl,
             prefixIcon: Icons.person_outline_rounded,
             onChanged: (_) => setState(() {}),
@@ -409,7 +409,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(height: 24),
           AuthTextField(
             label: 'Nom',
-            hint: 'Doe',
+            hint: 'Nom de famille',
             controller: _lastnameCtrl,
             prefixIcon: Icons.badge_outlined,
             onChanged: (_) => setState(() {}),
@@ -434,7 +434,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(height: 24),
           AuthTextField(
             label: 'Adresse email',
-            hint: 'johndoe@email.com',
+            hint: 'text@email.com',
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
             prefixIcon: Icons.mail_outline_rounded,

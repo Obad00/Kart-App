@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/scan_service.dart';
 import '../../card_scanner/ui/card_scanner_screen.dart';
 import '../../digital_card/ui/my_digital_card_page.dart';
+import '../../contacts/ui/contacts_grouped_view.dart';
 
 import 'package:kart_app/core/ui/feedback/feedback_overlay.dart';
 
@@ -123,13 +124,20 @@ class _ScanPageState extends State<ScanPage> {
 
   void _goToContacts() async {
 
-    await Future.delayed(const Duration(milliseconds: 900));
+  await Future.delayed(const Duration(milliseconds: 900));
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    Navigator.of(context).pop();
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(
+      builder: (_) => const ContactsGroupedView()
+,
+    ),
+    (route) => false,
+  );
 
-  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -207,22 +215,24 @@ class _ScanPageState extends State<ScanPage> {
             ),
           ),
 
-          /// TEXT INSTRUCTION
-          if (_mode == ScanMode.qr)
-            const Positioned(
-              bottom: 180,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  "Scanner un Code QR pour partager votre KART",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
+         /// TEXT INSTRUCTION
+        if (_mode == ScanMode.qr)
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.18,
+            left: 20,
+            right: 20,
+            child: const Center(
+              child: Text(
+                "Scanner un Code QR pour partager votre KART",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
                 ),
               ),
             ),
+          ),
+
 
           /// BOTTOM SWITCHER
           Positioned(
