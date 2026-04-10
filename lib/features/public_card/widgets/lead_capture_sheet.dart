@@ -40,7 +40,6 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
   final _phoneController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isSubmitted = false;
 
   @override
   void dispose() {
@@ -54,9 +53,9 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     // Au moins un champ doit etre rempli
-    if (_nameController.text.isEmpty &&
-        _emailController.text.isEmpty &&
-        _phoneController.text.isEmpty) {
+    if (_nameController.text.trim().isEmpty &&
+        _emailController.text.trim().isEmpty &&
+        _phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez remplir au moins un champ'),
@@ -71,26 +70,43 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
     try {
       await CardService.registerCardView(
         slug: widget.slug,
-        name: _nameController.text.isNotEmpty ? _nameController.text : null,
-        email: _emailController.text.isNotEmpty ? _emailController.text : null,
-        phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
+        name: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null,
+        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+        phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
         source: 'contact_form',
       );
 
       if (mounted) {
-        setState(() => _isSubmitted = true);
+        // Fermer le bottom sheet
+        Navigator.of(context).pop(true);
 
-        // Fermer apres 2 secondes
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.of(context).pop(true);
-        });
+        // Afficher le dialog de succès au centre
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => _SuccessDialog(ownerName: widget.ownerName),
+        );
       }
     } catch (e) {
       if (mounted) {
+        // Extract more detailed error message
+        String errorMessage = 'Erreur lors de l\'envoi';
+
+        if (e.toString().contains('422')) {
+          errorMessage = 'Erreur de validation. Vérifiez vos informations.';
+        } else if (e.toString().contains('401')) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (e.toString().contains('500')) {
+          errorMessage = 'Erreur serveur. Réessayez plus tard.';
+        } else if (e.toString().contains('DioException')) {
+          errorMessage = 'Erreur de connexion. Vérifiez votre réseau.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur : $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red[700],
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -122,50 +138,9 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
             top: 12,
             bottom: MediaQuery.of(context).viewInsets.bottom + 20,
           ),
-          child: _isSubmitted ? _buildSuccessState(textColor) : _buildForm(textColor, isLightMode),
+          child: _buildForm(textColor, isLightMode),
         ),
       ),
-    );
-  }
-
-  Widget _buildSuccessState(Color textColor) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(height: 20),
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF22C55E).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.check_circle,
-            color: Color(0xFF22C55E),
-            size: 48,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Merci !',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '${widget.ownerName} a recu vos coordonnees',
-          style: TextStyle(
-            color: textColor.withValues(alpha: 0.7),
-            fontSize: 14,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 20),
-      ],
     );
   }
 
@@ -326,6 +301,81 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
             horizontal: 16,
             vertical: 14,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog de succès affiché au centre de l'écran
+class _SuccessDialog extends StatefulWidget {
+  final String ownerName;
+
+  const _SuccessDialog({required this.ownerName});
+
+  @override
+  State<_SuccessDialog> createState() => _SuccessDialogState();
+}
+
+class _SuccessDialogState extends State<_SuccessDialog> {
+  @override
+  void initState() {
+    super.initState();
+    // Fermer automatiquement après 2 secondes
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+    final bgColor = isLightMode ? Colors.white : const Color(0xFF1A1A1A);
+    final textColor = isLightMode ? Colors.black87 : Colors.white;
+
+    return Dialog(
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Color(0xFF22C55E),
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Merci !',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.ownerName} a recu vos coordonnees',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

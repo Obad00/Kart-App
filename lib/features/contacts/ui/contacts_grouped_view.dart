@@ -87,6 +87,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
       // Handle different status codes
       if (e.response?.statusCode == 500) {
         errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
+      } else if (e.response?.statusCode == 422) {
+        errorMessage = 'Données invalides. Vérifiez les informations du contact.';
       } else if (e.response?.statusCode == 404) {
         errorMessage = 'Carte introuvable';
       } else if (e.response?.statusCode == 403) {

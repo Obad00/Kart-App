@@ -7,8 +7,13 @@ class CardScanSwitcherPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F5);
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey[400] : Colors.grey[600];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -18,29 +23,42 @@ class CardScanSwitcherPage extends StatelessWidget {
               Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/home',
+                          (route) => false,
+                        );
+                      }
+                    },
                     child: Container(
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.1),
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new,
-                        color: Colors.white,
+                        color: textColor,
                         size: 18,
                       ),
                     ),
                   ),
                   const Spacer(),
-                  const Text(
+                  Text(
                     'Scanner',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: textColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -58,32 +76,41 @@ class CardScanSwitcherPage extends StatelessWidget {
                 height: 140,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.1),
-                      Colors.white.withValues(alpha: 0.05),
-                    ],
+                    colors: isDark
+                      ? [
+                          Colors.white.withValues(alpha: 0.1),
+                          Colors.white.withValues(alpha: 0.05),
+                        ]
+                      : [
+                          Colors.black.withValues(alpha: 0.05),
+                          Colors.black.withValues(alpha: 0.02),
+                        ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.1),
                   ),
                 ),
                 child: Icon(
                   Icons.qr_code_scanner_rounded,
                   size: 80,
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: isDark
+                    ? Colors.white.withValues(alpha: 0.3)
+                    : Colors.black.withValues(alpha: 0.3),
                 ),
               ),
 
               const SizedBox(height: 32),
 
               // Title
-              const Text(
+              Text(
                 'Choisissez votre méthode',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
@@ -96,7 +123,7 @@ class CardScanSwitcherPage extends StatelessWidget {
               Text(
                 'Scannez une carte Kart ou une carte physique',
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: subtitleColor,
                   fontSize: 15,
                 ),
                 textAlign: TextAlign.center,

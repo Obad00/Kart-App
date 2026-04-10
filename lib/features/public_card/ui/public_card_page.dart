@@ -319,12 +319,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                                               color: const Color(0xFF2563EB),
                                             ),
                                             const SizedBox(width: 12),
-                                            Text(
-                                              card!['phone'],
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: isDark ? Colors.white70 : const Color(0xFF374151),
-                                                fontWeight: FontWeight.w500,
+                                            Flexible(
+                                              child: Text(
+                                                card!['phone'],
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],
@@ -348,12 +351,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                                               color: const Color(0xFF2563EB),
                                             ),
                                             const SizedBox(width: 12),
-                                            Text(
-                                              card!['fields']['email'],
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: isDark ? Colors.white70 : const Color(0xFF374151),
-                                                fontWeight: FontWeight.w500,
+                                            Flexible(
+                                              child: Text(
+                                                card!['fields']['email'],
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],

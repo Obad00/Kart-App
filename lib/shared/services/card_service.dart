@@ -352,26 +352,36 @@ static Future<void> deactivateHighlight(int highlightId) async {
       debugPrint('   Platform: ${deviceInfo['platform']}');
       debugPrint('   User Agent: $userAgent');
 
+      final requestData = {
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        'source': source,
+        // Informations collectées automatiquement
+        'device': deviceInfo['device'],
+        'platform': deviceInfo['platform'],
+        'user_agent': userAgent,
+      };
+
+      debugPrint('📤 Sending view registration to /cards/$slug/view');
+      debugPrint('   Data: $requestData');
+
       final response = await ApiClient.dio.post(
         '/cards/$slug/view',
-        data: {
-          if (name != null) 'name': name,
-          if (email != null) 'email': email,
-          if (phone != null) 'phone': phone,
-          'source': source,
-          // Informations collectées automatiquement
-          'device': deviceInfo['device'],
-          'platform': deviceInfo['platform'],
-          'user_agent': userAgent,
-        },
+        data: requestData,
       );
 
+      debugPrint('✅ View registration successful');
       if (response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;
       }
 
       return {'success': true};
     } on DioException catch (e) {
+      debugPrint('❌ Error registering view:');
+      debugPrint('   Status: ${e.response?.statusCode}');
+      debugPrint('   Response: ${e.response?.data}');
+      debugPrint('   Message: ${e.message}');
       _handleError(e);
       rethrow;
     }

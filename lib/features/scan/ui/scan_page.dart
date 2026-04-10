@@ -98,12 +98,17 @@ class _ScanPageState extends State<ScanPage> {
 
   if (!mounted) return;
 
-  // Navigate to home and remove all routes until root to prevent navigation errors
-  Navigator.of(context).pushNamedAndRemoveUntil(
-    '/home',
-    (route) => route.isFirst,
-    arguments: {'tab': 2}, // 👈 Contacts
-  );
+  // Safely navigate back - check if there's something to pop first
+  if (Navigator.of(context).canPop()) {
+    Navigator.of(context).pop();
+  } else {
+    // If can't pop, go to home
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/home',
+      (route) => false,
+      arguments: {'tab': 2}, // Contacts tab
+    );
+  }
 }
 
 
@@ -121,7 +126,17 @@ class _ScanPageState extends State<ScanPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_rounded, color: iconColor),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                (route) => false,
+                arguments: {'tab': 2},
+              );
+            }
+          },
         ),
         title: Text(
           'Scanner une carte Kart',

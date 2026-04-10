@@ -265,202 +265,183 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   ],
                 ),
 
-                const SizedBox(height: 56),
+                const SizedBox(height: 32),
 
-                // Form Card
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
+                // Title
+                const Text(
+                  'Créer ma carte',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title
-                      const Text(
-                        'Créer ma carte',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'Remplissez vos informations professionnelles',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 15,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Professional Info
+                AuthTextField(
+                  label: 'Votre poste',
+                  controller: _jobCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.work_outline,
+                  hint: 'Ex: Directeur Marketing, Developpeur...',
+                ),
+
+                const SizedBox(height: 24),
+
+                AuthTextField(
+                  label: 'Nom de l\'entreprise',
+                  controller: _companyCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.business_outlined,
+                  hint: 'Ex: Kart Technologies, Ma Societe...',
+                ),
+                if (isCompanyLinked) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.verified_outlined,
+                          color: const Color(0xFF3B82F6),
+                          size: 16,
                         ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        'Remplissez vos informations professionnelles',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 15,
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Professional Info
-                      AuthTextField(
-                        label: 'Votre poste',
-                        controller: _jobCtrl,
-                        onChanged: (_) => setState(() {}),
-                        prefixIcon: Icons.work_outline,
-                        hint: 'Ex: Directeur Marketing, Developpeur...',
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      AuthTextField(
-                        label: 'Nom de l\'entreprise',
-                        controller: _companyCtrl,
-                        enabled: !isCompanyLinked,
-                        onChanged: (_) => setState(() {}),
-                        prefixIcon: Icons.business_outlined,
-                        hint: 'Ex: Kart Technologies, Ma Societe...',
-                      ),
-                      if (isCompanyLinked) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.verified_outlined,
-                                color: const Color(0xFF3B82F6),
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Entreprise liee a votre licence',
-                                style: TextStyle(
-                                  color: const Color(0xFF60A5FA),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'Entreprise liee a votre licence',
+                          style: TextStyle(
+                            color: const Color(0xFF60A5FA),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
-
-                      const SizedBox(height: 32),
-
-                      // Contact Info
-                      Text(
-                        'Coordonnees de contact',
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      AuthTextField(
-                        label: 'Numero de telephone',
-                        controller: _phoneCtrl,
-                        onChanged: (_) => setState(() {}),
-                        prefixIcon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        hint: 'Ex: +221 77 123 45 67',
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _buildPremiumSwitch(
-                        title: 'Afficher le telephone sur ma carte',
-                        value: _activeFields['phone'] ?? false,
-                        onChanged: (v) => setState(() => _activeFields['phone'] = v),
-                        icon: Icons.visibility_outlined,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      AuthTextField(
-                        label: 'Adresse email professionnelle',
-                        controller: _emailCtrl,
-                        onChanged: (_) => setState(() {}),
-                        prefixIcon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        hint: 'Ex: nom@entreprise.com',
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _buildPremiumSwitch(
-                        title: 'Afficher l\'email sur ma carte',
-                        value: _activeFields['email'] ?? false,
-                        onChanged: (v) => setState(() => _activeFields['email'] = v),
-                        icon: Icons.visibility_outlined,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Social & Visibility
-                      Text(
-                        'Reseaux sociaux et visibilite',
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      AuthTextField(
-                        label: 'Profil LinkedIn',
-                        controller: _linkedinCtrl,
-                        onChanged: (_) => setState(() {}),
-                        prefixIcon: Icons.link,
-                        hint: 'Ex: linkedin.com/in/votrenom',
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _buildPremiumSwitch(
-                        title: 'Afficher LinkedIn sur ma carte',
-                        value: _activeFields['linkedin'] ?? false,
-                        onChanged: (v) =>
-                            setState(() => _activeFields['linkedin'] = v),
-                        icon: Icons.visibility_outlined,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      _buildPremiumSwitch(
-                        title: 'Rendre ma carte publique',
-                        subtitle: 'Accessible via un lien ou QR code',
-                        value: _isPublic,
-                        onChanged: (v) => setState(() => _isPublic = v),
-                        icon: Icons.public_outlined,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Submit Button
-                      AuthPrimaryButton(
-                        label: 'Créer ma carte',
-                        icon: Icons.check_rounded,
-                        loading: _isSubmitting,
-                        onTap: _isFormValid() ? _submit : null,
-                      ),
-                    ],
+                    ),
                   ),
+                ],
+
+                const SizedBox(height: 32),
+
+                // Contact Info
+                Text(
+                  'Coordonnees de contact',
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Numero de telephone',
+                  controller: _phoneCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  hint: 'Ex: +221 77 123 45 67',
+                ),
+
+                const SizedBox(height: 12),
+
+                _buildPremiumSwitch(
+                  title: 'Afficher le telephone sur ma carte',
+                  value: _activeFields['phone'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['phone'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+
+                const SizedBox(height: 24),
+
+                AuthTextField(
+                  label: 'Adresse email professionnelle',
+                  controller: _emailCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'Ex: nom@entreprise.com',
+                ),
+
+                const SizedBox(height: 12),
+
+                _buildPremiumSwitch(
+                  title: 'Afficher l\'email sur ma carte',
+                  value: _activeFields['email'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['email'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Social & Visibility
+                Text(
+                  'Reseaux sociaux et visibilite',
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Profil LinkedIn',
+                  controller: _linkedinCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.link,
+                  hint: 'Ex: linkedin.com/in/votrenom',
+                ),
+
+                const SizedBox(height: 12),
+
+                _buildPremiumSwitch(
+                  title: 'Afficher LinkedIn sur ma carte',
+                  value: _activeFields['linkedin'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
+                  icon: Icons.visibility_outlined,
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildPremiumSwitch(
+                  title: 'Rendre ma carte publique',
+                  subtitle: 'Accessible via un lien ou QR code',
+                  value: _isPublic,
+                  onChanged: (v) => setState(() => _isPublic = v),
+                  icon: Icons.public_outlined,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Submit Button
+                AuthPrimaryButton(
+                  label: 'Créer ma carte',
+                  icon: Icons.check_rounded,
+                  loading: _isSubmitting,
+                  onTap: _isFormValid() ? _submit : null,
                 ),
               ],
             ),
