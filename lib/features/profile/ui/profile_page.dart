@@ -153,129 +153,134 @@ class _ProfilePageState extends State<ProfilePage>
 
                       // Carte digitale
                       _buildSection(
-  colors: colors,
-  companyColor: companyColor,
-  icon: Icons.credit_card_outlined,
-  title: 'Carte digitale',
-  children: card.status == CardStatus.hasCard
-      ? [
-          _buildInfoRow(
-            colors,
-            icon: Icons.work_outline,
-            label: 'Poste',
-            value: card.jobTitle ?? '-',
-          ),
-          _buildDivider(colors),
+                        colors: colors,
+                        companyColor: companyColor,
+                        icon: Icons.credit_card_outlined,
+                        title: 'Carte digitale',
+                        children: card.status == CardStatus.hasCard
+                            ? [
+                                _buildInfoRow(
+                                  colors,
+                                  icon: Icons.work_outline,
+                                  label: 'Poste',
+                                  value: card.jobTitle ?? '-',
+                                ),
+                                _buildDivider(colors),
 
-          _buildInfoRow(
-            colors,
-            icon: Icons.business_outlined,
-            label: 'Entreprise',
-            value: card.company ?? '-',
-          ),
-          _buildDivider(colors),
+                                _buildInfoRow(
+                                  colors,
+                                  icon: Icons.business_outlined,
+                                  label: 'Entreprise',
+                                  value: card.company ?? '-',
+                                ),
+                                _buildDivider(colors),
 
-          _buildInfoRow(
-            colors,
-            icon: Icons.phone_outlined,
-            label: 'Téléphone',
-            value: card.phone ?? '-',
-          ),
-          _buildDivider(colors),
+                                _buildInfoRow(
+                                  colors,
+                                  icon: Icons.phone_outlined,
+                                  label: 'Téléphone',
+                                  value: card.phone ?? '-',
+                                ),
+                                _buildDivider(colors),
 
-          _buildInfoRow(
-            colors,
-            icon: Icons.email_outlined,
-            label: 'Email',
-            value: card.email ?? '-',
-          ),
-          _buildDivider(colors),
+                                _buildInfoRow(
+                                  colors,
+                                  icon: Icons.email_outlined,
+                                  label: 'Email',
+                                  value: card.email ?? '-',
+                                ),
+                                _buildDivider(colors),
 
-         _buildUrlRow(
-          colors,
-          label: 'LinkedIn',
-          url: card.linkedin,
-          icon: Icons.work_outline,
-          color: const Color(0xFF0A66C2),
-        ),
-        _buildDivider(colors),
-
-
-          _buildUrlRow(
-            colors,
-            label: 'Site web',
-            url: card.website,
-            icon: Icons.language,
-          ),
-          _buildDivider(colors),
-
-         _buildUrlRow(
-            colors,
-            label: 'GitHub',
-            url: card.github,
-            icon: Icons.code,
-          ),
-          _buildDivider(colors),
+                              _buildUrlRow(
+                                colors,
+                                label: 'LinkedIn',
+                                url: card.linkedin,
+                                icon: Icons.work_outline,
+                                color: const Color(0xFF0A66C2),
+                              ),
+                              _buildDivider(colors),
 
 
-          _buildUrlRow(
-            colors,
-            label: 'Instagram',
-            url: card.instagram,
-            icon: Icons.camera_alt_outlined,
-            color: const Color(0xFFE1306C),
-          ),
-          _buildDivider(colors),
+                                _buildUrlRow(
+                                  colors,
+                                  label: 'Site web',
+                                  url: card.website,
+                                  icon: Icons.language,
+                                ),
+                                _buildDivider(colors),
+
+                              _buildUrlRow(
+                                  colors,
+                                  label: 'GitHub',
+                                  url: card.github,
+                                  icon: Icons.code,
+                                ),
+                                _buildDivider(colors),
 
 
-         _buildUrlRow(
-            colors,
-            label: 'Facebook',
-            url: card.facebook,
-            icon: Icons.facebook,
-            color: const Color(0xFF1877F2),
-          ),
-          _buildDivider(colors),
+                                _buildUrlRow(
+                                  colors,
+                                  label: 'Instagram',
+                                  url: card.instagram,
+                                  icon: Icons.camera_alt_outlined,
+                                  color: const Color(0xFFE1306C),
+                                ),
+                                _buildDivider(colors),
 
 
-          const SizedBox(height: 10),
+                              _buildUrlRow(
+                                  colors,
+                                  label: 'Facebook',
+                                  url: card.facebook,
+                                  icon: Icons.facebook,
+                                  color: const Color(0xFF1877F2),
+                                ),
+                                _buildDivider(colors),
 
-          // EXPERIENCES
-          if (card.experiences.isNotEmpty) ...[
-            _buildDivider(colors),
-            _buildInfoRow(
-              colors,
-              icon: Icons.history,
-              label: 'Expérience',
-              value: card.experiences.first['title'] ?? '-',
-            ),
-          ],
 
-          // EDUCATION
-          if (card.educations.isNotEmpty) ...[
-            _buildDivider(colors),
-            _buildInfoRow(
-              colors,
-              icon: Icons.school_outlined,
-              label: 'Formation',
-              value:
-                  '${card.educations.first['degree']} - ${card.educations.first['school']}',
-            ),
-          ],
+                                const SizedBox(height: 10),
 
-          // PLAN
-          _buildDivider(colors),
-          _buildInfoRow(
-            colors,
-            icon: Icons.workspace_premium,
-            label: 'Plan',
-            value: card.plan ?? 'free',
-          ),
-        ]
-      : [
-          _buildEmptyCardState(colors, companyColor),
-        ],
-),
+                                // EXPERIENCES
+                               _buildInfoRow(
+                                  colors,
+                                  icon: Icons.history,
+                                  label: 'Expérience',
+                                  value: card.experiences.isNotEmpty
+                                      ? '${card.experiences.first['title']} chez ${card.experiences.first['company']}'
+                                      : '-',
+                                  onTap: card.experiences.isNotEmpty
+                                      ? () => _openExperiencesSheet(context, card.experiences)
+                                      : null,
+                                ),
+
+
+                                // EDUCATION
+                               _buildInfoRow(
+                                  colors,
+                                  icon: Icons.school_outlined,
+                                  label: 'Formation',
+                                  value: card.educations.isNotEmpty
+                                      ? '${card.educations.first['degree']} - ${card.educations.first['school']}'
+                                      : '-',
+                                  onTap: card.educations.isNotEmpty
+                                      ? () => _openEducationSheet(context, card.educations)
+                                      : null,
+                                ),
+
+
+                                // PLAN
+                                _buildDivider(colors),
+                                _buildInfoRow(
+                                  colors,
+                                  icon: Icons.workspace_premium,
+                                  label: 'Plan',
+                                  value: card.plan ?? 'free',
+                                ),
+                              ]
+                            : [
+                                _buildEmptyCardState(colors, companyColor),
+                              ],
+                      ),
 
 
                       const SizedBox(height: 16),
@@ -308,6 +313,95 @@ class _ProfilePageState extends State<ProfilePage>
       ),
     );
   }
+
+void _openExperiencesSheet(
+  BuildContext context,
+  List experiences,
+) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Expériences",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            ...experiences.map((exp) {
+              return ListTile(
+                leading: const Icon(Icons.work_outline),
+                title: Text(exp['title'] ?? ''),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(exp['company'] ?? ''),
+                    Text(
+                      "${exp['start_date']} → ${exp['end_date'] ?? 'Présent'}",
+                    ),
+                    if (exp['description'] != null)
+                      Text(exp['description']),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+void _openEducationSheet(
+  BuildContext context,
+  List educations,
+) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Formations",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            ...educations.map((edu) {
+              return ListTile(
+                leading: const Icon(Icons.school_outlined),
+                title: Text(edu['degree'] ?? ''),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(edu['school'] ?? ''),
+                    Text("${edu['start_year']} → ${edu['end_year']}"),
+                    if (edu['field'] != null) Text(edu['field']),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   Widget _buildProfileHeader(
       ColorScheme colors, Color companyColor, String fullName, String? email) {
@@ -697,40 +791,6 @@ Widget _buildUrlRow(
         : null,
   );
 }
-
-  // Widget _buildLinkedInRow(ColorScheme colors, String? url) {
-  //   final hasUrl = url != null && url.isNotEmpty;
-
-  //   return _buildInfoRow(
-  //     colors,
-  //     icon: Icons.link,
-  //     label: 'LinkedIn',
-  //     value: hasUrl ? url : '-',
-  //     onTap: hasUrl
-  //         ? () async {
-  //             final uri = Uri.parse(url);
-  //             if (await canLaunchUrl(uri)) {
-  //               HapticFeedback.lightImpact();
-  //               await launchUrl(uri, mode: LaunchMode.externalApplication);
-  //             }
-  //           }
-  //         : null,
-  //     trailing: hasUrl
-  //         ? Container(
-  //             padding: const EdgeInsets.all(6),
-  //             decoration: BoxDecoration(
-  //               color: const Color(0xFF0A66C2).withValues(alpha: 0.1),
-  //               borderRadius: BorderRadius.circular(8),
-  //             ),
-  //             child: const Icon(
-  //               Icons.open_in_new,
-  //               size: 14,
-  //               color: Color(0xFF0A66C2),
-  //             ),
-  //           )
-  //         : null,
-  //   );
-  // }
 
   Widget _buildEmptyCardState(ColorScheme colors, Color companyColor) {
     return Padding(
