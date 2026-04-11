@@ -10,6 +10,7 @@ import '../../digital_card/exceptions/theme_forbidden_exception.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../digital_card/ui/create_card_page.dart';
+import '../../profile_completion/widgets/completion_banner.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -118,6 +119,9 @@ class _ProfilePageState extends State<ProfilePage>
                       // Header profil
                       _buildProfileHeader(
                           colors, companyColor, fullName, user.email),
+
+                      const CompletionBanner(),
+
 
                       const SizedBox(height: 24),
 

@@ -46,7 +46,8 @@ import 'features/card_scanner/ui/card_scanner_screen.dart';
 import 'features/card_scanner/ui/image_preview_screen.dart';
 import 'features/card_scanner/ui/scan_result_screen.dart';
 
-
+import 'features/profile_completion/providers/profile_completion_provider.dart';
+import 'features/profile_completion/services/profile_completion_service.dart';
 
 void main() {
   runApp(const KartApp());
@@ -69,6 +70,13 @@ class KartApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
         ChangeNotifierProvider(create: (_) => CardScanProvider()),
         ChangeNotifierProvider(create: (_) => LeadsProvider()),
+       ChangeNotifierProvider(
+          create: (_) => ProfileCompletionProvider(
+            ProfileCompletionService(),
+          )..load(),
+        ),
+
+
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
