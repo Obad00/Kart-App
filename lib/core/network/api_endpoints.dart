@@ -1,6 +1,6 @@
 class ApiEndpoints {
-  static const baseUrl = 'https://backend.kart.business/api';
-  static const storageUrl = 'https://backend.kart.business/storage';
+  static const baseUrl = 'http://127.0.0.1:8000/api';
+  static const storageUrl = 'http://127.0.0.1:8000/storage';
 
   // Auth
   static const login = '/auth/login';
