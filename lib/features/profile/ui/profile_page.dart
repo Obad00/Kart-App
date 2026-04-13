@@ -11,6 +11,7 @@ import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../digital_card/ui/create_card_page.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
+import '../../contacts/providers/contacts_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -409,6 +410,9 @@ void _openEducationSheet(
 
   Widget _buildProfileHeader(
       ColorScheme colors, Color companyColor, String fullName, String? email) {
+    final card = context.watch<CardProvider>();
+    final hasCard = card.status == CardStatus.hasCard;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -416,121 +420,151 @@ void _openEducationSheet(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            companyColor.withValues(alpha: 0.1),
-            companyColor.withValues(alpha: 0.05),
+            companyColor.withValues(alpha: 0.12),
+            companyColor.withValues(alpha: 0.04),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: companyColor.withValues(alpha: 0.1),
+          color: companyColor.withValues(alpha: 0.15),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Avatar avec badge de statut
-          Stack(
+          Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      companyColor,
-                      companyColor.withValues(alpha: 0.7),
-                    ],
-                  ),
-                ),
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundColor: colors.surface,
-                  child: Text(
-                    _initials(fullName),
-                    style: TextStyle(
-                      color: companyColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+              // Avatar avec badge de statut
+              Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          companyColor,
+                          companyColor.withValues(alpha: 0.7),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: colors.surface,
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 10,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 16),
-
-          // Infos utilisateur
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fullName.isEmpty ? 'Utilisateur' : fullName,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: colors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.email_outlined,
-                      size: 14,
-                      color: colors.onSurface.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
+                    child: CircleAvatar(
+                      radius: 32,
+                      backgroundColor: colors.surface,
                       child: Text(
-                        email ?? '',
+                        _initials(fullName),
                         style: TextStyle(
-                          color: colors.onSurface.withValues(alpha: 0.6),
-                          fontSize: 13,
+                          color: companyColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
                         ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colors.surface,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(width: 16),
+
+              // Infos utilisateur
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fullName.isEmpty ? 'Utilisateur' : fullName,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    if (hasCard && card.jobTitle != null && card.jobTitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        card.jobTitle!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: companyColor,
+                        ),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                    ],
+                    if (hasCard && card.company != null && card.company!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        card.company!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: colors.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.email_outlined,
+                          size: 14,
+                          color: colors.onSurface.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            email ?? '',
+                            style: TextStyle(
+                              color: colors.onSurface.withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          // Bouton editer
-          IconButton(
-            onPressed: () => _openEditProfileForm(context),
-            style: IconButton.styleFrom(
-              backgroundColor: colors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            icon: Icon(
-              Icons.edit_outlined,
-              size: 18,
-              color: companyColor,
-            ),
+
+              // Bouton editer
+              IconButton(
+                onPressed: () => _openEditProfileForm(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: colors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: companyColor,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -539,6 +573,11 @@ void _openEducationSheet(
 
   Widget _buildQuickStats(
       ColorScheme colors, Color companyColor, CardProvider card) {
+    final contactsProvider = context.watch<ContactsProvider>();
+    final totalContacts = contactsProvider.groups.fold<int>(
+      0, (sum, group) => sum + group.contacts.length,
+    );
+
     return Row(
       children: [
         Expanded(
@@ -546,7 +585,7 @@ void _openEducationSheet(
             colors,
             companyColor,
             icon: Icons.qr_code_scanner,
-            value: '0',
+            value: '${card.scanCount ?? 0}',
             label: 'Scans',
           ),
         ),
@@ -556,7 +595,7 @@ void _openEducationSheet(
             colors,
             companyColor,
             icon: Icons.people_outline,
-            value: '0',
+            value: '$totalContacts',
             label: 'Contacts',
           ),
         ),
@@ -566,7 +605,7 @@ void _openEducationSheet(
             colors,
             companyColor,
             icon: Icons.share_outlined,
-            value: '0',
+            value: '${card.shareCount ?? 0}',
             label: 'Partages',
           ),
         ),

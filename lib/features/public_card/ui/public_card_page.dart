@@ -440,6 +440,18 @@ class _PublicCardPageState extends State<PublicCardPage>
                                   ),
                               ],
                             ),
+
+                            // Expériences
+                            if (_getExperiences().isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              _buildExperiencesSection(isDark),
+                            ],
+
+                            // Formations
+                            if (_getEducations().isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              _buildEducationsSection(isDark),
+                            ],
                           ],
                         ),
                       ),
@@ -451,6 +463,205 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
         ),
       ),
+    );
+  }
+
+  List<dynamic> _getExperiences() {
+    final experiences = card?['experiences'];
+    if (experiences is List) return experiences;
+    return [];
+  }
+
+  List<dynamic> _getEducations() {
+    final educations = card?['educations'];
+    if (educations is List) return educations;
+    return [];
+  }
+
+  Widget _buildExperiencesSection(bool isDark) {
+    final experiences = _getExperiences();
+    const blueColor = Color(0xFF3B82F6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.work_outline, size: 18, color: blueColor),
+            const SizedBox(width: 8),
+            Text(
+              'Expériences',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...experiences.map((exp) {
+          final title = exp['title'] ?? '';
+          final company = exp['company'] ?? '';
+          final startDate = exp['start_date'] ?? '';
+          final endDate = exp['end_date'];
+          final description = exp['description'] ?? '';
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: blueColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: blueColor.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                if (company.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    company,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: blueColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  endDate != null && endDate.toString().isNotEmpty
+                      ? '$startDate → $endDate'
+                      : '$startDate → Présent',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                  ),
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildEducationsSection(bool isDark) {
+    final educations = _getEducations();
+    const purpleColor = Color(0xFF8B5CF6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.school_outlined, size: 18, color: purpleColor),
+            const SizedBox(width: 8),
+            Text(
+              'Formation',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...educations.map((edu) {
+          final degree = edu['degree'] ?? '';
+          final school = edu['school'] ?? '';
+          final field = edu['field'] ?? '';
+          final startYear = edu['start_year']?.toString() ?? '';
+          final endYear = edu['end_year']?.toString() ?? '';
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: purpleColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: purpleColor.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  degree,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                if (school.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    school,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: purpleColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (field.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: purpleColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          field,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: purpleColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      '$startYear - $endYear',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 

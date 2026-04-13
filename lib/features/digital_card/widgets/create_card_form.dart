@@ -217,8 +217,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
     final isCompanyLinked = auth.user?.hasCompany == true;
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Form(
@@ -240,24 +242,24 @@ class _CreateCardFormState extends State<CreateCardForm> {
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: colors.onSurface.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
-                          color: Colors.white,
+                          color: colors.onSurface,
                           size: 22,
                         ),
                       ),
                     ),
                     const Spacer(),
-                    const Text(
+                    Text(
                       'KART',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 3,
-                        color: Colors.white,
+                        color: colors.onSurface,
                       ),
                     ),
                     const Spacer(),
@@ -268,12 +270,12 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 const SizedBox(height: 32),
 
                 // Title
-                const Text(
+                Text(
                   'Créer ma carte',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: colors.onSurface,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -283,7 +285,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 Text(
                   'Remplissez vos informations professionnelles',
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: colors.onSurface.withValues(alpha: 0.5),
                     fontSize: 15,
                   ),
                 ),
@@ -347,7 +349,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 Text(
                   'Coordonnees de contact',
                   style: TextStyle(
-                    color: Colors.grey[300],
+                    color: colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -399,7 +401,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 Text(
                   'Reseaux sociaux et visibilite',
                   style: TextStyle(
-                    color: Colors.grey[300],
+                    color: colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

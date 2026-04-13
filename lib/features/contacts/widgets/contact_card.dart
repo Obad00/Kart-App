@@ -80,15 +80,11 @@ class ContactCardState extends State<ContactCard>
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(20.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20.0,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -126,9 +122,10 @@ class ContactCardState extends State<ContactCard>
                     // Nom
                     Text(
                       widget.contact.fullname,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -141,9 +138,9 @@ class ContactCardState extends State<ContactCard>
                       const SizedBox(height: 3),
                       Text(
                         widget.contact.job!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: Color(0xFF9CA3AF),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -157,9 +154,9 @@ class ContactCardState extends State<ContactCard>
                       const SizedBox(height: 2),
                       Text(
                         '@ ${widget.contact.company}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: Color(0xFF9CA3AF),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -167,10 +164,85 @@ class ContactCardState extends State<ContactCard>
                       ),
                     ],
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     // Boutons sociaux
                     _buildSocialButtons(),
+
+                    const SizedBox(height: 10),
+
+                    // Boutons d'action (Partager / Email)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              widget.onShare();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.send_rounded, size: 13, color: Color(0xFF3B82F6)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Partager',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF3B82F6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              widget.onEmailTap();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.email_outlined, size: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Email',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

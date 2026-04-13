@@ -256,7 +256,7 @@ SafeArea(
                 children: [
 
                   _button(
-                    title: "Scanner une KART",
+                    title: "Scanner",
                     active: _mode == ScanMode.qr,
                     onTap: () {
                       setState(() {

@@ -143,6 +143,50 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     });
   }
 
+  Future<void> _pickDate(TextEditingController controller) async {
+    DateTime initial = DateTime.now();
+    if (controller.text.isNotEmpty) {
+      final parsed = DateTime.tryParse(controller.text);
+      if (parsed != null) initial = parsed;
+    }
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1970),
+      lastDate: DateTime(2050),
+    );
+    if (picked != null) {
+      controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      setState(() {});
+    }
+  }
+
+  Future<void> _pickYear(TextEditingController controller) async {
+    final now = DateTime.now();
+    int selectedYear = int.tryParse(controller.text) ?? now.year;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sélectionner une année'),
+        content: SizedBox(
+          width: 300,
+          height: 300,
+          child: YearPicker(
+            firstDate: DateTime(1970),
+            lastDate: DateTime(2050),
+            selectedDate: DateTime(selectedYear),
+            onChanged: (DateTime dateTime) {
+              controller.text = dateTime.year.toString();
+              setState(() {});
+              Navigator.pop(context);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -192,21 +236,30 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 );
 
 
-    final ok = await p.service.update(updated);
+    try {
+      final ok = await p.service.update(updated);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (ok) p.updateModel(updated);
+      if (ok) p.updateModel(updated);
 
-    setState(() {
-      loading = false;
-      _successMessage = ok ? 'Profil mis à jour avec succès' : null;
-      _errorMessage = ok ? null : 'Une erreur est survenue';
-    });
+      setState(() {
+        loading = false;
+        _successMessage = ok ? 'Profil mis à jour avec succès' : null;
+        _errorMessage = ok ? null : 'Une erreur est survenue';
+      });
 
-    if (ok) {
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) Navigator.of(context).pop(true);
+      if (ok) {
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        _errorMessage = 'Erreur serveur. Veuillez réessayer.';
+      });
+      debugPrint('Profile update error: $e');
     }
   }
 
@@ -413,11 +466,21 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           Row(
             children: [
               Expanded(
-                child: AuthTextField(label: 'Date début', controller: exp['start_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'YYYY-MM-DD'),
+                child: GestureDetector(
+                  onTap: () => _pickDate(exp['start_date']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(label: 'Date début', controller: exp['start_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: AuthTextField(label: 'Date fin', controller: exp['end_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Vide = Présent'),
+                child: GestureDetector(
+                  onTap: () => _pickDate(exp['end_date']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(label: 'Date fin', controller: exp['end_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Présent'),
+                  ),
+                ),
               ),
             ],
           ),
@@ -483,11 +546,21 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           Row(
             children: [
               Expanded(
-                child: AuthTextField(label: 'Année début', controller: edu['start_year']!, prefixIcon: Icons.calendar_today_outlined, keyboardType: TextInputType.number, hint: 'Ex: 2021'),
+                child: GestureDetector(
+                  onTap: () => _pickYear(edu['start_year']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(label: 'Année début', controller: edu['start_year']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: AuthTextField(label: 'Année fin', controller: edu['end_year']!, prefixIcon: Icons.calendar_today_outlined, keyboardType: TextInputType.number, hint: 'Ex: 2025'),
+                child: GestureDetector(
+                  onTap: () => _pickYear(edu['end_year']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(label: 'Année fin', controller: edu['end_year']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                  ),
+                ),
               ),
             ],
           ),

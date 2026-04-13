@@ -43,6 +43,8 @@ List<dynamic> educations = [];
 
 String? plan;
 
+int? scanCount;
+int? shareCount;
 
   // --- SLUG & SHARE URL ---
   String? _slug;
@@ -104,6 +106,8 @@ String? plan;
 
       plan = res.data['plan'];
 
+      scanCount = res.data['scan_count'] as int?;
+      shareCount = res.data['share_count'] as int?;
 
       // Recuperer le slug et l'URL de partage
       _slug = res.data['slug'] as String?;

@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   # URL launcher
   url_launcher: ^6.2.5
 
@@ -34,7 +36,7 @@ dependencies:
   shared_preferences: ^2.2.2
 
   # Utils
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Device info for automatic tracking
   device_info_plus: ^10.1.0
