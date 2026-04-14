@@ -60,7 +60,8 @@ class ContactCardState extends State<ContactCard>
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Column(
-        mainAxisSize: MainAxisSize.min, // ← min : prend juste la hauteur du contenu
+        mainAxisSize:
+            MainAxisSize.min, // ← min : prend juste la hauteur du contenu
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Carte principale — plus de Expanded
@@ -77,173 +78,113 @@ class ContactCardState extends State<ContactCard>
                 );
               }
             },
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(20.0),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(decoration: TextDecoration.none),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(20.0),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.08),
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Avatar
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getInitials(widget.contact.fullname),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Nom
-                    Text(
-                      widget.contact.fullname,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    // Job
-                    if (widget.contact.job != null &&
-                        widget.contact.job!.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        widget.contact.job!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-
-                    // Company
-                    if (widget.contact.company != null &&
-                        widget.contact.company!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '@ ${widget.contact.company}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-
-                    const SizedBox(height: 10),
-
-                    // Boutons sociaux
-                    _buildSocialButtons(),
-
-                    const SizedBox(height: 10),
-
-                    // Boutons d'action (Partager / Email)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              widget.onShare();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.send_rounded, size: 13, color: Color(0xFF3B82F6)),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Partager',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF3B82F6),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        child: Center(
+                          child: Text(
+                            _getInitials(widget.contact.fullname),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              widget.onEmailTap();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.email_outlined, size: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Email',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Nom
+                      Text(
+                        widget.contact.fullname,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      // Job
+                      if (widget.contact.job != null &&
+                          widget.contact.job!.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.contact.job!,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.5),
                           ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
-                  ],
+
+                      // Company
+                      if (widget.contact.company != null &&
+                          widget.contact.company!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '@ ${widget.contact.company}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.4),
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      // Boutons sociaux
+                      _buildSocialButtons(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -262,7 +203,8 @@ class ContactCardState extends State<ContactCard>
         _buildSocialButton(
           icon: FontAwesomeIcons.linkedin,
           color: const Color(0xFF0A66C2),
-          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.linkedin!, 'linkedin')),
+          onTap: () => _launchUrl(
+              _formatSocialUrl(widget.contact.linkedin!, 'linkedin')),
         ),
       );
     }
@@ -273,7 +215,8 @@ class ContactCardState extends State<ContactCard>
         _buildSocialButton(
           icon: FontAwesomeIcons.xTwitter,
           color: const Color(0xFF000000),
-          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.twitter!, 'twitter')),
+          onTap: () =>
+              _launchUrl(_formatSocialUrl(widget.contact.twitter!, 'twitter')),
         ),
       );
     }
@@ -284,7 +227,8 @@ class ContactCardState extends State<ContactCard>
         _buildSocialButton(
           icon: FontAwesomeIcons.facebook,
           color: const Color(0xFF1877F2),
-          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.facebook!, 'facebook')),
+          onTap: () => _launchUrl(
+              _formatSocialUrl(widget.contact.facebook!, 'facebook')),
         ),
       );
     }
@@ -295,7 +239,8 @@ class ContactCardState extends State<ContactCard>
         _buildSocialButton(
           icon: FontAwesomeIcons.instagram,
           color: const Color(0xFFE4405F),
-          onTap: () => _launchUrl(_formatSocialUrl(widget.contact.instagram!, 'instagram')),
+          onTap: () => _launchUrl(
+              _formatSocialUrl(widget.contact.instagram!, 'instagram')),
         ),
       );
     }
@@ -317,7 +262,8 @@ class ContactCardState extends State<ContactCard>
         _buildSocialButton(
           icon: FontAwesomeIcons.whatsapp,
           color: const Color(0xFF25D366),
-          onTap: () => _launchUrl('https://wa.me/${widget.contact.phone!.replaceAll(RegExp(r'[^\d+]'), '')}'),
+          onTap: () => _launchUrl(
+              'https://wa.me/${widget.contact.phone!.replaceAll(RegExp(r'[^\d+]'), '')}'),
         ),
       );
     }

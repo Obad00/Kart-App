@@ -88,7 +88,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
       if (e.response?.statusCode == 500) {
         errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
       } else if (e.response?.statusCode == 422) {
-        errorMessage = 'Données invalides. Vérifiez les informations du contact.';
+        errorMessage =
+            'Données invalides. Vérifiez les informations du contact.';
       } else if (e.response?.statusCode == 404) {
         errorMessage = 'Carte introuvable';
       } else if (e.response?.statusCode == 403) {
@@ -392,74 +393,80 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 _emailController.text = msg;
                               },
                               borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
+                              child: DefaultTextStyle.merge(
+                                style: const TextStyle(
+                                  decoration: TextDecoration.none,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? companyColor.withValues(alpha: 0.1)
-                                      : Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? companyColor.withValues(alpha: 0.3)
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.08),
-                                    width: 1.5,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 20,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? companyColor
-                                              : Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.3),
-                                          width: 2,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? companyColor.withValues(alpha: 0.1)
+                                        : Theme.of(context).colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? companyColor.withValues(alpha: 0.3)
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.08),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? companyColor
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.3),
+                                            width: 2,
+                                          ),
                                         ),
-                                      ),
-                                      child: isSelected
-                                          ? Center(
-                                              child: Container(
-                                                width: 10,
-                                                height: 10,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: companyColor,
+                                        child: isSelected
+                                            ? Center(
+                                                child: Container(
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: companyColor,
+                                                  ),
                                                 ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        msg,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: isSelected
-                                              ? companyColor
-                                              : Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          msg,
+                                          style: TextStyle(
+                                            decoration: TextDecoration.none,
+                                            fontSize: 14,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                            color: isSelected
+                                                ? companyColor
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -1120,16 +1127,18 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                           ),
 
                           // Contacts Grid
-                       Padding(
+                          Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: LayoutBuilder(
                               builder: (context, constraints) {
-                                final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                                final crossAxisCount =
+                                    constraints.maxWidth > 600 ? 3 : 2;
 
                                 return GridView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: crossAxisCount,
                                     crossAxisSpacing: 8,
                                     mainAxisSpacing: 8,

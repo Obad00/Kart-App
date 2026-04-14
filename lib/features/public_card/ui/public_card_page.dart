@@ -5,7 +5,6 @@ import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
 
-
 class PublicCardPage extends StatefulWidget {
   final String slug;
 
@@ -107,11 +106,27 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   String _getFieldValue(String key) {
-    final fields = card?['fields'];
-    if (fields is Map<String, dynamic>) {
-      final value = fields[key];
+    final rawFields = card?['fields'];
+
+    if (rawFields is Map<String, dynamic>) {
+      final value = rawFields[key];
       if (value is String && value.isNotEmpty) return value.trim();
+      if (value != null && value.toString().isNotEmpty) {
+        return value.toString().trim();
+      }
+      return '';
     }
+
+    if (rawFields is Map) {
+      final value = rawFields[key];
+      if (value != null && value.toString().isNotEmpty) {
+        return value.toString().trim();
+      }
+      return '';
+    }
+
+    debugPrint(
+        '_getFieldValue($key) fields is not a Map: ${rawFields.runtimeType}');
     return '';
   }
 
@@ -146,6 +161,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final email = card != null ? _getFieldValue('email') : '';
+    final hasFields = card != null && card!['fields'] is Map;
 
     if (isLoading) {
       return Scaffold(
@@ -166,7 +183,8 @@ class _PublicCardPageState extends State<PublicCardPage>
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
+        backgroundColor:
+            isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
         foregroundColor: isDark ? Colors.white : Colors.black,
         elevation: 0,
       ),
@@ -207,7 +225,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                         side: BorderSide(
-                          color: const Color(0xFF3B82F6).withValues(alpha: 0.35),
+                          color:
+                              const Color(0xFF3B82F6).withValues(alpha: 0.35),
                           width: 1,
                         ),
                       ),
@@ -235,7 +254,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                  colors: [
+                                    Color(0xFF2563EB),
+                                    Color(0xFF1D4ED8)
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -271,7 +293,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                             ),
                             const SizedBox(height: 8),
                             // Job
-                            if (card!['job_title'] != null && card!['job_title'].isNotEmpty)
+                            if (card!['job_title'] != null &&
+                                card!['job_title'].isNotEmpty)
                               Text(
                                 card!['job_title'],
                                 style: const TextStyle(
@@ -283,12 +306,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                               ),
                             const SizedBox(height: 4),
                             // Company
-                            if (card!['company'] != null && card!['company'].isNotEmpty)
+                            if (card!['company'] != null &&
+                                card!['company'].isNotEmpty)
                               Text(
                                 card!['company'],
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF374151),
                                   fontWeight: FontWeight.w600,
                                 ),
                                 textAlign: TextAlign.center,
@@ -298,20 +324,24 @@ class _PublicCardPageState extends State<PublicCardPage>
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                color: const Color(0xFF3B82F6)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Column(
                                 children: [
                                   // Phone
-                                  if (card!['phone'] != null && card!['phone'].isNotEmpty)
+                                  if (card!['phone'] != null &&
+                                      card!['phone'].isNotEmpty)
                                     InkWell(
                                       borderRadius: BorderRadius.circular(8),
                                       onTap: () => _openPhone(card!['phone']),
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 6),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.phone_outlined,
@@ -324,7 +354,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                                                 card!['phone'],
                                                 style: TextStyle(
                                                   fontSize: 16,
-                                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                                  color: isDark
+                                                      ? Colors.white70
+                                                      : const Color(0xFF374151),
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
@@ -336,14 +368,16 @@ class _PublicCardPageState extends State<PublicCardPage>
                                     ),
                                   const SizedBox(height: 8),
                                   // Email
-                                  if (card!['fields'] != null && card!['fields']['email'] != null && card!['fields']['email'].isNotEmpty)
+                                  if (email.isNotEmpty)
                                     InkWell(
                                       borderRadius: BorderRadius.circular(8),
-                                      onTap: () => _openEmail(card!['fields']['email']),
+                                      onTap: () => _openEmail(email),
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 6),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.email_outlined,
@@ -353,10 +387,12 @@ class _PublicCardPageState extends State<PublicCardPage>
                                             const SizedBox(width: 12),
                                             Flexible(
                                               child: Text(
-                                                card!['fields']['email'],
+                                                email,
                                                 style: TextStyle(
                                                   fontSize: 16,
-                                                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                                  color: isDark
+                                                      ? Colors.white70
+                                                      : const Color(0xFF374151),
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
@@ -378,14 +414,17 @@ class _PublicCardPageState extends State<PublicCardPage>
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF3B82F6),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16, horizontal: 24),
                                   elevation: 4,
-                                  shadowColor: const Color(0xFF3B82F6).withValues(alpha: 0.4),
+                                  shadowColor: const Color(0xFF3B82F6)
+                                      .withValues(alpha: 0.4),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                icon: const Icon(Icons.person_add_outlined, size: 20),
+                                icon: const Icon(Icons.person_add_outlined,
+                                    size: 20),
                                 label: const Text(
                                   'Restons en contact',
                                   style: TextStyle(
@@ -402,56 +441,68 @@ class _PublicCardPageState extends State<PublicCardPage>
                               runSpacing: 8,
                               alignment: WrapAlignment.center,
                               children: [
-                                if (_getFieldValue('x').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.xTwitter,
-                                    color: const Color(0xFF000000),
-                                    onTap: () => _openUrl(_getFieldValue('x')),
-                                  ),
-                                if (_getFieldValue('linkedin').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.linkedin,
-                                    color: const Color(0xFF0A66C2),
-                                    onTap: () => _openUrl(_getFieldValue('linkedin')),
-                                  ),
-                                if (_getFieldValue('instagram').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.instagram,
-                                    color: const Color(0xFFE4405F),
-                                    onTap: () => _openUrl(_getFieldValue('instagram')),
-                                  ),
-                                if (_getFieldValue('facebook').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.facebook,
-                                    color: const Color(0xFF1877F2),
-                                    onTap: () => _openUrl(_getFieldValue('facebook')),
-                                  ),
-                                if (_getFieldValue('github').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.github,
-                                    color: const Color(0xFF333333),
-                                    onTap: () => _openUrl(_getFieldValue('github')),
-                                  ),
-                                if (_getFieldValue('website').isNotEmpty)
-                                  _buildSocialButton(
-                                    icon: FontAwesomeIcons.globe,
-                                    color: const Color(0xFF6366F1),
-                                    onTap: () => _openUrl(_getFieldValue('website')),
-                                  ),
+                                if (hasFields) ...[
+                                  if (_getFieldValue('x').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.xTwitter,
+                                      color: const Color(0xFF000000),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('x')),
+                                    ),
+                                  if (_getFieldValue('linkedin').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.linkedin,
+                                      color: const Color(0xFF0A66C2),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('linkedin')),
+                                    ),
+                                  if (_getFieldValue('instagram').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.instagram,
+                                      color: const Color(0xFFE4405F),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('instagram')),
+                                    ),
+                                  if (_getFieldValue('facebook').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.facebook,
+                                      color: const Color(0xFF1877F2),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('facebook')),
+                                    ),
+                                  if (_getFieldValue('github').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.github,
+                                      color: const Color(0xFF333333),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('github')),
+                                    ),
+                                  if (_getFieldValue('website').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.globe,
+                                      color: const Color(0xFF6366F1),
+                                      onTap: () =>
+                                          _openUrl(_getFieldValue('website')),
+                                    ),
+                                  if (_getFieldValue('phone').isNotEmpty)
+                                    _buildSocialButton(
+                                      icon: FontAwesomeIcons.whatsapp,
+                                      color: const Color(0xFF25D366),
+                                      onTap: () => _openUrl(
+                                        'https://wa.me/${_getFieldValue('phone').replaceAll(RegExp(r'[^\d+]'), '')}',
+                                      ),
+                                    ),
+                                ],
                               ],
                             ),
 
                             // Expériences
-                            if (_getExperiences().isNotEmpty) ...[
-                              const SizedBox(height: 24),
-                              _buildExperiencesSection(isDark),
-                            ],
+                            const SizedBox(height: 24),
+                            _buildExperiencesSection(isDark),
 
                             // Formations
-                            if (_getEducations().isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              _buildEducationsSection(isDark),
-                            ],
+                            const SizedBox(height: 16),
+                            _buildEducationsSection(isDark),
                           ],
                         ),
                       ),
@@ -500,69 +551,91 @@ class _PublicCardPageState extends State<PublicCardPage>
           ],
         ),
         const SizedBox(height: 12),
-        ...experiences.map((exp) {
-          final title = exp['title'] ?? '';
-          final company = exp['company'] ?? '';
-          final startDate = exp['start_date'] ?? '';
-          final endDate = exp['end_date'];
-          final description = exp['description'] ?? '';
-
-          return Container(
+        if (experiences.isEmpty)
+          Container(
             width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: blueColor.withValues(alpha: 0.06),
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: blueColor.withValues(alpha: 0.12)),
+              border: Border.all(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.12)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-                if (company.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+            child: Text(
+              'Aucune expérience renseignée',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          ...experiences.map((exp) {
+            final title = exp['title'] ?? '';
+            final company = exp['company'] ?? '';
+            final startDate = exp['start_date'] ?? '';
+            final endDate = exp['end_date'];
+            final description = exp['description'] ?? '';
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: blueColor.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: blueColor.withValues(alpha: 0.12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    company,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: blueColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Text(
-                  endDate != null && endDate.toString().isNotEmpty
-                      ? '$startDate → $endDate'
-                      : '$startDate → Présent',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-                  ),
-                ),
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    description,
+                    title,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                      height: 1.4,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
+                  if (company.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      company,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: blueColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    endDate != null && endDate.toString().isNotEmpty
+                        ? '$startDate → $endDate'
+                        : '$startDate → Présent',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isDark ? Colors.white60 : const Color(0xFF6B7280),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          );
-        }),
+              ),
+            );
+          }),
       ],
     );
   }
@@ -589,78 +662,101 @@ class _PublicCardPageState extends State<PublicCardPage>
           ],
         ),
         const SizedBox(height: 12),
-        ...educations.map((edu) {
-          final degree = edu['degree'] ?? '';
-          final school = edu['school'] ?? '';
-          final field = edu['field'] ?? '';
-          final startYear = edu['start_year']?.toString() ?? '';
-          final endYear = edu['end_year']?.toString() ?? '';
-
-          return Container(
+        if (educations.isEmpty)
+          Container(
             width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: purpleColor.withValues(alpha: 0.06),
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: purpleColor.withValues(alpha: 0.12)),
+              border: Border.all(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  degree,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-                if (school.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+            child: Text(
+              'Aucune formation renseignée',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          ...educations.map((edu) {
+            final degree = edu['degree'] ?? '';
+            final school = edu['school'] ?? '';
+            final field = edu['field'] ?? '';
+            final startYear = edu['start_year']?.toString() ?? '';
+            final endYear = edu['end_year']?.toString() ?? '';
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: purpleColor.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: purpleColor.withValues(alpha: 0.12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    school,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: purpleColor,
-                      fontWeight: FontWeight.w500,
+                    degree,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
-                ],
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (field.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: purpleColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          field,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: purpleColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                  if (school.isNotEmpty) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      '$startYear - $endYear',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                      school,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: purpleColor,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
-                ),
-              ],
-            ),
-          );
-        }),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (field.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: purpleColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            field,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: purpleColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        '$startYear - $endYear',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
       ],
     );
   }

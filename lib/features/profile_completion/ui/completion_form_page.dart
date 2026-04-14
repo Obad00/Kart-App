@@ -25,6 +25,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   final _facebookCtrl = TextEditingController();
   final _websiteCtrl = TextEditingController();
 
+  final Map<String, bool> _activeFields = {
+    'phone': false,
+    'email': false,
+    'linkedin': false,
+    'instagram': false,
+    'github': false,
+    'facebook': false,
+    'website': false,
+  };
+
   final List<Map<String, TextEditingController>> _experiences = [];
   final List<Map<String, TextEditingController>> _educations = [];
 
@@ -52,6 +62,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       _facebookCtrl.text = m.facebook ?? '';
       _websiteCtrl.text = m.website ?? '';
 
+      for (final field in m.activatedFields) {
+        if (_activeFields.containsKey(field)) {
+          _activeFields[field] = true;
+        }
+      }
 
       for (final exp in m.experiences) {
         _experiences.add({
@@ -156,7 +171,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       lastDate: DateTime(2050),
     );
     if (picked != null) {
-      controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      controller.text =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
       setState(() {});
     }
   }
@@ -219,22 +235,22 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     }).toList();
 
     final updated = ProfileCompletionModel(
-  jobTitle: _jobCtrl.text,
-  company: _companyCtrl.text,
-  phone: _phoneCtrl.text,
-  email: _emailCtrl.text,
-
-  linkedin: _linkedinCtrl.text,
-  instagram: _instagramCtrl.text,
-  github: _githubCtrl.text,
-  facebook: _facebookCtrl.text,
-  website: _websiteCtrl.text,
-
-  experiences: experiences,
-  educations: educations,
-  activatedFields: p.model.activatedFields,
-);
-
+      jobTitle: _jobCtrl.text,
+      company: _companyCtrl.text,
+      phone: _phoneCtrl.text,
+      email: _emailCtrl.text,
+      linkedin: _linkedinCtrl.text,
+      instagram: _instagramCtrl.text,
+      github: _githubCtrl.text,
+      facebook: _facebookCtrl.text,
+      website: _websiteCtrl.text,
+      experiences: experiences,
+      educations: educations,
+      activatedFields: _activeFields.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toList(),
+    );
 
     try {
       final ok = await p.service.update(updated);
@@ -294,7 +310,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   ),
                 ),
               ),
-
               Row(
                 children: [
                   Container(
@@ -303,7 +318,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                       color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6), size: 20),
+                    child: const Icon(Icons.edit_outlined,
+                        color: Color(0xFF3B82F6), size: 20),
                   ),
                   const SizedBox(width: 14),
                   Column(
@@ -311,50 +327,130 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     children: [
                       const Text(
                         'Compléter mon profil',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       Text(
                         'Renseignez vos informations',
-                        style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: colors.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
               if (_successMessage != null)
-                _buildAlert(_successMessage!, Colors.green, Icons.check_circle_outline),
+                _buildAlert(
+                    _successMessage!, Colors.green, Icons.check_circle_outline),
               if (_errorMessage != null)
                 _buildAlert(_errorMessage!, Colors.red, Icons.error_outline),
-
-              _buildSectionHeader(colors, Icons.person_outline, 'Informations de base'),
+              _buildSectionHeader(
+                  colors, Icons.person_outline, 'Informations de base'),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Poste', controller: _jobCtrl, prefixIcon: Icons.work_outline, hint: 'Ex: Développeur Flutter'),
+              AuthTextField(
+                  label: 'Poste',
+                  controller: _jobCtrl,
+                  prefixIcon: Icons.work_outline,
+                  hint: 'Ex: Développeur Flutter'),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Entreprise', controller: _companyCtrl, prefixIcon: Icons.business_outlined, hint: 'Nom de votre entreprise'),
+              AuthTextField(
+                  label: 'Entreprise',
+                  controller: _companyCtrl,
+                  prefixIcon: Icons.business_outlined,
+                  hint: 'Nom de votre entreprise'),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Téléphone', controller: _phoneCtrl, prefixIcon: Icons.phone_outlined, keyboardType: TextInputType.phone, hint: 'Ex: +221 77 123 45 67'),
+              AuthTextField(
+                  label: 'Téléphone',
+                  controller: _phoneCtrl,
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  hint: 'Ex: +221 77 123 45 67'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher le téléphone sur ma carte',
+                value: _activeFields['phone'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['phone'] = v),
+              ),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Email', controller: _emailCtrl, prefixIcon: Icons.email_outlined, keyboardType: TextInputType.emailAddress, hint: 'votre@email.com'),
-
+              AuthTextField(
+                  label: 'Email',
+                  controller: _emailCtrl,
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'votre@email.com'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher l\'email sur ma carte',
+                value: _activeFields['email'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['email'] = v),
+              ),
               const SizedBox(height: 24),
-
-              _buildSectionHeader(colors, Icons.share_outlined, 'Réseaux sociaux'),
+              _buildSectionHeader(
+                  colors, Icons.share_outlined, 'Réseaux sociaux'),
               const SizedBox(height: 12),
-              AuthTextField(label: 'LinkedIn', controller: _linkedinCtrl, prefixIcon: Icons.work_outline, hint: 'https://linkedin.com/in/...'),
+              AuthTextField(
+                  label: 'LinkedIn',
+                  controller: _linkedinCtrl,
+                  prefixIcon: Icons.work_outline,
+                  hint: 'https://linkedin.com/in/...'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher LinkedIn sur ma carte',
+                value: _activeFields['linkedin'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
+              ),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Instagram', controller: _instagramCtrl, prefixIcon: Icons.camera_alt_outlined, hint: 'https://instagram.com/...'),
+              AuthTextField(
+                  label: 'Instagram',
+                  controller: _instagramCtrl,
+                  prefixIcon: Icons.camera_alt_outlined,
+                  hint: 'https://instagram.com/...'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher Instagram sur ma carte',
+                value: _activeFields['instagram'] ?? false,
+                onChanged: (v) =>
+                    setState(() => _activeFields['instagram'] = v),
+              ),
               const SizedBox(height: 12),
-              AuthTextField(label: 'GitHub', controller: _githubCtrl, prefixIcon: Icons.code, hint: 'https://github.com/...'),
+              AuthTextField(
+                  label: 'GitHub',
+                  controller: _githubCtrl,
+                  prefixIcon: Icons.code,
+                  hint: 'https://github.com/...'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher GitHub sur ma carte',
+                value: _activeFields['github'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['github'] = v),
+              ),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Facebook', controller: _facebookCtrl, prefixIcon: Icons.facebook, hint: 'https://facebook.com/...'),
+              AuthTextField(
+                  label: 'Facebook',
+                  controller: _facebookCtrl,
+                  prefixIcon: Icons.facebook,
+                  hint: 'https://facebook.com/...'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher Facebook sur ma carte',
+                value: _activeFields['facebook'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['facebook'] = v),
+              ),
               const SizedBox(height: 12),
-              AuthTextField(label: 'Site web', controller: _websiteCtrl, prefixIcon: Icons.language, hint: 'https://votresite.com'),
-
+              AuthTextField(
+                  label: 'Site web',
+                  controller: _websiteCtrl,
+                  prefixIcon: Icons.language,
+                  hint: 'https://votresite.com'),
+              const SizedBox(height: 8),
+              _buildPremiumSwitch(
+                title: 'Afficher le site web sur ma carte',
+                value: _activeFields['website'] ?? false,
+                onChanged: (v) => setState(() => _activeFields['website'] = v),
+              ),
               const SizedBox(height: 24),
-
               _buildSectionHeader(
                 colors,
                 Icons.history,
@@ -362,16 +458,13 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 trailing: _buildAddButton(_addExperience),
               ),
               const SizedBox(height: 12),
-
               if (_experiences.isEmpty)
-                _buildEmptyState(colors, 'Aucune expérience', 'Ajoutez votre première expérience', Icons.work_outline),
-
+                _buildEmptyState(colors, 'Aucune expérience',
+                    'Ajoutez votre première expérience', Icons.work_outline),
               ..._experiences.asMap().entries.map((entry) {
                 return _buildExperienceCard(colors, entry.key, entry.value);
               }),
-
               const SizedBox(height: 24),
-
               _buildSectionHeader(
                 colors,
                 Icons.school_outlined,
@@ -379,30 +472,27 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 trailing: _buildAddButton(_addEducation),
               ),
               const SizedBox(height: 12),
-
               if (_educations.isEmpty)
-                _buildEmptyState(colors, 'Aucune formation', 'Ajoutez votre première formation', Icons.school_outlined),
-
+                _buildEmptyState(colors, 'Aucune formation',
+                    'Ajoutez votre première formation', Icons.school_outlined),
               ..._educations.asMap().entries.map((entry) {
                 return _buildEducationCard(colors, entry.key, entry.value);
               }),
-
               const SizedBox(height: 32),
-
               AuthPrimaryButton(
                 label: 'Sauvegarder',
                 loading: loading,
                 onTap: _save,
                 icon: Icons.check_rounded,
               ),
-
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(
                     'Annuler',
-                    style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+                    style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.5)),
                   ),
                 ),
               ),
@@ -424,7 +514,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF3B82F6).withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.15)),
+        border:
+            Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,12 +528,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.work_outline, size: 16, color: Color(0xFF3B82F6)),
+                child: const Icon(Icons.work_outline,
+                    size: 16, color: Color(0xFF3B82F6)),
               ),
               const SizedBox(width: 10),
               Text(
                 'Expérience ${index + 1}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF3B82F6)),
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3B82F6)),
               ),
               const Spacer(),
               GestureDetector(
@@ -453,15 +548,24 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                  child: const Icon(Icons.delete_outline,
+                      size: 16, color: Colors.red),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          AuthTextField(label: 'Titre du poste', controller: exp['title']!, prefixIcon: Icons.badge_outlined, hint: 'Ex: Développeur Senior'),
+          AuthTextField(
+              label: 'Titre du poste',
+              controller: exp['title']!,
+              prefixIcon: Icons.badge_outlined,
+              hint: 'Ex: Développeur Senior'),
           const SizedBox(height: 10),
-          AuthTextField(label: 'Entreprise', controller: exp['company']!, prefixIcon: Icons.business_outlined, hint: "Nom de l'entreprise"),
+          AuthTextField(
+              label: 'Entreprise',
+              controller: exp['company']!,
+              prefixIcon: Icons.business_outlined,
+              hint: "Nom de l'entreprise"),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -469,7 +573,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 child: GestureDetector(
                   onTap: () => _pickDate(exp['start_date']!),
                   child: AbsorbPointer(
-                    child: AuthTextField(label: 'Date début', controller: exp['start_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                    child: AuthTextField(
+                        label: 'Date début',
+                        controller: exp['start_date']!,
+                        prefixIcon: Icons.calendar_today_outlined,
+                        hint: 'Sélectionner'),
                   ),
                 ),
               ),
@@ -478,14 +586,22 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 child: GestureDetector(
                   onTap: () => _pickDate(exp['end_date']!),
                   child: AbsorbPointer(
-                    child: AuthTextField(label: 'Date fin', controller: exp['end_date']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Présent'),
+                    child: AuthTextField(
+                        label: 'Date fin',
+                        controller: exp['end_date']!,
+                        prefixIcon: Icons.calendar_today_outlined,
+                        hint: 'Présent'),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          AuthTextField(label: 'Description', controller: exp['description']!, prefixIcon: Icons.description_outlined, hint: 'Décrivez vos responsabilités...'),
+          AuthTextField(
+              label: 'Description',
+              controller: exp['description']!,
+              prefixIcon: Icons.description_outlined,
+              hint: 'Décrivez vos responsabilités...'),
         ],
       ),
     );
@@ -502,7 +618,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF8B5CF6).withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.15)),
+        border:
+            Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -515,12 +632,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.school_outlined, size: 16, color: Color(0xFF8B5CF6)),
+                child: const Icon(Icons.school_outlined,
+                    size: 16, color: Color(0xFF8B5CF6)),
               ),
               const SizedBox(width: 10),
               Text(
                 'Formation ${index + 1}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF8B5CF6)),
               ),
               const Spacer(),
               GestureDetector(
@@ -531,17 +652,30 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                  child: const Icon(Icons.delete_outline,
+                      size: 16, color: Colors.red),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          AuthTextField(label: 'École / Université', controller: edu['school']!, prefixIcon: Icons.school_outlined, hint: "Nom de l'établissement"),
+          AuthTextField(
+              label: 'École / Université',
+              controller: edu['school']!,
+              prefixIcon: Icons.school_outlined,
+              hint: "Nom de l'établissement"),
           const SizedBox(height: 10),
-          AuthTextField(label: 'Diplôme', controller: edu['degree']!, prefixIcon: Icons.workspace_premium_outlined, hint: 'Ex: Master, Licence...'),
+          AuthTextField(
+              label: 'Diplôme',
+              controller: edu['degree']!,
+              prefixIcon: Icons.workspace_premium_outlined,
+              hint: 'Ex: Master, Licence...'),
           const SizedBox(height: 10),
-          AuthTextField(label: 'Domaine', controller: edu['field']!, prefixIcon: Icons.category_outlined, hint: 'Ex: Informatique, Marketing...'),
+          AuthTextField(
+              label: 'Domaine',
+              controller: edu['field']!,
+              prefixIcon: Icons.category_outlined,
+              hint: 'Ex: Informatique, Marketing...'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -549,7 +683,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 child: GestureDetector(
                   onTap: () => _pickYear(edu['start_year']!),
                   child: AbsorbPointer(
-                    child: AuthTextField(label: 'Année début', controller: edu['start_year']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                    child: AuthTextField(
+                        label: 'Année début',
+                        controller: edu['start_year']!,
+                        prefixIcon: Icons.calendar_today_outlined,
+                        hint: 'Sélectionner'),
                   ),
                 ),
               ),
@@ -558,7 +696,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 child: GestureDetector(
                   onTap: () => _pickYear(edu['end_year']!),
                   child: AbsorbPointer(
-                    child: AuthTextField(label: 'Année fin', controller: edu['end_year']!, prefixIcon: Icons.calendar_today_outlined, hint: 'Sélectionner'),
+                    child: AuthTextField(
+                        label: 'Année fin',
+                        controller: edu['end_year']!,
+                        prefixIcon: Icons.calendar_today_outlined,
+                        hint: 'Sélectionner'),
                   ),
                 ),
               ),
@@ -589,7 +731,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         Expanded(
           child: Text(
             title,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface),
           ),
         ),
         if (trailing != null) trailing,
@@ -605,7 +750,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         decoration: BoxDecoration(
           color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+          border:
+              Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -614,7 +760,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
             SizedBox(width: 4),
             Text(
               'Ajouter',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF3B82F6)),
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF3B82F6)),
             ),
           ],
         ),
@@ -645,11 +794,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
             children: [
               Text(
                 title,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4)),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface.withValues(alpha: 0.4)),
               ),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
               ),
             ],
           ),
@@ -674,7 +828,57 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  color: color, fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumSwitch({
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: value
+            ? const Color(0xFF3B82F6).withValues(alpha: 0.08)
+            : colors.onSurface.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: value
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.2)
+              : colors.onSurface.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: value
+                    ? const Color(0xFF3B82F6)
+                    : colors.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: const Color(0xFF3B82F6),
+              inactiveThumbColor: colors.onSurface.withValues(alpha: 0.4),
+              inactiveTrackColor: colors.onSurface.withValues(alpha: 0.15),
             ),
           ),
         ],
