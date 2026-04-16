@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -347,6 +348,55 @@ class _LoginPageState extends State<LoginPage>
 
                 const SizedBox(height: 24),
 
+                // Google Sign-In Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: auth.isLoading
+                          ? null
+                          : () => auth.loginWithGoogle(),
+                      borderRadius: BorderRadius.circular(16),
+                      splashColor: Colors.white.withValues(alpha: 0.08),
+                      highlightColor: Colors.white.withValues(alpha: 0.05),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Google "G" logo drawn with colored arcs
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CustomPaint(painter: _GoogleLogoPainter()),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Continuer avec Google',
+                              style: TextStyle(
+                                color: Colors.grey[300],
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
                 // Signup Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -514,4 +564,64 @@ class MinimalLoaderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(MinimalLoaderPainter oldDelegate) => true;
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    const sweepFull = 2 * math.pi;
+
+    // Red arc (top-right)
+    canvas.drawArc(
+      rect,
+      -0.52,
+      sweepFull * 0.28,
+      false,
+      Paint()
+        ..color = const Color(0xFFEA4335)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Yellow arc (bottom-right)
+    canvas.drawArc(
+      rect,
+      0.79,
+      sweepFull * 0.25,
+      false,
+      Paint()
+        ..color = const Color(0xFFFBBC05)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Green arc (bottom-left)
+    canvas.drawArc(
+      rect,
+      2.36,
+      sweepFull * 0.25,
+      false,
+      Paint()
+        ..color = const Color(0xFF34A853)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Blue arc (left)
+    canvas.drawArc(
+      rect,
+      3.93,
+      sweepFull * 0.22,
+      false,
+      Paint()
+        ..color = const Color(0xFF4285F4)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GoogleLogoPainter oldDelegate) => false;
 }
