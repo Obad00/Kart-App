@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -347,6 +348,63 @@ class _LoginPageState extends State<LoginPage>
 
                 const SizedBox(height: 24),
 
+                // Google Sign-In Button
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: auth.isLoading
+                        ? null
+                        : () => auth.loginWithGoogle(),
+                    borderRadius: BorderRadius.circular(16),
+                    splashColor: Colors.white.withValues(alpha: 0.08),
+                    highlightColor: Colors.white.withValues(alpha: 0.05),
+                    child: Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (auth.isLoading)
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            )
+                          else ...[
+                            // Google 'G' logo drawn with colored quadrants
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CustomPaint(painter: _GoogleLogoPainter()),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Continuer avec Google',
+                              style: TextStyle(
+                                color: Colors.grey[300],
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
                 // Signup Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -486,8 +544,7 @@ class _LoginPageState extends State<LoginPage>
   }
 }
 
-class MinimalLoaderPainter extends CustomPainter {
-  final DateTime startTime = DateTime.now();
+class MinimalLoaderPainter extends CustomPainter {  final DateTime startTime = DateTime.now();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -505,7 +562,7 @@ class MinimalLoaderPainter extends CustomPainter {
     // Draw rotating arc
     canvas.drawArc(
       Rect.fromCenter(center: center, width: size.width, height: size.height),
-      progress * 2 * 3.14159,
+      progress * 2 * math.pi,
       1.5,
       false,
       paint,
@@ -514,4 +571,38 @@ class MinimalLoaderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(MinimalLoaderPainter oldDelegate) => true;
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // Draw the four colored arcs of the Google 'G'
+    final colors = [
+      const Color(0xFF4285F4), // Blue (top-right)
+      const Color(0xFF34A853), // Green (bottom-right)
+      const Color(0xFFFBBC05), // Yellow (bottom-left)
+      const Color(0xFFEA4335), // Red (top-left)
+    ];
+
+    for (int i = 0; i < 4; i++) {
+      final paint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.18
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius * 0.72),
+        (i * (math.pi / 2)) - (math.pi / 4),
+        math.pi / 2,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GoogleLogoPainter oldDelegate) => false;
 }
