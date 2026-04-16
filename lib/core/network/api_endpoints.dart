@@ -5,4 +5,5 @@ class ApiEndpoints {
   static const register = '/auth/register';
   static const me = '/me';
   static const logout = '/auth/logout';
+  static const googleLogin = '/auth/google';
 }

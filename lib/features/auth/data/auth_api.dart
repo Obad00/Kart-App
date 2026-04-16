@@ -23,4 +23,11 @@ class AuthApi {
   Future<Response> me() {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
+
+  Future<Response> loginWithGoogle(String idToken) {
+    return ApiClient.dio.post(
+      ApiEndpoints.googleLogin,
+      data: {'id_token': idToken},
+    );
+  }
 }
