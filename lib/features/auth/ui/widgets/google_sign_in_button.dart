@@ -28,7 +28,7 @@ class GoogleSignInButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _GoogleLogo(),
+                const _GoogleLogo(),
                 const SizedBox(width: 12),
                 Text(
                   'Continuer avec Google',
@@ -49,6 +49,8 @@ class GoogleSignInButton extends StatelessWidget {
 }
 
 class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(

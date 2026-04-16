@@ -107,6 +107,19 @@ class AuthProvider extends ChangeNotifier {
 
       final meResponse = await _api.me();
       user = meResponse.data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        final errors = e.response?.data['errors'];
+        if (errors != null && errors is Map) {
+          error = (errors.values.first as List).first.toString();
+        } else {
+          error = e.response?.data['message'] ?? "Erreur lors de l'inscription";
+        }
+      } else if (e.response?.statusCode != null) {
+        error = 'Erreur serveur, réessayez';
+      } else {
+        error = 'Pas de connexion réseau';
+      }
     } catch (e) {
       error = "Erreur lors de l'inscription";
     } finally {
