@@ -13,6 +13,13 @@ class AuthApi {
     );
   }
 
+  Future<Response> loginWithGoogle(String idToken) {
+    return ApiClient.dio.post(
+      ApiEndpoints.loginGoogle,
+      data: {'id_token': idToken},
+    );
+  }
+
   Future<Response> register(Map<String, dynamic> data) {
     return ApiClient.dio.post(
       ApiEndpoints.register,
