@@ -26,6 +26,7 @@ class AuthProvider extends ChangeNotifier {
   bool isNewUser = false;
   User? user;
   String? error;
+  String? errorDetails;
 
   /// Indique si l'initialisation (vérification du token) est terminée
   bool _isInitialized = false;
@@ -341,8 +342,10 @@ class AuthProvider extends ChangeNotifier {
       } else {
         error = 'Erreur de connexion Google';
       }
-    } catch (e) {
+      errorDetails = e.toString();
+    } catch (e, st) {
       error = 'Erreur de connexion avec Google';
+      errorDetails = '$e\n$st';
     } finally {
       isGoogleLoading = false;
       notifyListeners();

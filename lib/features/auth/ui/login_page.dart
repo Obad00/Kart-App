@@ -170,23 +170,40 @@ class _LoginPageState extends State<LoginPage>
                                     color: Colors.red.withValues(alpha: 0.3),
                                   ),
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.error_outline_rounded,
-                                      color: Colors.red[300],
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        auth.error!,
-                                        style: TextStyle(
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline_rounded,
                                           color: Colors.red[300],
-                                          fontSize: 14,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            auth.error!,
+                                            style: TextStyle(
+                                              color: Colors.red[300],
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (auth.errorDetails != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          auth.errorDetails!,
+                                          style: TextStyle(
+                                            color: Colors.red[200],
+                                            fontSize: 12,
+                                            fontFamily: 'monospace',
+                                          ),
                                         ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -202,9 +219,8 @@ class _LoginPageState extends State<LoginPage>
                             onTap: _isFormValid() ? () => _submit(auth) : null,
                           ),
 
-                          // Réactiver Google Sign-In quand prêt
-                          // const SizedBox(height: 24),
-                          // _buildGoogleButton(auth),
+                          const SizedBox(height: 24),
+                          _buildGoogleButton(auth),
                         ],
                       ),
                     ),
@@ -279,67 +295,66 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // Réactiver quand Google Sign-In sera configuré
-  // Widget _buildGoogleButton(AuthProvider auth) {
-  //   return GestureDetector(
-  //     onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),
-  //     child: Container(
-  //       width: double.infinity,
-  //       padding: const EdgeInsets.symmetric(vertical: 16),
-  //       decoration: BoxDecoration(
-  //         color: Colors.white,
-  //         borderRadius: BorderRadius.circular(14),
-  //       ),
-  //       child: auth.isGoogleLoading
-  //           ? const Center(
-  //               child: SizedBox(
-  //                 width: 24,
-  //                 height: 24,
-  //                 child: CircularProgressIndicator(
-  //                   strokeWidth: 2,
-  //                   valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
-  //                 ),
-  //               ),
-  //             )
-  //           : Row(
-  //               mainAxisAlignment: MainAxisAlignment.center,
-  //               children: [
-  //                 Image.network(
-  //                   'https://www.google.com/favicon.ico',
-  //                   width: 20,
-  //                   height: 20,
-  //                   errorBuilder: (context, error, stackTrace) => const Icon(
-  //                     Icons.g_mobiledata,
-  //                     color: Colors.black87,
-  //                     size: 24,
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 12),
-  //                 const Text(
-  //                   'Continuer avec Google',
-  //                   style: TextStyle(
-  //                     color: Colors.black87,
-  //                     fontWeight: FontWeight.w600,
-  //                     fontSize: 16,
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //     ),
-  //   );
-  // }
+  Widget _buildGoogleButton(AuthProvider auth) {
+    return GestureDetector(
+      onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: auth.isGoogleLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.network(
+                    'https://www.google.com/favicon.ico',
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.g_mobiledata,
+                      color: Colors.black87,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Continuer avec Google',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
 
-  // Future<void> _submitGoogle(AuthProvider auth) async {
-  //   await auth.loginWithGoogle();
-  //   if (!mounted) return;
-  //   if (auth.isAuthenticated) {
-  //     if (auth.isNewUser) {
-  //       Navigator.pushReplacementNamed(context, '/complete-profile');
-  //     } else {
-  //       Navigator.pushReplacementNamed(context, '/home');
-  //     }
-  //   }
-  // }
+  Future<void> _submitGoogle(AuthProvider auth) async {
+    await auth.loginWithGoogle();
+    if (!mounted) return;
+    if (auth.isAuthenticated) {
+      if (auth.isNewUser) {
+        Navigator.pushReplacementNamed(context, '/complete-profile');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
+  }
 
   Widget _buildRegisterLink() {
     return Row(
