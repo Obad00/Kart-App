@@ -5,6 +5,55 @@ import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
 
+final List<String> _schools = [
+  'Université Cheikh Anta Diop (UCAD)',
+  'Université Gaston Berger (UGB)',
+  'ESMT Dakar',
+  'Sup De Co Dakar',
+  'ESP Dakar',
+  'IAM Dakar',
+  'ISAE',
+  'HECM',
+  'ISI',
+  'SUPINFO',
+  'ESIG',
+  'Harvard University',
+  'MIT',
+  'Stanford University',
+];
+
+
+final List<String> _degrees = [
+  'Baccalauréat',
+  'DUT',
+  'BTS',
+  'Licence',
+  'Licence Professionnelle',
+  'Master',
+  'Master Spécialisé',
+  'Ingénieur',
+  'Doctorat (PhD)',
+  'MBA',
+];
+
+
+final List<String> _fields = [
+  'Informatique',
+  'Développement Mobile',
+  'Développement Web',
+  'Intelligence Artificielle',
+  'Data Science',
+  'Cybersécurité',
+  'Réseaux & Télécoms',
+  'Finance',
+  'Marketing Digital',
+  'Design UI/UX',
+  'Gestion de projet',
+  'Entrepreneuriat',
+  'Ressources Humaines',
+];
+
+
 class CompletionFormPage extends StatefulWidget {
   const CompletionFormPage({super.key});
 
@@ -607,109 +656,168 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     );
   }
 
-  Widget _buildEducationCard(
-    ColorScheme colors,
-    int index,
-    Map<String, TextEditingController> edu,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8B5CF6).withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.school_outlined,
-                    size: 16, color: Color(0xFF8B5CF6)),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Formation ${index + 1}',
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF8B5CF6)),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => _removeEducation(index),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.delete_outline,
-                      size: 16, color: Colors.red),
-                ),
-              ),
-            ],
+ Widget _buildEducationCard(
+  ColorScheme colors,
+  int index,
+  Map<String, TextEditingController> edu,
+) {
+  Widget buildAutocomplete({
+    required String label,
+    required IconData icon,
+    required List<String> options,
+    required TextEditingController controller,
+  }) {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue value) {
+        if (value.text.isEmpty) return options;
+
+        return options.where((option) =>
+            option.toLowerCase().contains(value.text.toLowerCase()));
+      },
+
+      onSelected: (value) {
+        controller.text = value;
+      },
+
+      fieldViewBuilder: (context, textController, focusNode, onSubmit) {
+        textController.text = controller.text;
+
+        textController.addListener(() {
+          controller.text = textController.text;
+        });
+
+        return TextFormField(
+          controller: textController,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon),
+            suffixIcon: const Icon(Icons.arrow_drop_down),
           ),
-          const SizedBox(height: 12),
-          AuthTextField(
-              label: 'École / Université',
-              controller: edu['school']!,
-              prefixIcon: Icons.school_outlined,
-              hint: "Nom de l'établissement"),
-          const SizedBox(height: 10),
-          AuthTextField(
-              label: 'Diplôme',
-              controller: edu['degree']!,
-              prefixIcon: Icons.workspace_premium_outlined,
-              hint: 'Ex: Master, Licence...'),
-          const SizedBox(height: 10),
-          AuthTextField(
-              label: 'Domaine',
-              controller: edu['field']!,
-              prefixIcon: Icons.category_outlined,
-              hint: 'Ex: Informatique, Marketing...'),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _pickYear(edu['start_year']!),
-                  child: AbsorbPointer(
-                    child: AuthTextField(
-                        label: 'Année début',
-                        controller: edu['start_year']!,
-                        prefixIcon: Icons.calendar_today_outlined,
-                        hint: 'Sélectionner'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _pickYear(edu['end_year']!),
-                  child: AbsorbPointer(
-                    child: AuthTextField(
-                        label: 'Année fin',
-                        controller: edu['end_year']!,
-                        prefixIcon: Icons.calendar_today_outlined,
-                        hint: 'Sélectionner'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFF8B5CF6).withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // HEADER
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.school_outlined,
+                  size: 16, color: Color(0xFF8B5CF6)),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Formation ${index + 1}',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B5CF6),
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => _removeEducation(index),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.delete_outline,
+                    size: 16, color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // ÉCOLE / UNIVERSITÉ
+        buildAutocomplete(
+          label: 'École / Université',
+          icon: Icons.school_outlined,
+          options: _schools,
+          controller: edu['school']!,
+        ),
+
+        const SizedBox(height: 10),
+
+        // DIPLOME
+        buildAutocomplete(
+          label: 'Diplôme',
+          icon: Icons.workspace_premium_outlined,
+          options: _degrees,
+          controller: edu['degree']!,
+        ),
+
+        const SizedBox(height: 10),
+
+        // DOMAINE
+        buildAutocomplete(
+          label: 'Domaine',
+          icon: Icons.category_outlined,
+          options: _fields,
+          controller: edu['field']!,
+        ),
+
+        const SizedBox(height: 10),
+
+        // ANNEES (inchangé)
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _pickYear(edu['start_year']!),
+                child: AbsorbPointer(
+                  child: AuthTextField(
+                    label: 'Année début',
+                    controller: edu['start_year']!,
+                    prefixIcon: Icons.calendar_today_outlined,
+                    hint: 'Sélectionner',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _pickYear(edu['end_year']!),
+                child: AbsorbPointer(
+                  child: AuthTextField(
+                    label: 'Année fin',
+                    controller: edu['end_year']!,
+                    prefixIcon: Icons.calendar_today_outlined,
+                    hint: 'Sélectionner',
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildSectionHeader(
     ColorScheme colors,

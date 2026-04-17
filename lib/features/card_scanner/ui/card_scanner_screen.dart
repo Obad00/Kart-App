@@ -42,6 +42,8 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -57,17 +59,12 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      
 
-      appBar: AppBar(
+     appBar: AppBar(
+        automaticallyImplyLeading: false, // ou true si tu veux retour
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // leading: IconButton(
-        //   icon: Icon(
-        //     Icons.arrow_back_ios_rounded,
-        //     color: isDark ? Colors.white : Colors.black,
-        //   ),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
         title: Text(
           'Scanner une carte',
           style: TextStyle(
@@ -77,6 +74,7 @@ class _CardScannerScreenState extends State<CardScannerScreen> {
         ),
         centerTitle: true,
       ),
+
 
       body: SafeArea(
         child: Column(

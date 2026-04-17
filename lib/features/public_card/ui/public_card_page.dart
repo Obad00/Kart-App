@@ -105,8 +105,15 @@ class _PublicCardPageState extends State<PublicCardPage>
     return '';
   }
 
+  String _getFirstName() {
+    final fullName = card?['fullname']?.toString().trim() ?? '';
+    if (fullName.isEmpty) return '';
+    return fullName.split(' ').first;
+  }
+
   String _getFieldValue(String key) {
     final rawFields = card?['fields'];
+    if (rawFields == null) return '';
 
     if (rawFields is Map<String, dynamic>) {
       final value = rawFields[key];
@@ -142,14 +149,6 @@ class _PublicCardPageState extends State<PublicCardPage>
     }
   }
 
-  Future<void> _openPhone(String phone) async {
-    if (phone.isEmpty) return;
-    final uri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
   Future<void> _openEmail(String email) async {
     if (email.isEmpty) return;
     final uri = Uri(scheme: 'mailto', path: email);
@@ -158,354 +157,123 @@ class _PublicCardPageState extends State<PublicCardPage>
     }
   }
 
+  Future<void> _openPhone(String phone) async {
+    if (phone.isEmpty) return;
+    final sanitizedPhone = phone.replaceAll(RegExp(r'\s+'), '');
+    final uri = Uri(scheme: 'tel', path: sanitizedPhone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final email = card != null ? _getFieldValue('email') : '';
-    final hasFields = card != null && card!['fields'] is Map;
+    final backgroundColor = Theme.of(context).colorScheme.surface;
+    final email = _getFieldValue('email');
+    final phone = _getFieldValue('phone').isNotEmpty
+        ? _getFieldValue('phone')
+        : _getFieldValue('telephone').isNotEmpty
+            ? _getFieldValue('telephone')
+            : _getFieldValue('mobile');
+    final location = _getFieldValue('location');
+    final firstName = _getFirstName();
+    final skills = _skillsList();
+    final experiences = _getExperiences();
+    final educations = _getEducations();
+    final socialProfiles = _socialProfiles();
+    final portraitUrl = card?['avatar_url']?.toString() ?? '';
+    final fullName = card?['fullname']?.toString() ?? '';
+    final jobTitle = card?['job_title']?.toString() ?? '';
+    final company = card?['company']?.toString() ?? '';
 
     if (isLoading) {
       return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(
+              isDark ? Colors.white : const Color(0xFF2563EB),
+            ),
+          ),
+        ),
       );
     }
 
     if (card == null) {
       return Scaffold(
-        body: Center(child: Text('Carte non trouvée')),
+        backgroundColor: backgroundColor,
+        body: Center(
+          child: Text(
+            'Carte non trouvée',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(card!['fullname'] ?? 'Carte'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        backgroundColor:
-            isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
-        foregroundColor: isDark ? Colors.white : Colors.black,
-        elevation: 0,
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF0F0F23), const Color(0xFF1A1A2E)]
-                : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value),
-                      child: child,
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Card(
-                      elevation: 20,
-                      shadowColor: Colors.black.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        side: BorderSide(
-                          color:
-                              const Color(0xFF3B82F6).withValues(alpha: 0.35),
-                          width: 1,
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: AnimatedBuilder(
+                    animation: _floatAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _floatAnimation.value),
+                        child: child,
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHero(
+                          isDark: isDark,
+                          fullName: fullName,
+                          jobTitle: jobTitle,
+                          company: company,
+                          location: location,
+                          email: email,
+                          phone: phone,
+                          avatarUrl: portraitUrl,
                         ),
-                      ),
-                      color: isDark ? Colors.black : Colors.white,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF3B82F6).withValues(alpha: 0.05),
-                              const Color(0xFF2563EB).withValues(alpha: 0.02),
-                            ],
-                          ),
+                        _buildSectionDivider(),
+                        _buildCallToActions(
+                          email: email,
+                          firstName: firstName,
                         ),
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Avatar
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFF2563EB),
-                                    Color(0xFF1D4ED8)
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0xFF2563EB),
-                                    blurRadius: 20,
-                                    offset: Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  _getInitials(card!['fullname'] ?? ''),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Nom
-                            Text(
-                              card!['fullname'] ?? '',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            // Job
-                            if (card!['job_title'] != null &&
-                                card!['job_title'].isNotEmpty)
-                              Text(
-                                card!['job_title'],
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF6B7280),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            const SizedBox(height: 4),
-                            // Company
-                            if (card!['company'] != null &&
-                                card!['company'].isNotEmpty)
-                              Text(
-                                card!['company'],
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: isDark
-                                      ? Colors.white70
-                                      : const Color(0xFF374151),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            const SizedBox(height: 16),
-                            // Contact Info
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6)
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                children: [
-                                  // Phone
-                                  if (card!['phone'] != null &&
-                                      card!['phone'].isNotEmpty)
-                                    InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () => _openPhone(card!['phone']),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 6),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.phone_outlined,
-                                              size: 18,
-                                              color: const Color(0xFF2563EB),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Flexible(
-                                              child: Text(
-                                                card!['phone'],
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : const Color(0xFF374151),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 8),
-                                  // Email
-                                  if (email.isNotEmpty)
-                                    InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () => _openEmail(email),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 6),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.email_outlined,
-                                              size: 18,
-                                              color: const Color(0xFF2563EB),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Flexible(
-                                              child: Text(
-                                                email,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : const Color(0xFF374151),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Bouton "Restons en contact"
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _showContactForm(),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF3B82F6),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16, horizontal: 24),
-                                  elevation: 4,
-                                  shadowColor: const Color(0xFF3B82F6)
-                                      .withValues(alpha: 0.4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.person_add_outlined,
-                                    size: 20),
-                                label: const Text(
-                                  'Restons en contact',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Social Links - Using FontAwesome icons like contact card
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                if (hasFields) ...[
-                                  if (_getFieldValue('x').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.xTwitter,
-                                      color: const Color(0xFF000000),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('x')),
-                                    ),
-                                  if (_getFieldValue('linkedin').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.linkedin,
-                                      color: const Color(0xFF0A66C2),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('linkedin')),
-                                    ),
-                                  if (_getFieldValue('instagram').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.instagram,
-                                      color: const Color(0xFFE4405F),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('instagram')),
-                                    ),
-                                  if (_getFieldValue('facebook').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.facebook,
-                                      color: const Color(0xFF1877F2),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('facebook')),
-                                    ),
-                                  if (_getFieldValue('github').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.github,
-                                      color: const Color(0xFF333333),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('github')),
-                                    ),
-                                  if (_getFieldValue('website').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.globe,
-                                      color: const Color(0xFF6366F1),
-                                      onTap: () =>
-                                          _openUrl(_getFieldValue('website')),
-                                    ),
-                                  if (_getFieldValue('phone').isNotEmpty)
-                                    _buildSocialButton(
-                                      icon: FontAwesomeIcons.whatsapp,
-                                      color: const Color(0xFF25D366),
-                                      onTap: () => _openUrl(
-                                        'https://wa.me/${_getFieldValue('phone').replaceAll(RegExp(r'[^\d+]'), '')}',
-                                      ),
-                                    ),
-                                ],
-                              ],
-                            ),
-
-                            // Expériences
-                            const SizedBox(height: 24),
-                            _buildExperiencesSection(isDark),
-
-                            // Formations
-                            const SizedBox(height: 16),
-                            _buildEducationsSection(isDark),
-                          ],
+                        const SizedBox(height: 18),
+                        _buildSecondaryActions(
+                          socialProfiles: socialProfiles,
                         ),
-                      ),
+                        if (socialProfiles.isNotEmpty) ...[
+                          const SizedBox(height: 18),
+                          _buildSocialNetworks(socialProfiles),
+                        ],
+                        if (_getFieldValue('bio').isNotEmpty) ...[
+                          _buildSectionDivider(),
+                          _buildAbout(isDark),
+                        ],
+                        if (skills.isNotEmpty) ...[
+                          _buildSectionDivider(),
+                          _buildSkills(isDark, skills),
+                        ],
+                        _buildSectionDivider(),
+                        _buildExperienceTimeline(isDark, experiences),
+                        _buildSectionDivider(),
+                        _buildEducation(isDark, educations),
+                        const SizedBox(height: 12),
+                      ],
                     ),
                   ),
                 ),
@@ -515,6 +283,935 @@ class _PublicCardPageState extends State<PublicCardPage>
         ),
       ),
     );
+  }
+
+  Widget _buildHero({
+    required bool isDark,
+    required String fullName,
+    required String jobTitle,
+    required String company,
+    required String location,
+    required String email,
+    required String phone,
+    required String avatarUrl,
+  }) {
+    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+    final secondaryTextColor =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final chipBackground =
+        isDark ? const Color(0xFF111827) : const Color(0xFFF0FDF4);
+    final chipBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFDCFCE7);
+    final avatarBackground =
+        isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
+    final avatarTextColor =
+        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                size: 18,
+                color: titleColor,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Spacer(),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: chipBackground,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: chipBorder),
+          ),
+          child: Text(
+            'OUVERT AUX OPPORTUNITÉS',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: isDark ? const Color(0xFF2563EB) : const Color(0xFF166534),
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fullName,
+                    style: TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                      color: titleColor,
+                      height: 1.05,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ROLE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              jobTitle,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: titleColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'COMPANY',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              company,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: titleColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (location.isNotEmpty ||
+                      email.isNotEmpty ||
+                      phone.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    if (location.isNotEmpty)
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2563EB),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              location,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (email.isNotEmpty || phone.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (email.isNotEmpty)
+                            _buildInlineContactChip(
+                              icon: Icons.email_outlined,
+                              label: email,
+                              onTap: () => _openEmail(email),
+                              titleColor: titleColor,
+                              borderColor: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE5E7EB),
+                            ),
+                          if (phone.isNotEmpty)
+                            _buildInlineContactChip(
+                              icon: Icons.phone_outlined,
+                              label: phone,
+                              onTap: () => _openPhone(phone),
+                              titleColor: titleColor,
+                              borderColor: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE5E7EB),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            CircleAvatar(
+              radius: 40,
+              backgroundColor: avatarBackground,
+              backgroundImage:
+                  avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              child: avatarUrl.isEmpty
+                  ? Text(
+                      _getInitials(fullName),
+                      style: TextStyle(
+                        color: avatarTextColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInlineContactChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Color titleColor,
+    required Color borderColor,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: titleColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCallToActions({
+    required String email,
+    required String firstName,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          onPressed: () {
+            if (email.isNotEmpty) {
+              _openEmail(email);
+            } else {
+              _showContactForm();
+            }
+          },
+          icon: const Icon(Icons.mail_outline, size: 18),
+          label: Text(
+            'Contact${firstName.isNotEmpty ? ' $firstName' : ''}',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2563EB),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecondaryActions({
+    required List<Map<String, dynamic>> socialProfiles,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
+    final foregroundColor = isDark ? Colors.white : const Color(0xFF111827);
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _showContactForm,
+            icon: const Icon(Icons.send_outlined, size: 18),
+            label: const Text(
+              'Message',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: foregroundColor,
+              side: BorderSide(color: borderColor),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => _showFollowOptions(socialProfiles),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: foregroundColor,
+              side: BorderSide(color: borderColor),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text(
+              'Follow',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialNetworks(List<Map<String, dynamic>> socialProfiles) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Réseaux sociaux',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: titleColor,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: socialProfiles.map((profile) {
+            return OutlinedButton.icon(
+              onPressed: () => _openUrl(profile['value'] as String),
+              icon: FaIcon(
+                profile['icon'] as IconData,
+                color: profile['iconColor'] as Color,
+                size: 16,
+              ),
+              label: Text(
+                profile['label'] as String,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: titleColor,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: titleColor,
+                side: BorderSide(color: borderColor),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  void _showFollowOptions(List<Map<String, dynamic>> profiles) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+        final subtitleColor =
+            isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+        final dividerColor =
+            isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6);
+        final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          color: backgroundColor,
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 24,
+            bottom: MediaQuery.of(context).viewPadding.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Suivre sur',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (profiles.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Text(
+                      'Aucun réseau social disponible.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: subtitleColor,
+                      ),
+                    ),
+                  )
+                else
+                  ...profiles.map((profile) {
+                    return Column(
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: (profile['bgColor'] as Color)
+                                  .withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: FaIcon(
+                                profile['icon'] as IconData,
+                                color: profile['iconColor'] as Color,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            profile['label'] as String,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: titleColor,
+                            ),
+                          ),
+                          subtitle: Text(
+                            profile['value'] as String,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: subtitleColor,
+                            ),
+                          ),
+                          onTap: () => _openUrl(profile['value'] as String),
+                        ),
+                        if (profiles.indexOf(profile) != profiles.length - 1)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: dividerColor,
+                          ),
+                      ],
+                    );
+                  }),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAbout(bool isDark) {
+    final bio = _getFieldValue('bio');
+    if (bio.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'About',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          bio,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.7,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkills(bool isDark, List<String> skills) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Skills',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: skills.map((skill) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                skill,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF047857),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExperienceTimeline(bool isDark, List<dynamic> experiences) {
+    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+    final textColor =
+        isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
+    final surfaceColor =
+        isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
+    final iconColor =
+        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.work_outline, size: 18, color: iconColor),
+            const SizedBox(width: 8),
+            Text(
+              'Experience',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: titleColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (experiences.isEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Aucune expérience',
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor,
+              ),
+            ),
+          ),
+        ] else ...[
+          Column(
+            children: experiences.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value as Map? ?? {};
+              final title = item['title']?.toString() ?? '';
+              final company = item['company']?.toString() ?? '';
+              final startDate = item['start_date']?.toString() ?? '';
+              final endDate = item['end_date']?.toString() ?? '';
+              final description = item['description']?.toString() ?? '';
+              final isLast = index == experiences.length - 1;
+
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 28),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      child: Column(
+                        children: [
+                          if (index != 0)
+                            Container(
+                              width: 1,
+                              height: 18,
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFF3F4F6),
+                            ),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: iconColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          if (!isLast)
+                            Container(
+                              width: 1,
+                              height: 60,
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFF3F4F6),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: titleColor,
+                            ),
+                          ),
+                          if (company.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              company,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: iconColor,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            endDate.isNotEmpty
+                                ? '$startDate — $endDate'
+                                : '$startDate — Present',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor,
+                            ),
+                          ),
+                          if (description.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              description,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textColor,
+                                height: 1.6,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEducation(bool isDark, List<dynamic> educations) {
+    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+    final textColor =
+        isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
+    final surfaceColor =
+        isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
+    final accentColor =
+        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.school_outlined, size: 18, color: accentColor),
+            const SizedBox(width: 8),
+            Text(
+              'Education',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: titleColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (educations.isEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Aucune éducation',
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor,
+              ),
+            ),
+          ),
+        ] else ...[
+          Column(
+            children: educations.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value as Map? ?? {};
+              final degree = item['degree']?.toString() ?? '';
+              final school = item['school']?.toString() ?? '';
+              final field = item['field']?.toString() ?? '';
+              final startYear = item['start_year']?.toString() ?? '';
+              final endYear = item['end_year']?.toString() ?? '';
+              final isLast = index == educations.length - 1;
+
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      degree,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      school,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (field.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              field,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        if (field.isNotEmpty) const SizedBox(width: 10),
+                        Text(
+                          '$startYear — $endYear',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionDivider() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+      ),
+    );
+  }
+
+  List<String> _skillsList() {
+    return _getFieldValue('skills')
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _socialProfiles() {
+    final profiles = <Map<String, dynamic>>[];
+
+    if (_getFieldValue('linkedin').isNotEmpty) {
+      profiles.add({
+        'label': 'LinkedIn',
+        'icon': FontAwesomeIcons.linkedin,
+        'value': _getFieldValue('linkedin'),
+        'bgColor': const Color(0xFFE8F0FE),
+        'iconColor': const Color(0xFF0A66C2),
+      });
+    }
+    if (_getFieldValue('x').isNotEmpty) {
+      profiles.add({
+        'label': 'X',
+        'icon': FontAwesomeIcons.xTwitter,
+        'value': _getFieldValue('x'),
+        'bgColor': const Color(0xFFF3F4F6),
+        'iconColor': const Color(0xFF000000),
+      });
+    }
+    if (_getFieldValue('instagram').isNotEmpty) {
+      profiles.add({
+        'label': 'Instagram',
+        'icon': FontAwesomeIcons.instagram,
+        'value': _getFieldValue('instagram'),
+        'bgColor': const Color(0xFFFCE7F3),
+        'iconColor': const Color(0xFFE4405F),
+      });
+    }
+    if (_getFieldValue('facebook').isNotEmpty) {
+      profiles.add({
+        'label': 'Facebook',
+        'icon': FontAwesomeIcons.facebook,
+        'value': _getFieldValue('facebook'),
+        'bgColor': const Color(0xFFEAF2FF),
+        'iconColor': const Color(0xFF1877F2),
+      });
+    }
+    if (_getFieldValue('github').isNotEmpty) {
+      profiles.add({
+        'label': 'GitHub',
+        'icon': FontAwesomeIcons.github,
+        'value': _getFieldValue('github'),
+        'bgColor': const Color(0xFFF3F4F6),
+        'iconColor': const Color(0xFF111827),
+      });
+    }
+    if (_getFieldValue('website').isNotEmpty) {
+      profiles.add({
+        'label': 'Website',
+        'icon': FontAwesomeIcons.globe,
+        'value': _getFieldValue('website'),
+        'bgColor': const Color(0xFFEFF6FF),
+        'iconColor': const Color(0xFF2563EB),
+      });
+    }
+
+    return profiles;
   }
 
   List<dynamic> _getExperiences() {
@@ -527,274 +1224,5 @@ class _PublicCardPageState extends State<PublicCardPage>
     final educations = card?['educations'];
     if (educations is List) return educations;
     return [];
-  }
-
-  Widget _buildExperiencesSection(bool isDark) {
-    final experiences = _getExperiences();
-    const blueColor = Color(0xFF3B82F6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.work_outline, size: 18, color: blueColor),
-            const SizedBox(width: 8),
-            Text(
-              'Expériences',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (experiences.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.12)),
-            ),
-            child: Text(
-              'Aucune expérience renseignée',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          ...experiences.map((exp) {
-            final title = exp['title'] ?? '';
-            final company = exp['company'] ?? '';
-            final startDate = exp['start_date'] ?? '';
-            final endDate = exp['end_date'];
-            final description = exp['description'] ?? '';
-
-            return Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: blueColor.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: blueColor.withValues(alpha: 0.12)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  if (company.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      company,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: blueColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(
-                    endDate != null && endDate.toString().isNotEmpty
-                        ? '$startDate → $endDate'
-                        : '$startDate → Présent',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-                    ),
-                  ),
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            isDark ? Colors.white60 : const Color(0xFF6B7280),
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
-      ],
-    );
-  }
-
-  Widget _buildEducationsSection(bool isDark) {
-    final educations = _getEducations();
-    const purpleColor = Color(0xFF8B5CF6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.school_outlined, size: 18, color: purpleColor),
-            const SizedBox(width: 8),
-            Text(
-              'Formation',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (educations.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF8B5CF6).withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12)),
-            ),
-            child: Text(
-              'Aucune formation renseignée',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          ...educations.map((edu) {
-            final degree = edu['degree'] ?? '';
-            final school = edu['school'] ?? '';
-            final field = edu['field'] ?? '';
-            final startYear = edu['start_year']?.toString() ?? '';
-            final endYear = edu['end_year']?.toString() ?? '';
-
-            return Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: purpleColor.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: purpleColor.withValues(alpha: 0.12)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    degree,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  if (school.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      school,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: purpleColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (field.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: purpleColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            field,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: purpleColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        '$startYear - $endYear',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color:
-                              isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: color.withValues(alpha: 0.4),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            size: 18,
-            color: color,
-          ),
-        ),
-      ),
-    );
   }
 }
