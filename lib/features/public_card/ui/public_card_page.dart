@@ -559,7 +559,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           },
           icon: const Icon(Icons.mail_outline, size: 18),
           label: Text(
-            'Contact${firstName.isNotEmpty ? ' $firstName' : ''}',
+            'Contacter${firstName.isNotEmpty ? ' $firstName' : ''}',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -593,7 +593,7 @@ class _PublicCardPageState extends State<PublicCardPage>
             onPressed: _showContactForm,
             icon: const Icon(Icons.send_outlined, size: 18),
             label: const Text(
-              'Message',
+              'Partager',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

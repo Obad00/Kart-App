@@ -84,7 +84,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
 
       String errorMessage = 'Échec de l\'envoi';
 
-      // Handle different status codes
       if (e.response?.statusCode == 500) {
         errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
       } else if (e.response?.statusCode == 422) {
@@ -120,51 +119,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     }
   }
 
-  Future<void> _sendEmails() async {
-    if (_selectedContacts.isEmpty) return;
-
-    final content = _emailController.text.trim();
-
-    if (content.isEmpty) {
-      _showSnackBar(
-        title: 'Attention',
-        subtitle: 'Le message ne peut pas être vide',
-        icon: Icons.warning_rounded,
-        iconColor: Colors.orange,
-      );
-      return;
-    }
-
-    try {
-      await context.read<ContactsProvider>().sendMessage(
-            contactIds: _selectedContacts.toList(),
-            content: content,
-            type: _selectedContacts.length > 1 ? 'group' : 'single',
-          );
-
-      if (!mounted) return;
-
-      Navigator.of(context).pop();
-      _showSnackBar(
-        title: 'Message envoyé',
-        subtitle: 'Votre message a été envoyé avec succès',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
-      );
-
-      _emailController.clear();
-      setState(() => _selectedContacts.clear());
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(
-        title: 'Erreur',
-        subtitle: 'Une erreur est survenue lors de l\'envoi',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
-      );
-    }
-  }
-
   void _showSnackBar({
     required String title,
     required String subtitle,
@@ -180,11 +134,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                color: iconColor,
-                size: 22,
-              ),
+              Icon(icon, color: iconColor, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -228,339 +178,416 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
   void _openEmailPopup(String contactEmail, {int? contactId}) {
     _emailController.text = '';
     final selectedExampleNotifier = ValueNotifier<String?>(null);
+    bool isSending = false;
 
-    // Si un contactId est fourni, l'ajouter temporairement pour l'envoi
     if (contactId != null) {
       _selectedContacts.add(contactId);
     }
 
-    // Couleur bleue thème
     const companyColor = _themeBlue;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 500),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> sendEmails() async {
+            if (_selectedContacts.isEmpty) return;
+
+            final content = _emailController.text.trim();
+
+            if (content.isEmpty) {
+              _showSnackBar(
+                title: 'Attention',
+                subtitle: 'Le message ne peut pas être vide',
+                icon: Icons.warning_rounded,
+                iconColor: Colors.orange,
+              );
+              return;
+            }
+
+            setDialogState(() => isSending = true);
+
+            // ✅ Capturer le provider AVANT l'await
+            final provider = context.read<ContactsProvider>();
+
+            try {
+              await provider.sendMessage(
+                contactIds: _selectedContacts.toList(),
+                content: content,
+                type: _selectedContacts.length > 1 ? 'group' : 'single',
+              );
+
+              // ✅ Vérifier dialogContext.mounted au lieu de mounted
+              if (!dialogContext.mounted) return;
+
+              Navigator.of(dialogContext).pop();
+
+              if (!mounted) return;
+
+              _showSnackBar(
+                title: 'Message envoyé',
+                subtitle: 'Votre message a été envoyé avec succès',
+                icon: Icons.check_circle_rounded,
+                iconColor: Colors.green,
+              );
+
+              _emailController.clear();
+              setState(() => _selectedContacts.clear());
+            } catch (e) {
+              if (!mounted) return;
+              _showSnackBar(
+                title: 'Erreur',
+                subtitle: 'Une erreur est survenue lors de l\'envoi',
+                icon: Icons.error_rounded,
+                iconColor: Colors.red,
+              );
+            } finally {
+              if (dialogContext.mounted) setDialogState(() => isSending = false);
+            }
+          }
+
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 500),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              companyColor.withValues(alpha: 0.2),
-                              companyColor.withValues(alpha: 0.1),
-                            ],
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  companyColor.withValues(alpha: 0.2),
+                                  companyColor.withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.email_outlined,
+                              color: companyColor,
+                              size: 24,
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(14),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Envoyer un message',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                if (_selectedContacts.length > 1) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_selectedContacts.length} destinataires',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: isSending
+                                ? null
+                                : () {
+                                    if (contactId != null) {
+                                      _selectedContacts.remove(contactId);
+                                    }
+                                    Navigator.of(dialogContext).pop();
+                                  },
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Message Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                          ),
                         ),
-                        child: Icon(
-                          Icons.email_outlined,
-                          color: companyColor,
-                          size: 24,
+                        child: TextField(
+                          controller: _emailController,
+                          maxLines: 5,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            height: 1.5,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: "Écrivez votre message...",
+                            hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.4),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Envoyer un message',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                letterSpacing: -0.5,
+
+                      const SizedBox(height: 24),
+
+                      // Examples Section
+                      Text(
+                        "Suggestions",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      ...exampleMessages.map((msg) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: selectedExampleNotifier,
+                          builder: (context, selected, _) {
+                            final isSelected = selected == msg;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    selectedExampleNotifier.value = msg;
+                                    _emailController.text = msg;
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: DefaultTextStyle.merge(
+                                    style: const TextStyle(
+                                      decoration: TextDecoration.none,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 14,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? companyColor.withValues(alpha: 0.1)
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .surface,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? companyColor.withValues(alpha: 0.3)
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.08),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? companyColor
+                                                    : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.3),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: isSelected
+                                                ? Center(
+                                                    child: Container(
+                                                      width: 10,
+                                                      height: 10,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: companyColor,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              msg,
+                                              style: TextStyle(
+                                                decoration: TextDecoration.none,
+                                                fontSize: 14,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                color: isSelected
+                                                    ? companyColor
+                                                    : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                            if (_selectedContacts.length > 1) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_selectedContacts.length} destinataires',
+                            );
+                          },
+                        );
+                      }),
+
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: isSending
+                                  ? null
+                                  : () {
+                                      if (contactId != null) {
+                                        _selectedContacts.remove(contactId);
+                                      }
+                                      Navigator.of(dialogContext).pop();
+                                    },
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Annuler',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
                                       .withValues(alpha: 0.6),
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          if (contactId != null) {
-                            _selectedContacts.remove(contactId);
-                          }
-                          Navigator.of(dialogContext).pop();
-                        },
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Message Field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _emailController,
-                      maxLines: 5,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        height: 1.5,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: "Écrivez votre message...",
-                        hintStyle: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.4),
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.all(16),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Examples Section
-                  Text(
-                    "Suggestions",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  ...exampleMessages.map((msg) {
-                    return ValueListenableBuilder<String?>(
-                      valueListenable: selectedExampleNotifier,
-                      builder: (context, selected, _) {
-                        final isSelected = selected == msg;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                selectedExampleNotifier.value = msg;
-                                _emailController.text = msg;
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: DefaultTextStyle.merge(
-                                style: const TextStyle(
-                                  decoration: TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: isSending ? null : sendEmails,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: companyColor,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 14,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? companyColor.withValues(alpha: 0.1)
-                                        : Theme.of(context).colorScheme.surface,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? companyColor.withValues(alpha: 0.3)
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.08),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? companyColor
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withValues(alpha: 0.3),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: isSelected
-                                            ? Center(
-                                                child: Container(
-                                                  width: 10,
-                                                  height: 10,
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    color: companyColor,
-                                                  ),
-                                                ),
-                                              )
-                                            : null,
+                              ),
+                              child: isSending
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          msg,
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.send_rounded,
+                                            size: 18, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Envoyer',
                                           style: TextStyle(
-                                            decoration: TextDecoration.none,
-                                            fontSize: 14,
-                                            fontWeight: isSelected
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                            color: isSelected
-                                                ? companyColor
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                                      ],
+                                    ),
                             ),
                           ),
-                        );
-                      },
-                    );
-                  }),
-
-                  const SizedBox(height: 24),
-
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () {
-                            if (contactId != null) {
-                              _selectedContacts.remove(contactId);
-                            }
-                            Navigator.of(dialogContext).pop();
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'Annuler',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: _sendEmails,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: companyColor,
-                            foregroundColor:
-                                Colors.black, // ✅ Texte blanc explicite
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.send_rounded,
-                                  size: 18,
-                                  color: Colors
-                                      .black), // ✅ Icône blanche explicite
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Envoyer',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      Colors.black, // ✅ Texte blanc explicite
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -663,7 +690,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
 
                     const SizedBox(height: 24),
 
-                    // Contact Info (read-only, pre-filled)
+                    // Contact Info
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -852,11 +879,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: _themeBlue.withValues(alpha: 0.7),
-        ),
+        Icon(icon, size: 18, color: _themeBlue.withValues(alpha: 0.7)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -893,7 +916,6 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
 
   @override
   Widget build(BuildContext context) {
-    // Couleur bleue thème
     const companyColor = _themeBlue;
 
     return Consumer<ContactsProvider>(
@@ -1057,7 +1079,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Section Header with modern design
+                          // Section Header
                           Padding(
                             padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
                             child: Row(
@@ -1076,8 +1098,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     ),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color:
-                                          companyColor.withValues(alpha: 0.2),
+                                      color: companyColor.withValues(alpha: 0.2),
                                       width: 1,
                                     ),
                                   ),
@@ -1170,7 +1191,8 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                       },
                                       onEmailTap: () {
                                         HapticFeedback.lightImpact();
-                                        _openEmailPopup(c.email ?? '', contactId: c.id);
+                                        _openEmailPopup(c.email ?? '',
+                                            contactId: c.id);
                                       },
                                     );
                                   },
