@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
-import '../../public_card/ui/public_card_page.dart';
+import 'contact_detail_sheet.dart';
 
 class ContactCard extends StatefulWidget {
   final ContactModel contact;
@@ -67,16 +67,12 @@ class ContactCardState extends State<ContactCard>
           // Carte principale — plus de Expanded
           GestureDetector(
             onTap: () {
-              if (widget.contact.cardSlug != null &&
-                  widget.contact.cardSlug!.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PublicCardPage(slug: widget.contact.cardSlug!),
-                  ),
-                );
-              }
+              ContactDetailSheet.show(
+                context,
+                contact: widget.contact,
+                onShare: widget.onShare,
+                onEmailTap: widget.onEmailTap,
+              );
             },
             child: DefaultTextStyle.merge(
               style: const TextStyle(decoration: TextDecoration.none),

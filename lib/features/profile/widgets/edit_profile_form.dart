@@ -248,26 +248,20 @@ class _EditProfileFormState extends State<EditProfileForm> {
               _buildSectionTitle('Informations personnelles'),
               const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: AuthTextField(
-                      label: 'Prenom',
-                      controller: _firstnameCtrl,
-                      prefixIcon: Icons.person_outline,
-                      hint: 'Votre prenom',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AuthTextField(
-                      label: 'Nom',
-                      controller: _lastnameCtrl,
-                      prefixIcon: Icons.person_outline,
-                      hint: 'Votre nom',
-                    ),
-                  ),
-                ],
+              AuthTextField(
+                label: 'Prénom',
+                controller: _firstnameCtrl,
+                prefixIcon: Icons.person_outline,
+                hint: 'Votre prénom',
+              ),
+
+              const SizedBox(height: 16),
+
+              AuthTextField(
+                label: 'Nom',
+                controller: _lastnameCtrl,
+                prefixIcon: Icons.person_outline,
+                hint: 'Votre nom',
               ),
 
               const SizedBox(height: 16),

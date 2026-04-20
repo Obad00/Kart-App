@@ -225,9 +225,14 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     );
   }
 
-  void _openEmailPopup(String contactEmail) {
+  void _openEmailPopup(String contactEmail, {int? contactId}) {
     _emailController.text = '';
     final selectedExampleNotifier = ValueNotifier<String?>(null);
+
+    // Si un contactId est fourni, l'ajouter temporairement pour l'envoi
+    if (contactId != null) {
+      _selectedContacts.add(contactId);
+    }
 
     // Couleur bleue thème
     const companyColor = _themeBlue;
@@ -311,7 +316,12 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        onPressed: () {
+                          if (contactId != null) {
+                            _selectedContacts.remove(contactId);
+                          }
+                          Navigator.of(dialogContext).pop();
+                        },
                         icon: Icon(
                           Icons.close_rounded,
                           color: Theme.of(context)
@@ -483,7 +493,12 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          onPressed: () {
+                            if (contactId != null) {
+                              _selectedContacts.remove(contactId);
+                            }
+                            Navigator.of(dialogContext).pop();
+                          },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -1155,7 +1170,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                       },
                                       onEmailTap: () {
                                         HapticFeedback.lightImpact();
-                                        _openEmailPopup(c.email ?? '');
+                                        _openEmailPopup(c.email ?? '', contactId: c.id);
                                       },
                                     );
                                   },
