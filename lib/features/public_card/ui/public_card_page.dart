@@ -805,7 +805,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'About',
+          'A propos',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -830,7 +830,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Skills',
+          'Compétences',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -1210,6 +1210,23 @@ class _PublicCardPageState extends State<PublicCardPage>
         'iconColor': const Color(0xFF2563EB),
       });
     }
+
+
+    final phone = _getFieldValue('phone');
+    final ownerName = _getFieldValue('name'); // adapte si besoin
+
+    if (phone.isNotEmpty) {
+      final formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+      profiles.add({
+        'label': 'WhatsApp',
+        'icon': FontAwesomeIcons.whatsapp,
+        'value': 'https://wa.me/$formattedPhone?text=Bonjour%20$ownerName',
+        'bgColor': const Color(0xFFE7FCEB),
+        'iconColor': const Color(0xFF25D366),
+      });
+    }
+
 
     return profiles;
   }

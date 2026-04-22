@@ -88,7 +88,7 @@ class ContactDetailSheet extends StatelessWidget {
     const accent = Color(0xFF2563EB);
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
+      initialChildSize: 0.60,
       minChildSize: 0.5,
       maxChildSize: 0.92,
       expand: false,
@@ -104,9 +104,13 @@ class ContactDetailSheet extends StatelessWidget {
             ),
           ],
         ),
-        child: SingleChildScrollView(
-          controller: scrollController,
-          child: Column(
+       child: SingleChildScrollView(
+  controller: scrollController,
+  child: Padding(
+    padding: EdgeInsets.only(
+      bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+    ),
+    child: Column(
             children: [
               // Handle
               Center(
@@ -254,78 +258,6 @@ class ContactDetailSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Contact info
-                    if (_hasValue(contact.phone) ||
-                        _hasValue(contact.email)) ...[
-                      _buildSectionTitle(context, 'Coordonnées'),
-                      const SizedBox(height: 10),
-                      _buildInfoCard(
-                        context,
-                        children: [
-                          if (_hasValue(contact.phone))
-                            _buildInfoTile(
-                              context,
-                              icon: Icons.phone_outlined,
-                              label: 'Téléphone',
-                              value: contact.phone!,
-                              color: const Color(0xFF10B981),
-                              onTap: () => _launchUrl(
-                                  'tel:${contact.phone!.replaceAll(RegExp(r'[^\d+]'), '')}'),
-                              onLongPress: () =>
-                                  _copyToClipboard(context, contact.phone!),
-                            ),
-                          if (_hasValue(contact.phone) &&
-                              _hasValue(contact.email))
-                            _buildTileDivider(context),
-                          if (_hasValue(contact.email))
-                            _buildInfoTile(
-                              context,
-                              icon: Icons.email_outlined,
-                              label: 'Email',
-                              value: contact.email!,
-                              color: accent,
-                              onTap: () =>
-                                  _launchUrl('mailto:${contact.email}'),
-                              onLongPress: () =>
-                                  _copyToClipboard(context, contact.email!),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // Professional info
-                    if (_hasValue(contact.job) ||
-                        _hasValue(contact.company)) ...[
-                      _buildSectionTitle(context, 'Professionnel'),
-                      const SizedBox(height: 10),
-                      _buildInfoCard(
-                        context,
-                        children: [
-                          if (_hasValue(contact.job))
-                            _buildInfoTile(
-                              context,
-                              icon: Icons.work_outline_rounded,
-                              label: 'Poste',
-                              value: contact.job!,
-                              color: const Color(0xFFF59E0B),
-                            ),
-                          if (_hasValue(contact.job) &&
-                              _hasValue(contact.company))
-                            _buildTileDivider(context),
-                          if (_hasValue(contact.company))
-                            _buildInfoTile(
-                              context,
-                              icon: Icons.business_outlined,
-                              label: 'Entreprise',
-                              value: contact.company!,
-                              color: const Color(0xFF6366F1),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
                     // Social networks
                     if (_hasAnySocial()) ...[
                       _buildSectionTitle(context, 'Réseaux sociaux'),
@@ -356,7 +288,7 @@ class ContactDetailSheet extends StatelessWidget {
                             backgroundColor: accent,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -369,7 +301,7 @@ class ContactDetailSheet extends StatelessWidget {
                       ),
                     ],
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -377,6 +309,7 @@ class ContactDetailSheet extends StatelessWidget {
           ),
         ),
       ),
+      )
     );
   }
 
@@ -440,101 +373,101 @@ class ContactDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context,
-      {required List<Widget> children}) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colors.onSurface.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(children: children),
-    );
-  }
+  // Widget _buildInfoCard(BuildContext context,
+  //     {required List<Widget> children}) {
+  //   final colors = Theme.of(context).colorScheme;
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       color: colors.onSurface.withValues(alpha: 0.03),
+  //       borderRadius: BorderRadius.circular(18),
+  //       border: Border.all(
+  //         color: colors.onSurface.withValues(alpha: 0.06),
+  //       ),
+  //     ),
+  //     child: Column(children: children),
+  //   );
+  // }
 
-  Widget _buildInfoTile(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    VoidCallback? onTap,
-    VoidCallback? onLongPress,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: colors.onSurface.withValues(alpha: 0.45),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                Icon(
-                  Icons.open_in_new_rounded,
-                  size: 16,
-                  color: colors.onSurface.withValues(alpha: 0.25),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildInfoTile(
+  //   BuildContext context, {
+  //   required IconData icon,
+  //   required String label,
+  //   required String value,
+  //   required Color color,
+  //   VoidCallback? onTap,
+  //   VoidCallback? onLongPress,
+  // }) {
+  //   final colors = Theme.of(context).colorScheme;
+  //   return Material(
+  //     color: Colors.transparent,
+  //     child: InkWell(
+  //       onTap: onTap,
+  //       onLongPress: onLongPress,
+  //       borderRadius: BorderRadius.circular(18),
+  //       child: Padding(
+  //         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  //         child: Row(
+  //           children: [
+  //             Container(
+  //               width: 40,
+  //               height: 40,
+  //               decoration: BoxDecoration(
+  //                 color: color.withValues(alpha: 0.1),
+  //                 borderRadius: BorderRadius.circular(12),
+  //               ),
+  //               child: Icon(icon, size: 18, color: color),
+  //             ),
+  //             const SizedBox(width: 14),
+  //             Expanded(
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Text(
+  //                     label,
+  //                     style: TextStyle(
+  //                       fontSize: 11,
+  //                       fontWeight: FontWeight.w500,
+  //                       color: colors.onSurface.withValues(alpha: 0.45),
+  //                       letterSpacing: 0.3,
+  //                     ),
+  //                   ),
+  //                   const SizedBox(height: 2),
+  //                   Text(
+  //                     value,
+  //                     style: TextStyle(
+  //                       fontSize: 15,
+  //                       fontWeight: FontWeight.w600,
+  //                       color: colors.onSurface,
+  //                     ),
+  //                     maxLines: 1,
+  //                     overflow: TextOverflow.ellipsis,
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //             if (onTap != null)
+  //               Icon(
+  //                 Icons.open_in_new_rounded,
+  //                 size: 16,
+  //                 color: colors.onSurface.withValues(alpha: 0.25),
+  //               ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildTileDivider(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(
-        height: 1,
-        color:
-            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-      ),
-    );
-  }
+  // Widget _buildTileDivider(BuildContext context) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 16),
+  //     child: Divider(
+  //       height: 1,
+  //       color:
+  //           Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+  //     ),
+  //   );
+  // }
 
   Widget _buildSocialGrid(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -620,18 +553,18 @@ class ContactDetailSheet extends StatelessWidget {
     );
   }
 
-  void _copyToClipboard(BuildContext context, String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Copié : $text'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  // void _copyToClipboard(BuildContext context, String text) {
+  //   Clipboard.setData(ClipboardData(text: text));
+  //   HapticFeedback.lightImpact();
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Copié : $text'),
+  //       behavior: SnackBarBehavior.floating,
+  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //       duration: const Duration(seconds: 2),
+  //     ),
+  //   );
+  // }
 }
 
 class _SocialItem {
