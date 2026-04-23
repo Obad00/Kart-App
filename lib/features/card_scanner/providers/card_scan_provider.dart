@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/scanned_contact.dart';
 import '../services/card_scan_service.dart';
@@ -19,13 +20,17 @@ class CardScanProvider extends ChangeNotifier {
   File? selectedImage;
   ScannedContact? scannedContact;
   String? rawText;
+  Uint8List? webImageBytes;
 
-  void setSelectedImage(File image) {
-    selectedImage = image;
-    error = null;
-    state = ScanState.idle;
-    notifyListeners();
-  }
+
+ void setSelectedImage(File image, {Uint8List? bytes}) {
+  selectedImage = image;
+  webImageBytes = bytes;
+  error = null;
+  state = ScanState.idle;
+  notifyListeners();
+}
+
 
   void clearImage() {
     selectedImage = null;

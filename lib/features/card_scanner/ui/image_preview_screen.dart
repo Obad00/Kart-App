@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,11 +25,11 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
       );
 
       if (image != null && mounted) {
-        context.read<CardScanProvider>().setSelectedImage(File(image.path));
+        context.read<CardScanProvider>().setSelectedImage(
+              File(image.path),
+            );
       }
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (_) {}
   }
 
   Future<void> _scanCard() async {
@@ -46,22 +47,26 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<CardScanProvider>();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: textColor),
           onPressed: () {
             provider.clearImage();
             Navigator.pop(context);
           },
         ),
-        title: const Text(
+        title: Text(
           'Aperçu',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -70,44 +75,63 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _buildImagePreview(provider),
+            child: _buildImagePreview(provider, isDark),
           ),
-          _buildBottomActions(provider),
+          _buildBottomActions(provider, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildImagePreview(CardScanProvider provider) {
+  Widget _buildImagePreview(CardScanProvider provider, bool isDark) {
     if (provider.selectedImage == null) {
-      return const Center(
+      return Center(
         child: Text(
           'Aucune image sélectionnée',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(
+            color: isDark ? Colors.grey : Colors.grey[600],
+          ),
         ),
       );
     }
 
     return Stack(
       children: [
-        // Image
         Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                provider.selectedImage!,
-                fit: BoxFit.contain,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  if (!isDark)
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                    ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: kIsWeb
+                    ? Image.network(
+                        provider.selectedImage!.path,
+                        fit: BoxFit.contain,
+                      )
+                    : Image.file(
+                        provider.selectedImage!,
+                        fit: BoxFit.contain,
+                      ),
               ),
             ),
           ),
         ),
 
-        // Scanning overlay
+        // SCANNING OVERLAY
         if (provider.state == ScanState.scanning)
           Container(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: Colors.black.withValues(alpha: isDark ? 0.7 : 0.4),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -142,7 +166,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
             ),
           ),
 
-        // Error message
+        // ERROR
         if (provider.state == ScanState.error && provider.error != null)
           Positioned(
             bottom: 0,
@@ -152,7 +176,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
               margin: const EdgeInsets.all(20),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: Colors.red.withValues(alpha: isDark ? 0.1 : 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.red.withValues(alpha: 0.3),
@@ -160,19 +184,12 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.error_outline_rounded,
-                    color: Colors.red[300],
-                    size: 20,
-                  ),
+                  const Icon(Icons.error_outline_rounded, color: Colors.red),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       provider.error!,
-                      style: TextStyle(
-                        color: Colors.red[300],
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: Colors.red),
                     ),
                   ),
                 ],
@@ -183,7 +200,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
     );
   }
 
-  Widget _buildBottomActions(CardScanProvider provider) {
+  Widget _buildBottomActions(CardScanProvider provider, bool isDark) {
     final isScanning = provider.state == ScanState.scanning;
 
     return SafeArea(
@@ -191,7 +208,6 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Scan button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -202,16 +218,14 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.black54),
+                          color: Colors.black54,
                         ),
                       )
                     : const Icon(Icons.document_scanner_rounded),
                 label: Text(isScanning ? 'Analyse...' : 'Scanner la carte'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -222,7 +236,6 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
 
             const SizedBox(height: 12),
 
-            // Retake button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -230,11 +243,11 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Reprendre la photo'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
+                  foregroundColor: isDark ? Colors.white : Colors.black,
                   side: BorderSide(
-                    color: isScanning
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.3),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.3),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

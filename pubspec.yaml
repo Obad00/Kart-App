@@ -62,6 +62,9 @@ dependencies:
   # Google Fonts
   google_fonts: ^6.1.0
 
+  #Camera for card scanner
+  camera: ^0.10.5+5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

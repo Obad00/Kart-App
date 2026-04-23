@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import '../providers/card_scan_provider.dart';
 
 class CardScannerScreen extends StatefulWidget {
@@ -11,264 +12,427 @@ class CardScannerScreen extends StatefulWidget {
   State<CardScannerScreen> createState() => _CardScannerScreenState();
 }
 
+enum ScanMode { camera, gallery }
+
 class _CardScannerScreenState extends State<CardScannerScreen> {
   final ImagePicker _picker = ImagePicker();
+  
+  ScanMode _mode = ScanMode.camera;
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  bool _isCapturing = false;
 
-  Future<void> _pickImage(ImageSource source) async {
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeCamera() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 2000,
-        maxHeight: 2000,
-        imageQuality: 85,
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+
+      _cameraController = CameraController(
+        cameras.first,
+        ResolutionPreset.high,
+        enableAudio: false,
       );
 
-      if (image != null && mounted) {
-        context.read<CardScanProvider>().setSelectedImage(
-              File(image.path),
-            );
+      await _cameraController!.initialize();
 
-        Navigator.pushNamed(context, '/card-scanner/preview');
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Impossible d'accéder à l'image"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      debugPrint('Error initializing camera: $e');
     }
   }
 
-  
+Future<void> _capturePhoto() async {
+  if (_cameraController == null || !_cameraController!.value.isInitialized) {
+    return;
+  }
+
+  if (_isCapturing) return;
+
+  setState(() => _isCapturing = true);
+
+  try {
+    final XFile image = await _cameraController!.takePicture();
+
+    if (!mounted) return;
+
+    final bytes = await image.readAsBytes();
+
+    if (!mounted) return; // ✅ IMPORTANT
+
+    context.read<CardScanProvider>().setSelectedImage(
+      File(image.path),
+      bytes: bytes,
+    );
+
+    Navigator.pushNamed(context, '/card-scanner/preview');
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Impossible de prendre la photo"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isCapturing = false);
+    }
+  }
+}
+
+
+Future<void> _pickFromGallery() async {
+  try {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 2000,
+      maxHeight: 2000,
+      imageQuality: 85,
+    );
+
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+
+    if (!mounted) return; // ✅ IMPORTANT
+
+    context.read<CardScanProvider>().setSelectedImage(
+      File(image.path),
+      bytes: bytes,
+    );
+
+    Navigator.pushNamed(context, '/card-scanner/preview');
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Impossible d'accéder à la galerie"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final textPrimary =
-        isDark ? Colors.white : Colors.black87;
-
-    final textSecondary =
-        isDark ? const Color(0xFF9CA3AF) : Colors.black54;
-
-    final bgColor =
-        isDark ? const Color(0xFF0A0A0A) : (Colors.grey[50] ?? Colors.white);
+    final bgColor = isDark ? Colors.black : Colors.white;
 
     return Scaffold(
       backgroundColor: bgColor,
-      
+      body: Stack(
+        children: [
+          // CAMERA PREVIEW
+          if (_mode == ScanMode.camera && _isCameraInitialized)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _cameraController!.value.previewSize!.height,
+                  height: _cameraController!.value.previewSize!.width,
+                  child: CameraPreview(_cameraController!),
+                ),
+              ),
+            ),
 
-     appBar: AppBar(
-        automaticallyImplyLeading: false, // ou true si tu veux retour
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'Scanner une carte',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
-
-
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+          // GALLERY VIEW (placeholder avec icône)
+          if (_mode == ScanMode.gallery)
+            Container(
+              color: bgColor,
+              child: Center(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
-
-                    _buildIllustration(isDark),
-                    const SizedBox(height: 40),
-
-                    _buildTitle(textPrimary),
+                    Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            (isDark ? Colors.white : Colors.black)
+                                .withValues(alpha: 0.08),
+                            (isDark ? Colors.white : Colors.black)
+                                .withValues(alpha: 0.03),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                          color: (isDark ? Colors.white : Colors.black)
+                              .withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.photo_library_rounded,
+                        size: 80,
+                        color: (isDark ? Colors.white : Colors.black)
+                            .withValues(alpha: 0.3),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Sélectionner une photo',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-
-                    _buildDescription(textSecondary),
-
+                    Text(
+                      'Choisissez une image de carte de visite\ndepuis votre galerie',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF9CA3AF)
+                            : Colors.black54,
+                        fontSize: 15,
+                      ),
+                    ),
                     const SizedBox(height: 40),
-
-                    _buildCameraButton(),
-                    const SizedBox(height: 16),
-
-                    _buildGalleryButton(isDark),
-
-                    const SizedBox(height: 40),
-
-                    _buildTips(isDark),
+                    ElevatedButton.icon(
+                      onPressed: _pickFromGallery,
+                      icon: const Icon(Icons.photo_library_rounded),
+                      label: const Text('Ouvrir la galerie'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // =========================
-  // UI PARTS
-  // =========================
-
-  Widget _buildIllustration(bool isDark) {
-    return Container(
-      width: 160,
-      height: 160,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            (isDark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.08),
-            (isDark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.03),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black)
-              .withValues(alpha: 0.08),
-        ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(
-            Icons.credit_card_rounded,
-            size: 72,
-            color: (isDark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.3),
-          ),
+          // FRAME pour la caméra (guide visuel)
+            if (_mode == ScanMode.camera)
           Positioned(
-            right: 32,
-            bottom: 32,
+            top: MediaQuery.of(context).size.height * 0.15, // 🔥 plus haut
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 320,
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+
+          // HEADER
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  if (_mode == ScanMode.camera)
+                    Icon(
+                      Icons.flash_off,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // TEXT INSTRUCTION
+          if (_mode == ScanMode.camera)
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.25, // 🔥 remonté
+            left: 20,
+            right: 20,
+            child: Column(
+              children: [
+                const Text(
+                  "Placez la carte dans le cadre",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Assurez-vous que la carte soit bien éclairée",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // CAPTURE BUTTON (mode caméra)
+         if (_mode == ScanMode.camera)
+            Positioned(
+              bottom: 250, // 🔥 était 160
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _isCapturing ? null : _capturePhoto,
+                  child: Container(
+                    width: 75,
+                    height: 75,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 4,
+                      ),
+                    ),
+                    child: _isCapturing
+                        ? const Padding(
+                            padding: EdgeInsets.all(15),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt,
+                            size: 34,
+                            color: Colors.black,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+
+          // BOTTOM SWITCHER
+          Positioned(
+            bottom: 40,
+            left: 20,
+            right: 20,
             child: Container(
-              padding: const EdgeInsets.all(12),
+              height: 60,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white : Colors.black,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(40),
               ),
-              child: Icon(
-                Icons.document_scanner_rounded,
-                size: 24,
-                color: isDark ? Colors.black : Colors.white,
+              child: Row(
+                children: [
+                  _button(
+                    title: "Caméra",
+                    icon: Icons.camera_alt,
+                    active: _mode == ScanMode.camera,
+                    onTap: () {
+                      setState(() {
+                        _mode = ScanMode.camera;
+                      });
+                    },
+                  ),
+                  _button(
+                    title: "Galerie",
+                    icon: Icons.photo_library_rounded,
+                    active: _mode == ScanMode.gallery,
+                    onTap: () {
+                      setState(() {
+                        _mode = ScanMode.gallery;
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
           ),
+
+          // LOADING OVERLAY
+          if (_isCapturing)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildTitle(Color color) {
-    return Text(
-      'Scannez une carte de visite',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: color,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
-  Widget _buildDescription(Color color) {
-    return Text(
-      'Prenez une photo ou sélectionnez une image\npour extraire automatiquement les informations',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: color,
-        fontSize: 15,
-      ),
-    );
-  }
-
-  Widget _buildCameraButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _pickImage(ImageSource.camera),
-        icon: const Icon(Icons.camera_alt_rounded),
-        label: const Text('Prendre une photo'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+  Widget _button({
+    required String title,
+    required IconData icon,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(30),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGalleryButton(bool isDark) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _pickImage(ImageSource.gallery),
-        icon: Icon(
-          Icons.photo_library_rounded,
-          color: isDark ? Colors.white : Colors.black87,
-        ),
-        label: Text(
-          'Choisir depuis la galerie',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.3)
-                : Colors.black.withValues(alpha: 0.2),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTips(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.amber.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.lightbulb_outline_rounded,
-            color: Colors.amber,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Assurez-vous que la carte est bien éclairée et lisible',
-              style: TextStyle(
-                color: isDark
-                    ? Colors.amber[100]
-                    : Colors.amber[900],
-                fontSize: 12,
-              ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: active ? Colors.black : Colors.white,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: active ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
