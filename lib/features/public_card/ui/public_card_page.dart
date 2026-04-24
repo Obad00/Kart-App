@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:dio/dio.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
@@ -25,6 +27,13 @@ class _PublicCardPageState extends State<PublicCardPage>
   late AnimationController _appearController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+
+  final List<String> exampleMessages = [
+    "Ravi de vous rencontrer ! 🤝",
+    "Merci pour cet échange enrichissant",
+    "Restons en contact 📲",
+    "Au plaisir de collaborer ensemble",
+  ];
 
   @override
   void initState() {
@@ -92,6 +101,826 @@ class _PublicCardPageState extends State<PublicCardPage>
       context,
       slug: widget.slug,
       ownerName: card!['fullname'] ?? 'le proprietaire',
+    );
+  }
+
+  // =============================
+  // WORKFLOWS RELANCE & EMAIL
+  // =============================
+
+  void _showSnackBar({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.white,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.all(16),
+        elevation: 8,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _shareContact({
+    required String slug,
+    required String message,
+    required String ownerName,
+    required void Function(bool value) setLoading,
+  }) async {
+    if (slug.isEmpty) {
+      _showSnackBar(
+        title: 'Carte introuvable',
+        subtitle: 'Cette carte n\'a pas de slug associé.',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // await ContactsProvider().shareContact(slug: slug, message: message.trim().isNotEmpty ? message.trim() : null);
+      
+      // Simuler l'appel API (remplacer par votre vraie logique)
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
+      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      
+      _showSnackBar(
+        title: 'Envoyé',
+        subtitle: 'Votre carte a été envoyée à $ownerName',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } on DioException catch (e) {
+      String errorMessage = 'Échec de l\'envoi';
+
+      if (e.response?.statusCode == 500) {
+        errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
+      } else if (e.response?.statusCode == 422) {
+        errorMessage = 'Données invalides.';
+      } else if (e.response?.statusCode == 404) {
+        errorMessage = 'Carte introuvable';
+      } else if (e.response?.data is Map) {
+        final message = e.response?.data['message'];
+        if (message != null) {
+          errorMessage = message.toString();
+        }
+      }
+
+      _showSnackBar(
+        title: 'Erreur d\'envoi',
+        subtitle: errorMessage,
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    } catch (e) {
+      _showSnackBar(
+        title: 'Erreur',
+        subtitle: 'Une erreur inattendue s\'est produite',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  }
+
+  void _openShareContactPopup() {
+    final ownerName = card?['fullname']?.toString() ?? 'le propriétaire';
+    final email = _getFieldValue('email');
+    final phone = _getFieldValue('phone').isNotEmpty
+        ? _getFieldValue('phone')
+        : _getFieldValue('telephone').isNotEmpty
+            ? _getFieldValue('telephone')
+            : _getFieldValue('mobile');
+    
+    final messageController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Color(0xFF3B82F6),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Relancer le contact',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Renvoyer votre carte',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Contact Info
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow(Icons.person_rounded, 'Nom', ownerName),
+                          if (email.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(Icons.email_rounded, 'Email', email),
+                          ],
+                          if (phone.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(Icons.phone_rounded, 'Téléphone', phone),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Optional message
+                    Text(
+                      "Message personnalisé (optionnel)",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: TextField(
+                        controller: messageController,
+                        maxLines: 3,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          height: 1.5,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: "Ajoutez un message personnel...",
+                          hintStyle: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.4),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: isLoading
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Annuler',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                                    await _shareContact(
+                                      slug: widget.slug,
+                                      message: messageController.text.trim(),
+                                      ownerName: ownerName,
+                                      setLoading: (value) =>
+                                          setDialogState(() => isLoading = value),
+                                    );
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3B82F6),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.send_rounded,
+                                          size: 18, color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Envoyer',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openEmailPopup(String contactEmail) {
+    final messageController = TextEditingController();
+    final selectedExampleNotifier = ValueNotifier<String?>(null);
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> sendEmail() async {
+            final content = messageController.text.trim();
+
+            if (content.isEmpty) {
+              _showSnackBar(
+                title: 'Attention',
+                subtitle: 'Le message ne peut pas être vide',
+                icon: Icons.warning_rounded,
+                iconColor: Colors.orange,
+              );
+              return;
+            }
+
+            setDialogState(() => isSending = true);
+
+            try {
+              // await ContactsProvider().sendMessage(...)
+              
+              // Simuler l'envoi
+              await Future.delayed(const Duration(seconds: 1));
+
+              if (!dialogContext.mounted) return;
+              Navigator.of(dialogContext).pop();
+
+              if (!mounted) return;
+              _showSnackBar(
+                title: 'Message envoyé',
+                subtitle: 'Votre message a été envoyé avec succès',
+                icon: Icons.check_circle_rounded,
+                iconColor: Colors.green,
+              );
+
+              messageController.clear();
+            } catch (e) {
+              if (!mounted) return;
+              _showSnackBar(
+                title: 'Erreur',
+                subtitle: 'Une erreur est survenue lors de l\'envoi',
+                icon: Icons.error_rounded,
+                iconColor: Colors.red,
+              );
+            } finally {
+              if (dialogContext.mounted) {
+                setDialogState(() => isSending = false);
+              }
+            }
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 500),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                  const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.email_outlined,
+                              color: Color(0xFF3B82F6),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Envoyer un message',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: isSending
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Message Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: messageController,
+                          maxLines: 5,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            height: 1.5,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: "Écrivez votre message...",
+                            hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.4),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Examples Section
+                      Text(
+                        "Suggestions",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      ...exampleMessages.map((msg) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: selectedExampleNotifier,
+                          builder: (context, selected, _) {
+                            final isSelected = selected == msg;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    selectedExampleNotifier.value = msg;
+                                    messageController.text = msg;
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF3B82F6)
+                                              .withValues(alpha: 0.1)
+                                          : Theme.of(context).colorScheme.surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? const Color(0xFF3B82F6)
+                                                .withValues(alpha: 0.3)
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.08),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? const Color(0xFF3B82F6)
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.3),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: isSelected
+                                              ? Center(
+                                                  child: Container(
+                                                    width: 10,
+                                                    height: 10,
+                                                    decoration: const BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Color(0xFF3B82F6),
+                                                    ),
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            msg,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w400,
+                                              color: isSelected
+                                                  ? const Color(0xFF3B82F6)
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: isSending
+                                  ? null
+                                  : () => Navigator.of(dialogContext).pop(),
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Annuler',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: isSending ? null : sendEmail,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3B82F6),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isSending
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.send_rounded,
+                                            size: 18, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Envoyer',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon,
+            size: 18, color: const Color(0xFF3B82F6).withValues(alpha: 0.7)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -475,6 +1304,34 @@ class _PublicCardPageState extends State<PublicCardPage>
                             ),
                         ],
                       ),
+                      // ✅ NOUVEAU BOUTON RELANCER AJOUTÉ ICI
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _openShareContactPopup,
+                          icon: const Icon(Icons.send_outlined, size: 18),
+                          label: const Text(
+                            'Relancer',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isDark ? Colors.white : const Color(0xFF111827),
+                            side: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE5E7EB),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 ],
@@ -552,7 +1409,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         ElevatedButton.icon(
           onPressed: () {
             if (email.isNotEmpty) {
-              _openEmail(email);
+              _openEmailPopup(email); // ✅ Ouvre la popup d'envoi de message
             } else {
               _showContactForm();
             }
@@ -1211,9 +2068,8 @@ class _PublicCardPageState extends State<PublicCardPage>
       });
     }
 
-
     final phone = _getFieldValue('phone');
-    final ownerName = _getFieldValue('name'); // adapte si besoin
+    final ownerName = card?['fullname']?.toString() ?? '';
 
     if (phone.isNotEmpty) {
       final formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
@@ -1226,7 +2082,6 @@ class _PublicCardPageState extends State<PublicCardPage>
         'iconColor': const Color(0xFF25D366),
       });
     }
-
 
     return profiles;
   }

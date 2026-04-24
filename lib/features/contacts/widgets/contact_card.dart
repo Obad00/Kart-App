@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
-import 'contact_detail_sheet.dart';
+import '../../public_card/ui/public_card_page.dart';
 
 class ContactCard extends StatefulWidget {
   final ContactModel contact;
@@ -66,14 +66,40 @@ class ContactCardState extends State<ContactCard>
         children: [
           // Carte principale — plus de Expanded
           GestureDetector(
-            onTap: () {
-              ContactDetailSheet.show(
-                context,
-                contact: widget.contact,
-                onShare: widget.onShare,
-                onEmailTap: widget.onEmailTap,
-              );
-            },
+         onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => PublicCardPage(
+                      slug: widget.contact.cardSlug ?? '', // ✅ correction ici
+                    ),
+                   transitionsBuilder: (_, animation, __, child) {
+                    final curved = CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic, // plus naturel
+                    );
+
+                    return FadeTransition(
+                      opacity: curved,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.08), // léger slide du bas
+                          end: Offset.zero,
+                        ).animate(curved),
+                        child: ScaleTransition(
+                          scale: Tween<double>(
+                            begin: 0.96,
+                            end: 1.0,
+                          ).animate(curved),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+
+                    ),
+                );
+              },
             child: DefaultTextStyle.merge(
               style: const TextStyle(decoration: TextDecoration.none),
               child: Container(
