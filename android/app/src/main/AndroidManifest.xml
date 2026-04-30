@@ -12,6 +12,10 @@
     <!-- Internet for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Contacts permissions for adding contacts -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
     <application
         android:label="KART"
         android:name="${applicationName}"

@@ -1,12 +1,9 @@
-import 'dart:io';
-
-import 'package:csv/csv.dart';
+import 'package:contacts_service/contacts_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
@@ -54,7 +51,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     if (selectedContacts.isEmpty) {
       _showSnackBar(
         title: 'Aucun contact sélectionné',
-        subtitle: 'Sélectionnez au moins un contact à exporter',
+        subtitle: 'Sélectionnez au moins un contact',
         icon: Icons.info_rounded,
         iconColor: Colors.orange,
       );
@@ -62,7 +59,24 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     }
 
     try {
+      // Capture provider before async calls
       final provider = context.read<ContactsProvider>();
+
+      // Request contacts permission
+      final status = await Permission.contacts.request();
+
+      if (!mounted) return;
+
+      if (!status.isGranted) {
+        _showSnackBar(
+          title: 'Permission refusée',
+          subtitle:
+              'Accordez la permission pour accéder aux contacts du device',
+          icon: Icons.lock_rounded,
+          iconColor: Colors.red,
+        );
+        return;
+      }
       final allContacts = _getAllContacts(provider);
       final selectedContactsList = allContacts
           .where((contact) => selectedContacts.contains(contact.id))
@@ -78,73 +92,64 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
         return;
       }
 
-      // Prepare CSV headers
-      final headers = [
-        'Nom',
-        'Email',
-        'Téléphone',
-        'Entreprise',
-        'Poste',
-        'LinkedIn',
-        'Twitter',
-        'Facebook',
-        'Instagram',
-        'Site Web'
-      ];
+      int successCount = 0;
+      int failureCount = 0;
 
-      // Prepare CSV rows
-      final rows = selectedContactsList.map((contact) => [
-            contact.fullname,
-            contact.email ?? '',
-            contact.phone ?? '',
-            contact.company ?? '',
-            contact.job ?? '',
-            contact.linkedin ?? '',
-            contact.twitter ?? '',
-            contact.facebook ?? '',
-            contact.instagram ?? '',
-            contact.website ?? '',
-          ]).toList();
+      // Add contacts to device
+      for (final contact in selectedContactsList) {
+        try {
+          final newContact = Contact(
+            givenName: contact.fullname.split(' ').first,
+            familyName: contact.fullname.contains(' ')
+                ? contact.fullname.split(' ').sublist(1).join(' ')
+                : '',
+            phones: contact.phone != null
+                ? [Item(label: 'mobile', value: contact.phone)]
+                : [],
+            emails: contact.email != null
+                ? [Item(label: 'work', value: contact.email)]
+                : [],
+            company: contact.company,
+            jobTitle: contact.job,
+          );
 
-      // Generate CSV
-      final csvData =
-          const ListToCsvConverter().convert([headers, ...rows]);
-
-      // Save to file
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName =
-          'contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
-      final file = File('${directory.path}/$fileName');
-
-      await file.writeAsString(csvData);
-
-      if (!mounted) return;
-
-      // Share file
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'text/csv')],
-          subject: 'Mes contacts KART',
-        ),
-      );
+          await ContactsService.addContact(newContact);
+          successCount++;
+        } catch (e) {
+          debugPrint('❌ Failed to add contact ${contact.fullname}: $e');
+          failureCount++;
+        }
+      }
 
       if (!mounted) return;
 
       selectedContacts.clear();
       setState(() {});
 
-      _showSnackBar(
-        title: 'Succès',
-        subtitle:
-            '${selectedContactsList.length} contact(s) exporté(s) avec succès',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
-      );
+      if (failureCount == 0) {
+        _showSnackBar(
+          title: 'Succès',
+          subtitle:
+              '$successCount contact(s) ajouté(s) à vos contacts du device',
+          icon: Icons.check_circle_rounded,
+          iconColor: Colors.green,
+        );
+      } else {
+        _showSnackBar(
+          title: 'Partiellement réussi',
+          subtitle:
+              '$successCount ajouté(s), $failureCount échoué(s). Vérifiez vos permissions.',
+          icon: Icons.warning_rounded,
+          iconColor: Colors.orange,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('❌ exportSelectedContacts Exception: $e');
       _showSnackBar(
-        title: 'Erreur d\'export',
-        subtitle: 'Une erreur est survenue lors de l\'export : ${e.toString()}',
+        title: 'Erreur d\'ajout',
+        subtitle:
+            'Une erreur est survenue lors de l\'ajout des contacts : ${e.toString()}',
         icon: Icons.error_rounded,
         iconColor: Colors.red,
       );

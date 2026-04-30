@@ -49,6 +49,8 @@
 	<string>KART a besoin d'accéder à votre galerie pour scanner des cartes de visite ou choisir un logo</string>
 	<key>NSCameraUsageDescription</key>
 	<string>KART a besoin d'accéder à votre caméra pour scanner des QR codes et des cartes de visite</string>
+	<key>NSContactsUsageDescription</key>
+	<string>KART a besoin d'accéder à vos contacts pour ajouter les contacts scannés</string>
 	<key>GIDClientID</key>
 	<string>51355966688-lvu552purb93c8u49rr9kogjp5ja5hqv.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
