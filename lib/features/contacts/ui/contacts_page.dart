@@ -67,7 +67,7 @@ class _ExportFABState extends State<_ExportFAB> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       label: Text(
         selectedCount > 0
-            ? 'Ajouter au device ($selectedCount)'
+            ? 'Exporter ($selectedCount)'
             : 'Sélectionner des contacts',
         style: const TextStyle(
           color: Colors.white,

@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:contacts_service/contacts_service.dart';
+import 'package:csv/csv.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
@@ -58,6 +63,49 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       return;
     }
 
+    // Show dialog with two options
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Comment exporter ?'),
+        content: const Text('Choisissez comment vous souhaitez exporter les contacts'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _addContactsToDevice();
+            },
+            icon: const Icon(Icons.contacts_rounded),
+            label: const Text('Ajouter au device'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _exportContactsAsCSV();
+            },
+            icon: const Icon(Icons.file_download_rounded),
+            label: const Text('Exporter CSV'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[700],
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addContactsToDevice() async {
     try {
       // Capture provider before async calls
       final provider = context.read<ContactsProvider>();
@@ -145,11 +193,104 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       }
     } catch (e) {
       if (!mounted) return;
-      debugPrint('❌ exportSelectedContacts Exception: $e');
+      debugPrint('❌ _addContactsToDevice Exception: $e');
       _showSnackBar(
         title: 'Erreur d\'ajout',
         subtitle:
             'Une erreur est survenue lors de l\'ajout des contacts : ${e.toString()}',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    }
+  }
+
+  Future<void> _exportContactsAsCSV() async {
+    try {
+      final provider = context.read<ContactsProvider>();
+      final allContacts = _getAllContacts(provider);
+      final selectedContactsList = allContacts
+          .where((contact) => selectedContacts.contains(contact.id))
+          .toList();
+
+      if (selectedContactsList.isEmpty) {
+        _showSnackBar(
+          title: 'Erreur',
+          subtitle: 'Impossible de trouver les contacts sélectionnés',
+          icon: Icons.error_rounded,
+          iconColor: Colors.red,
+        );
+        return;
+      }
+
+      // Prepare CSV headers
+      final headers = [
+        'Nom',
+        'Email',
+        'Téléphone',
+        'Entreprise',
+        'Poste',
+        'LinkedIn',
+        'Twitter',
+        'Facebook',
+        'Instagram',
+        'Site Web'
+      ];
+
+      // Prepare CSV rows
+      final rows = selectedContactsList.map((contact) => [
+            contact.fullname,
+            contact.email ?? '',
+            contact.phone ?? '',
+            contact.company ?? '',
+            contact.job ?? '',
+            contact.linkedin ?? '',
+            contact.twitter ?? '',
+            contact.facebook ?? '',
+            contact.instagram ?? '',
+            contact.website ?? '',
+          ]).toList();
+
+      // Generate CSV
+      final csvData =
+          const ListToCsvConverter().convert([headers, ...rows]);
+
+      // Save to file
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName =
+          'contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsString(csvData);
+
+      if (!mounted) return;
+
+      // Share file
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: 'Mes contacts KART',
+        ),
+      );
+
+      if (!mounted) return;
+
+      selectedContacts.clear();
+      setState(() {});
+
+      _showSnackBar(
+        title: 'Succès',
+        subtitle:
+            '${selectedContactsList.length} contact(s) exporté(s) en CSV',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ _exportContactsAsCSV Exception: $e');
+      _showSnackBar(
+        title: 'Erreur d\'export',
+        subtitle:
+            'Une erreur est survenue lors de l\'export : ${e.toString()}',
         icon: Icons.error_rounded,
         iconColor: Colors.red,
       );
