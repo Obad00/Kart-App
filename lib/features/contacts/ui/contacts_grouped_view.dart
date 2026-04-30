@@ -1,12 +1,10 @@
 import 'dart:io';
 
-import 'package:contacts_service/contacts_service.dart';
 import 'package:csv/csv.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -63,155 +61,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       return;
     }
 
-    // Show dialog with two options
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Comment exporter ?'),
-        content: const Text('Choisissez comment vous souhaitez exporter les contacts'),
-        actions: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Annuler'),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  _addContactsToDevice();
-                },
-                icon: const Icon(Icons.contacts_rounded),
-                label: const Text('Enregistre'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  _exportContactsAsCSV();
-                },
-                icon: const Icon(Icons.file_download_rounded),
-                label: const Text('Exporter CSV'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _addContactsToDevice() async {
-    try {
-      // Capture provider before async calls
-      final provider = context.read<ContactsProvider>();
-
-      // Request contacts permission
-      final status = await Permission.contacts.request();
-
-      if (!mounted) return;
-
-      if (!status.isGranted) {
-        _showSnackBar(
-          title: 'Permission refusée',
-          subtitle:
-              'Accordez la permission pour accéder aux contacts du device',
-          icon: Icons.lock_rounded,
-          iconColor: Colors.red,
-        );
-        return;
-      }
-      final allContacts = _getAllContacts(provider);
-      final selectedContactsList = allContacts
-          .where((contact) => selectedContacts.contains(contact.id))
-          .toList();
-
-      if (selectedContactsList.isEmpty) {
-        _showSnackBar(
-          title: 'Erreur',
-          subtitle: 'Impossible de trouver les contacts sélectionnés',
-          icon: Icons.error_rounded,
-          iconColor: Colors.red,
-        );
-        return;
-      }
-
-      int successCount = 0;
-      int failureCount = 0;
-
-      // Add contacts to device
-      for (final contact in selectedContactsList) {
-        try {
-          final newContact = Contact(
-            givenName: contact.fullname.split(' ').first,
-            familyName: contact.fullname.contains(' ')
-                ? contact.fullname.split(' ').sublist(1).join(' ')
-                : '',
-            phones: contact.phone != null
-                ? [Item(label: 'mobile', value: contact.phone)]
-                : [],
-            emails: contact.email != null
-                ? [Item(label: 'work', value: contact.email)]
-                : [],
-            company: contact.company,
-            jobTitle: contact.job,
-          );
-
-          await ContactsService.addContact(newContact);
-          successCount++;
-        } catch (e) {
-          debugPrint('❌ Failed to add contact ${contact.fullname}: $e');
-          failureCount++;
-        }
-      }
-
-      if (!mounted) return;
-
-      selectedContacts.clear();
-      setState(() {});
-
-      if (failureCount == 0) {
-        _showSnackBar(
-          title: 'Succès',
-          subtitle:
-              '$successCount contact(s) ajouté(s) à vos contacts du device',
-          icon: Icons.check_circle_rounded,
-          iconColor: Colors.green,
-        );
-      } else {
-        _showSnackBar(
-          title: 'Partiellement réussi',
-          subtitle:
-              '$successCount ajouté(s), $failureCount échoué(s). Vérifiez vos permissions.',
-          icon: Icons.warning_rounded,
-          iconColor: Colors.orange,
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      debugPrint('❌ _addContactsToDevice Exception: $e');
-      _showSnackBar(
-        title: 'Erreur d\'ajout',
-        subtitle:
-            'Une erreur est survenue lors de l\'ajout des contacts : ${e.toString()}',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
-      );
-    }
+    _exportContactsAsCSV();
   }
 
   Future<void> _exportContactsAsCSV() async {
