@@ -76,18 +76,20 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Annuler'),
           ),
+          const SizedBox(width: 12),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(dialogContext);
               _addContactsToDevice();
             },
             icon: const Icon(Icons.contacts_rounded),
-            label: const Text('Ajouter au device'),
+            label: const Text('Enregistre'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF3B82F6),
               foregroundColor: Colors.white,
             ),
           ),
+          const SizedBox(width: 8),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(dialogContext);
