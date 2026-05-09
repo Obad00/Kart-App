@@ -19,7 +19,7 @@ class ApiEndpoints {
   static const paymentHistory = '/payments/history';
 
   // Card Scanner
-  static const scanCard = '/scan-card';
+  static const scanCard = '/card-scan';
 
   // Contacts
   static const contacts = '/contacts';

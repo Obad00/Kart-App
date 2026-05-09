@@ -14,6 +14,7 @@ class PaymentProcessingScreen extends StatefulWidget {
 }
 
 class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
+  late final PaymentProvider _provider;
   late WebViewController _webViewController;
   bool _isWebViewLoading = true;
   bool _useExternalBrowser = false;
@@ -21,13 +22,13 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
   @override
   void initState() {
     super.initState();
+    _provider = context.read<PaymentProvider>();
     _initWebView();
     _startPaymentPolling();
   }
 
   void _initWebView() {
-    final provider = context.read<PaymentProvider>();
-    final url = provider.paymentUrl;
+    final url = _provider.paymentUrl;
 
     if (url == null) return;
 
@@ -56,8 +57,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
   }
 
   void _startPaymentPolling() {
-    final provider = context.read<PaymentProvider>();
-    provider.startPollingPaymentStatus((payment) {
+    _provider.startPollingPaymentStatus((payment) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(
         context,
@@ -68,8 +68,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
   }
 
   Future<void> _openExternalBrowser() async {
-    final provider = context.read<PaymentProvider>();
-    final url = provider.paymentUrl;
+    final url = _provider.paymentUrl;
 
     if (url == null) return;
 
@@ -82,7 +81,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
 
   @override
   void dispose() {
-    context.read<PaymentProvider>().stopPolling();
+    _provider.stopPolling();
     super.dispose();
   }
 

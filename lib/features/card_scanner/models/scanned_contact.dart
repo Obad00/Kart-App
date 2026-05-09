@@ -1,4 +1,5 @@
 class ScannedContact {
+  int? id;
   String? firstName;
   String? lastName;
   String? jobTitle;
@@ -10,6 +11,7 @@ class ScannedContact {
   final String? rawText;
 
   ScannedContact({
+    this.id,
     this.firstName,
     this.lastName,
     this.jobTitle,
@@ -32,6 +34,24 @@ class ScannedContact {
       address: json['address'],
       website: json['website'],
       rawText: rawText,
+    );
+  }
+
+  /// Parse from the new API response: contact (auto-created) + extracted_data
+  factory ScannedContact.fromScanResponse({
+    required Map<String, dynamic> contact,
+    required Map<String, dynamic> extractedData,
+  }) {
+    return ScannedContact(
+      id: contact['id'],
+      firstName: extractedData['first_name'],
+      lastName: extractedData['last_name'],
+      jobTitle: extractedData['job_title'],
+      company: extractedData['company'],
+      email: extractedData['email'],
+      phone: extractedData['phone'],
+      address: extractedData['address'],
+      website: extractedData['website'],
     );
   }
 

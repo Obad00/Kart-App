@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/plan_provider.dart';
+import '../../payment/providers/payment_provider.dart';
+import '../../payment/models/plan.dart' as payment_models;
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
@@ -315,42 +317,37 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
                           final planIndex = _selectedIndex - 1;
                           if (planIndex < 0 || planIndex >= plans.length) {
-                            return; // Index invalide, ne rien faire
+                            return;
                           }
                           final plan = plans[planIndex];
                           final planId = plan['id'];
                           final planSlug = plan['slug'];
+                          final planName = plan['name'] ?? '';
+                          final planDescription = plan['description'] ?? '';
+                          final planPrice = plan['price'] ?? 0;
+                          final planBillingCycle = plan['billing_cycle'] ?? 'monthly';
+                          final planFeatures = plan['features'] != null
+                              ? List<String>.from(plan['features'])
+                              : <String>[];
 
-                          await provider.subscribePlan(planId);
+                          // Sélectionner le plan dans le PaymentProvider et rediriger vers les méthodes de paiement
+                          final paymentProvider = context.read<PaymentProvider>();
+                          paymentProvider.selectPlan(
+                            payment_models.Plan(
+                              id: planId,
+                              name: planName,
+                              slug: planSlug ?? '',
+                              description: planDescription,
+                              price: planPrice is int ? planPrice : int.tryParse(planPrice.toString()) ?? 0,
+                              billingCycle: planBillingCycle,
+                              features: planFeatures,
+                              isActive: true,
+                            ),
+                          );
 
                           if (!mounted) return;
 
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-
-                            if (provider.error != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(provider.error!),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-
-                           if (planSlug == 'enterprise') {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                '/onboarding-company',
-                                arguments: {
-                                  'subscriptionId': provider.currentSubscriptionId
-                                },
-                              );
-                            } else {
-                              Navigator.pushReplacementNamed(context, '/home');
-                            }
-
-                          });
+                          Navigator.pushNamed(context, '/payment/methods');
                         },
                       ),
                       const SizedBox(height: 12),
