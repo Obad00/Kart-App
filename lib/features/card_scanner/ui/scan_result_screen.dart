@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/card_scan_provider.dart';
+import '../../contacts/providers/contacts_provider.dart';
+import '../../navigation/home_shell.dart';
 
 class ScanResultScreen extends StatefulWidget {
   const ScanResultScreen({super.key});
@@ -68,14 +70,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     if (!mounted) return;
 
     if (success) {
+      // Refresh contacts list
+      context.read<ContactsProvider>().fetchGroupedContacts();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Contact enregistré avec succès'),
+          content: Text('Contact enregistr\u00e9 avec succ\u00e8s'),
           backgroundColor: Colors.green,
         ),
       );
       provider.reset();
-      Navigator.popUntil(context, (route) => route.isFirst);
+      // Navigate to contacts tab
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const HomeShell(initialIndex: 2),
+        ),
+        (route) => false,
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -89,36 +100,40 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CardScanProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: textColor),
           onPressed: () {
             provider.reset();
             Navigator.pop(context);
           },
         ),
-        title: const Text(
-          'Résultat du scan',
+        title: Text(
+          'R\u00e9sultat du scan',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(
-              _showRawText ? Icons.text_fields : Icons.raw_on_rounded,
-              color: Colors.white,
+          if (provider.rawText != null)
+            IconButton(
+              icon: Icon(
+                _showRawText ? Icons.text_fields : Icons.raw_on_rounded,
+                color: textColor,
+              ),
+              onPressed: () => setState(() => _showRawText = !_showRawText),
+              tooltip: 'Voir le texte brut',
             ),
-            onPressed: () => setState(() => _showRawText = !_showRawText),
-            tooltip: 'Voir le texte brut',
-          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -126,31 +141,25 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Success banner
-            _buildSuccessBanner(),
-
+            _buildSuccessBanner(isDark),
             const SizedBox(height: 24),
-
-            // Raw text toggle
             if (_showRawText && provider.rawText != null) ...[
-              _buildRawTextSection(provider.rawText!),
+              _buildRawTextSection(provider.rawText!, isDark),
               const SizedBox(height: 24),
             ],
-
-            // Form fields
-            _buildFormSection(),
+            _buildFormSection(isDark),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomActions(provider),
+      bottomNavigationBar: _buildBottomActions(provider, isDark),
     );
   }
 
-  Widget _buildSuccessBanner() {
+  Widget _buildSuccessBanner(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.1),
+        color: Colors.green.withValues(alpha: isDark ? 0.1 : 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Colors.green.withValues(alpha: 0.3),
@@ -176,7 +185,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Carte analysée avec succès',
+                  'Carte analys\u00e9e avec succ\u00e8s',
                   style: TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.w600,
@@ -185,7 +194,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Vérifiez et corrigez les informations si nécessaire',
+                  'V\u00e9rifiez et corrigez les informations si n\u00e9cessaire',
                   style: TextStyle(
                     color: Colors.green[200],
                     fontSize: 13,
@@ -199,14 +208,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildRawTextSection(String rawText) {
+  Widget _buildRawTextSection(String rawText, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -221,7 +230,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Texte détecté',
+                'Texte d\u00e9tect\u00e9',
                 style: TextStyle(
                   color: Colors.grey[400],
                   fontWeight: FontWeight.w500,
@@ -234,7 +243,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           Text(
             rawText,
             style: TextStyle(
-              color: Colors.grey[300],
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
               fontSize: 13,
               fontFamily: 'monospace',
             ),
@@ -244,14 +253,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildFormSection() {
+  Widget _buildFormSection(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Informations du contact',
           style: TextStyle(
-            color: Colors.grey[400],
+            color: Colors.grey[isDark ? 400 : 600],
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -259,23 +268,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildTextField('Prénom', _firstNameCtrl, Icons.person_outline_rounded)),
+            Expanded(child: _buildTextField('Pr\u00e9nom', _firstNameCtrl, Icons.person_outline_rounded, isDark)),
             const SizedBox(width: 12),
-            Expanded(child: _buildTextField('Nom', _lastNameCtrl, Icons.person_outline_rounded)),
+            Expanded(child: _buildTextField('Nom', _lastNameCtrl, Icons.person_outline_rounded, isDark)),
           ],
         ),
         const SizedBox(height: 16),
-        _buildTextField('Poste', _jobTitleCtrl, Icons.work_outline_rounded),
+        _buildTextField('Poste', _jobTitleCtrl, Icons.work_outline_rounded, isDark),
         const SizedBox(height: 16),
-        _buildTextField('Entreprise', _companyCtrl, Icons.business_rounded),
+        _buildTextField('Entreprise', _companyCtrl, Icons.business_rounded, isDark),
         const SizedBox(height: 16),
-        _buildTextField('Email', _emailCtrl, Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+        _buildTextField('Email', _emailCtrl, Icons.email_outlined, isDark, keyboardType: TextInputType.emailAddress),
         const SizedBox(height: 16),
-        _buildTextField('Téléphone', _phoneCtrl, Icons.phone_outlined, keyboardType: TextInputType.phone),
+        _buildTextField('T\u00e9l\u00e9phone', _phoneCtrl, Icons.phone_outlined, isDark, keyboardType: TextInputType.phone),
         const SizedBox(height: 16),
-        _buildTextField('Adresse', _addressCtrl, Icons.location_on_outlined),
+        _buildTextField('Adresse', _addressCtrl, Icons.location_on_outlined, isDark),
         const SizedBox(height: 16),
-        _buildTextField('Site web', _websiteCtrl, Icons.language_rounded, keyboardType: TextInputType.url),
+        _buildTextField('Site web', _websiteCtrl, Icons.language_rounded, isDark, keyboardType: TextInputType.url),
       ],
     );
   }
@@ -283,22 +292,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   Widget _buildTextField(
     String label,
     TextEditingController controller,
-    IconData icon, {
+    IconData icon,
+    bool isDark, {
     TextInputType? keyboardType,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
         ),
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: isDark ? Colors.white : Colors.black,
           fontSize: 15,
         ),
         decoration: InputDecoration(
@@ -309,7 +319,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           ),
           prefixIcon: Icon(
             icon,
-            color: Colors.grey[600],
+            color: Colors.grey[isDark ? 600 : 400],
             size: 20,
           ),
           border: InputBorder.none,
@@ -322,7 +332,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildBottomActions(CardScanProvider provider) {
+  Widget _buildBottomActions(CardScanProvider provider, bool isDark) {
     final isSaving = provider.state == ScanState.saving;
 
     return SafeArea(
@@ -336,21 +346,22 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               child: ElevatedButton.icon(
                 onPressed: isSaving ? null : _saveContact,
                 icon: isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.black54),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDark ? Colors.black54 : Colors.white54,
+                          ),
                         ),
                       )
                     : const Icon(Icons.save_rounded),
                 label: Text(isSaving ? 'Enregistrement...' : 'Enregistrer le contact'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  disabledBackgroundColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),

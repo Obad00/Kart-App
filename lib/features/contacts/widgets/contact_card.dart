@@ -9,12 +9,16 @@ class ContactCard extends StatefulWidget {
   final ContactModel contact;
   final VoidCallback onShare;
   final VoidCallback onEmailTap;
+  final ValueChanged<int>? onSelect;
+  final bool isSelected;
 
   const ContactCard({
     super.key,
     required this.contact,
     required this.onShare,
     required this.onEmailTap,
+    this.onSelect,
+    this.isSelected = false,
   });
 
   @override
@@ -66,55 +70,68 @@ class ContactCardState extends State<ContactCard>
         children: [
           // Carte principale — plus de Expanded
           GestureDetector(
-         onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => PublicCardPage(
-                      slug: widget.contact.cardSlug ?? '', // ✅ correction ici
-                    ),
-                   transitionsBuilder: (_, animation, __, child) {
-                    final curved = CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic, // plus naturel
-                    );
-
-                    return FadeTransition(
-                      opacity: curved,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.08), // léger slide du bas
-                          end: Offset.zero,
-                        ).animate(curved),
-                        child: ScaleTransition(
-                          scale: Tween<double>(
-                            begin: 0.96,
-                            end: 1.0,
-                          ).animate(curved),
-                          child: child,
+            onTap: widget.isSelected
+                ? () {
+                    HapticFeedback.lightImpact();
+                    widget.onSelect?.call(widget.contact.id);
+                  }
+                : () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => PublicCardPage(
+                          slug: widget.contact.cardSlug ?? '',
                         ),
+                        transitionsBuilder: (_, animation, __, child) {
+                          final curved = CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          );
+
+                          return FadeTransition(
+                            opacity: curved,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.08),
+                                end: Offset.zero,
+                              ).animate(curved),
+                              child: ScaleTransition(
+                                scale: Tween<double>(
+                                  begin: 0.96,
+                                  end: 1.0,
+                                ).animate(curved),
+                                child: child,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
-
-                    ),
-                );
-              },
+            onLongPress: () {
+              HapticFeedback.mediumImpact();
+              widget.onSelect?.call(widget.contact.id);
+            },
             child: DefaultTextStyle.merge(
               style: const TextStyle(decoration: TextDecoration.none),
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.04),
+                  color: widget.isSelected
+                      ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(20.0),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.08),
+                    color: widget.isSelected
+                        ? const Color(0xFF3B82F6)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.08),
+                    width: widget.isSelected ? 2 : 1,
                   ),
                 ),
                 child: Padding(
@@ -125,28 +142,50 @@ class ContactCardState extends State<ContactCard>
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Avatar
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _getInitials(widget.contact.fullname),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                      // Avatar with checkbox
+                      Stack(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _getInitials(widget.contact.fullname),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          if (widget.isSelected)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 18,
+                                height: 18,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 8),
 

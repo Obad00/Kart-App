@@ -65,6 +65,9 @@ dependencies:
   #Camera for card scanner
   camera: ^0.10.5+5
 
+  # CSV export
+  csv: ^6.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

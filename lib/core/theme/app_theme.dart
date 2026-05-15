@@ -39,32 +39,32 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black12,
       ),
-      textTheme: GoogleFonts.archivoTextTheme(base.textTheme).copyWith(
-        headlineLarge: GoogleFonts.archivo(
+      textTheme: GoogleFonts.syneTextTheme(base.textTheme).copyWith(
+        headlineLarge: GoogleFonts.syne(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: _lightTextPrimary,
           letterSpacing: -0.5,
         ),
-        headlineMedium: GoogleFonts.archivo(
+        headlineMedium: GoogleFonts.syne(
           fontSize: 24,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        titleLarge: GoogleFonts.archivo(
+        titleLarge: GoogleFonts.syne(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        bodyLarge: GoogleFonts.archivo(
+        bodyLarge: GoogleFonts.syne(
           fontSize: 16,
           color: _lightTextPrimary,
         ),
-        bodyMedium: GoogleFonts.archivo(
+        bodyMedium: GoogleFonts.syne(
           fontSize: 14,
           color: _lightTextSecondary,
         ),
-        labelMedium: GoogleFonts.archivo(
+        labelMedium: GoogleFonts.syne(
           fontSize: 12,
           color: _lightTextSecondary,
           fontWeight: FontWeight.w500,
@@ -136,7 +136,7 @@ highlightColor: _accentBlue.withValues(alpha: 0.05)    );
         onPrimary: _softBlack,
         onSurface: _softWhite,
       ),
-      textTheme: GoogleFonts.archivoTextTheme(
+      textTheme: GoogleFonts.syneTextTheme(
         base.textTheme.apply(bodyColor: _softWhite, displayColor: _softWhite),
       ),
       cardTheme: const CardThemeData(

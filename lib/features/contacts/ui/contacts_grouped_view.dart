@@ -1,7 +1,13 @@
+import 'dart:io';
+
+import 'package:csv/csv.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
 import '../providers/contacts_provider.dart';
@@ -14,13 +20,13 @@ class ContactsGroupedView extends StatefulWidget {
   const ContactsGroupedView({super.key});
 
   @override
-  State<ContactsGroupedView> createState() => _ContactsGroupedViewState();
+  State<ContactsGroupedView> createState() => ContactsGroupedViewState();
 }
 
-class _ContactsGroupedViewState extends State<ContactsGroupedView> {
+class ContactsGroupedViewState extends State<ContactsGroupedView> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final Set<int> _selectedContacts = {};
+  final Set<int> selectedContacts = {};
 
   final List<String> exampleMessages = [
     "Ravi de vous rencontrer ! 🤝",
@@ -42,6 +48,121 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     _searchController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> exportSelectedContacts() async {
+    if (selectedContacts.isEmpty) {
+      _showSnackBar(
+        title: 'Aucun contact sélectionné',
+        subtitle: 'Sélectionnez au moins un contact',
+        icon: Icons.info_rounded,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    _exportContactsAsCSV();
+  }
+
+  Future<void> _exportContactsAsCSV() async {
+    try {
+      final provider = context.read<ContactsProvider>();
+      final allContacts = _getAllContacts(provider);
+      final selectedContactsList = allContacts
+          .where((contact) => selectedContacts.contains(contact.id))
+          .toList();
+
+      if (selectedContactsList.isEmpty) {
+        _showSnackBar(
+          title: 'Erreur',
+          subtitle: 'Impossible de trouver les contacts sélectionnés',
+          icon: Icons.error_rounded,
+          iconColor: Colors.red,
+        );
+        return;
+      }
+
+      // Prepare CSV headers
+      final headers = [
+        'Nom',
+        'Email',
+        'Téléphone',
+        'Entreprise',
+        'Poste',
+        'LinkedIn',
+        'Twitter',
+        'Facebook',
+        'Instagram',
+        'Site Web'
+      ];
+
+      // Prepare CSV rows
+      final rows = selectedContactsList.map((contact) => [
+            contact.fullname,
+            contact.email ?? '',
+            contact.phone ?? '',
+            contact.company ?? '',
+            contact.job ?? '',
+            contact.linkedin ?? '',
+            contact.twitter ?? '',
+            contact.facebook ?? '',
+            contact.instagram ?? '',
+            contact.website ?? '',
+          ]).toList();
+
+      // Generate CSV
+      final csvData =
+          const ListToCsvConverter().convert([headers, ...rows]);
+
+      // Save to file
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName =
+          'contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsString(csvData);
+
+      if (!mounted) return;
+
+      // Share file
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: 'Mes contacts KART',
+        ),
+      );
+
+      if (!mounted) return;
+
+      selectedContacts.clear();
+      setState(() {});
+
+      _showSnackBar(
+        title: 'Succès',
+        subtitle:
+            '${selectedContactsList.length} contact(s) exporté(s) en CSV',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ _exportContactsAsCSV Exception: $e');
+      _showSnackBar(
+        title: 'Erreur d\'export',
+        subtitle:
+            'Une erreur est survenue lors de l\'export : ${e.toString()}',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    }
+  }
+
+  List<ContactModel> _getAllContacts(ContactsProvider provider) {
+    final allContacts = <ContactModel>[];
+    for (final group in provider.groups) {
+      allContacts.addAll(group.contacts);
+    }
+    return allContacts;
   }
 
   Future<void> _shareContact({
@@ -181,7 +302,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
     bool isSending = false;
 
     if (contactId != null) {
-      _selectedContacts.add(contactId);
+      selectedContacts.add(contactId);
     }
 
     const companyColor = _themeBlue;
@@ -192,7 +313,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           Future<void> sendEmails() async {
-            if (_selectedContacts.isEmpty) return;
+            if (selectedContacts.isEmpty) return;
 
             final content = _emailController.text.trim();
 
@@ -213,9 +334,9 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
 
             try {
               await provider.sendMessage(
-                contactIds: _selectedContacts.toList(),
+                contactIds: selectedContacts.toList(),
                 content: content,
-                type: _selectedContacts.length > 1 ? 'group' : 'single',
+                type: selectedContacts.length > 1 ? 'group' : 'single',
               );
 
               // ✅ Vérifier dialogContext.mounted au lieu de mounted
@@ -233,7 +354,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
               );
 
               _emailController.clear();
-              setState(() => _selectedContacts.clear());
+              setState(() => selectedContacts.clear());
             } catch (e) {
               if (!mounted) return;
               _showSnackBar(
@@ -308,10 +429,10 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     letterSpacing: -0.5,
                                   ),
                                 ),
-                                if (_selectedContacts.length > 1) ...[
+                                if (selectedContacts.length > 1) ...[
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${_selectedContacts.length} destinataires',
+                                    '${selectedContacts.length} destinataires',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Theme.of(context)
@@ -329,7 +450,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 ? null
                                 : () {
                                     if (contactId != null) {
-                                      _selectedContacts.remove(contactId);
+                                      selectedContacts.remove(contactId);
                                     }
                                     Navigator.of(dialogContext).pop();
                                   },
@@ -510,7 +631,7 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                   ? null
                                   : () {
                                       if (contactId != null) {
-                                        _selectedContacts.remove(contactId);
+                                        selectedContacts.remove(contactId);
                                       }
                                       Navigator.of(dialogContext).pop();
                                     },
@@ -1185,6 +1306,16 @@ class _ContactsGroupedViewState extends State<ContactsGroupedView> {
                                     final c = group.contacts[contactIndex];
                                     return ContactCard(
                                       contact: c,
+                                      isSelected: selectedContacts.contains(c.id),
+                                      onSelect: (id) {
+                                        setState(() {
+                                          if (selectedContacts.contains(id)) {
+                                            selectedContacts.remove(id);
+                                          } else {
+                                            selectedContacts.add(id);
+                                          }
+                                        });
+                                      },
                                       onShare: () {
                                         HapticFeedback.lightImpact();
                                         _openShareContactPopup(c);

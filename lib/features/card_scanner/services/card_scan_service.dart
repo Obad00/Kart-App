@@ -9,7 +9,7 @@ class CardScanService {
 
   Future<CardScanResult> scanCard(File imageFile) async {
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
+      'image': await MultipartFile.fromFile(
         imageFile.path,
         filename: imageFile.path.split('/').last,
       ),
@@ -27,13 +27,15 @@ class CardScanService {
       );
 
       if (response.data['success'] == true) {
+        final contactData = response.data['contact'] as Map<String, dynamic>? ?? {};
+        final extractedData = response.data['extracted_data'] as Map<String, dynamic>? ?? {};
+
         return CardScanResult(
           success: true,
-          contact: ScannedContact.fromJson(
-            response.data['data'],
-            response.data['raw_text'],
+          contact: ScannedContact.fromScanResponse(
+            contact: contactData,
+            extractedData: extractedData,
           ),
-          rawText: response.data['raw_text'],
         );
       }
 
@@ -65,10 +67,12 @@ class CardScanService {
     }
   }
 
-  Future<bool> saveContact(ScannedContact contact) async {
+  /// Update the auto-created contact with user-corrected data
+  Future<bool> updateContact(ScannedContact contact) async {
+    if (contact.id == null) return false;
     try {
-      await _dio.post(
-        ApiEndpoints.contacts,
+      await _dio.put(
+        '${ApiEndpoints.contacts}/${contact.id}',
         data: contact.toJson(),
       );
       return true;

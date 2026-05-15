@@ -41,9 +41,20 @@ class CardScanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const int maxFileSizeBytes = 2 * 1024 * 1024; // 2 MB
+
   Future<bool> scanCard() async {
     if (selectedImage == null) {
       error = 'Aucune image sélectionnée';
+      notifyListeners();
+      return false;
+    }
+
+    // Validate file size (2 MB max)
+    final fileSize = await selectedImage!.length();
+    if (fileSize > maxFileSizeBytes) {
+      error = 'L\'image est trop volumineuse (max 2 Mo). Veuillez choisir une image plus petite.';
+      state = ScanState.error;
       notifyListeners();
       return false;
     }
@@ -111,7 +122,7 @@ class CardScanProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
 
-    final success = await _service.saveContact(scannedContact!);
+    final success = await _service.updateContact(scannedContact!);
 
     if (success) {
       state = ScanState.idle;
