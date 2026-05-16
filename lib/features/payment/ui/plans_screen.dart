@@ -42,6 +42,9 @@ class _PlansScreenState extends State<PlansScreen> {
         centerTitle: true,
       ),
       body: _buildBody(provider),
+      bottomNavigationBar: provider.selectedPlan != null
+          ? _buildBottomButton()
+          : null,
     );
   }
 
@@ -224,18 +227,8 @@ class _PlansScreenState extends State<PlansScreen> {
     );
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _buildBottomButton();
-  }
-
   Widget _buildBottomButton() {
     final provider = context.watch<PaymentProvider>();
-
-    if (provider.selectedPlan == null) {
-      return const SizedBox.shrink();
-    }
 
     return SafeArea(
       child: Padding(

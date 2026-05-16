@@ -14,6 +14,9 @@ class Company {
   final int maxUsers;
   final int? subscriptionId;
   final bool isActive;
+  final String? address;
+  final String? phone;
+  final String? email;
 
   Company({
     required this.id,
@@ -29,6 +32,9 @@ class Company {
     required this.maxUsers,
     this.subscriptionId,
     required this.isActive,
+    this.address,
+    this.phone,
+    this.email,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) {
@@ -53,6 +59,9 @@ class Company {
       maxUsers: int.tryParse(json['max_users']?.toString() ?? '1') ?? 1,
       subscriptionId: json['subscription_id'] != null ? int.tryParse(json['subscription_id'].toString()) : null,
       isActive: json['is_active'] == 1 || json['is_active'] == true,
+      address: json['address'],
+      phone: json['phone'],
+      email: json['email'],
     );
   }
 
@@ -71,6 +80,9 @@ class Company {
       'max_users': maxUsers,
       'subscription_id': subscriptionId,
       'is_active': isActive,
+      'address': address,
+      'phone': phone,
+      'email': email,
     };
   }
 }

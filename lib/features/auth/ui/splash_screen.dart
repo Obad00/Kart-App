@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
+// Import destinations so we can use a custom animated transition
 import 'login_page.dart';
 import '../../navigation/home_shell.dart';
 
@@ -15,74 +16,56 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _mainController;
-  late AnimationController _floatController;
-  late Animation<double> _logoFade;
-  late Animation<double> _logoScale;
-  late Animation<Offset> _textSlide;
-  late Animation<double> _featureFade;
-  late Animation<Offset> _featureSlide;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _lineAnimation;
 
   @override
   void initState() {
     super.initState();
-
-    // Main sequence controller
-    _mainController = AnimationController(
-      duration: const Duration(milliseconds: 3500),
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 2200),
       vsync: this,
     );
 
-    // Float animation for continuous bobbing
-    _floatController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
-      vsync: this,
-    )..repeat();
-
-    // Logo fade
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // Fade-in du logo: 0ms -> 800ms
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.25, curve: Curves.easeOut),
+        parent: _animationController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
       ),
     );
 
-    // Logo scale + bob
-    _logoScale = Tween<double>(begin: 0.8, end: 1.0).animate(
+    // Scale subtil du logo: 200ms -> 1400ms
+    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.05, 0.35, curve: Curves.easeOutCubic),
+        parent: _animationController,
+        curve: const Interval(0.1, 0.65, curve: Curves.easeOutCubic),
       ),
     );
 
-    // Tagline slides up
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
+    // Glow blanc doux: commence tard et grandit progressivement
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.2, 0.5, curve: Curves.easeOut),
+        parent: _animationController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
       ),
     );
 
-    // Features appear
-    _featureFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // Ligne blanche qui se trace: 1000ms -> 2000ms
+    _lineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.4, 0.7, curve: Curves.easeOut),
+        parent: _animationController,
+        curve: const Interval(0.45, 0.95, curve: Curves.easeInOut),
       ),
     );
 
-    _featureSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
-        .animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.4, 0.7, curve: Curves.easeOut),
-      ),
-    );
+    _animationController.forward();
 
-    _mainController.forward();
-
-    _mainController.addStatusListener((status) {
+    // When the splash animation completes, wait for auth initialization then navigate
+    _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _navigateAfterInit();
       }
@@ -91,37 +74,54 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _navigateAfterInit() async {
     final auth = context.read<AuthProvider>();
+
+    // Attendre que l'auth provider ait terminé son initialisation
     await auth.waitForInit();
+
+    // Petit délai pour une transition fluide
     await Future.delayed(const Duration(milliseconds: 150));
 
     if (!mounted) return;
 
+    debugPrint('🔐 Auth state after init: isAuthenticated=${auth.isAuthenticated}, user=${auth.user?.email}');
+
     final Widget destinationPage =
         auth.isAuthenticated ? const HomeShell() : const LoginPage();
+
     Navigator.of(context).pushReplacement(_createRoute(destinationPage));
   }
 
   @override
   void dispose() {
-    _mainController.dispose();
-    _floatController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
+  // Helper that creates a subtle, modern transition: fade + slight slide + tiny scale
   Route _createRoute(Widget page) {
     return PageRouteBuilder(
+      settings: RouteSettings(name: page.runtimeType.toString()),
+      transitionDuration: const Duration(milliseconds: 520),
+      reverseTransitionDuration: const Duration(milliseconds: 380),
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Simpler, smoother: fade in while sliding upward a tiny bit
         final curved =
             CurvedAnimation(parent: animation, curve: Curves.easeInOut);
-        final fade = Tween<double>(begin: 0.0, end: 1.0).animate(curved);
+        final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+                parent: animation,
+                curve: const Interval(0.0, 1.0, curve: Curves.easeInOut)));
         final slide =
-            Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
+            Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero)
                 .animate(curved);
 
         return FadeTransition(
           opacity: fade,
-          child: SlideTransition(position: slide, child: child),
+          child: SlideTransition(
+            position: slide,
+            child: child,
+          ),
         );
       },
     );
@@ -130,267 +130,68 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF0A0E27),
-              const Color(0xFF1A1F3A),
-              const Color(0xFF2D1B4E),
-              const Color(0xFF0F0F1E),
+              const Color(0xFF0A0A0A),
+              const Color(0xFF1A1A1A),
+              const Color(0xFF0D0D0D),
             ],
-            stops: const [0.0, 0.3, 0.6, 1.0],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
-        child: Stack(
-          children: [
-            // Background animated orbs
-            Positioned(
-              top: -100,
-              right: -100,
-              child: AnimatedBuilder(
-                animation: _floatController,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(
-                      30 * math.sin(_floatController.value * 2 * math.pi),
-                      30 * math.cos(_floatController.value * 2 * math.pi),
-                    ),
-                    child: Container(
-                      width: 250,
-                      height: 250,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                            const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF3B82F6)
-                                .withValues(alpha: 0.1),
-                            blurRadius: 80,
-                            spreadRadius: 40,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              bottom: -80,
-              left: -80,
-              child: AnimatedBuilder(
-                animation: _floatController,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(
-                      -25 * math.sin(_floatController.value * 2 * math.pi),
-                      -25 * math.cos(_floatController.value * 2 * math.pi),
-                    ),
-                    child: Container(
-                      width: 300,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                            const Color(0xFF3B82F6).withValues(alpha: 0.05),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF8B5CF6)
-                                .withValues(alpha: 0.08),
-                            blurRadius: 100,
-                            spreadRadius: 50,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Content
-            Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo with animations
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      // Logo with floating animation
-                      FadeTransition(
-                        opacity: _logoFade,
-                        child: ScaleTransition(
-                          scale: _logoScale,
-                          child: AnimatedBuilder(
-                            animation: _floatController,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(
-                                  0,
-                                  -15 *
-                                      math.sin(
-                                          _floatController.value * 2 * math.pi),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        const Color(0xFF3B82F6)
-                                            .withValues(alpha: 0.1),
-                                        const Color(0xFF8B5CF6)
-                                            .withValues(alpha: 0.05),
-                                      ],
-                                    ),
-                                    border: Border.all(
-                                      color: const Color(0xFF3B82F6)
-                                          .withValues(alpha: 0.2),
-                                      width: 1,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF3B82F6)
-                                            .withValues(alpha: 0.3),
-                                        blurRadius: 30,
-                                        spreadRadius: 10,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Text(
-                                    '📇',
-                                    style: TextStyle(fontSize: 56),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // Main text
-                      FadeTransition(
-                        opacity: _logoFade,
-                        child: SlideTransition(
-                          position: _textSlide,
-                          child: Column(
-                            children: [
-                              Text(
-                                'KART',
-                                style: TextStyle(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 3,
-                                  color: Colors.white,
-                                  shadows: [
-                                    BoxShadow(
-                                      color: const Color(0xFF3B82F6)
-                                          .withValues(alpha: 0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Cartes de visite à l\'ère digitale',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
-                                  letterSpacing: 1.2,
-                                  color: Colors.white.withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 50),
-
-                      // Features
-                      SlideTransition(
-                        position: _featureSlide,
-                        child: FadeTransition(
-                          opacity: _featureFade,
-                          child: Container(
-                            padding: const EdgeInsets.all(24),
+                      // Glow effect
+                      AnimatedBuilder(
+                        animation: _glowAnimation,
+                        builder: (context, child) {
+                          return Container(
+                            width: 120 + (_glowAnimation.value * 30),
+                            height: 120 + (_glowAnimation.value * 30),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFF3B82F6)
-                                    .withValues(alpha: 0.1),
-                              ),
-                              color: Color(0xFF0A0E27)
-                                  .withValues(alpha: 0.5),
-                            ),
-                            child: Column(
-                              children: [
-                                _featureRow(
-                                  '✓',
-                                  'Scanner & stocker',
-                                  'Capturez les cartes en un clic',
-                                ),
-                                const SizedBox(height: 16),
-                                _featureRow(
-                                  '✓',
-                                  'Partager votre carte',
-                                  'Digitale, toujours avec vous',
-                                ),
-                                const SizedBox(height: 16),
-                                _featureRow(
-                                  '✓',
-                                  'Exporter vos contacts',
-                                  'En CSV pour plus de flexibilité',
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(
+                                      alpha: 0.15 * _glowAnimation.value),
+                                  blurRadius: 30 + (_glowAnimation.value * 20),
+                                  spreadRadius:
+                                      10 + (_glowAnimation.value * 15),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
 
-                      const SizedBox(height: 50),
-
-                      // Loading indicator
-                      FadeTransition(
-                        opacity: _featureFade,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  const Color(0xFF3B82F6)
-                                      .withValues(alpha: 0.6),
-                                ),
-                                strokeWidth: 2,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Initialisation...',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 1,
-                              ),
+                      // Logo text
+                      Text(
+                        'KART',
+                        style: TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 4.5,
+                          color: Colors.white,
+                          shadows: [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -399,47 +200,101 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _featureRow(String icon, String title, String subtitle) {
-    return Row(
-      children: [
-        Text(
-          icon,
-          style: const TextStyle(fontSize: 20, color: Color(0xFF3B82F6)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+              const SizedBox(height: 60),
+
+              // Animated line under logo
+              FadeTransition(
+                opacity: _lineAnimation,
+                child: CustomPaint(
+                  painter: AnimatedLinePainter(_lineAnimation.value),
+                  size: const Size(80, 2),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withValues(alpha: 0.5),
+
+              const SizedBox(height: 40),
+
+              // Subtle loading indicator (optional premium touch)
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CustomPaint(
+                    painter: PremiumLoaderPainter(_animationController.value),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
+}
+
+/// Painter for the animated line
+class AnimatedLinePainter extends CustomPainter {
+  final double progress;
+
+  AnimatedLinePainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.8)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    // Ligne qui se trace progressivement
+    final endX = size.width * progress;
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(endX, size.height / 2),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(AnimatedLinePainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+/// Premium subtle loader painter
+class PremiumLoaderPainter extends CustomPainter {
+  final double progress;
+
+  PremiumLoaderPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // Draw subtle rotating dots instead of arc for premium feel
+    final angle = progress * 2 * 3.14159;
+
+    // Three dots rotating
+    for (int i = 0; i < 3; i++) {
+      final dotAngle = angle + (i * 2 * 3.14159 / 3);
+      final dotX = center.dx + radius * 0.8 * math.cos(dotAngle);
+      final dotY = center.dy + radius * 0.8 * math.sin(dotAngle);
+
+      canvas.drawCircle(
+        Offset(dotX, dotY),
+        1.2,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(PremiumLoaderPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
