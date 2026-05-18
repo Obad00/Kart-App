@@ -289,11 +289,609 @@ dependencies:
 
 ---
 
-## 8. Production Checklist
+### Configuration Web
 
-- [ ] Remplacer `baseUrl` par l'URL de production
-- [ ] Créer des Client IDs de production (Google)
-- [ ] Désactiver `usesCleartextTraffic`
-- [ ] Configurer les SHA-1 de release pour Android
-- [ ] Tester le flow complet de paiement
-- [ ] Tester Google Sign-In sur device réel
+#### 3.1 Créer le Client ID Web
+
+1. Dans Google Cloud Console, aller dans **APIs & Services > Credentials**
+2. Créer un **OAuth 2.0 Client ID** de type **Web application**
+3. Ajouter les URI autorisés :
+   - `http://localhost:3000` (développement)
+   - `http://localhost:5000` (Flutter web dev)
+   - `https://yourdomain.com` (production)
+4. Copier le Client ID
+
+#### 3.2 Configurer dans l'app
+
+Dans `lib/features/auth/providers/auth_provider.dart` :
+
+```dart
+const String _kGoogleSignInClientId =
+    String.fromEnvironment('GOOGLE_SIGN_IN_CLIENT_ID', defaultValue: '');
+
+final GoogleSignIn _googleSignIn = GoogleSignIn(
+  scopes: ['email', 'profile'],
+  clientId: kIsWeb && _kGoogleSignInClientId.isNotEmpty
+      ? _kGoogleSignInClientId
+      : null,
+);
+```
+
+#### 3.3 Lancer sur web avec la variable
+
+```bash
+# Flutter web avec client ID
+flutter run -d chrome \
+  --define GOOGLE_SIGN_IN_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
+```
+
+---
+
+## 3. Configuration des Paiements
+
+### 3.1 Stripe (Recommandé)
+
+#### A. Créer un compte Stripe
+
+1. S'inscrire sur [stripe.com](https://stripe.com)
+2. Aller dans Dashboard → Developers → API Keys
+3. Copier la **Publishable Key** et **Secret Key**
+
+#### B. Configuration Backend (Laravel)
+
+Dans `.env` du backend :
+
+```env
+STRIPE_PUBLIC_KEY=pk_test_xxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxx
+```
+
+#### C. Configuration Frontend
+
+Dans `lib/core/network/api_endpoints.dart` :
+
+```dart
+class ApiEndpoints {
+  static const paymentInitialize = '/payments/initialize';
+  static const paymentStatus(String reference) => '/payments/$reference/status';
+}
+```
+
+#### D. WebView pour paiement
+
+Dans `lib/features/payment/ui/payment_processing_screen.dart` :
+
+```dart
+class PaymentProcessingScreen extends StatefulWidget {
+  final String paymentUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Payment Processing')),
+      body: WebViewWidget(
+        controller: WebViewController()
+          ..loadRequest(Uri.parse(paymentUrl)),
+      ),
+    );
+  }
+}
+```
+
+### 3.2 PayPal (Alternatif)
+
+#### A. Créer un compte PayPal
+
+1. S'inscrire sur [developer.paypal.com](https://developer.paypal.com)
+2. Créer une application
+3. Copier les credentials
+
+#### B. Configuration Backend
+
+```env
+PAYPAL_CLIENT_ID=xxxxx
+PAYPAL_SECRET=xxxxx
+```
+
+---
+
+## 4. Configuration du Scanner de Cartes
+
+### 4.1 Mobile Scanner (QR Code)
+
+#### A. Installation
+
+```bash
+flutter pub add mobile_scanner
+```
+
+#### B. Configuration iOS
+
+Dans `ios/Podfile` :
+
+```ruby
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+      ]
+    end
+  end
+end
+```
+
+#### C. Configuration Android
+
+Dans `android/app/build.gradle` :
+
+```gradle
+dependencies {
+  implementation 'androidx.core:core:1.6.0'
+}
+```
+
+### 4.2 Camera + OCR (Business Card Scan)
+
+#### A. Dépendances
+
+```bash
+flutter pub add camera
+flutter pub add image_picker
+flutter pub add image_cropper
+```
+
+#### B. Configuration iOS
+
+Dans `ios/Runner/Info.plist` :
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>KART a besoin d'accéder à la caméra pour scanner les cartes</string>
+
+<key>NSPhotoLibraryUsageDescription</key>
+<string>KART a besoin d'accéder à vos photos pour importer une carte</string>
+```
+
+#### C. Configuration Android
+
+Dans `android/app/src/main/AndroidManifest.xml` :
+
+```xml
+<uses-permission android:name="android.permission.CAMERA"/>
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+<uses-feature android:name="android.hardware.camera" android:required="false"/>
+```
+
+### 4.3 API Backend pour OCR
+
+L'endpoint `/card-scan` doit accepter une image et retourner les données extraites :
+
+```
+POST /card-scan
+Content-Type: multipart/form-data
+
+Form data:
+- image: <file>
+- auto_extract: true
+
+Response:
+{
+  "success": true,
+  "extracted_data": {
+    "fullname": "Marie Martin",
+    "email": "marie@example.com",
+    "phone": "+33612345678",
+    "company": "Tech Corp",
+    "job": "Manager"
+  },
+  "confidence_score": 0.85
+}
+```
+
+---
+
+## 5. Configuration Firebase (Optionnel)
+
+### 5.1 Authentication avec Firebase
+
+#### A. Créer un projet Firebase
+
+1. Aller sur [console.firebase.google.com](https://console.firebase.google.com)
+2. Créer un nouveau projet
+3. Activer Authentication
+
+#### B. Configuration iOS
+
+Télécharger `GoogleService-Info.plist` dans Firebase Console :
+- Placer dans `ios/Runner/`
+- Configurer Xcode
+
+#### C. Configuration Android
+
+Télécharger `google-services.json` :
+- Placer dans `android/app/`
+
+### 5.2 Cloud Messaging (Notifications)
+
+```bash
+flutter pub add firebase_messaging
+```
+
+Configuration :
+- Activer Cloud Messaging dans Firebase Console
+- Récupérer les tokens d'appareils
+- Envoyer les notifications via le backend
+
+---
+
+## 6. Configuration des Variables d'Environnement
+
+### 6.1 Fichier `.env` (développement)
+
+Créer `.env` à la racine du projet :
+
+```env
+# API
+API_BASE_URL=http://localhost:8000/api
+API_STORAGE_URL=http://localhost:8000/storage
+
+# Google OAuth
+GOOGLE_SIGN_IN_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_SIGN_IN_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
+
+# Paiements
+STRIPE_PUBLIC_KEY=pk_test_xxxxx
+PAYPAL_CLIENT_ID=xxxxx
+
+# Firebase (optionnel)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_API_KEY=xxxxx
+```
+
+### 6.2 Charger les variables
+
+Dans `lib/main.dart` :
+
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+void main() async {
+  await dotenv.load(fileName: '.env');
+  runApp(const KartApp());
+}
+```
+
+### 6.3 Accéder aux variables
+
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final apiUrl = dotenv.env['API_BASE_URL']!;
+final googleClientId = dotenv.env['GOOGLE_SIGN_IN_CLIENT_ID']!;
+```
+
+---
+
+## 7. Installation du Backend Local
+
+### 7.1 Prérequis
+
+```bash
+# macOS
+brew install php composer mysql
+
+# Linux (Ubuntu)
+sudo apt install php composer mysql-server
+
+# Windows
+# Télécharger XAMPP ou Laragon
+```
+
+### 7.2 Clone et configuration
+
+```bash
+# Clone backend
+git clone https://github.com/your-org/kart-backend.git
+cd kart-backend
+
+# Installer les dépendances
+composer install
+
+# Créer le fichier .env
+cp .env.example .env
+
+# Générer la clé d'application
+php artisan key:generate
+
+# Créer la base de données
+php artisan migrate --seed
+
+# Démarrer le serveur
+php artisan serve
+```
+
+### 7.3 Fichier `.env` backend
+
+```env
+APP_NAME="KART API"
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=kart_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+MAIL_DRIVER=mailgun
+MAILGUN_DOMAIN=your-domain.com
+MAILGUN_SECRET=your-secret
+
+STRIPE_PUBLIC_KEY=pk_test_xxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxx
+```
+
+---
+
+## 8. Vérification du Setup
+
+### 8.1 Checklist de configuration
+
+```bash
+# 1. Vérifier Flutter
+flutter doctor
+
+# 2. Vérifier les dépendances
+flutter pub get
+
+# 3. Vérifier Android
+cd android && ./gradlew signingReport
+
+# 4. Vérifier iOS
+cd ios && pod install
+
+# 5. Vérifier la connexion à l'API
+curl http://localhost:8000/api/health
+
+# 6. Vérifier Google OAuth
+# - Essayer de se connecter avec Google
+```
+
+### 8.2 Test de la configuration
+
+```bash
+# Lancer l'app
+flutter run
+
+# Tester la connexion
+# 1. Appuyer sur "Se connecter"
+# 2. Entrer email/password
+# 3. Si succès → vérifier les logs
+
+# Tester Google Sign-In
+# 1. Appuyer sur "Sign in with Google"
+# 2. Sélectionner le compte Google
+# 3. Si succès → app ouvre HomeShell
+
+# Tester la caméra
+# 1. Aller à l'onglet "Scanner"
+# 2. Appuyer sur "Capturer une carte"
+# 3. Prendre une photo d'une vraie carte
+```
+
+---
+
+## 9. Commandes Utiles
+
+### 9.1 Développement
+
+```bash
+# Nettoyer et reconstruire
+flutter clean
+flutter pub get
+
+# Lancer en debug
+flutter run
+
+# Lancer sur un device spécifique
+flutter run -d emulator-5554
+
+# Lancer sur iOS
+flutter run -d iphone
+
+# Lancer sur web
+flutter run -d chrome
+
+# Lancer en mode profile (performance)
+flutter run --profile
+
+# Voir les logs
+flutter logs
+
+# Rebuild quand un fichier change
+flutter run --watch
+```
+
+### 9.2 Débogage
+
+```bash
+# Ouvrir DevTools
+flutter pub global run devtools
+
+# Profiler les performances
+flutter run --profile
+
+# Analyser le code
+flutter analyze
+
+# Formater le code
+dart format lib/
+
+# Linter Dart
+flutter pub run flutter_lints
+```
+
+### 9.3 Build
+
+```bash
+# Build APK (debug)
+flutter build apk --debug
+
+# Build APK (release)
+flutter build apk --release
+
+# Build AppBundle
+flutter build appbundle --release
+
+# Build iOS
+flutter build ios --release
+
+# Build web
+flutter build web --release
+```
+
+---
+
+## 10. Troubleshooting Courants
+
+### 10.1 Google Sign-In ne fonctionne pas
+
+**Problème** : "Invalid client" error
+
+**Solution** :
+```bash
+# 1. Vérifier le SHA-1 d'Android
+cd android && ./gradlew signingReport
+
+# 2. Ajouter le SHA-1 à Google Cloud Console
+# 3. Régénérer les credentials
+
+# 4. Redémarrer l'app
+flutter clean && flutter run
+```
+
+### 10.2 Connexion API échoue
+
+**Problème** : "Connection refused"
+
+**Solution** :
+```bash
+# 1. Vérifier que le backend est en cours d'exécution
+php artisan serve
+
+# 2. Vérifier l'URL dans api_endpoints.dart
+# 3. Si sur émulateur Android, utiliser 10.0.2.2 au lieu de 127.0.0.1
+
+# 4. Vérifier les logs du backend
+tail -f storage/logs/laravel.log
+```
+
+### 10.3 Permissions manquantes Android
+
+**Problème** : App crash lors du scan
+
+**Solution** :
+```xml
+<!-- Ajouter à AndroidManifest.xml -->
+<uses-permission android:name="android.permission.CAMERA"/>
+<uses-permission android:name="android.permission.INTERNET"/>
+```
+
+### 10.4 Erreur "usesCleartextTraffic"
+
+**Problème** : WebView n'ouvre pas les URLs HTTP
+
+**Solution** :
+```xml
+<!-- android/app/src/main/AndroidManifest.xml -->
+<application android:usesCleartextTraffic="true">
+```
+
+---
+
+## 11. Architecture du Setup
+
+```
+Frontend (Flutter)
+├── local config
+│   ├── pubspec.yaml (dépendances)
+│   ├── .env (variables)
+│   └── firebase config (optionnel)
+└── connects to →
+
+Backend (Laravel)
+├── .env config
+│   ├── Database (MySQL)
+│   ├── API keys (Stripe, etc)
+│   └── OAuth secrets
+└── provides API to Frontend
+
+External Services
+├── Google Cloud (OAuth)
+├── Stripe/PayPal (Paiements)
+├── Firebase (Notifications)
+└── Mobile scanners (Camera)
+```
+
+---
+
+## 12. Support des Environnements
+
+### 12.1 Développement
+
+```bash
+# Terminal 1: Backend
+cd backend && php artisan serve
+
+# Terminal 2: Frontend
+cd kart_app && flutter run
+```
+
+### 12.2 Staging (sur serveur)
+
+```bash
+# Backend: https://staging-api.kart.com
+# Frontend: flutter run --release avec API staging
+```
+
+### 12.3 Production
+
+```bash
+# Backend: https://api.kart.com
+# Frontend: Play Store / App Store
+
+# Vérifier:
+# - usesCleartextTraffic disabled
+# - HTTPS enforced
+# - Secrets not in code
+```
+
+---
+
+## 13. Production Checklist
+
+- [ ] Backend déployé et testé
+- [ ] Google OAuth Client IDs configurés (dev + prod)
+- [ ] Stripe/PayPal intégré et testé
+- [ ] Camera permissions bien configurées
+- [ ] Variables d'environnement définies
+- [ ] SecureStorage configuré pour tokens
+- [ ] HTTPS enforced
+- [ ] usesCleartextTraffic disabled pour production
+- [ ] SHA-1 de release ajouté à Google Cloud
+- [ ] Notifications push testées (Firebase)
+- [ ] WebView SSL configured
+- [ ] App icon et splash screen finalisés
+- [ ] Release notes écrites
+- [ ] Build APK/AAB testés sur device réel
+- [ ] Store listings complétés
+- [ ] Privacy policy et Terms of Service en place
+- [ ] Analytics configurés
+- [ ] Crash reporting configuré
+- [ ] Rollout strategy définie
+- [ ] Emergency rollback plan en place
