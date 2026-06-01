@@ -33,7 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication  related
 app.*.symbols
 
 # Obfuscation related
@@ -44,3 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /graphify-out
+/app-image
+fixed.md

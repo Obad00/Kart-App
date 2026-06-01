@@ -17,7 +17,9 @@ import '../widgets/contact_card.dart';
 const Color _themeBlue = Color(0xFF3B82F6);
 
 class ContactsGroupedView extends StatefulWidget {
-  const ContactsGroupedView({super.key});
+  final ValueChanged<int>? onSelectionChanged;
+
+  const ContactsGroupedView({super.key, this.onSelectionChanged});
 
   @override
   State<ContactsGroupedView> createState() => ContactsGroupedViewState();
@@ -27,6 +29,13 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final Set<int> selectedContacts = {};
+
+  void clearSelection() {
+    setState(() {
+      selectedContacts.clear();
+    });
+    widget.onSelectionChanged?.call(0);
+  }
 
   final List<String> exampleMessages = [
     "Ravi de vous rencontrer ! 🤝",
@@ -136,6 +145,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
       selectedContacts.clear();
       setState(() {});
+      widget.onSelectionChanged?.call(0);
 
       _showSnackBar(
         title: 'Succès',
@@ -1315,6 +1325,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                                             selectedContacts.add(id);
                                           }
                                         });
+                                        widget.onSelectionChanged?.call(selectedContacts.length);
                                       },
                                       onShare: () {
                                         HapticFeedback.lightImpact();

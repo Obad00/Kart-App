@@ -17,8 +17,13 @@ class CreateCardForm extends StatefulWidget {
 class _CreateCardFormState extends State<CreateCardForm> {
   final _formKey = GlobalKey<FormState>();
 
+  final _firstnameCtrl = TextEditingController();
+  final _lastnameCtrl = TextEditingController();
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
+  final _companyAddressCtrl = TextEditingController();
+  final _companyPhoneCtrl = TextEditingController();
+  final _companyEmailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _linkedinCtrl = TextEditingController();
@@ -64,10 +69,30 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
     Future.microtask(() {
       if (mounted && user != null) {
+        // Pre-remplir les infos utilisateur
+        if (user.firstname.isNotEmpty) {
+          _firstnameCtrl.text = user.firstname;
+        }
+        if (user.lastname.isNotEmpty) {
+          _lastnameCtrl.text = user.lastname;
+        }
+
         // Pre-remplir le nom de l'entreprise si disponible
         if (user.company != null && user.company!.name.isNotEmpty) {
           _companyCtrl.text = user.company!.name;
           debugPrint('✅ Company pre-filled: ${user.company!.name}');
+
+          // Pre-remplir les infos entreprise (licence entreprise)
+          final company = user.company!;
+          if (company.address != null && company.address!.isNotEmpty) {
+            _companyAddressCtrl.text = company.address!;
+          }
+          if (company.phone != null && company.phone!.isNotEmpty) {
+            _companyPhoneCtrl.text = company.phone!;
+          }
+          if (company.email != null && company.email!.isNotEmpty) {
+            _companyEmailCtrl.text = company.email!;
+          }
         }
 
         // Pre-remplir le telephone si disponible
@@ -92,8 +117,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   @override
   void dispose() {
+    _firstnameCtrl.dispose();
+    _lastnameCtrl.dispose();
     _jobCtrl.dispose();
     _companyCtrl.dispose();
+    _companyAddressCtrl.dispose();
+    _companyPhoneCtrl.dispose();
+    _companyEmailCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _linkedinCtrl.dispose();
@@ -140,9 +170,14 @@ class _CreateCardFormState extends State<CreateCardForm> {
       await CardService.createCard(
         jobTitle: data['jobTitle']! as String,
         company: data['company']! as String,
+        firstname: _firstnameCtrl.text.trim(),
+        lastname: _lastnameCtrl.text.trim(),
         phone: data['phone'] as String?,
         email: data['email'] as String?,
         linkedin: data['linkedin'] as String?,
+        companyAddress: _companyAddressCtrl.text.trim(),
+        companyPhone: _companyPhoneCtrl.text.trim(),
+        companyEmail: _companyEmailCtrl.text.trim(),
         activatedFields: activatedFields,
         isPublic: _isPublic,
       );
@@ -206,7 +241,10 @@ class _CreateCardFormState extends State<CreateCardForm> {
   }
 
   bool _isFormValid() {
-    return _jobCtrl.text.isNotEmpty && _companyCtrl.text.isNotEmpty;
+    return _firstnameCtrl.text.isNotEmpty &&
+        _lastnameCtrl.text.isNotEmpty &&
+        _jobCtrl.text.isNotEmpty &&
+        _companyCtrl.text.isNotEmpty;
   }
 
   // ---------------- UI ----------------
@@ -292,6 +330,38 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
                 const SizedBox(height: 32),
 
+                // User Info
+                Text(
+                  'Informations personnelles',
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Prénom',
+                  controller: _firstnameCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.person_outline,
+                  hint: 'Ex: Adama',
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Nom',
+                  controller: _lastnameCtrl,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.person_outline,
+                  hint: 'Ex: Dabo',
+                ),
+
+                const SizedBox(height: 16),
+
                 // Professional Info
                 AuthTextField(
                   label: 'Votre poste',
@@ -301,7 +371,19 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   hint: 'Ex: Directeur Marketing, Developpeur...',
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
+
+                // Company Info
+                Text(
+                  'Informations de l\'entreprise',
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 AuthTextField(
                   label: 'Nom de l\'entreprise',
@@ -331,7 +413,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Entreprise liee a votre licence',
+                          'Entreprise liée à votre licence',
                           style: TextStyle(
                             color: const Color(0xFF60A5FA),
                             fontSize: 12,
@@ -343,11 +425,46 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   ),
                 ],
 
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Adresse de l\'entreprise',
+                  controller: _companyAddressCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.location_on_outlined,
+                  hint: 'Ex: 123 Rue de la Paix, Dakar',
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Téléphone de l\'entreprise',
+                  controller: _companyPhoneCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  hint: 'Ex: +221 33 123 45 67',
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  label: 'Email de l\'entreprise',
+                  controller: _companyEmailCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'Ex: contact@entreprise.com',
+                ),
+
                 const SizedBox(height: 32),
 
                 // Contact Info
                 Text(
-                  'Coordonnees de contact',
+                  'Coordonnées de contact',
                   style: TextStyle(
                     color: colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 16,
