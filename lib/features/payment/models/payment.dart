@@ -27,7 +27,9 @@ class Payment {
     return Payment(
       reference: json['reference'],
       status: _parseStatus(json['status']),
-      amount: json['amount'] ?? 0,
+      amount: json['amount'] is String
+          ? (double.tryParse(json['amount'] as String)?.round() ?? 0)
+          : ((json['amount'] as num?)?.round() ?? 0),
       currency: json['currency'] ?? 'XOF',
       paymentMethod: json['payment_method'] ?? '',
       plan: json['plan'] != null ? PaymentPlan.fromJson(json['plan']) : null,

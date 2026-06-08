@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -28,27 +29,56 @@ class PaymentService {
     required int planId,
     required String paymentMethod,
   }) async {
-    final response = await _dio.post(
-      ApiEndpoints.paymentInitialize,
-      data: {
-        'plan_id': planId,
-        'payment_method': paymentMethod,
-      },
-    );
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.paymentInitialize,
+        data: {
+          'plan_id': planId,
+          'payment_method': paymentMethod,
+        },
+      );
 
-    if (response.data['success'] == true) {
+      if (response.data['success'] == true) {
+        return PaymentInitResult(
+          success: true,
+          reference: response.data['reference'],
+          paymentUrl: response.data['payment_url'],
+          plan: Plan.fromJson(response.data['plan']),
+        );
+      }
+
       return PaymentInitResult(
-        success: true,
-        reference: response.data['reference'],
-        paymentUrl: response.data['payment_url'],
-        plan: Plan.fromJson(response.data['plan']),
+        success: false,
+        message: response.data['message'] ?? 'Erreur lors de l\'initialisation',
+      );
+    } on DioException catch (e) {
+      String errorMessage = 'Erreur lors de l\'initialisation du paiement';
+      if (e.response != null && e.response!.data != null) {
+        final data = e.response!.data;
+        if (data is Map) {
+          if (data['message'] != null) {
+            errorMessage = data['message'].toString();
+          }
+          if (data['errors'] != null) {
+            final errors = data['errors'];
+            if (errors is Map && errors.isNotEmpty) {
+              errorMessage = errors.values.first.first.toString();
+            }
+          }
+        }
+      }
+      return PaymentInitResult(
+        success: false,
+        message: errorMessage,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Exception in initializePayment: $e');
+      debugPrint('StackTrace: $stackTrace');
+      return PaymentInitResult(
+        success: false,
+        message: 'Une erreur inattendue est survenue lors de la communication: $e',
       );
     }
-
-    return PaymentInitResult(
-      success: false,
-      message: response.data['message'] ?? 'Erreur lors de l\'initialisation',
-    );
   }
 
   Future<Payment> checkPaymentStatus(String reference) async {

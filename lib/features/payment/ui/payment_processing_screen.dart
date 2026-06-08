@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -31,6 +32,12 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
     final url = _provider.paymentUrl;
 
     if (url == null) return;
+
+    if (kIsWeb) {
+      _useExternalBrowser = true;
+      _openExternalBrowser();
+      return;
+    }
 
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)

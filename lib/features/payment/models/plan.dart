@@ -21,16 +21,18 @@ class Plan {
 
   factory Plan.fromJson(Map<String, dynamic> json) {
     return Plan(
-      id: json['id'],
-      name: json['name'],
-      slug: json['slug'],
-      description: json['description'] ?? '',
-      price: json['price'] ?? 0,
-      billingCycle: json['billing_cycle'] ?? 'monthly',
+      id: json['id'] as int,
+      name: json['name'] as String,
+      slug: json['slug'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      price: json['price'] is String 
+          ? (double.tryParse(json['price'] as String)?.round() ?? 0) 
+          : ((json['price'] as num?)?.round() ?? 0),
+      billingCycle: json['billing_cycle'] as String? ?? 'monthly',
       features: json['features'] != null
-          ? List<String>.from(json['features'])
+          ? List<String>.from(json['features'] as List)
           : [],
-      isActive: json['is_active'] ?? true,
+      isActive: json['is_active'] as bool? ?? true,
     );
   }
 
