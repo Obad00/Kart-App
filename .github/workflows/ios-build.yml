@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
+    branches: [main, payment]
 
 jobs:
   build:
@@ -26,6 +26,15 @@ jobs:
           cd ios
           pod install
 
+      - name: Authentification Apple et gestion des certificats
+        uses: apple-actions/download-provisioning-profiles@v3
+        with:
+          bundle-id: "com.kartapp.app"
+          profile-type: "APP_STORE"
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-key-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-content: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+
       - name: Créer le fichier ExportOptions automatiquement
         run: |
           cat <<EOF > ios/ExportOptions.plist
@@ -45,20 +54,13 @@ jobs:
           </plist>
           EOF
 
-      - name: Build IPA (iOS App) avec Authentification API
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+      - name: Build IPA (iOS App)
         run: |
-          # 1. Configuration de la clé API privée au bon emplacement pour Xcode
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
-
-          # 2. Exécution du build Flutter avec injection des variables d'environnement Xcode pour l'authentification
-          export XCODE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
-          export XCODE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
-          export XCODE_APP_STORE_CONNECT_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
-
           flutter build ipa --release \
             --export-options-plist=ios/ExportOptions.plist
+
+      - name: Sauvegarder le fichier IPA (Artefact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartApp-iOS
+          path: build/ios/ipa/*.ipa
