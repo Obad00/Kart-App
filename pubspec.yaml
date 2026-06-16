@@ -15,7 +15,7 @@ dependencies:
   url_launcher: ^6.2.5
 
   cupertino_icons: ^1.0.8
-  font_awesome_flutter: 10.8.0 # ← downgrade : 10.12.0 incompatible Flutter 3.44+
+  font_awesome_flutter: ^10.12.0
 
   dio: ^5.4.0
   provider: ^6.1.2
