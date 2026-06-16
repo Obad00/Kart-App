@@ -32,8 +32,8 @@ jobs:
           bundle-id: "com.kartapp.app"
           profile-type: "APP_STORE"
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          api-key-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-content: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} # Corrigé : 'issuer-id' au lieu de 'api-key-issuer-id'
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }} # Corrigé : 'api-private-key' au lieu de 'api-key-content'
 
       - name: Créer le fichier ExportOptions automatiquement
         run: |
