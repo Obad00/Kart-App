@@ -1,6 +1,6 @@
 name: kart_app
 description: Application mobile KART (carte de visite digitale)
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -12,78 +12,41 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  # URL launcher
   url_launcher: ^6.2.5
 
-
-  # Icons
   cupertino_icons: ^1.0.8
-  font_awesome_flutter: ^10.12.0
+  font_awesome_flutter: 10.8.0 # ← downgrade : 10.12.0 incompatible Flutter 3.44+
 
-  # HTTP client (API Laravel)
   dio: ^5.4.0
-
-  # State management
   provider: ^6.1.2
-
-  # Secure storage (token Sanctum)
   flutter_secure_storage: ^9.0.0
-
-  # SVG rendering
   flutter_svg: ^2.0.0
   share_plus: ^12.0.1
   path_provider: ^2.0.15
   shared_preferences: ^2.2.2
-
-  # Utils
   intl: ^0.20.2
-
-  # Device info for automatic tracking
   device_info_plus: ^10.1.0
-
-  #dependance scanner
   mobile_scanner: ^7.2.0
-
-  # Image picker
   image_picker: ^1.0.7
-
-  # Google Sign-In
   google_sign_in: ^6.2.1
-
-  # WebView for payment
   webview_flutter: ^4.7.0
-
-  # Image cropper for card scanner
   image_cropper: ^8.0.2
-
-  # Lottie animations
   lottie: ^3.1.0
-
-  # Google Fonts
   google_fonts: ^6.1.0
-
-  #Camera for card scanner
   camera: ^0.10.5+5
-
-  # CSV export
   csv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^6.0.0
-
-  # App icon generator
   flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/icon/
 
-# App Icon Configuration
 flutter_launcher_icons:
   android: true
   ios: true
