@@ -55,8 +55,10 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Exécution du build Flutter
-          # On passe les paramètres de mise à jour des profils directement dans les arguments d'entrée Xcode
+          # 2. Exécution du build Flutter avec injection des variables d'environnement Xcode pour l'authentification
+          export XCODE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
+          export XCODE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
+          export XCODE_APP_STORE_CONNECT_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
+
           flutter build ipa --release \
-            --export-options-plist=ios/ExportOptions.plist \
-            --build-inputs="API_KEY_ID=$KEY_ID API_KEY_ISSUER_ID=$ISSUER_ID"
+            --export-options-plist=ios/ExportOptions.plist
