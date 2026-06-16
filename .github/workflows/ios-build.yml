@@ -21,16 +21,15 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Générer les assets et le bundle Flutter (Zéro vérification Apple)
-        run: |
-          # Cette commande prépare le code Dart compilé et les ressources de l'application
-          # sans réveiller les scripts de vérification de certificats de Flutter.
-          flutter build bundle
-
       - name: Install Pods
         run: |
           cd ios
           pod install
+
+      - name: Compiler le code Dart et les Assets
+        run: |
+          # --no-codesign évite toute validation de certificat par Flutter
+          flutter build ios --release --no-codesign
 
       - name: Créer le fichier ExportOptions automatiquement
         run: |
@@ -51,31 +50,28 @@ jobs:
           </plist>
           EOF
 
-      - name: Archiver et Signer avec Xcodebuild (Authentification Native Apple)
+      - name: Archiver et Signer avec Xcodebuild
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
           DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # 1. Installer la clé API privée App Store Connect dans le Runner
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Étape d'archivage native Xcode
-          # On force le Team ID et on laisse Xcode gérer la création des profils à la volée via l'API
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            CODE_SIGN_STYLE="Automatic" \
             -allowProvisioningUpdates \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8" \
             archive
 
-          # 3. Étape d'exportation en fichier .ipa final
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath build/ios/ipa \
@@ -85,7 +81,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-      - name: Sauvegarder le fichier IPA (Artefact)
+      - name: Sauvegarder le fichier IPA
         uses: actions/upload-artifact@v4
         with:
           name: KartApp-iOS
