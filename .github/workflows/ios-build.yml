@@ -56,13 +56,15 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Variables d'environnement requises par le moteur de build d'Apple pour la signature à la volée
+          # 2. Variables d'environnement requises par le moteur de build d'Apple pour la signature automatique
           export XCODE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
           export XCODE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
           export XCODE_APP_STORE_CONNECT_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
           # 3. Lancement de la compilation
+          # Le flag --no-codesign évite la recherche de certificats de développement locaux obsolètes sur la VM.
           flutter build ipa --release \
+            --no-codesign \
             --export-options-plist=ios/ExportOptions.plist
 
       - name: Sauvegarder le fichier IPA (Artefact)
