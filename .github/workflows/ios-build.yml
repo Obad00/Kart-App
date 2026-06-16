@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
+    branches: [main, payment]
 
 jobs:
   build:
@@ -26,6 +26,9 @@ jobs:
           cd ios
           pod install
 
+      - name: Préparer les assets Flutter pour Xcode
+        run: flutter build ios --release --no-codesign
+
       - name: Créer le fichier ExportOptions automatiquement
         run: |
           cat <<EOF > ios/ExportOptions.plist
@@ -45,27 +48,36 @@ jobs:
           </plist>
           EOF
 
-      - name: Build IPA (iOS App) avec Authentification Xcode Native
+      - name: Archiver et Signer avec Xcodebuild (Authentification Native Apple)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
-          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # 1. Configuration de la clé API privée pour qu'elle soit accessible par xcodebuild
+          # 1. Installer la clé API privée App Store Connect dans le Runner
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Variables d'environnement requises par le moteur de build d'Apple pour la signature automatique
-          export XCODE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
-          export XCODE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
-          export XCODE_APP_STORE_CONNECT_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
+          # 2. Étape d'archivage native Xcode (sans contraintes de la CLI Flutter)
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8" \
+            archive
 
-          # 3. Lancement de la compilation
-          # Le flag --no-codesign évite la recherche de certificats de développement locaux obsolètes sur la VM.
-          flutter build ipa --release \
-            --no-codesign \
-            --export-options-plist=ios/ExportOptions.plist
+          # 3. Étape d'exportation en fichier .ipa final et signature automatique globale
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
       - name: Sauvegarder le fichier IPA (Artefact)
         uses: actions/upload-artifact@v4
