@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment]
+    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
 
 jobs:
   build:
@@ -31,9 +31,10 @@ jobs:
         with:
           bundle-id: "com.kartapp.app"
           profile-type: "APP_STORE"
+          create: true # Crée automatiquement le profil sur votre compte Apple s'il est manquant
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} # Corrigé : 'issuer-id' au lieu de 'api-key-issuer-id'
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }} # Corrigé : 'api-private-key' au lieu de 'api-key-content'
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
 
       - name: Créer le fichier ExportOptions automatiquement
         run: |
