@@ -18,10 +18,14 @@ jobs:
           channel: "stable"
           architecture: x64
 
+      - name: Flutter precache iOS
+        run: flutter precache --ios
+
       - name: Install Dependencies
-        run: |
-          rm -f pubspec.lock
-          flutter pub get
+        run: flutter pub get
+
+      - name: Générer les fichiers iOS (plugins registrant)
+        run: flutter build ios --release --no-codesign --no-pub
 
       - name: Install Pods
         run: |
