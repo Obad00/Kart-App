@@ -18,7 +18,7 @@ Ce document décrit les étapes de configuration nécessaires pour les fonctionn
 
 1. Dans Google Cloud Console, aller dans **APIs & Services > Credentials**
 2. Créer un **OAuth 2.0 Client ID** de type **iOS**
-3. Renseigner le **Bundle ID** (ex: `com.kartapp.kartapp`)
+3. Renseigner le **Bundle ID** (ex: `com.kartapp.app`)
 4. Copier le **Client ID** généré
 
 #### 1.2 Configurer Info.plist
