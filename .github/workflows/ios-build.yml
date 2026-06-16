@@ -36,7 +36,7 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>method</key>
-              <string>app-store</string> # Laissez 'app-store' pour TestFlight, ou mettez 'development' pour vos tests locaux
+              <string>app-store</string>
               <key>signingStyle</key>
               <string>automatic</string>
               <key>teamID</key>
@@ -51,18 +51,12 @@ jobs:
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
         run: |
-          # 1. Configuration de la clé API privée sur la machine virtuelle macOS
+          # 1. Configuration de la clé API privée au bon emplacement pour Xcode
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Exécution du build en passant les paramètres d'authentification directement à Xcode
+          # 2. Exécution du build Flutter
+          # On passe les paramètres de mise à jour des profils directement dans les arguments d'entrée Xcode
           flutter build ipa --release \
             --export-options-plist=ios/ExportOptions.plist \
-            --allow-provisioning-updates \
             --build-inputs="API_KEY_ID=$KEY_ID API_KEY_ISSUER_ID=$ISSUER_ID"
-
-      - name: Sauvegarder le fichier IPA (Artefact)
-        uses: actions/upload-artifact@v4
-        with:
-          name: KartApp-iOS
-          path: build/ios/ipa/*.ipa
