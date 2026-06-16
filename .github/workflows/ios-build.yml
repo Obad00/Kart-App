@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment]
+    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
 
 jobs:
   build:
@@ -45,25 +45,25 @@ jobs:
           </plist>
           EOF
 
-      - name: Build IPA (iOS App) avec Authentification Native Xcode
+      - name: Build IPA (iOS App) avec Authentification Xcode Native
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # 1. On recrée l'arborescence officielle pour que Xcode trouve la clé d'API
+          # 1. Configuration de la clé API privée pour qu'elle soit accessible par xcodebuild
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. On lance le build Flutter en injectant les flags directement au moteur de build Apple (xcodebuild)
-          # Cela force Xcode à générer/télécharger le profil 'com.kartapp.app' via l'API en direct
-          flutter build ipa --release \
-            --export-options-plist=ios/ExportOptions.plist \
-            --no-codesign
+          # 2. Variables d'environnement requises par le moteur de build d'Apple pour la signature à la volée
+          export XCODE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
+          export XCODE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
+          export XCODE_APP_STORE_CONNECT_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-      - name: Étape alternative si l'App Store bloque toujours l'archivage direct
-        run: |
-          echo "Si l'archive pure sans signature est générée, on l'exportera à la prochaine étape."
+          # 3. Lancement de la compilation
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist
 
       - name: Sauvegarder le fichier IPA (Artefact)
         uses: actions/upload-artifact@v4
