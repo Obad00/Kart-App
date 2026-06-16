@@ -18,7 +18,7 @@ Ce document décrit les étapes de configuration nécessaires pour les fonctionn
 
 1. Dans Google Cloud Console, aller dans **APIs & Services > Credentials**
 2. Créer un **OAuth 2.0 Client ID** de type **iOS**
-3. Renseigner le **Bundle ID** (ex: `com.example.kartapp`)
+3. Renseigner le **Bundle ID** (ex: `com.kartapp.kartapp`)
 4. Copier le **Client ID** généré
 
 #### 1.2 Configurer Info.plist
@@ -86,7 +86,7 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 1. Dans Google Cloud Console, aller dans **APIs & Services > Credentials**
 2. Créer un **OAuth 2.0 Client ID** de type **Android**
 3. Renseigner :
-   - **Package name** : `com.example.kart_app` (voir `android/app/build.gradle`)
+   - **Package name** : `com.kartapp.kart_app` (voir `android/app/build.gradle`)
    - **SHA-1 certificate fingerprint** : Le SHA-1 obtenu à l'étape précédente
 4. Sauvegarder
 
@@ -96,10 +96,10 @@ Ouvrir `android/app/build.gradle` et vérifier :
 
 ```gradle
 android {
-    namespace "com.example.kart_app"
+    namespace "com.kartapp.kart_app"
 
     defaultConfig {
-        applicationId "com.example.kart_app"
+        applicationId "com.kartapp.kart_app"
         minSdkVersion 21
         targetSdkVersion 34
         // ...

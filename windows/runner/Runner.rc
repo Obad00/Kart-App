@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
+            VALUE "CompanyName", "com.kartapp" "\0"
             VALUE "FileDescription", "kart_app" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "kart_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.kartapp. All rights reserved." "\0"
             VALUE "OriginalFilename", "kart_app.exe" "\0"
             VALUE "ProductName", "kart_app" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
