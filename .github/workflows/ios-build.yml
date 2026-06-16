@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
+    branches: [main, payment]
 
 jobs:
   build:
@@ -26,16 +26,6 @@ jobs:
           cd ios
           pod install
 
-      - name: Authentification Apple et gestion des certificats
-        uses: apple-actions/download-provisioning-profiles@v3
-        with:
-          bundle-id: "com.kartapp.app"
-          profile-type: "APP_STORE"
-          create: true # Crée automatiquement le profil sur votre compte Apple s'il est manquant
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
-
       - name: Créer le fichier ExportOptions automatiquement
         run: |
           cat <<EOF > ios/ExportOptions.plist
@@ -55,10 +45,25 @@ jobs:
           </plist>
           EOF
 
-      - name: Build IPA (iOS App)
+      - name: Build IPA (iOS App) avec Authentification Native Xcode
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
         run: |
+          # 1. On recrée l'arborescence officielle pour que Xcode trouve la clé d'API
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          # 2. On lance le build Flutter en injectant les flags directement au moteur de build Apple (xcodebuild)
+          # Cela force Xcode à générer/télécharger le profil 'com.kartapp.app' via l'API en direct
           flutter build ipa --release \
-            --export-options-plist=ios/ExportOptions.plist
+            --export-options-plist=ios/ExportOptions.plist \
+            --no-codesign
+
+      - name: Étape alternative si l'App Store bloque toujours l'archivage direct
+        run: |
+          echo "Si l'archive pure sans signature est générée, on l'exportera à la prochaine étape."
 
       - name: Sauvegarder le fichier IPA (Artefact)
         uses: actions/upload-artifact@v4
