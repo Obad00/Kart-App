@@ -20,7 +20,10 @@ jobs:
           architecture: x64
 
       - name: Install Dependencies
-        run: flutter pub get
+        run: |
+          # Supprimer le lock pour laisser pub résoudre les versions compatibles
+          rm -f pubspec.lock
+          flutter pub get
 
       - name: Install Pods
         run: |
