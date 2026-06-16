@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, payment] # Se déclenche quand vous poussez sur main ou master
+    branches: [main, payment] # Déclenche le build à chaque push sur main ou master
 
 jobs:
   build:
@@ -21,15 +21,6 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Configurer les clés Apple API
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
-
       - name: Install Pods
         run: |
           cd ios
@@ -45,7 +36,8 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>method</key>
-              <string>app-store</string> <key>signingStyle</key>
+              <string>app-store</string> # Laissez 'app-store' pour TestFlight, ou mettez 'development' pour vos tests locaux
+              <key>signingStyle</key>
               <string>automatic</string>
               <key>teamID</key>
               <string>${{ secrets.APPLE_TEAM_ID }}</string>
@@ -53,9 +45,21 @@ jobs:
           </plist>
           EOF
 
-      - name: Build IPA (iOS App)
+      - name: Build IPA (iOS App) avec Authentification API
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
         run: |
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+          # 1. Configuration de la clé API privée sur la machine virtuelle macOS
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          # 2. Exécution du build en passant les paramètres d'authentification directement à Xcode
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist \
+            --allow-provisioning-updates \
+            --build-inputs="API_KEY_ID=$KEY_ID API_KEY_ISSUER_ID=$ISSUER_ID"
 
       - name: Sauvegarder le fichier IPA (Artefact)
         uses: actions/upload-artifact@v4
