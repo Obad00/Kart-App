@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:icons_plus/icons_plus.dart';
 import 'package:dio/dio.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
@@ -1515,7 +1515,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           children: socialProfiles.map((profile) {
             return OutlinedButton.icon(
               onPressed: () => _openUrl(profile['value'] as String),
-              icon: FaIcon(
+              icon: Icon(
                 profile['icon'] as IconData,
                 color: profile['iconColor'] as Color,
                 size: 16,
@@ -1610,7 +1610,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
-                              child: FaIcon(
+                              child: Icon(
                                 profile['icon'] as IconData,
                                 color: profile['iconColor'] as Color,
                                 size: 18,
@@ -2016,7 +2016,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('linkedin').isNotEmpty) {
       profiles.add({
         'label': 'LinkedIn',
-        'icon': FontAwesomeIcons.linkedin,
+        'icon': FontAwesome.linkedin_brand,
         'value': _getFieldValue('linkedin'),
         'bgColor': const Color(0xFFE8F0FE),
         'iconColor': const Color(0xFF0A66C2),
@@ -2025,7 +2025,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('x').isNotEmpty) {
       profiles.add({
         'label': 'X',
-        'icon': FontAwesomeIcons.xTwitter,
+        'icon': FontAwesome.x_twitter_brand,
         'value': _getFieldValue('x'),
         'bgColor': const Color(0xFFF3F4F6),
         'iconColor': const Color(0xFF000000),
@@ -2034,7 +2034,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('instagram').isNotEmpty) {
       profiles.add({
         'label': 'Instagram',
-        'icon': FontAwesomeIcons.instagram,
+        'icon': FontAwesome.instagram_brand,
         'value': _getFieldValue('instagram'),
         'bgColor': const Color(0xFFFCE7F3),
         'iconColor': const Color(0xFFE4405F),
@@ -2043,7 +2043,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('facebook').isNotEmpty) {
       profiles.add({
         'label': 'Facebook',
-        'icon': FontAwesomeIcons.facebook,
+        'icon': FontAwesome.facebook_brand,
         'value': _getFieldValue('facebook'),
         'bgColor': const Color(0xFFEAF2FF),
         'iconColor': const Color(0xFF1877F2),
@@ -2052,7 +2052,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('github').isNotEmpty) {
       profiles.add({
         'label': 'GitHub',
-        'icon': FontAwesomeIcons.github,
+        'icon': FontAwesome.github_brand,
         'value': _getFieldValue('github'),
         'bgColor': const Color(0xFFF3F4F6),
         'iconColor': const Color(0xFF111827),
@@ -2061,7 +2061,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (_getFieldValue('website').isNotEmpty) {
       profiles.add({
         'label': 'Website',
-        'icon': FontAwesomeIcons.globe,
+        'icon': FontAwesome.globe_solid,
         'value': _getFieldValue('website'),
         'bgColor': const Color(0xFFEFF6FF),
         'iconColor': const Color(0xFF2563EB),
@@ -2076,7 +2076,7 @@ class _PublicCardPageState extends State<PublicCardPage>
 
       profiles.add({
         'label': 'WhatsApp',
-        'icon': FontAwesomeIcons.whatsapp,
+        'icon': FontAwesome.whatsapp_brand,
         'value': 'https://wa.me/$formattedPhone?text=Bonjour%20$ownerName',
         'bgColor': const Color(0xFFE7FCEB),
         'iconColor': const Color(0xFF25D366),

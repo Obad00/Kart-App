@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:icons_plus/icons_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
@@ -262,7 +262,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.linkedin)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.linkedin,
+          icon: FontAwesome.linkedin_brand,
           color: const Color(0xFF0A66C2),
           onTap: () => _launchUrl(
               _formatSocialUrl(widget.contact.linkedin!, 'linkedin')),
@@ -274,7 +274,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.twitter)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.xTwitter,
+          icon: FontAwesome.x_twitter_brand,
           color: const Color(0xFF000000),
           onTap: () =>
               _launchUrl(_formatSocialUrl(widget.contact.twitter!, 'twitter')),
@@ -286,7 +286,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.facebook)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.facebook,
+          icon: FontAwesome.facebook_brand,
           color: const Color(0xFF1877F2),
           onTap: () => _launchUrl(
               _formatSocialUrl(widget.contact.facebook!, 'facebook')),
@@ -298,7 +298,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.instagram)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.instagram,
+          icon: FontAwesome.instagram_brand,
           color: const Color(0xFFE4405F),
           onTap: () => _launchUrl(
               _formatSocialUrl(widget.contact.instagram!, 'instagram')),
@@ -310,7 +310,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.website)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.globe,
+          icon: FontAwesome.globe_solid,
           color: const Color(0xFF6366F1),
           onTap: () => _launchUrl(widget.contact.website!),
         ),
@@ -321,7 +321,7 @@ class ContactCardState extends State<ContactCard>
     if (_hasValidValue(widget.contact.phone)) {
       buttons.add(
         _buildSocialButton(
-          icon: FontAwesomeIcons.whatsapp,
+          icon: FontAwesome.whatsapp_brand,
           color: const Color(0xFF25D366),
           onTap: () => _launchUrl(
               'https://wa.me/${widget.contact.phone!.replaceAll(RegExp(r'[^\d+]'), '')}'),

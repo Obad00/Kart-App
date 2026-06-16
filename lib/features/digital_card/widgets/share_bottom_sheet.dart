@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:icons_plus/icons_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -317,7 +317,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 children: [
                   _buildChannelButton(
                     ShareChannel.whatsapp,
-                    FontAwesomeIcons.whatsapp,
+                    FontAwesome.whatsapp_brand,
                     'WhatsApp',
                     const Color(0xFF25D366),
                   ),
@@ -335,7 +335,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                   ),
                   _buildChannelButton(
                     ShareChannel.linkedin,
-                    FontAwesomeIcons.linkedin,
+                    FontAwesome.linkedin_brand,
                     'LinkedIn',
                     const Color(0xFF0A66C2),
                   ),

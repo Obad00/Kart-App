@@ -15,13 +15,11 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.27.4"
           channel: "stable"
           architecture: x64
 
       - name: Install Dependencies
         run: |
-          # Supprimer le lock pour laisser pub résoudre les versions compatibles
           rm -f pubspec.lock
           flutter pub get
 
