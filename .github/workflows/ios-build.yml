@@ -21,16 +21,16 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Générer les assets et le bundle Flutter (Zéro vérification Apple)
+        run: |
+          # Cette commande prépare le code Dart compilé et les ressources de l'application
+          # sans réveiller les scripts de vérification de certificats de Flutter.
+          flutter build bundle
+
       - name: Install Pods
         run: |
           cd ios
           pod install
-
-      - name: Compiler le code Dart et les Assets (Contournement CLI Flutter)
-        run: |
-          # Cette commande prépare uniquement les frameworks de l'application (App.framework et Flutter.framework)
-          # et copie les assets sans jamais appeler le moteur de build Xcode de Flutter.
-          flutter build ios --config-only
 
       - name: Créer le fichier ExportOptions automatiquement
         run: |
@@ -63,7 +63,7 @@ jobs:
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
           # 2. Étape d'archivage native Xcode
-          # On injecte dynamiquement l'DEVELOPMENT_TEAM pour écraser toute configuration récalcitrante
+          # On force le Team ID et on laisse Xcode gérer la création des profils à la volée via l'API
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
