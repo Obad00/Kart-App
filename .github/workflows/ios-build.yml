@@ -26,8 +26,11 @@ jobs:
           cd ios
           pod install
 
-      - name: Préparer les assets Flutter pour Xcode
-        run: flutter build ios --release --no-codesign
+      - name: Compiler le code Dart et les Assets (Contournement CLI Flutter)
+        run: |
+          # Cette commande prépare uniquement les frameworks de l'application (App.framework et Flutter.framework)
+          # et copie les assets sans jamais appeler le moteur de build Xcode de Flutter.
+          flutter build ios --config-only
 
       - name: Créer le fichier ExportOptions automatiquement
         run: |
@@ -53,23 +56,26 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # 1. Installer la clé API privée App Store Connect dans le Runner
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          # 2. Étape d'archivage native Xcode (sans contraintes de la CLI Flutter)
+          # 2. Étape d'archivage native Xcode
+          # On injecte dynamiquement l'DEVELOPMENT_TEAM pour écraser toute configuration récalcitrante
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             -allowProvisioningUpdates \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8" \
             archive
 
-          # 3. Étape d'exportation en fichier .ipa final et signature automatique globale
+          # 3. Étape d'exportation en fichier .ipa final
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath build/ios/ipa \
