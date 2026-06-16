@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
@@ -213,7 +213,7 @@ class ContactDetailSheet extends StatelessWidget {
                         if (_hasValue(contact.phone))
                           _buildQuickAction(
                             context,
-                            icon: FontAwesome.whatsapp_brand,
+                            icon: FontAwesomeIcons.whatsapp,
                             label: 'WhatsApp',
                             color: const Color(0xFF25D366),
                             onTap: () => _launchUrl(
@@ -475,7 +475,7 @@ class ContactDetailSheet extends StatelessWidget {
 
     if (_hasValue(contact.linkedin)) {
       socials.add(_SocialItem(
-        icon: FontAwesome.linkedin_brand,
+        icon: FontAwesomeIcons.linkedin,
         label: 'LinkedIn',
         color: const Color(0xFF0A66C2),
         url: _formatSocialUrl(contact.linkedin!, 'linkedin'),
@@ -483,7 +483,7 @@ class ContactDetailSheet extends StatelessWidget {
     }
     if (_hasValue(contact.twitter)) {
       socials.add(_SocialItem(
-        icon: FontAwesome.x_twitter_brand,
+        icon: FontAwesomeIcons.xTwitter,
         label: 'X / Twitter',
         color: colors.onSurface,
         url: _formatSocialUrl(contact.twitter!, 'twitter'),
@@ -491,7 +491,7 @@ class ContactDetailSheet extends StatelessWidget {
     }
     if (_hasValue(contact.facebook)) {
       socials.add(_SocialItem(
-        icon: FontAwesome.facebook_brand,
+        icon: FontAwesomeIcons.facebook,
         label: 'Facebook',
         color: const Color(0xFF1877F2),
         url: _formatSocialUrl(contact.facebook!, 'facebook'),
@@ -499,7 +499,7 @@ class ContactDetailSheet extends StatelessWidget {
     }
     if (_hasValue(contact.instagram)) {
       socials.add(_SocialItem(
-        icon: FontAwesome.instagram_brand,
+        icon: FontAwesomeIcons.instagram,
         label: 'Instagram',
         color: const Color(0xFFE4405F),
         url: _formatSocialUrl(contact.instagram!, 'instagram'),
@@ -507,7 +507,7 @@ class ContactDetailSheet extends StatelessWidget {
     }
     if (_hasValue(contact.website)) {
       socials.add(_SocialItem(
-        icon: FontAwesome.globe_solid,
+        icon: FontAwesomeIcons.globe,
         label: 'Site web',
         color: const Color(0xFF6366F1),
         url: contact.website!,

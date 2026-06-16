@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../helpers/completion_helper.dart';
 import '../providers/profile_completion_provider.dart';
 import '../ui/completion_checklist_page.dart';
@@ -155,19 +155,19 @@ class CompletionBanner extends StatelessWidget {
     // Collecter les réseaux sociaux disponibles
     final socials = <_SocialItem>[];
     if (_hasValue(model.linkedin)) {
-      socials.add(_SocialItem('LinkedIn', FontAwesome.linkedin_brand, const Color(0xFF0A66C2)));
+      socials.add(_SocialItem('LinkedIn', FontAwesomeIcons.linkedin, const Color(0xFF0A66C2)));
     }
     if (_hasValue(model.instagram)) {
-      socials.add(_SocialItem('Instagram', FontAwesome.instagram_brand, const Color(0xFFE4405F)));
+      socials.add(_SocialItem('Instagram', FontAwesomeIcons.instagram, const Color(0xFFE4405F)));
     }
     if (_hasValue(model.github)) {
-      socials.add(_SocialItem('GitHub', FontAwesome.github_brand, const Color(0xFF333333)));
+      socials.add(_SocialItem('GitHub', FontAwesomeIcons.github, const Color(0xFF333333)));
     }
     if (_hasValue(model.facebook)) {
-      socials.add(_SocialItem('Facebook', FontAwesome.facebook_brand, const Color(0xFF1877F2)));
+      socials.add(_SocialItem('Facebook', FontAwesomeIcons.facebook, const Color(0xFF1877F2)));
     }
     if (_hasValue(model.website)) {
-      socials.add(_SocialItem('Site web', FontAwesome.globe_solid, const Color(0xFF6366F1)));
+      socials.add(_SocialItem('Site web', FontAwesomeIcons.globe, const Color(0xFF6366F1)));
     }
 
     return GestureDetector(
