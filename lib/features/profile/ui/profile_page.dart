@@ -56,9 +56,6 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  
-
-
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -122,7 +119,6 @@ class _ProfilePageState extends State<ProfilePage>
                           colors, companyColor, fullName, user.email),
 
                       const CompletionBanner(),
-
 
                       const SizedBox(height: 24),
 
@@ -196,15 +192,14 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-                              _buildUrlRow(
-                                colors,
-                                label: 'LinkedIn',
-                                url: card.linkedin,
-                                icon: Icons.work_outline,
-                                color: const Color(0xFF0A66C2),
-                              ),
-                              _buildDivider(colors),
-
+                                _buildUrlRow(
+                                  colors,
+                                  label: 'LinkedIn',
+                                  url: card.linkedin,
+                                  icon: Icons.work_outline,
+                                  color: const Color(0xFF0A66C2),
+                                ),
+                                _buildDivider(colors),
 
                                 _buildUrlRow(
                                   colors,
@@ -214,14 +209,13 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-                              _buildUrlRow(
+                                _buildUrlRow(
                                   colors,
                                   label: 'GitHub',
                                   url: card.github,
                                   icon: Icons.code,
                                 ),
                                 _buildDivider(colors),
-
 
                                 _buildUrlRow(
                                   colors,
@@ -232,8 +226,7 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-
-                              _buildUrlRow(
+                                _buildUrlRow(
                                   colors,
                                   label: 'Facebook',
                                   url: card.facebook,
@@ -242,11 +235,10 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-
                                 const SizedBox(height: 10),
 
                                 // EXPERIENCES
-                               _buildInfoRow(
+                                _buildInfoRow(
                                   colors,
                                   icon: Icons.history,
                                   label: 'Expérience',
@@ -254,13 +246,13 @@ class _ProfilePageState extends State<ProfilePage>
                                       ? '${card.experiences.first['title']} chez ${card.experiences.first['company']}'
                                       : '-',
                                   onTap: card.experiences.isNotEmpty
-                                      ? () => _openExperiencesSheet(context, card.experiences)
+                                      ? () => _openExperiencesSheet(
+                                          context, card.experiences)
                                       : null,
                                 ),
 
-
                                 // EDUCATION
-                               _buildInfoRow(
+                                _buildInfoRow(
                                   colors,
                                   icon: Icons.school_outlined,
                                   label: 'Formation',
@@ -268,10 +260,10 @@ class _ProfilePageState extends State<ProfilePage>
                                       ? '${card.educations.first['degree']} - ${card.educations.first['school']}'
                                       : '-',
                                   onTap: card.educations.isNotEmpty
-                                      ? () => _openEducationSheet(context, card.educations)
+                                      ? () => _openEducationSheet(
+                                          context, card.educations)
                                       : null,
                                 ),
-
 
                                 // PLAN
                                 _buildDivider(colors),
@@ -286,7 +278,6 @@ class _ProfilePageState extends State<ProfilePage>
                                 _buildEmptyCardState(colors, companyColor),
                               ],
                       ),
-
 
                       const SizedBox(height: 16),
 
@@ -319,94 +310,89 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-void _openExperiencesSheet(
-  BuildContext context,
-  List experiences,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (_) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Expériences",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+  void _openExperiencesSheet(
+    BuildContext context,
+    List experiences,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Expériences",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ...experiences.map((exp) {
+                return ListTile(
+                  leading: const Icon(Icons.work_outline),
+                  title: Text(exp['title'] ?? ''),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(exp['company'] ?? ''),
+                      Text(
+                        "${exp['start_date']} → ${exp['end_date'] ?? 'Présent'}",
+                      ),
+                      if (exp['description'] != null) Text(exp['description']),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-            ...experiences.map((exp) {
-              return ListTile(
-                leading: const Icon(Icons.work_outline),
-                title: Text(exp['title'] ?? ''),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(exp['company'] ?? ''),
-                    Text(
-                      "${exp['start_date']} → ${exp['end_date'] ?? 'Présent'}",
-                    ),
-                    if (exp['description'] != null)
-                      Text(exp['description']),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-
-void _openEducationSheet(
-  BuildContext context,
-  List educations,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Formations",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            ...educations.map((edu) {
-              return ListTile(
-                leading: const Icon(Icons.school_outlined),
-                title: Text(edu['degree'] ?? ''),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(edu['school'] ?? ''),
-                    Text("${edu['start_year']} → ${edu['end_year']}"),
-                    if (edu['field'] != null) Text(edu['field']),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      );
-    },
-  );
-}
-
+  void _openEducationSheet(
+    BuildContext context,
+    List educations,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Formations",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ...educations.map((edu) {
+                return ListTile(
+                  leading: const Icon(Icons.school_outlined),
+                  title: Text(edu['degree'] ?? ''),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(edu['school'] ?? ''),
+                      Text("${edu['start_year']} → ${edu['end_year']}"),
+                      if (edu['field'] != null) Text(edu['field']),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildProfileHeader(
       ColorScheme colors, Color companyColor, String fullName, String? email) {
@@ -498,7 +484,9 @@ void _openEducationSheet(
                         color: colors.onSurface,
                       ),
                     ),
-                    if (hasCard && card.jobTitle != null && card.jobTitle!.isNotEmpty) ...[
+                    if (hasCard &&
+                        card.jobTitle != null &&
+                        card.jobTitle!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         card.jobTitle!,
@@ -511,7 +499,9 @@ void _openEducationSheet(
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    if (hasCard && card.company != null && card.company!.isNotEmpty) ...[
+                    if (hasCard &&
+                        card.company != null &&
+                        card.company!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         card.company!,
@@ -575,7 +565,8 @@ void _openEducationSheet(
       ColorScheme colors, Color companyColor, CardProvider card) {
     final contactsProvider = context.watch<ContactsProvider>();
     final totalContacts = contactsProvider.groups.fold<int>(
-      0, (sum, group) => sum + group.contacts.length,
+      0,
+      (sum, group) => sum + group.contacts.length,
     );
 
     return Row(
@@ -789,51 +780,51 @@ void _openEducationSheet(
     );
   }
 
-Widget _buildUrlRow(
-  ColorScheme colors, {
-  required String? url,
-  required String label,
-  required IconData icon,
-  Color? color,
-}) {
-  final trimmedUrl = url?.trim();
-  final hasUrl = trimmedUrl != null && trimmedUrl.isNotEmpty;
+  Widget _buildUrlRow(
+    ColorScheme colors, {
+    required String? url,
+    required String label,
+    required IconData icon,
+    Color? color,
+  }) {
+    final trimmedUrl = url?.trim();
+    final hasUrl = trimmedUrl != null && trimmedUrl.isNotEmpty;
 
-  final parsedUri = hasUrl ? Uri.tryParse(trimmedUrl) : null;
+    final parsedUri = hasUrl ? Uri.tryParse(trimmedUrl) : null;
 
-  return _buildInfoRow(
-    colors,
-    icon: icon,
-    label: label,
-    value: hasUrl ? trimmedUrl : '-',
-    onTap: (hasUrl && parsedUri != null)
-        ? () async {
-            HapticFeedback.lightImpact();
+    return _buildInfoRow(
+      colors,
+      icon: icon,
+      label: label,
+      value: hasUrl ? trimmedUrl : '-',
+      onTap: (hasUrl && parsedUri != null)
+          ? () async {
+              HapticFeedback.lightImpact();
 
-            if (await canLaunchUrl(parsedUri)) {
-              await launchUrl(
-                parsedUri,
-                mode: LaunchMode.externalApplication,
-              );
+              if (await canLaunchUrl(parsedUri)) {
+                await launchUrl(
+                  parsedUri,
+                  mode: LaunchMode.externalApplication,
+                );
+              }
             }
-          }
-        : null,
-    trailing: hasUrl
-        ? Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: (color ?? colors.primary).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.open_in_new,
-              size: 14,
-              color: color ?? colors.primary,
-            ),
-          )
-        : null,
-  );
-}
+          : null,
+      trailing: hasUrl
+          ? Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: (color ?? colors.primary).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.open_in_new,
+                size: 14,
+                color: color ?? colors.primary,
+              ),
+            )
+          : null,
+    );
+  }
 
   Widget _buildEmptyCardState(ColorScheme colors, Color companyColor) {
     return Padding(
@@ -1148,6 +1139,17 @@ Widget _buildUrlRow(
                   // Navigation vers paramètres confidentialité
                 },
               ),
+              const SizedBox(height: 8),
+              _buildSettingsItem(
+                context,
+                icon: Icons.delete_outline,
+                title: 'Supprimer mon compte',
+                isDestructive: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteAccountDialog(context);
+                },
+              ),
 
               const SizedBox(height: 24),
 
@@ -1202,6 +1204,7 @@ Widget _buildUrlRow(
     required IconData icon,
     required String title,
     String? subtitle,
+    bool isDestructive = false,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -1223,10 +1226,12 @@ Widget _buildUrlRow(
               Icon(
                 icon,
                 size: 22,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.7),
+                color: isDestructive
+                    ? Colors.red.shade400
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1238,7 +1243,9 @@ Widget _buildUrlRow(
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color: isDestructive
+                            ? Colors.red.shade400
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -1270,6 +1277,70 @@ Widget _buildUrlRow(
         ),
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    final currentContext = context;
+    final confirm = await showDialog<bool>(
+      context: currentContext,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.delete_outline,
+                color: Colors.red.shade400,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Supprimer le compte'),
+          ],
+        ),
+        content: const Text(
+            'Cette action supprimera définitivement votre compte et toutes les données associées. Continuer ?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Annuler'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Supprimer'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && currentContext.mounted) {
+      final deleted = await currentContext.read<AuthProvider>().deleteAccount();
+      if (deleted && currentContext.mounted) {
+        Navigator.of(currentContext)
+            .pushNamedAndRemoveUntil('/login', (_) => false);
+      }
+    }
   }
 
   void _showLogoutDialog(BuildContext context) async {

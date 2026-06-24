@@ -90,142 +90,144 @@ class _LoginPageState extends State<LoginPage>
               ),
               child: Column(
                 children: [
-                    // Logo / Brand
-                    _buildLogo(),
+                  // Logo / Brand
+                  _buildLogo(),
 
-                    const SizedBox(height: 56),
+                  const SizedBox(height: 56),
 
-                    // Form Card
-                    Container(
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
+                  // Form Card
+                  Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        width: 1,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Title
-                          const Text(
-                            'Connexion',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        const Text(
+                          'Connexion',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
                           ),
+                        ),
 
-                          const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-                          Text(
-                            'Accédez à votre carte digitale',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 15,
-                            ),
+                        Text(
+                          'Accédez à votre carte digitale',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 15,
                           ),
+                        ),
 
-                          const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                          // Email
-                          AuthTextField(
-                            label: 'Email',
-                            hint: 'votre@email.com',
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                            prefixIcon: Icons.mail_outline_rounded,
-                            onChanged: (_) => setState(() {}),
-                          ),
+                        // Email
+                        AuthTextField(
+                          label: 'Email',
+                          hint: 'votre@email.com',
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          prefixIcon: Icons.mail_outline_rounded,
+                          onChanged: (_) => setState(() {}),
+                        ),
 
-                          const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                          // Password
-                          AuthTextField(
-                            label: 'Mot de passe',
-                            hint: '••••••••',
-                            controller: _passwordCtrl,
-                            obscureText: true,
-                            prefixIcon: Icons.lock_outline_rounded,
-                            onChanged: (_) => setState(() {}),
-                          ),
+                        // Password
+                        AuthTextField(
+                          label: 'Mot de passe',
+                          hint: '••••••••',
+                          controller: _passwordCtrl,
+                          obscureText: true,
+                          prefixIcon: Icons.lock_outline_rounded,
+                          onChanged: (_) => setState(() {}),
+                        ),
 
-                          // Error message
-                          if (auth.error != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 20),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
+                        // Error message
+                        if (auth.error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.3),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.red.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.error_outline_rounded,
-                                          color: Colors.red[300],
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            auth.error!,
-                                            style: TextStyle(
-                                              color: Colors.red[300],
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (auth.errorDetails != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Colors.red[300],
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
                                         child: Text(
-                                          auth.errorDetails!,
+                                          auth.error!,
                                           style: TextStyle(
-                                            color: Colors.red[200],
-                                            fontSize: 12,
-                                            fontFamily: 'monospace',
+                                            color: Colors.red[300],
+                                            fontSize: 14,
                                           ),
                                         ),
                                       ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                  if (auth.errorDetails != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                        auth.errorDetails!,
+                                        style: TextStyle(
+                                          color: Colors.red[200],
+                                          fontSize: 12,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-
-                          const SizedBox(height: 32),
-
-                          // Submit Button
-                          AuthPrimaryButton(
-                            label: 'Se connecter',
-                            icon: Icons.arrow_forward_rounded,
-                            loading: auth.isLoading,
-                            onTap: _isFormValid() ? () => _submit(auth) : null,
                           ),
 
-                          const SizedBox(height: 24),
-                          _buildGoogleButton(auth),
-                        ],
-                      ),
-                    ),
+                        const SizedBox(height: 32),
 
-                    const SizedBox(height: 32),
+                        // Submit Button
+                        AuthPrimaryButton(
+                          label: 'Se connecter',
+                          icon: Icons.arrow_forward_rounded,
+                          loading: auth.isLoading,
+                          onTap: _isFormValid() ? () => _submit(auth) : null,
+                        ),
+
+                        const SizedBox(height: 16),
+                        _buildAppleButton(auth),
+                        const SizedBox(height: 12),
+                        _buildGoogleButton(auth),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
 
                   // Register Link
                   _buildRegisterLink(),
@@ -293,6 +295,58 @@ class _LoginPageState extends State<LoginPage>
         ),
       ],
     );
+  }
+
+  Widget _buildAppleButton(AuthProvider auth) {
+    return GestureDetector(
+      onTap: auth.isAppleLoading ? null : () => _submitApple(auth),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: auth.isAppleLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.apple, color: Colors.white, size: 22),
+                  SizedBox(width: 12),
+                  Text(
+                    'Continuer avec Apple',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Future<void> _submitApple(AuthProvider auth) async {
+    await auth.loginWithApple();
+    if (!mounted) return;
+    if (auth.isAuthenticated) {
+      if (auth.isNewUser) {
+        Navigator.pushReplacementNamed(context, '/complete-profile');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
   }
 
   Widget _buildGoogleButton(AuthProvider auth) {
