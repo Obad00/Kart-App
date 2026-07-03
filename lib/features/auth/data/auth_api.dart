@@ -27,6 +27,25 @@ class AuthApi {
     );
   }
 
+  Future<Response> appleLogin(
+    String identityToken, {
+    String? firstname,
+    String? lastname,
+  }) {
+    return ApiClient.dio.post(
+      ApiEndpoints.appleToken,
+      data: {
+        'token': identityToken,
+        if (firstname != null && firstname.isNotEmpty) 'firstname': firstname,
+        if (lastname != null && lastname.isNotEmpty) 'lastname': lastname,
+      },
+    );
+  }
+
+  Future<Response> deleteAccount() {
+    return ApiClient.dio.post(ApiEndpoints.deleteAccount);
+  }
+
   Future<Response> me() {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
@@ -35,6 +54,20 @@ class AuthApi {
     return ApiClient.dio.put(
       ApiEndpoints.me,
       data: data,
+    );
+  }
+
+  Future<Response> activateAccount(String token) {
+    return ApiClient.dio.post(
+      ApiEndpoints.activateAccount,
+      data: {'token': token},
+    );
+  }
+
+  Future<Response> resendVerificationEmail(String email) {
+    return ApiClient.dio.post(
+      ApiEndpoints.resendVerificationEmail,
+      data: {'email': email},
     );
   }
 }

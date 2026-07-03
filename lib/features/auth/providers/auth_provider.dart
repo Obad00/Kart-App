@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,10 @@ import '../models/user.dart';
 
 const String _kGoogleSignInClientId =
     String.fromEnvironment('GOOGLE_SIGN_IN_CLIENT_ID', defaultValue: '');
+const String _kAppleServiceId =
+    String.fromEnvironment('APPLE_SERVICE_ID', defaultValue: '');
+const String _kAppleRedirectUri =
+    String.fromEnvironment('APPLE_REDIRECT_URI', defaultValue: '');
 
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
@@ -23,6 +28,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
   bool isGoogleLoading = false;
+  bool isAppleLoading = false;
   bool isNewUser = false;
   User? user;
   String? error;
@@ -116,7 +122,14 @@ class AuthProvider extends ChangeNotifier {
     } on DioException catch (e) {
       // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
-        error = 'Email ou mot de passe incorrect';
+        final responseData = e.response?.data;
+        if (responseData is Map &&
+            (responseData['message'] == 'Compte inactif' ||
+                responseData['error'] == 'Compte inactif')) {
+          error = 'Compte inactif';
+        } else {
+          error = 'Email ou mot de passe incorrect';
+        }
       } else if (e.response?.statusCode == 422) {
         // Erreur de validation
         final data = e.response?.data;
@@ -137,7 +150,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> register({
+  Future<bool> register({
     required String firstname,
     required String lastname,
     required String phone,
@@ -150,7 +163,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _api.register({
+      final response = await _api.register({
         'firstname': firstname,
         'lastname': lastname,
         'phone': phone,
@@ -160,8 +173,16 @@ class AuthProvider extends ChangeNotifier {
         'role': 'user',
       });
 
+      final responseData = response.data;
+      if (responseData is Map &&
+          responseData['requires_email_verification'] == true) {
+        error = 'verification_required';
+        return true;
+      }
+
       // Registration successful, now login automatically
       await login(email, password);
+      return true;
     } on DioException catch (e) {
       debugPrint(
           '❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
@@ -188,9 +209,69 @@ class AuthProvider extends ChangeNotifier {
       } else {
         error = 'Erreur serveur: ${e.response?.statusCode ?? "inconnue"}';
       }
+      return false;
     } catch (e) {
       debugPrint('❌ Register unknown error: $e');
       error = 'Erreur inattendue: $e';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> activateAccount(String token) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final response = await _api.activateAccount(token);
+      final authToken = response.data['access_token'] ?? response.data['token'];
+      if (authToken == null || authToken is! String) {
+        error = 'Erreur: token non reçu';
+        return false;
+      }
+
+      await ApiClient.setToken(authToken);
+      await loadMe();
+      return true;
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['message'] != null) {
+        error = responseData['message'];
+      } else {
+        error = 'Code d\'activation invalide ou expiré';
+      }
+      return false;
+    } catch (e) {
+      error = 'Une erreur est survenue lors de l\'activation';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> resendVerificationEmail(String email) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _api.resendVerificationEmail(email);
+      return true;
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['message'] != null) {
+        error = responseData['message'];
+      } else {
+        error = 'Impossible de renvoyer l\'email de vérification';
+      }
+      return false;
+    } catch (e) {
+      error = 'Une erreur est survenue';
+      return false;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -348,6 +429,119 @@ class AuthProvider extends ChangeNotifier {
       errorDetails = '$e\n$st';
     } finally {
       isGoogleLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loginWithApple() async {
+    isAppleLoading = true;
+    error = null;
+    errorDetails = null;
+    notifyListeners();
+
+    try {
+      final usesWebAppleFlow =
+          kIsWeb || defaultTargetPlatform == TargetPlatform.android;
+
+      if (usesWebAppleFlow &&
+          (_kAppleServiceId.isEmpty || _kAppleRedirectUri.isEmpty)) {
+        error =
+            'Apple sign-in non configuré pour cette plateforme. Ajoutez APPLE_SERVICE_ID et APPLE_REDIRECT_URI.';
+        isAppleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        webAuthenticationOptions: usesWebAppleFlow
+            ? WebAuthenticationOptions(
+                clientId: _kAppleServiceId,
+                redirectUri: Uri.parse(_kAppleRedirectUri),
+              )
+            : null,
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        error = 'Impossible d\'obtenir le token Apple';
+        isAppleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final response = await _api.appleLogin(
+        identityToken,
+        firstname: credential.givenName,
+        lastname: credential.familyName,
+      );
+      final token = response.data['access_token'] ?? response.data['token'];
+
+      if (token == null || token is! String) {
+        error = 'Erreur: token non reçu';
+        isAppleLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      await ApiClient.setToken(token);
+      isNewUser = response.data['is_new_user'] == true;
+
+      await loadMe();
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled) {
+        error = 'Erreur de connexion avec Apple';
+        errorDetails = e.message;
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        error = 'Token Apple invalide';
+      } else if (e.response?.data != null &&
+          e.response?.data['message'] != null) {
+        error = e.response?.data['message'];
+      } else if (e.response?.data != null &&
+          e.response?.data['error'] != null) {
+        error = e.response?.data['error'];
+      } else {
+        error = 'Erreur de connexion Apple';
+      }
+      errorDetails = e.toString();
+    } catch (e, st) {
+      error = 'Erreur de connexion avec Apple';
+      errorDetails = '$e\n$st';
+    } finally {
+      isAppleLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _api.deleteAccount();
+      await logout();
+      return true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        error = 'Connexion expirée';
+      } else if (e.response?.data != null &&
+          e.response?.data['message'] != null) {
+        error = e.response?.data['message'];
+      } else {
+        error = 'Impossible de supprimer le compte';
+      }
+      return false;
+    } catch (e) {
+      error = 'Une erreur est survenue';
+      return false;
+    } finally {
+      isLoading = false;
       notifyListeners();
     }
   }
