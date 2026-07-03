@@ -86,7 +86,7 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Future<void> _submit(AuthProvider auth) async {
-    await auth.register(
+    final success = await auth.register(
       firstname: _firstnameCtrl.text.trim(),
       lastname: _lastnameCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
@@ -97,14 +97,18 @@ class _RegisterPageState extends State<RegisterPage>
 
     if (!mounted) return;
 
-    if (auth.isAuthenticated) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/plans',
-        arguments: {
-          'successMessage': 'Compte créé avec succès 🎉',
-        },
-      );
+    if (success) {
+      if (auth.error == 'verification_required') {
+        _showVerificationRequiredDialog(context, _emailCtrl.text.trim());
+      } else if (auth.isAuthenticated) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/plans',
+          arguments: {
+            'successMessage': 'Compte créé avec succès 🎉',
+          },
+        );
+      }
     }
   }
 
@@ -197,7 +201,7 @@ class _RegisterPageState extends State<RegisterPage>
                 const SizedBox(height: 32),
 
                 // Error message
-                if (auth.error != null)
+                if (auth.error != null && auth.error != 'verification_required')
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Container(
@@ -599,6 +603,55 @@ class _RegisterPageState extends State<RegisterPage>
           ),
         ),
       ],
+    );
+  }
+
+  void _showVerificationRequiredDialog(BuildContext context, String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Row(
+          children: const [
+            Icon(Icons.mark_email_unread_outlined, color: Colors.white, size: 28),
+            SizedBox(width: 12),
+            Text('Vérification requise', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          'Votre compte a été créé. Un e-mail de validation a été envoyé à :\n\n$email\n\nVeuillez valider votre e-mail pour activer votre compte. Une fois activé, vous recevrez un lien pour ouvrir l\'application.',
+          style: const TextStyle(color: Colors.white70, height: 1.5),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pushReplacementNamed('/login');
+            },
+            child: const Text('Aller à la connexion', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              final sent = await auth.resendVerificationEmail(email);
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      sent
+                          ? 'Email de vérification renvoyé !'
+                          : 'Erreur: ${auth.error ?? "Impossible de renvoyer l\'email"}',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('Renvoyer l\'email', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

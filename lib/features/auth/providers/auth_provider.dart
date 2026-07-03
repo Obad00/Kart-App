@@ -122,7 +122,14 @@ class AuthProvider extends ChangeNotifier {
     } on DioException catch (e) {
       // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
-        error = 'Email ou mot de passe incorrect';
+        final responseData = e.response?.data;
+        if (responseData is Map &&
+            (responseData['message'] == 'Compte inactif' ||
+                responseData['error'] == 'Compte inactif')) {
+          error = 'Compte inactif';
+        } else {
+          error = 'Email ou mot de passe incorrect';
+        }
       } else if (e.response?.statusCode == 422) {
         // Erreur de validation
         final data = e.response?.data;
@@ -143,7 +150,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> register({
+  Future<bool> register({
     required String firstname,
     required String lastname,
     required String phone,
@@ -156,7 +163,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _api.register({
+      final response = await _api.register({
         'firstname': firstname,
         'lastname': lastname,
         'phone': phone,
@@ -166,8 +173,16 @@ class AuthProvider extends ChangeNotifier {
         'role': 'user',
       });
 
+      final responseData = response.data;
+      if (responseData is Map &&
+          responseData['requires_email_verification'] == true) {
+        error = 'verification_required';
+        return true;
+      }
+
       // Registration successful, now login automatically
       await login(email, password);
+      return true;
     } on DioException catch (e) {
       debugPrint(
           '❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
@@ -194,9 +209,69 @@ class AuthProvider extends ChangeNotifier {
       } else {
         error = 'Erreur serveur: ${e.response?.statusCode ?? "inconnue"}';
       }
+      return false;
     } catch (e) {
       debugPrint('❌ Register unknown error: $e');
       error = 'Erreur inattendue: $e';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> activateAccount(String token) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final response = await _api.activateAccount(token);
+      final authToken = response.data['access_token'] ?? response.data['token'];
+      if (authToken == null || authToken is! String) {
+        error = 'Erreur: token non reçu';
+        return false;
+      }
+
+      await ApiClient.setToken(authToken);
+      await loadMe();
+      return true;
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['message'] != null) {
+        error = responseData['message'];
+      } else {
+        error = 'Code d\'activation invalide ou expiré';
+      }
+      return false;
+    } catch (e) {
+      error = 'Une erreur est survenue lors de l\'activation';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> resendVerificationEmail(String email) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _api.resendVerificationEmail(email);
+      return true;
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['message'] != null) {
+        error = responseData['message'];
+      } else {
+        error = 'Impossible de renvoyer l\'email de vérification';
+      }
+      return false;
+    } catch (e) {
+      error = 'Une erreur est survenue';
+      return false;
     } finally {
       isLoading = false;
       notifyListeners();

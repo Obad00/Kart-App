@@ -56,4 +56,18 @@ class AuthApi {
       data: data,
     );
   }
+
+  Future<Response> activateAccount(String token) {
+    return ApiClient.dio.post(
+      ApiEndpoints.activateAccount,
+      data: {'token': token},
+    );
+  }
+
+  Future<Response> resendVerificationEmail(String email) {
+    return ApiClient.dio.post(
+      ApiEndpoints.resendVerificationEmail,
+      data: {'email': email},
+    );
+  }
 }

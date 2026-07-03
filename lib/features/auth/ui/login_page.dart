@@ -164,10 +164,14 @@ class _LoginPageState extends State<LoginPage>
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
+                                color: auth.error == 'Compte inactif'
+                                    ? Colors.orange.withValues(alpha: 0.1)
+                                    : Colors.red.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.3),
+                                  color: auth.error == 'Compte inactif'
+                                      ? Colors.orange.withValues(alpha: 0.3)
+                                      : Colors.red.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Column(
@@ -176,23 +180,80 @@ class _LoginPageState extends State<LoginPage>
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.error_outline_rounded,
-                                        color: Colors.red[300],
+                                        auth.error == 'Compte inactif'
+                                            ? Icons.warning_amber_rounded
+                                            : Icons.error_outline_rounded,
+                                        color: auth.error == 'Compte inactif'
+                                            ? Colors.orange[300]
+                                            : Colors.red[300],
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
-                                          auth.error!,
+                                          auth.error == 'Compte inactif'
+                                              ? 'Votre compte n\'est pas encore actif. Veuillez vérifier votre adresse e-mail ou renvoyer le lien de confirmation.'
+                                              : auth.error!,
                                           style: TextStyle(
-                                            color: Colors.red[300],
+                                            color:
+                                                auth.error == 'Compte inactif'
+                                                    ? Colors.orange[300]
+                                                    : Colors.red[300],
                                             fontSize: 14,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (auth.errorDetails != null)
+                                  if (auth.error == 'Compte inactif') ...[
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                      onPressed: () async {
+                                        if (_emailCtrl.text.trim().isEmpty) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Veuillez saisir votre adresse e-mail'),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        final sent =
+                                            await auth.resendVerificationEmail(
+                                                _emailCtrl.text.trim());
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                sent
+                                                    ? 'Email de vérification renvoyé !'
+                                                    : 'Erreur: ${auth.error ?? "Impossible de renvoyer l\'email"}',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(0, 30),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Renvoyer l\'email de validation',
+                                        style: TextStyle(
+                                          color: Colors.orange[300],
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (auth.errorDetails != null &&
+                                      auth.error != 'Compte inactif')
                                     Padding(
                                       padding: const EdgeInsets.only(top: 8.0),
                                       child: Text(
@@ -220,9 +281,10 @@ class _LoginPageState extends State<LoginPage>
                         ),
 
                         const SizedBox(height: 16),
-                        _buildAppleButton(auth),
-                        const SizedBox(height: 12),
-                        _buildGoogleButton(auth),
+                        // Boutons de connexion sociale désactivés temporairement
+                        // _buildAppleButton(auth),
+                        // const SizedBox(height: 12),
+                        // _buildGoogleButton(auth),
                       ],
                     ),
                   ),
