@@ -119,7 +119,7 @@ jobs:
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
           python3 - <<'PYEOF'
-          import jwt, time, json, urllib.request, base64, os, glob
+          import jwt, time, json, urllib.request, base64, os
 
           key_id = os.environ['KEY_ID']
           issuer_id = os.environ['ISSUER_ID']
@@ -152,7 +152,7 @@ jobs:
               with urllib.request.urlopen(req) as resp:
                   return json.loads(resp.read())
 
-          # 1. Réutilisation intelligente ou création du certificat de Distribution
+          # 1. Réutilisation ou création du certificat de Distribution
           print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
           existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=10")
           
@@ -167,7 +167,7 @@ jobs:
               cert_content = best_cert["attributes"]["certificateContent"]
               print(f"✅ Certificat de Distribution existant réutilisé : {cert_id}")
           else:
-              print("⚠️ Aucun certificat trouvé. Création d'un nouveau certificat...")
+              print("⚠️ Aucun certificat trouvé. Création d'un nouveau...")
               os.system("openssl genrsa -out /tmp/distribution.key 2048")
               os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
               
@@ -212,7 +212,7 @@ jobs:
                   except:
                       pass
 
-          # 4. Génération du profil de provisionnement propre
+          # 4. Génération du profil de provisionnement
           profile_data = api_request(
               "https://api.appstoreconnect.apple.com/v1/profiles",
               data={
@@ -244,25 +244,9 @@ jobs:
               f.write(profile_uuid)
 
           print(f"🚀 Profil créé - UUID: {profile_uuid}")
-
-          # 5. Remplacement agressif de la signature sur TOUS les sous-projets générés (Pods & Packages Flutter)
-          print("🔧 Application du correctif de signature sur l'ensemble des dépendances (y compris webview/scanner)...")
-          for pbxproj in glob.glob('ios/**/*.pbxproj', recursive=True):
-              if "Runner.xcodeproj" in pbxproj:
-                  continue
-              with open(pbxproj, 'r') as file:
-                  content = file.read()
-              
-              # Force les paramètres empêchant les packages d'exiger le profil manuel global
-              content = content.replace("CODE_SIGNING_ALLOWED = YES;", "CODE_SIGNING_ALLOWED = NO;")
-              content = content.replace("CODE_SIGNING_REQUIRED = YES;", "CODE_SIGNING_REQUIRED = NO;")
-              
-              with open(pbxproj, 'w') as file:
-                  file.write(content)
-          print("🎉 Toutes les configurations cibles ont été nettoyées.")
           PYEOF
 
-          # Importer les clés si générées localement
+          # Import des clés si génération locale
           HAS_LOCAL_KEY=$(cat /tmp/has_local_key.txt)
           if [ "$HAS_LOCAL_KEY" = "true" ]; then
             openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
@@ -278,7 +262,7 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
           fi
 
-          # Installer le profil de provisionnement sur le Mac virtuel
+          # Installer le profil sur le Mac virtuel
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
@@ -327,7 +311,12 @@ jobs:
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE_SPECIFIER_APP_="$PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER_Runner="$PROFILE_UUID" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED_APP_=YES \
+            CODE_SIGNING_ALLOWED_Runner=YES \
             archive 2>&1 | tee /tmp/xcodebuild.log; \
           EXIT_CODE=${PIPESTATUS[0]}; \
           if [ $EXIT_CODE -ne 0 ]; then
