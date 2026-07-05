@@ -229,7 +229,7 @@ class _LoginPageState extends State<LoginPage>
                                               content: Text(
                                                 sent
                                                     ? 'Email de vérification renvoyé !'
-                                                    : 'Erreur: ${auth.error ?? "Impossible de renvoyer l\'email"}',
+                                                    : 'Erreur: ${auth.error ?? "Impossible de renvoyer l'email"}',
                                               ),
                                             ),
                                           );
@@ -357,119 +357,6 @@ class _LoginPageState extends State<LoginPage>
         ),
       ],
     );
-  }
-
-  Widget _buildAppleButton(AuthProvider auth) {
-    return GestureDetector(
-      onTap: auth.isAppleLoading ? null : () => _submitApple(auth),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: auth.isAppleLoading
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.apple, color: Colors.white, size: 22),
-                  SizedBox(width: 12),
-                  Text(
-                    'Continuer avec Apple',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Future<void> _submitApple(AuthProvider auth) async {
-    await auth.loginWithApple();
-    if (!mounted) return;
-    if (auth.isAuthenticated) {
-      if (auth.isNewUser) {
-        Navigator.pushReplacementNamed(context, '/complete-profile');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
-  }
-
-  Widget _buildGoogleButton(AuthProvider auth) {
-    return GestureDetector(
-      onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: auth.isGoogleLoading
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
-                  ),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.network(
-                    'https://www.google.com/favicon.ico',
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.g_mobiledata,
-                      color: Colors.black87,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Continuer avec Google',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Future<void> _submitGoogle(AuthProvider auth) async {
-    await auth.loginWithGoogle();
-    if (!mounted) return;
-    if (auth.isAuthenticated) {
-      if (auth.isNewUser) {
-        Navigator.pushReplacementNamed(context, '/complete-profile');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
   }
 
   Widget _buildRegisterLink() {
