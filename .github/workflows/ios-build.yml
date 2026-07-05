@@ -43,39 +43,6 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Désactiver le signing sur les dépendances et packages (patch Ruby)
-        run: |
-          ruby - <<'RUBY'
-          require 'xcodeproj'
-          require 'fileutils'
-
-          # Trouver tous les fichiers .xcodeproj dans le dossier ios/
-          Dir.glob('ios/**/*.xcodeproj').each do |project_path|
-            puts "🔧 Patching project: #{project_path}"
-            project = Xcodeproj::Project.open(project_path)
-            is_main_app = project_path.end_with?('Runner.xcodeproj')
-
-            project.targets.each do |target|
-              target.build_configurations.each do |config|
-                # Si ce n'est pas la cible principale de votre application, on bloque le profil
-                if !is_main_app
-                  config.build_settings['CODE_SIGNING_ALLOWED']       = 'NO'
-                  config.build_settings['CODE_SIGNING_REQUIRED']      = 'NO'
-                  config.build_settings['CODE_SIGN_IDENTITY']         = ''
-                  config.build_settings['CODE_SIGN_STYLE']            = 'Manual'
-                  config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
-                  config.build_settings['DEVELOPMENT_TEAM']           = ''
-                else
-                  config.build_settings['CODE_SIGN_STYLE']            = 'Manual'
-                end
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-              end
-            end
-            project.save
-          end
-          puts "🎉 Toutes les dépendances (Pods et Packages) ont été patchées avec succès !"
-          RUBY
-
       - name: Nettoyer les vieux certificats de développement via API
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -152,7 +119,7 @@ jobs:
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
           python3 - <<'PYEOF'
-          import jwt, time, json, urllib.request, base64, os
+          import jwt, time, json, urllib.request, base64, os, glob
 
           key_id = os.environ['KEY_ID']
           issuer_id = os.environ['ISSUER_ID']
@@ -185,8 +152,8 @@ jobs:
               with urllib.request.urlopen(req) as resp:
                   return json.loads(resp.read())
 
-          # 1. Tenter de réutiliser un certificat IOS_DISTRIBUTION existant
-          print("Recherche d'un certificat IOS_DISTRIBUTION existant pour éviter les conflits...")
+          # 1. Réutilisation intelligente ou création du certificat de Distribution
+          print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
           existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=10")
           
           cert_id = None
@@ -198,9 +165,9 @@ jobs:
               best_cert = valid_certs[0]
               cert_id = best_cert["id"]
               cert_content = best_cert["attributes"]["certificateContent"]
-              print(f"✅ Certificat de Distribution existant trouvé et réutilisé : {cert_id}")
+              print(f"✅ Certificat de Distribution existant réutilisé : {cert_id}")
           else:
-              print("⚠️ Aucun certificat de distribution trouvé. Création d'un nouveau...")
+              print("⚠️ Aucun certificat trouvé. Création d'un nouveau certificat...")
               os.system("openssl genrsa -out /tmp/distribution.key 2048")
               os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
               
@@ -222,38 +189,30 @@ jobs:
               cert_content = cert_data["data"]["attributes"]["certificateContent"]
               cert_id = cert_data["data"]["id"]
               has_local_key = True
-              print(f"✅ Nouveau certificat créé avec succès : {cert_id}")
+              print(f"✅ Nouveau certificat créé : {cert_id}")
 
-          # Sauvegarde du certificat
-          cert_bytes = base64.b64decode(cert_content)
           with open("/tmp/distribution.cer", "wb") as f:
-              f.write(cert_bytes)
+              f.write(base64.b64decode(cert_content))
           
           with open("/tmp/has_local_key.txt", "w") as f:
               f.write("true" if has_local_key else "false")
 
-          # 2. Trouver la ressource Bundle ID
-          print(f"Recherche du bundle ID: {bundle_id}...")
+          # 2. Bundle ID Resource Lookup
           bundle_data = api_request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={bundle_id}")
-
           if not bundle_data["data"]:
-              raise Exception(f"Bundle ID {bundle_id} non trouvé dans App Store Connect")
-
+              raise Exception(f"Bundle ID {bundle_id} non trouvé")
           bundle_resource_id = bundle_data["data"][0]["id"]
 
-          # 3. Nettoyer les anciens profils temporaires
-          print("Nettoyage des anciens profils en cours...")
+          # 3. Nettoyage des anciens profils
           profiles_data = api_request("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=20")
           for profile in profiles_data.get("data", []):
               if "KartApp" in profile["attributes"]["name"]:
-                  print(f"Suppression profil obsolète: {profile['attributes']['name']}")
                   try:
                       api_request(f"https://api.appstoreconnect.apple.com/v1/profiles/{profile['id']}", method="DELETE")
                   except:
                       pass
 
-          # 4. Créer un nouveau profil de provisionnement propre
-          print("Création du nouveau profil d'App Store...")
+          # 4. Génération du profil de provisionnement propre
           profile_data = api_request(
               "https://api.appstoreconnect.apple.com/v1/profiles",
               data={
@@ -284,10 +243,26 @@ jobs:
           with open("/tmp/profile_uuid.txt", "w") as f:
               f.write(profile_uuid)
 
-          print(f"🚀 Profil créé avec succès - UUID: {profile_uuid}")
+          print(f"🚀 Profil créé - UUID: {profile_uuid}")
+
+          # 5. Remplacement agressif de la signature sur TOUS les sous-projets générés (Pods & Packages Flutter)
+          print("🔧 Application du correctif de signature sur l'ensemble des dépendances (y compris webview/scanner)...")
+          for pbxproj in glob.glob('ios/**/*.pbxproj', recursive=True):
+              if "Runner.xcodeproj" in pbxproj:
+                  continue
+              with open(pbxproj, 'r') as file:
+                  content = file.read()
+              
+              # Force les paramètres empêchant les packages d'exiger le profil manuel global
+              content = content.replace("CODE_SIGNING_ALLOWED = YES;", "CODE_SIGNING_ALLOWED = NO;")
+              content = content.replace("CODE_SIGNING_REQUIRED = YES;", "CODE_SIGNING_REQUIRED = NO;")
+              
+              with open(pbxproj, 'w') as file:
+                  file.write(content)
+          print("🎉 Toutes les configurations cibles ont été nettoyées.")
           PYEOF
 
-          # Gestion du trousseau si création locale
+          # Importer les clés si générées localement
           HAS_LOCAL_KEY=$(cat /tmp/has_local_key.txt)
           if [ "$HAS_LOCAL_KEY" = "true" ]; then
             openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
@@ -303,7 +278,7 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
           fi
 
-          # Installer le profil
+          # Installer le profil de provisionnement sur le Mac virtuel
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
