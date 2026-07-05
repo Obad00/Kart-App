@@ -43,22 +43,37 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Désactiver le signing sur les Pods (patch Ruby)
+      - name: Désactiver le signing sur les dépendances et packages (patch Ruby)
         run: |
           ruby - <<'RUBY'
           require 'xcodeproj'
-          project = Xcodeproj::Project.open('ios/Pods/Pods.xcodeproj')
-          project.targets.each do |target|
-            target.build_configurations.each do |config|
-              config.build_settings['CODE_SIGNING_ALLOWED']       = 'NO'
-              config.build_settings['CODE_SIGNING_REQUIRED']      = 'NO'
-              config.build_settings['CODE_SIGN_IDENTITY']         = ''
-              config.build_settings['CODE_SIGN_STYLE']            = 'Manual'
-              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+          require 'fileutils'
+
+          # Trouver tous les fichiers .xcodeproj dans le dossier ios/
+          Dir.glob('ios/**/*.xcodeproj').each do |project_path|
+            puts "🔧 Patching project: #{project_path}"
+            project = Xcodeproj::Project.open(project_path)
+            is_main_app = project_path.end_with?('Runner.xcodeproj')
+
+            project.targets.each do |target|
+              target.build_configurations.each do |config|
+                # Si ce n'est pas la cible principale de votre application, on bloque le profil
+                if !is_main_app
+                  config.build_settings['CODE_SIGNING_ALLOWED']       = 'NO'
+                  config.build_settings['CODE_SIGNING_REQUIRED']      = 'NO'
+                  config.build_settings['CODE_SIGN_IDENTITY']         = ''
+                  config.build_settings['CODE_SIGN_STYLE']            = 'Manual'
+                  config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+                  config.build_settings['DEVELOPMENT_TEAM']           = ''
+                else
+                  config.build_settings['CODE_SIGN_STYLE']            = 'Manual'
+                end
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+              end
             end
+            project.save
           end
-          project.save
-          puts "Pods signing patched successfully"
+          puts "🎉 Toutes les dépendances (Pods et Packages) ont été patchées avec succès !"
           RUBY
 
       - name: Nettoyer les vieux certificats de développement via API
@@ -272,7 +287,7 @@ jobs:
           print(f"🚀 Profil créé avec succès - UUID: {profile_uuid}")
           PYEOF
 
-          # Gestion optionnelle du trousseau de clés si une nouvelle clé a été générée localement
+          # Gestion du trousseau si création locale
           HAS_LOCAL_KEY=$(cat /tmp/has_local_key.txt)
           if [ "$HAS_LOCAL_KEY" = "true" ]; then
             openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
@@ -288,13 +303,12 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
           fi
 
-          # Installer le profil sur l'environnement Runner
+          # Installer le profil
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
-          echo "Profil installé dans l'environnement : $PROFILE_UUID"
 
       - name: Créer le fichier ExportOptions
         run: |
@@ -328,8 +342,6 @@ jobs:
 
       - name: Archiver et Signer avec Xcodebuild
         env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace \
