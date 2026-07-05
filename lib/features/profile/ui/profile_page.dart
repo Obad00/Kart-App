@@ -271,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage>
                                   colors,
                                   icon: Icons.workspace_premium,
                                   label: 'Plan',
-                                  value: card.plan ?? 'free',
+                                  value: _getPlanLabel(auth.user?.plan),
                                 ),
                               ]
                             : [
@@ -1452,6 +1452,19 @@ class _ProfilePageState extends State<ProfilePage>
     if (parts.isEmpty || parts[0].isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  String _getPlanLabel(String? plan) {
+    switch (plan?.toLowerCase()) {
+      case 'pro':
+        return 'Pro';
+      case 'enterprise':
+        return 'Enterprise';
+      case 'free':
+        return 'Gratuit';
+      default:
+        return plan?.toUpperCase() ?? 'Gratuit';
+    }
   }
 }
 

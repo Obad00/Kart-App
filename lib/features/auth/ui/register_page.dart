@@ -614,7 +614,8 @@ class _RegisterPageState extends State<RegisterPage>
         backgroundColor: const Color(0xFF1E1E1E),
         title: Row(
           children: const [
-            Icon(Icons.mark_email_unread_outlined, color: Colors.white, size: 28),
+            Icon(Icons.mark_email_unread_outlined,
+                color: Colors.white, size: 28),
             SizedBox(width: 12),
             Text('Vérification requise', style: TextStyle(color: Colors.white)),
           ],
@@ -630,7 +631,8 @@ class _RegisterPageState extends State<RegisterPage>
               Navigator.of(ctx).pop();
               Navigator.of(context).pushReplacementNamed('/login');
             },
-            child: const Text('Aller à la connexion', style: TextStyle(color: Colors.white)),
+            child: const Text('Aller à la connexion',
+                style: TextStyle(color: Colors.white)),
           ),
           TextButton(
             onPressed: () async {
@@ -642,13 +644,14 @@ class _RegisterPageState extends State<RegisterPage>
                     content: Text(
                       sent
                           ? 'Email de vérification renvoyé !'
-                          : 'Erreur: ${auth.error ?? "Impossible de renvoyer l\'email"}',
+                          : 'Erreur: ${auth.error ?? "Impossible de renvoyer l'email"}',
                     ),
                   ),
                 );
               }
             },
-            child: const Text('Renvoyer l\'email', style: TextStyle(color: Colors.white)),
+            child: const Text('Renvoyer l\'email',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

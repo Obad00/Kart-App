@@ -1,9 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:app_links/app_links.dart';
-import 'core/network/api_client.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
@@ -68,19 +65,19 @@ class KartApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
-        ChangeNotifierProvider(create: (_) => ContactsProvider()..fetchGroupedContacts()),
+        ChangeNotifierProvider(
+            create: (_) => ContactsProvider()..fetchGroupedContacts()),
         ChangeNotifierProvider(create: (_) => CompanyProvider()),
-        ChangeNotifierProvider(create: (_) => PlanProvider(service: PlanService())),
+        ChangeNotifierProvider(
+            create: (_) => PlanProvider(service: PlanService())),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
         ChangeNotifierProvider(create: (_) => CardScanProvider()),
         ChangeNotifierProvider(create: (_) => LeadsProvider()),
-       ChangeNotifierProvider(
+        ChangeNotifierProvider(
           create: (_) => ProfileCompletionProvider(
             ProfileCompletionService(),
           )..load(),
         ),
-
-
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -120,7 +117,8 @@ class KartApp extends StatelessWidget {
                 '/payment/methods': (_) => const PaymentMethodScreen(),
                 '/payment/processing': (_) => const PaymentProcessingScreen(),
                 '/payment/result': (context) {
-                  final payment = ModalRoute.of(context)?.settings.arguments as Payment;
+                  final payment =
+                      ModalRoute.of(context)?.settings.arguments as Payment;
                   return PaymentResultScreen(payment: payment);
                 },
 
@@ -130,7 +128,8 @@ class KartApp extends StatelessWidget {
                 '/card-scanner/result': (_) => const ScanResultScreen(),
 
                 // Onboarding
-                '/onboarding-company': (_) => const OnboardingCompanyChoicePage(),
+                '/onboarding-company': (_) =>
+                    const OnboardingCompanyChoicePage(),
                 '/create-company': (_) => const CreateCompanyPage(),
                 '/join-company': (_) => const JoinCompanyPage(),
 
@@ -138,8 +137,8 @@ class KartApp extends StatelessWidget {
                 '/my-card': (_) => const MyDigitalCardGuard(),
                 '/leads': (_) => const LeadsPage(),
                 '/home': (context) {
-                  final args =
-                      ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
 
                   return HomeShell(
                     initialIndex: args?['tab'] ?? 0,
