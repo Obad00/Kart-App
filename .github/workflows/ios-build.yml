@@ -61,6 +61,67 @@ jobs:
           puts "Pods signing patched successfully"
           RUBY
 
+      - name: Nettoyer les certificats Apple en surnombre
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+        run: |
+          ruby - <<'RUBY'
+          require 'jwt'
+          require 'net/http'
+          require 'json'
+          require 'openssl'
+
+          # 1. Génération du JWT pour l'API App Store Connect
+          private_key = OpenSSL::PKey::EC.new(ENV['KEY_CONTENT'])
+          payload = {
+            iss: ENV['ISSUER_ID'],
+            iat: Time.now.to_i,
+            exp: Time.now.to_i + (10 * 60),
+            aud: 'appstoreconnect-v1'
+          }
+          header = { kid: ENV['KEY_ID'], typ: 'JWT' }
+          token = JWT.encode(payload, private_key, 'ES256', header)
+
+          # 2. Requête vers l'API pour l'inventaire des certificats
+          uri = URI('https://api.appstoreconnect.apple.com/v1/certificates?limit=10')
+          req = Net::HTTP::Get.new(uri)
+          req['Authorization'] = "Bearer #{token}"
+          req['Content-Type'] = 'application/json'
+
+          res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+          data = JSON.parse(res.body)
+
+          if data['data'] && !data['data'].empty?
+            # Cibler en priorité les certificats génériques ("Mac", "Runner" ou vides)
+            certs_to_revoke = data['data'].select do |c| 
+              display_name = c['attributes']['displayName'] || ""
+              display_name.include?("Mac") || display_name.include?("Runner") || display_name.empty?
+            end
+
+            if certs_to_revoke.empty?
+              # Si aucun certificat générique flagrant, on prend le plus ancien pour libérer une place
+              certs_to_revoke = [data['data'].last]
+            end
+
+            certs_to_revoke.each do |cert|
+              id = cert['id']
+              name = cert['attributes']['name']
+              puts "ℹ️ Nettoyage programmé : Révocation du certificat #{name} (ID: #{id})"
+              
+              del_uri = URI("https://api.appstoreconnect.apple.com/v1/certificates/#{id}")
+              del_req = Net::HTTP::Delete.new(del_uri)
+              del_req['Authorization'] = "Bearer #{token}"
+              
+              Net::HTTP.start(del_uri.hostname, del_uri.port, use_ssl: true) { |http| http.request(del_req) }
+              puts "✅ Certificat #{id} révoqué avec succès."
+            end
+          else
+            puts "✅ Aucun certificat encombrant détecté sur le compte."
+          end
+          RUBY
+
       - name: Créer le fichier ExportOptions
         run: |
           cat <<EOF > ios/ExportOptions.plist
