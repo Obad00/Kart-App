@@ -70,23 +70,26 @@ class AuthProvider extends ChangeNotifier {
   Future<void> loadMe() async {
     isLoading = true;
     error = null;
+    errorDetails = null;
     notifyListeners();
 
     try {
       final meResponse = await _api.me();
-      debugPrint('👤 /me response: \\${meResponse.data}');
+      debugPrint('👤 /me response: ${meResponse.data}');
       user = User.fromJson(meResponse.data);
     } on DioException catch (e) {
       debugPrint(
-          '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
+          '❌ /me DioException: status=${e.response?.statusCode}, data=${e.response?.data}');
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
       } else {
         error = 'Impossible de récupérer l\'utilisateur';
+        errorDetails = _extractBackendMessage(e.response?.data);
       }
     } catch (e) {
-      debugPrint('❌ /me unknown error: \\${e.toString()}');
+      debugPrint('❌ /me unknown error: ${e.toString()}');
       error = 'Une erreur est survenue';
+      errorDetails = e.toString();
     } finally {
       isLoading = false;
       notifyListeners();
@@ -96,6 +99,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(String email, String password) async {
     isLoading = true;
     error = null;
+    errorDetails = null;
     notifyListeners();
 
     try {
@@ -108,6 +112,7 @@ class AuthProvider extends ChangeNotifier {
       if (token == null || token is! String) {
         debugPrint('❌ No token in response: ${response.data}');
         error = 'Erreur: token non reçu';
+        errorDetails = response.data.toString();
         return;
       }
 
@@ -117,33 +122,47 @@ class AuthProvider extends ChangeNotifier {
       // ✅ TOUJOURS charger depuis /me pour avoir la relation company
       // debugPrint('🔄 Loading user from /me to get company relation...');
       await loadMe();
+      if (!isAuthenticated && error == null) {
+        error = 'Impossible de terminer la connexion. Réessayez.';
+      }
       // debugPrint('✅ User fully loaded: ${user?.email}');
       // debugPrint('✅ Company: ${user?.company?.name}');
     } on DioException catch (e) {
-      // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
+      final responseData = e.response?.data;
+      final backendMessage = _extractBackendMessage(responseData);
+
       if (e.response?.statusCode == 401) {
-        final responseData = e.response?.data;
-        if (responseData is Map &&
-            (responseData['message'] == 'Compte inactif' ||
-                responseData['error'] == 'Compte inactif')) {
+        if (backendMessage?.contains('Compte inactif') == true) {
           error = 'Compte inactif';
         } else {
           error = 'Email ou mot de passe incorrect';
+          errorDetails = backendMessage;
         }
+      } else if (e.response?.statusCode == 403) {
+        error = backendMessage ?? 'Accès refusé. Contactez le support.';
+        errorDetails = backendMessage;
+      } else if (e.response?.statusCode == 419) {
+        error = 'La session a expiré. Veuillez réessayer.';
+        errorDetails = backendMessage;
       } else if (e.response?.statusCode == 422) {
-        // Erreur de validation
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          error = data['message'];
+        if (backendMessage != null) {
+          error = backendMessage;
         } else {
           error = 'Données invalides';
         }
+      } else if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        error = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
       } else {
-        error = 'Erreur serveur, réessayez';
+        error = backendMessage ?? 'Erreur serveur, réessayez';
+        errorDetails = backendMessage;
       }
     } catch (e) {
       // debugPrint('❌ Unknown error: $e');
       error = 'Une erreur est survenue: $e';
+      errorDetails = e.toString();
     } finally {
       isLoading = false;
       notifyListeners();
@@ -256,6 +275,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> resendVerificationEmail(String email) async {
     isLoading = true;
     error = null;
+    errorDetails = null;
     notifyListeners();
 
     try {
@@ -544,6 +564,30 @@ class AuthProvider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  String? _extractBackendMessage(dynamic data) {
+    if (data is Map) {
+      if (data['message'] != null) {
+        return data['message'].toString();
+      }
+      if (data['error'] != null) {
+        return data['error'].toString();
+      }
+      if (data['errors'] != null && data['errors'] is Map) {
+        final errors = data['errors'] as Map;
+        if (errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) {
+            return first.first.toString();
+          }
+          if (first is String) {
+            return first;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   bool get isAuthenticated => user != null;

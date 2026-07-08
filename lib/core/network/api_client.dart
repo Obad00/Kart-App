@@ -10,9 +10,28 @@ class ApiClient {
       baseUrl: ApiEndpoints.baseUrl,
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
     ),
-  );
+  )..interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          debugPrint('📤 Dio request: ${options.method} ${options.uri}');
+          handler.next(options);
+        },
+        onError: (error, handler) {
+          debugPrint('❌ Dio error: ${error.message} [${error.type}]');
+          if (error.response != null) {
+            debugPrint(
+                '   status=${error.response?.statusCode}, data=${error.response?.data}');
+          }
+          handler.next(error);
+        },
+      ),
+    );
 
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
