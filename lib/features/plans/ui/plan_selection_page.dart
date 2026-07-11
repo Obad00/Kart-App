@@ -140,6 +140,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
             content: Text(
               'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
             ),
+            duration: Duration(seconds: 8),
           ),
         );
         return;
@@ -150,6 +151,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
           (is2xx && isExplicitSuccess)) {
         await context.read<AuthProvider>().loadMe();
         await provider.setPendingPlanSlug(null);
+        if (!mounted) return;
 
         final successMessage = planSlug == 'pro'
             ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'
@@ -238,6 +240,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
         await context.read<AuthProvider>().loadMe();
         await provider.setPendingPlanSlug(null);
+        if (!mounted) return;
 
         final successMessage = planSlug == 'pro'
             ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'

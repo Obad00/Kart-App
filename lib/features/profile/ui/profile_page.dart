@@ -1399,6 +1399,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   void _showDeleteAccountDialog(BuildContext context) {
     final passwordController = TextEditingController();
+    final pageContext = this.context;
     bool isLoading = false;
     String? passwordError;
     bool obscurePassword = true;
@@ -1423,20 +1424,20 @@ class _ProfilePageState extends State<ProfilePage>
                 passwordError = null;
               });
 
-              final auth = this.context.read<AuthProvider>();
+              final auth = pageContext.read<AuthProvider>();
               final result = await auth.deleteAccount(password);
 
               if (!dialogContext.mounted) return;
 
               if (result.status == DeleteAccountStatus.success) {
                 Navigator.of(dialogContext).pop();
-                if (!this.context.mounted) return;
-                ScaffoldMessenger.of(this.context).showSnackBar(
+                if (!mounted || !pageContext.mounted) return;
+                ScaffoldMessenger.of(pageContext).showSnackBar(
                   const SnackBar(
                     content: Text('Votre compte a été supprimé avec succès'),
                   ),
                 );
-                Navigator.of(this.context)
+                Navigator.of(pageContext)
                     .pushNamedAndRemoveUntil('/login', (_) => false);
                 return;
               }
@@ -1451,14 +1452,14 @@ class _ProfilePageState extends State<ProfilePage>
 
               if (result.status == DeleteAccountStatus.sessionExpired) {
                 Navigator.of(dialogContext).pop();
-                if (!this.context.mounted) return;
-                ScaffoldMessenger.of(this.context).showSnackBar(
+                if (!mounted || !pageContext.mounted) return;
+                ScaffoldMessenger.of(pageContext).showSnackBar(
                   const SnackBar(
                     content: Text('Session expirée'),
                     backgroundColor: Colors.red,
                   ),
                 );
-                Navigator.of(this.context)
+                Navigator.of(pageContext)
                     .pushNamedAndRemoveUntil('/login', (_) => false);
                 return;
               }
@@ -1466,8 +1467,8 @@ class _ProfilePageState extends State<ProfilePage>
               setStateDialog(() {
                 isLoading = false;
               });
-              if (!this.context.mounted) return;
-              ScaffoldMessenger.of(this.context).showSnackBar(
+              if (!mounted || !pageContext.mounted) return;
+              ScaffoldMessenger.of(pageContext).showSnackBar(
                 const SnackBar(
                   content: Text('Une erreur est survenue. Veuillez réessayer.'),
                   backgroundColor: Colors.red,
