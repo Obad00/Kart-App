@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
+import '../../../shared/utils/plan_display_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../digital_card/exceptions/theme_forbidden_exception.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
@@ -55,9 +56,6 @@ class _ProfilePageState extends State<ProfilePage>
     _animController.dispose();
     super.dispose();
   }
-
-  
-
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +120,6 @@ class _ProfilePageState extends State<ProfilePage>
                           colors, companyColor, fullName, user.email),
 
                       const CompletionBanner(),
-
 
                       const SizedBox(height: 24),
 
@@ -196,15 +193,14 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-                              _buildUrlRow(
-                                colors,
-                                label: 'LinkedIn',
-                                url: card.linkedin,
-                                icon: Icons.work_outline,
-                                color: const Color(0xFF0A66C2),
-                              ),
-                              _buildDivider(colors),
-
+                                _buildUrlRow(
+                                  colors,
+                                  label: 'LinkedIn',
+                                  url: card.linkedin,
+                                  icon: Icons.work_outline,
+                                  color: const Color(0xFF0A66C2),
+                                ),
+                                _buildDivider(colors),
 
                                 _buildUrlRow(
                                   colors,
@@ -214,14 +210,13 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-                              _buildUrlRow(
+                                _buildUrlRow(
                                   colors,
                                   label: 'GitHub',
                                   url: card.github,
                                   icon: Icons.code,
                                 ),
                                 _buildDivider(colors),
-
 
                                 _buildUrlRow(
                                   colors,
@@ -232,8 +227,7 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-
-                              _buildUrlRow(
+                                _buildUrlRow(
                                   colors,
                                   label: 'Facebook',
                                   url: card.facebook,
@@ -242,11 +236,10 @@ class _ProfilePageState extends State<ProfilePage>
                                 ),
                                 _buildDivider(colors),
 
-
                                 const SizedBox(height: 10),
 
                                 // EXPERIENCES
-                               _buildInfoRow(
+                                _buildInfoRow(
                                   colors,
                                   icon: Icons.history,
                                   label: 'Expérience',
@@ -254,13 +247,13 @@ class _ProfilePageState extends State<ProfilePage>
                                       ? '${card.experiences.first['title']} chez ${card.experiences.first['company']}'
                                       : '-',
                                   onTap: card.experiences.isNotEmpty
-                                      ? () => _openExperiencesSheet(context, card.experiences)
+                                      ? () => _openExperiencesSheet(
+                                          context, card.experiences)
                                       : null,
                                 ),
 
-
                                 // EDUCATION
-                               _buildInfoRow(
+                                _buildInfoRow(
                                   colors,
                                   icon: Icons.school_outlined,
                                   label: 'Formation',
@@ -268,10 +261,10 @@ class _ProfilePageState extends State<ProfilePage>
                                       ? '${card.educations.first['degree']} - ${card.educations.first['school']}'
                                       : '-',
                                   onTap: card.educations.isNotEmpty
-                                      ? () => _openEducationSheet(context, card.educations)
+                                      ? () => _openEducationSheet(
+                                          context, card.educations)
                                       : null,
                                 ),
-
 
                                 // PLAN
                                 _buildDivider(colors),
@@ -279,14 +272,62 @@ class _ProfilePageState extends State<ProfilePage>
                                   colors,
                                   icon: Icons.workspace_premium,
                                   label: 'Plan',
-                                  value: card.plan ?? 'free',
+                                  value: resolveDisplayedPlan(
+                                    cardPlan: card.plan,
+                                    userPlan: user.plan,
+                                    hasCompany: user.hasCompany,
+                                  ),
+                                  onTap: () => _openPlanSelection(context),
+                                  trailing: TextButton(
+                                    onPressed: () =>
+                                        _openPlanSelection(context),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: companyColor,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      minimumSize: const Size(0, 0),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        side: BorderSide(
+                                          color: companyColor.withValues(
+                                              alpha: 0.25),
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Changer',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(50, 0, 16, 6),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Touchez Changer pour modifier votre plan.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ]
                             : [
                                 _buildEmptyCardState(colors, companyColor),
                               ],
                       ),
-
 
                       const SizedBox(height: 16),
 
@@ -319,94 +360,89 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-void _openExperiencesSheet(
-  BuildContext context,
-  List experiences,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (_) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Expériences",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+  void _openExperiencesSheet(
+    BuildContext context,
+    List experiences,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Expériences",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ...experiences.map((exp) {
+                return ListTile(
+                  leading: const Icon(Icons.work_outline),
+                  title: Text(exp['title'] ?? ''),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(exp['company'] ?? ''),
+                      Text(
+                        "${exp['start_date']} → ${exp['end_date'] ?? 'Présent'}",
+                      ),
+                      if (exp['description'] != null) Text(exp['description']),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-            ...experiences.map((exp) {
-              return ListTile(
-                leading: const Icon(Icons.work_outline),
-                title: Text(exp['title'] ?? ''),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(exp['company'] ?? ''),
-                    Text(
-                      "${exp['start_date']} → ${exp['end_date'] ?? 'Présent'}",
-                    ),
-                    if (exp['description'] != null)
-                      Text(exp['description']),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-
-void _openEducationSheet(
-  BuildContext context,
-  List educations,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Formations",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            ...educations.map((edu) {
-              return ListTile(
-                leading: const Icon(Icons.school_outlined),
-                title: Text(edu['degree'] ?? ''),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(edu['school'] ?? ''),
-                    Text("${edu['start_year']} → ${edu['end_year']}"),
-                    if (edu['field'] != null) Text(edu['field']),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      );
-    },
-  );
-}
-
+  void _openEducationSheet(
+    BuildContext context,
+    List educations,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Formations",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ...educations.map((edu) {
+                return ListTile(
+                  leading: const Icon(Icons.school_outlined),
+                  title: Text(edu['degree'] ?? ''),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(edu['school'] ?? ''),
+                      Text("${edu['start_year']} → ${edu['end_year']}"),
+                      if (edu['field'] != null) Text(edu['field']),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildProfileHeader(
       ColorScheme colors, Color companyColor, String fullName, String? email) {
@@ -498,7 +534,9 @@ void _openEducationSheet(
                         color: colors.onSurface,
                       ),
                     ),
-                    if (hasCard && card.jobTitle != null && card.jobTitle!.isNotEmpty) ...[
+                    if (hasCard &&
+                        card.jobTitle != null &&
+                        card.jobTitle!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         card.jobTitle!,
@@ -511,7 +549,9 @@ void _openEducationSheet(
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    if (hasCard && card.company != null && card.company!.isNotEmpty) ...[
+                    if (hasCard &&
+                        card.company != null &&
+                        card.company!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         card.company!,
@@ -575,7 +615,8 @@ void _openEducationSheet(
       ColorScheme colors, Color companyColor, CardProvider card) {
     final contactsProvider = context.watch<ContactsProvider>();
     final totalContacts = contactsProvider.groups.fold<int>(
-      0, (sum, group) => sum + group.contacts.length,
+      0,
+      (sum, group) => sum + group.contacts.length,
     );
 
     return Row(
@@ -789,51 +830,51 @@ void _openEducationSheet(
     );
   }
 
-Widget _buildUrlRow(
-  ColorScheme colors, {
-  required String? url,
-  required String label,
-  required IconData icon,
-  Color? color,
-}) {
-  final trimmedUrl = url?.trim();
-  final hasUrl = trimmedUrl != null && trimmedUrl.isNotEmpty;
+  Widget _buildUrlRow(
+    ColorScheme colors, {
+    required String? url,
+    required String label,
+    required IconData icon,
+    Color? color,
+  }) {
+    final trimmedUrl = url?.trim();
+    final hasUrl = trimmedUrl != null && trimmedUrl.isNotEmpty;
 
-  final parsedUri = hasUrl ? Uri.tryParse(trimmedUrl) : null;
+    final parsedUri = hasUrl ? Uri.tryParse(trimmedUrl) : null;
 
-  return _buildInfoRow(
-    colors,
-    icon: icon,
-    label: label,
-    value: hasUrl ? trimmedUrl : '-',
-    onTap: (hasUrl && parsedUri != null)
-        ? () async {
-            HapticFeedback.lightImpact();
+    return _buildInfoRow(
+      colors,
+      icon: icon,
+      label: label,
+      value: hasUrl ? trimmedUrl : '-',
+      onTap: (hasUrl && parsedUri != null)
+          ? () async {
+              HapticFeedback.lightImpact();
 
-            if (await canLaunchUrl(parsedUri)) {
-              await launchUrl(
-                parsedUri,
-                mode: LaunchMode.externalApplication,
-              );
+              if (await canLaunchUrl(parsedUri)) {
+                await launchUrl(
+                  parsedUri,
+                  mode: LaunchMode.externalApplication,
+                );
+              }
             }
-          }
-        : null,
-    trailing: hasUrl
-        ? Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: (color ?? colors.primary).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.open_in_new,
-              size: 14,
-              color: color ?? colors.primary,
-            ),
-          )
-        : null,
-  );
-}
+          : null,
+      trailing: hasUrl
+          ? Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: (color ?? colors.primary).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.open_in_new,
+                size: 14,
+                color: color ?? colors.primary,
+              ),
+            )
+          : null,
+    );
+  }
 
   Widget _buildEmptyCardState(ColorScheme colors, Color companyColor) {
     return Padding(
@@ -1038,6 +1079,11 @@ Widget _buildUrlRow(
     );
   }
 
+  void _openPlanSelection(BuildContext context) {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).pushNamed('/plans');
+  }
+
   void _showSettings(BuildContext context) {
     HapticFeedback.lightImpact();
 
@@ -1146,6 +1192,19 @@ Widget _buildUrlRow(
                 onTap: () {
                   Navigator.pop(context);
                   // Navigation vers paramètres confidentialité
+                },
+              ),
+
+              const SizedBox(height: 14),
+
+              _buildDangerSettingsItem(
+                context,
+                icon: Icons.delete_forever_outlined,
+                title: 'Supprimer le compte',
+                subtitle: 'Cette action est irréversible',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteAccountDialog(context);
                 },
               ),
 
@@ -1270,6 +1329,302 @@ Widget _buildUrlRow(
         ),
       ),
     );
+  }
+
+  Widget _buildDangerSettingsItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.red.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: Colors.red.shade400,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red.shade300,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Colors.red.shade300,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final passwordController = TextEditingController();
+    bool isLoading = false;
+    String? passwordError;
+    bool obscurePassword = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> handleDelete() async {
+              final password = passwordController.text.trim();
+              if (password.isEmpty) {
+                setStateDialog(() {
+                  passwordError = 'Entrez votre mot de passe';
+                });
+                return;
+              }
+
+              setStateDialog(() {
+                isLoading = true;
+                passwordError = null;
+              });
+
+              final auth = this.context.read<AuthProvider>();
+              final result = await auth.deleteAccount(password);
+
+              if (!dialogContext.mounted) return;
+
+              if (result.status == DeleteAccountStatus.success) {
+                Navigator.of(dialogContext).pop();
+                if (!this.context.mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Votre compte a été supprimé avec succès'),
+                  ),
+                );
+                Navigator.of(this.context)
+                    .pushNamedAndRemoveUntil('/login', (_) => false);
+                return;
+              }
+
+              if (result.status == DeleteAccountStatus.invalidPassword) {
+                setStateDialog(() {
+                  isLoading = false;
+                  passwordError = result.message ?? 'Mot de passe incorrect';
+                });
+                return;
+              }
+
+              if (result.status == DeleteAccountStatus.sessionExpired) {
+                Navigator.of(dialogContext).pop();
+                if (!this.context.mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Session expirée'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                Navigator.of(this.context)
+                    .pushNamedAndRemoveUntil('/login', (_) => false);
+                return;
+              }
+
+              setStateDialog(() {
+                isLoading = false;
+              });
+              if (!this.context.mounted) return;
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(
+                  content: Text('Une erreur est survenue. Veuillez réessayer.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+
+            final colors = Theme.of(context).colorScheme;
+
+            return Dialog(
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              backgroundColor: colors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.delete_forever_outlined,
+                            color: Colors.red.shade400,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Supprimer le compte',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Cette action est irréversible. Toutes vos données seront supprimées.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.45,
+                        color: colors.onSurface.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      enabled: !isLoading,
+                      decoration: InputDecoration(
+                        hintText: 'Entrez votre mot de passe',
+                        errorText: passwordError,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  setStateDialog(() {
+                                    obscurePassword = !obscurePassword;
+                                  });
+                                },
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: colors.onSurface.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: colors.primary,
+                            width: 1.3,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Annuler'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : handleDelete,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Text('Supprimer mon compte'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      passwordController.dispose();
+    });
   }
 
   void _showLogoutDialog(BuildContext context) async {

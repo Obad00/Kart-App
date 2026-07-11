@@ -50,19 +50,22 @@ class PlanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> subscribePlan(int planId) async {
+  Future<int?> subscribePlan(int planId) async {
     loading = true;
     error = null;
     notifyListeners();
 
     try {
       currentSubscriptionId = await _service.subscribePlan(planId);
+      loading = false;
+      notifyListeners();
+      return currentSubscriptionId;
     } catch (e) {
       error = e.toString();
+      loading = false;
+      notifyListeners();
+      return null;
     }
-
-    loading = false;
-    notifyListeners();
   }
 
   Future<FreePlanActivationResponse?> activateFreePlan(String planSlug) async {

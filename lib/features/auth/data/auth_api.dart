@@ -37,4 +37,15 @@ class AuthApi {
       data: data,
     );
   }
+
+  Future<Response> deleteAccount(String password) {
+    return ApiClient.dio.delete(
+      ApiEndpoints.deleteAccount,
+      data: {'password': password},
+      options: Options(
+        // We need to handle 422/401 explicitly in provider logic.
+        validateStatus: (_) => true,
+      ),
+    );
+  }
 }

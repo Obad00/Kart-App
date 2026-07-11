@@ -129,8 +129,25 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
       final statusCode = response.statusCode;
       final data = response.data;
       final requiresVerification = data['requires_email_verification'] == true;
+      final is2xx = statusCode >= 200 && statusCode < 300;
+      final isExplicitSuccess = data['success'] == true;
 
-      if (statusCode == 200) {
+      debugPrint('🧭 Plan activation status=$statusCode data=$data');
+
+      if (requiresVerification) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (statusCode == 200 ||
+          statusCode == 201 ||
+          (is2xx && isExplicitSuccess)) {
         await context.read<AuthProvider>().loadMe();
         await provider.setPendingPlanSlug(null);
 
@@ -170,12 +187,88 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
         return;
       }
 
-      if (statusCode == 202 && requiresVerification) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
+      final backendMessage = data['message']?.toString();
+      final normalizedMessage = backendMessage?.toLowerCase() ?? '';
+      final alreadyActive = normalizedMessage.contains('déjà un plan actif') ||
+          normalizedMessage.contains('deja un plan actif');
+
+      if (statusCode == 422 && alreadyActive) {
+        final targetPlan = provider.plans.firstWhere(
+          (p) => (p['slug']?.toString() ?? '') == planSlug,
+          orElse: () => <String, dynamic>{},
+        );
+
+        final rawPlanId = targetPlan['id'];
+        int? planId;
+        if (rawPlanId is int) {
+          planId = rawPlanId;
+        } else if (rawPlanId != null) {
+          planId = int.tryParse(rawPlanId.toString());
+        }
+
+        if (planId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                backendMessage ??
+                    'Une erreur est survenue. Veuillez réessayer.',
+              ),
+              backgroundColor: Colors.red,
             ),
+          );
+          return;
+        }
+
+        final switchedSubscriptionId = await provider.subscribePlan(planId);
+        if (!mounted) return;
+
+        if (switchedSubscriptionId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                provider.error ??
+                    backendMessage ??
+                    'Une erreur est survenue. Veuillez réessayer.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        await context.read<AuthProvider>().loadMe();
+        await provider.setPendingPlanSlug(null);
+
+        final successMessage = planSlug == 'pro'
+            ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'
+            : 'Votre plan Enterprise a été activé avec succès.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(successMessage)),
+        );
+
+        if (!mounted) return;
+
+        if (planSlug == 'enterprise') {
+          Navigator.pushReplacementNamed(
+            context,
+            '/company/create',
+            arguments: {
+              'planSlug': planSlug,
+              'subscriptionId': switchedSubscriptionId,
+            },
+          );
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        return;
+      }
+
+      if (backendMessage != null && backendMessage.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(backendMessage),
+            backgroundColor: Colors.red,
           ),
         );
         return;

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,20 @@ import '../models/user.dart';
 
 const String _kGoogleSignInClientId =
     String.fromEnvironment('GOOGLE_SIGN_IN_CLIENT_ID', defaultValue: '');
+
+enum DeleteAccountStatus {
+  success,
+  invalidPassword,
+  sessionExpired,
+  error,
+}
+
+class DeleteAccountResult {
+  final DeleteAccountStatus status;
+  final String? message;
+
+  const DeleteAccountResult({required this.status, this.message});
+}
 
 class AuthProvider extends ChangeNotifier {
   final AuthApi _api = AuthApi();
@@ -210,10 +225,80 @@ class AuthProvider extends ChangeNotifier {
     }
 
     await ApiClient.clearToken();
+    await _clearUserLocalCaches();
     user = null;
     error = null;
     isNewUser = false;
     notifyListeners();
+  }
+
+  Future<void> _clearUserLocalCaches() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('pending_plan_slug');
+  }
+
+  Future<DeleteAccountResult> deleteAccount(String password) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final response = await _api.deleteAccount(password);
+      final statusCode = response.statusCode ?? 0;
+      final data = response.data;
+
+      if (statusCode == 200) {
+        await logout();
+        return const DeleteAccountResult(
+          status: DeleteAccountStatus.success,
+          message: 'Votre compte a été supprimé avec succès',
+        );
+      }
+
+      if (statusCode == 422) {
+        String message = 'Mot de passe incorrect';
+        if (data is Map) {
+          final errors = data['errors'];
+          if (errors is Map &&
+              errors['password'] is List &&
+              (errors['password'] as List).isNotEmpty) {
+            message = (errors['password'] as List).first.toString();
+          } else if (data['message'] != null) {
+            message = data['message'].toString();
+          }
+        }
+        return DeleteAccountResult(
+          status: DeleteAccountStatus.invalidPassword,
+          message: message,
+        );
+      }
+
+      if (statusCode == 401) {
+        await logout();
+        return const DeleteAccountResult(
+          status: DeleteAccountStatus.sessionExpired,
+          message: 'Session expirée',
+        );
+      }
+
+      return const DeleteAccountResult(
+        status: DeleteAccountStatus.error,
+        message: 'Une erreur est survenue. Veuillez réessayer.',
+      );
+    } on DioException {
+      return const DeleteAccountResult(
+        status: DeleteAccountStatus.error,
+        message: 'Une erreur est survenue. Veuillez réessayer.',
+      );
+    } catch (_) {
+      return const DeleteAccountResult(
+        status: DeleteAccountStatus.error,
+        message: 'Une erreur est survenue. Veuillez réessayer.',
+      );
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> updateProfile({

@@ -36,13 +36,26 @@ class PlanService {
     final res = await _dio.post(
       ApiEndpoints.activateFreePlan,
       data: {'plan_slug': planSlug},
+      options: Options(
+        // We need to inspect 4xx responses (validation, verification, etc.) in UI flow.
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.data is Map<String, dynamic>) {
-      return FreePlanActivationResponse(
-        statusCode: res.statusCode ?? 0,
-        data: res.data as Map<String, dynamic>,
-      );
-    }
-    throw Exception('Format de réponse invalide');
+
+    final payload = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : <String, dynamic>{
+            'success': false,
+            'message': 'Réponse serveur invalide',
+          };
+
+    debugPrint(
+      '🧩 activateFreePlan status=${res.statusCode} payload=$payload',
+    );
+
+    return FreePlanActivationResponse(
+      statusCode: res.statusCode ?? 0,
+      data: payload,
+    );
   }
 }

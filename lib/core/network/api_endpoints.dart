@@ -11,6 +11,7 @@ class ApiEndpoints {
   static const googleToken = '/auth/google/token';
   static const me = '/me';
   static const logout = '/auth/logout';
+  static const deleteAccount = '/me';
 
   // Plans
   static const plans = '/plans';
