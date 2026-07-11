@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 
 // Import destinations so we can use a custom animated transition
 import 'login_page.dart';
 import '../../navigation/home_shell.dart';
+import '../../plans/ui/plan_selection_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -83,7 +85,22 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    debugPrint('🔐 Auth state after init: isAuthenticated=${auth.isAuthenticated}, user=${auth.user?.email}');
+    debugPrint(
+        '🔐 Auth state after init: isAuthenticated=${auth.isAuthenticated}, user=${auth.user?.email}');
+
+    final prefs = await SharedPreferences.getInstance();
+    final pendingPlanSlug = prefs.getString('pending_plan_slug');
+
+    if (!mounted) return;
+
+    if (auth.isAuthenticated &&
+        pendingPlanSlug != null &&
+        pendingPlanSlug.isNotEmpty) {
+      Navigator.of(context).pushReplacement(
+        _createRoute(const PlanSelectionPage()),
+      );
+      return;
+    }
 
     final Widget destinationPage =
         auth.isAuthenticated ? const HomeShell() : const LoginPage();

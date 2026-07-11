@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/plan_provider.dart';
-import '../../payment/providers/payment_provider.dart';
-import '../../payment/models/plan.dart' as payment_models;
+import '../../auth/providers/auth_provider.dart';
+import '../../../config/auth_config.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
@@ -16,10 +16,12 @@ class PlanSelectionPage extends StatefulWidget {
 }
 
 class _PlanSelectionPageState extends State<PlanSelectionPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final PageController _pageController = PageController(viewportFraction: 0.88);
   int _selectedIndex = 0;
-  bool _isJoinCompanySelected = true; // Par defaut, le premier item est "Rejoindre entreprise"
+  bool _isJoinCompanySelected =
+      true; // Par defaut, le premier item est "Rejoindre entreprise"
+  bool _isLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -37,6 +39,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -47,13 +50,32 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PlanProvider>(context, listen: false).loadPlans();
+      final provider = Provider.of<PlanProvider>(context, listen: false);
+      provider.loadPlans();
+      provider.loadPendingPlanSlug();
+      _refreshUserAfterReturn();
       _animController.forward();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshUserAfterReturn();
+    }
+  }
+
+  Future<void> _refreshUserAfterReturn() async {
+    final provider = context.read<PlanProvider>();
+    if (provider.pendingPlanSlug != null &&
+        provider.pendingPlanSlug!.isNotEmpty) {
+      await context.read<AuthProvider>().loadMe();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _animController.dispose();
     super.dispose();
@@ -85,14 +107,101 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
   }
 
   // Filtrer les plans pour enlever le plan Free
-  List<Map<String, dynamic>> _getFilteredPlans(List<Map<String, dynamic>> plans) {
+  List<Map<String, dynamic>> _getFilteredPlans(
+      List<Map<String, dynamic>> plans) {
     return plans.where((plan) => plan['slug'] != 'free').toList();
+  }
+
+  Future<void> _activateFreePlan(String planSlug) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final provider = context.read<PlanProvider>();
+      await provider.setPendingPlanSlug(planSlug);
+      final response = await provider.activateFreePlan(planSlug);
+
+      if (!mounted) return;
+
+      if (response == null) {
+        throw Exception('activation_failed');
+      }
+
+      final statusCode = response.statusCode;
+      final data = response.data;
+      final requiresVerification = data['requires_email_verification'] == true;
+
+      if (statusCode == 200) {
+        await context.read<AuthProvider>().loadMe();
+        await provider.setPendingPlanSlug(null);
+
+        final successMessage = planSlug == 'pro'
+            ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'
+            : 'Votre plan Enterprise a été activé avec succès.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(successMessage)),
+        );
+
+        if (!mounted) return;
+
+        if (planSlug == 'enterprise') {
+          final subscription = data['subscription'];
+          int? subscriptionId;
+          if (subscription is Map<String, dynamic>) {
+            final rawId = subscription['id'];
+            if (rawId is int) {
+              subscriptionId = rawId;
+            } else if (rawId != null) {
+              subscriptionId = int.tryParse(rawId.toString());
+            }
+          }
+
+          Navigator.pushReplacementNamed(
+            context,
+            '/company/create',
+            arguments: {
+              'planSlug': planSlug,
+              if (subscriptionId != null) 'subscriptionId': subscriptionId,
+            },
+          );
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        return;
+      }
+
+      if (statusCode == 202 && requiresVerification) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      throw Exception('activation_failed');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Une erreur est survenue. Veuillez réessayer.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<PlanProvider>(context);
     final allPlans = provider.plans;
+    final pendingPlanSlug = provider.pendingPlanSlug;
     // Filtrer pour enlever le plan Free
     final plans = _getFilteredPlans(allPlans);
     // Total des items = 1 (rejoindre entreprise) + plans payants
@@ -137,6 +246,17 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
     if (_selectedIndex >= totalItems) {
       _selectedIndex = 0;
+    }
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0A0A0A),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -297,6 +417,16 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
+                      if (pendingPlanSlug != null &&
+                          pendingPlanSlug.isNotEmpty) ...[
+                        AuthOutlineButton(
+                          label:
+                              'Reprendre ${pendingPlanSlug == 'pro' ? 'Pro' : 'Enterprise'}',
+                          icon: Icons.refresh_rounded,
+                          onTap: () => _activateFreePlan(pendingPlanSlug),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       AuthPrimaryButton(
                         label: _isJoinCompanySelected || _selectedIndex == 0
                             ? 'Rejoindre une entreprise'
@@ -320,33 +450,17 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                             return;
                           }
                           final plan = plans[planIndex];
-                          final planId = plan['id'];
-                          final planSlug = plan['slug'];
-                          final planName = plan['name'] ?? '';
-                          final planDescription = plan['description'] ?? '';
-                          final planPrice = plan['price'] ?? 0;
-                          final planBillingCycle = plan['billing_cycle'] ?? 'monthly';
-                          final planFeatures = plan['features'] != null
-                              ? List<String>.from(plan['features'])
-                              : <String>[];
+                          final planSlug = (plan['slug'] as String?) ?? '';
+                          if (planSlug.isEmpty) {
+                            return;
+                          }
 
-                          // Sélectionner le plan dans le PaymentProvider et rediriger vers les méthodes de paiement
-                          final paymentProvider = context.read<PaymentProvider>();
-                          paymentProvider.selectPlan(
-                            payment_models.Plan(
-                              id: planId,
-                              name: planName,
-                              slug: planSlug ?? '',
-                              description: planDescription,
-                              price: planPrice is int ? planPrice : int.tryParse(planPrice.toString()) ?? 0,
-                              billingCycle: planBillingCycle,
-                              features: planFeatures,
-                              isActive: true,
-                            ),
-                          );
+                          if (!AuthConfig.enablePayments) {
+                            await _activateFreePlan(planSlug);
+                            return;
+                          }
 
                           if (!mounted) return;
-
                           Navigator.pushNamed(context, '/payment/methods');
                         },
                       ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/plan_service.dart';
 
 class PlanProvider extends ChangeNotifier {
   final PlanService _service;
+  static const _pendingPlanKey = 'pending_plan_slug';
 
   PlanProvider({required PlanService service}) : _service = service;
 
@@ -11,8 +13,27 @@ class PlanProvider extends ChangeNotifier {
   bool loading = false;
 
   int? currentSubscriptionId;
+  String? pendingPlanSlug;
 
   List<Map<String, dynamic>> get plans => _plans;
+
+  Future<void> loadPendingPlanSlug() async {
+    final prefs = await SharedPreferences.getInstance();
+    pendingPlanSlug = prefs.getString(_pendingPlanKey);
+    notifyListeners();
+  }
+
+  Future<void> setPendingPlanSlug(String? planSlug) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (planSlug == null || planSlug.isEmpty) {
+      await prefs.remove(_pendingPlanKey);
+      pendingPlanSlug = null;
+    } else {
+      await prefs.setString(_pendingPlanKey, planSlug);
+      pendingPlanSlug = planSlug;
+    }
+    notifyListeners();
+  }
 
   Future<void> loadPlans() async {
     loading = true;
@@ -42,5 +63,23 @@ class PlanProvider extends ChangeNotifier {
 
     loading = false;
     notifyListeners();
+  }
+
+  Future<FreePlanActivationResponse?> activateFreePlan(String planSlug) async {
+    loading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final result = await _service.activateFreePlan(planSlug);
+      loading = false;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      error = e.toString();
+      loading = false;
+      notifyListeners();
+      return null;
+    }
   }
 }
