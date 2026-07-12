@@ -36,7 +36,7 @@ jobs:
         run: flutter pub get
 
       - name: Générer les fichiers iOS (plugins registrant)
-        run: flutter build ios --release --no-codesign --no-pub
+        run: flutter build ios --config-only
 
       - name: Install Pods
         run: |
