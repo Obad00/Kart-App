@@ -21,6 +21,7 @@ class ApiEndpoints {
 
   // Plans
   static const plans = '/plans';
+  static const activateFreePlan = '/subscriptions/activate-free-plan';
 
   // Payments
   static const paymentMethods = '/payments/methods';
