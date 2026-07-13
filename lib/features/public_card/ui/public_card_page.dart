@@ -1515,11 +1515,17 @@ class _PublicCardPageState extends State<PublicCardPage>
           children: socialProfiles.map((profile) {
             return OutlinedButton.icon(
               onPressed: () => _openUrl(profile['value'] as String),
-              icon: FaIcon(
-                profile['icon'] as IconData,
-                color: profile['iconColor'] as Color,
-                size: 16,
-              ),
+              icon: profile['icon'] is IconData
+                  ? Icon(
+                      profile['icon'] as IconData,
+                      color: profile['iconColor'] as Color,
+                      size: 16,
+                    )
+                  : FaIcon(
+                      profile['icon'],
+                      color: profile['iconColor'] as Color,
+                      size: 16,
+                    ),
               label: Text(
                 profile['label'] as String,
                 style: TextStyle(
@@ -1610,11 +1616,17 @@ class _PublicCardPageState extends State<PublicCardPage>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
-                              child: FaIcon(
-                                profile['icon'] as IconData,
-                                color: profile['iconColor'] as Color,
-                                size: 18,
-                              ),
+                              child: profile['icon'] is IconData
+                                  ? Icon(
+                                      profile['icon'] as IconData,
+                                      color: profile['iconColor'] as Color,
+                                      size: 18,
+                                    )
+                                  : FaIcon(
+                                      profile['icon'],
+                                      color: profile['iconColor'] as Color,
+                                      size: 18,
+                                    ),
                             ),
                           ),
                           title: Text(

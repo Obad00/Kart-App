@@ -447,7 +447,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   Widget _buildChannelButton(
     ShareChannel channel,
-    IconData icon,
+    dynamic icon,
     String label,
     Color color,
   ) {
@@ -479,11 +479,17 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
-                child: Icon(
-                  icon,
-                  color: isSelected ? color : defaultTextColor,
-                  size: 20,
-                ),
+                child: icon is IconData 
+                    ? Icon(
+                        icon,
+                        color: isSelected ? color : defaultTextColor,
+                        size: 20,
+                      )
+                    : FaIcon(
+                        icon,
+                        color: isSelected ? color : defaultTextColor,
+                        size: 20,
+                      ),
               ),
             ),
             const SizedBox(height: 6),
