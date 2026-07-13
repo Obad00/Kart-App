@@ -339,7 +339,7 @@ jobs:
           path: build/ios/ipa/*.ipa
 
       - name: Soumettre à l'App Store Connect
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
