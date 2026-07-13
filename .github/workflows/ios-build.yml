@@ -2,7 +2,7 @@ name: Build & Deploy iOS App
 
 on:
   push:
-    branches: [main,release/flutter, payment]
+    branches: [main, release/flutter, payment]
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
       - name: Sélectionner Xcode latest
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 'latest-stable'
+          xcode-version: "latest-stable"
 
       - name: Vérifier la version Xcode & SDK
         run: |
@@ -36,7 +36,7 @@ jobs:
         run: flutter pub get
 
       - name: Générer les fichiers iOS (plugins registrant)
-        run: flutter build ios --config-only --no-codesign --no-pub
+        run: flutter build ios --release --no-codesign --no-pub
 
       - name: Install Pods
         run: |
@@ -155,7 +155,7 @@ jobs:
           # 1. Réutilisation ou création du certificat de Distribution
           print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
           existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=10")
-          
+
           cert_id = None
           cert_content = None
           has_local_key = False
@@ -193,7 +193,7 @@ jobs:
 
           with open("/tmp/distribution.cer", "wb") as f:
               f.write(base64.b64decode(cert_content))
-          
+
           with open("/tmp/has_local_key.txt", "w") as f:
               f.write("true" if has_local_key else "false")
 
@@ -336,7 +336,7 @@ jobs:
           path: build/ios/ipa/*.ipa
 
       - name: Soumettre à l'App Store Connect
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
+        if: github.ref == 'refs/heads/main'
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
