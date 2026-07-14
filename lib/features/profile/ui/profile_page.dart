@@ -1611,7 +1611,7 @@ class _ProfilePageState extends State<ProfilePage>
                                           Colors.white),
                                     ),
                                   )
-                                : const Text('Supprimer mon compte'),
+                                : const Text('Confirmer'),
                           ),
                         ),
                       ],
