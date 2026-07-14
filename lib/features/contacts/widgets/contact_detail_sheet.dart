@@ -323,7 +323,7 @@ class ContactDetailSheet extends StatelessWidget {
 
   Widget _buildQuickAction(
     BuildContext context, {
-    required IconData icon,
+    required dynamic icon,
     required String label,
     required Color color,
     required VoidCallback onTap,
@@ -345,7 +345,7 @@ class ContactDetailSheet extends StatelessWidget {
                 color: color.withValues(alpha: 0.2),
               ),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: icon is IconData ? Icon(icon, color: color, size: 22) : FaIcon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 6),
           Text(
@@ -535,7 +535,7 @@ class ContactDetailSheet extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(social.icon, size: 16, color: social.color),
+                social.icon is IconData ? Icon(social.icon, size: 16, color: social.color) : FaIcon(social.icon, size: 16, color: social.color),
                 const SizedBox(width: 8),
                 Text(
                   social.label,
@@ -568,7 +568,7 @@ class ContactDetailSheet extends StatelessWidget {
 }
 
 class _SocialItem {
-  final IconData icon;
+  final dynamic icon;
   final String label;
   final Color color;
   final String url;

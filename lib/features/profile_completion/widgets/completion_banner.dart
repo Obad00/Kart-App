@@ -291,7 +291,7 @@ class CompletionBanner extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(s.icon, size: 14, color: s.color),
+                        s.icon is IconData ? Icon(s.icon, size: 14, color: s.color) : FaIcon(s.icon, size: 14, color: s.color),
                         const SizedBox(width: 6),
                         Text(
                           s.label,
@@ -399,7 +399,7 @@ class CompletionBanner extends StatelessWidget {
 
 class _SocialItem {
   final String label;
-  final IconData icon;
+  final dynamic icon;
   final Color color;
   const _SocialItem(this.label, this.icon, this.color);
 }

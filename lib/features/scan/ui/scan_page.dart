@@ -24,6 +24,57 @@ class _ScanPageState extends State<ScanPage> {
 
   final ScanService _service = ScanService();
 
+void _showComingSoonDialog() {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.auto_awesome,
+            size: 56,
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "Fonctionnalité bientôt disponible",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "Le scan des cartes de visite physiques sera disponible dans la prochaine version de KART.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Compris"),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
   void _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
 
@@ -228,13 +279,21 @@ class _ScanPageState extends State<ScanPage> {
                       });
                     },
                   ),
+                  // _button(
+                  //   title: "Carte physique",
+                  //   active: _mode == ScanMode.physical,
+                  //   onTap: () {
+                  //     setState(() {
+                  //       _mode = ScanMode.physical;
+                  //     });
+                  //   },
+                  // ),
+
                   _button(
                     title: "Carte physique",
-                    active: _mode == ScanMode.physical,
+                    active: false,
                     onTap: () {
-                      setState(() {
-                        _mode = ScanMode.physical;
-                      });
+                      _showComingSoonDialog();
                     },
                   ),
                 ],

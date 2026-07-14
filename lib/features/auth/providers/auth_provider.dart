@@ -285,12 +285,17 @@ class AuthProvider extends ChangeNotifier {
         status: DeleteAccountStatus.error,
         message: 'Une erreur est survenue. Veuillez réessayer.',
       );
-    } on DioException {
-      return const DeleteAccountResult(
-        status: DeleteAccountStatus.error,
-        message: 'Une erreur est survenue. Veuillez réessayer.',
-      );
-    } catch (_) {
+   } on DioException catch (e) {
+  debugPrint("DELETE ACCOUNT ERROR");
+  debugPrint("Status : ${e.response?.statusCode}");
+  debugPrint("Data : ${e.response?.data}");
+  debugPrint("Message : ${e.message}");
+
+  return DeleteAccountResult(
+    status: DeleteAccountStatus.error,
+    message: e.response?.data.toString() ?? e.message,
+  );
+} catch (_) {
       return const DeleteAccountResult(
         status: DeleteAccountStatus.error,
         message: 'Une erreur est survenue. Veuillez réessayer.',

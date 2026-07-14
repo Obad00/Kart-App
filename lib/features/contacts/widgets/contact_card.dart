@@ -390,7 +390,7 @@ class ContactCardState extends State<ContactCard>
   }
 
   Widget _buildSocialButton({
-    required IconData icon,
+    required dynamic icon,
     required Color color,
     required VoidCallback onTap,
   }) {
@@ -419,7 +419,11 @@ class ContactCardState extends State<ContactCard>
           ],
         ),
         child: Center(
-          child: Icon(
+          child: icon is IconData ? Icon(
+            icon,
+            size: 18,
+            color: color,
+          ) : FaIcon(
             icon,
             size: 18,
             color: color,
