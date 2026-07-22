@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../config/feature_flags.dart';
 import '../../onboarding/models/company.dart';
 
 class User {
@@ -55,12 +56,16 @@ class User {
       avatar: json['avatar'],
       phone: json['phone'],
       plan: json['plan'] ?? 'free',
-      companyId: json['company_id'] != null ? int.tryParse(json['company_id'].toString()) : null,
+      companyId: json['company_id'] != null
+          ? int.tryParse(json['company_id'].toString())
+          : null,
       company: parsedCompany,
     );
   }
 
   bool get isPro => plan != 'free';
-  bool get hasCompany => companyId != null || company != null;
+  bool get hasCompany =>
+      FeatureFlags.businessFeaturesEnabled &&
+      (companyId != null || company != null);
   String get fullName => '$firstname $lastname';
 }

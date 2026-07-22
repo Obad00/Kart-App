@@ -39,7 +39,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
   bool _companyInitialized =
       false; // ✅ Flag pour éviter la réinitialisation multiple
 
-
   @override
   void initState() {
     super.initState();
@@ -78,7 +77,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
         }
 
         // Pre-remplir le nom de l'entreprise si disponible
-        if (user.company != null && user.company!.name.isNotEmpty) {
+        if (user.hasCompany &&
+            user.company != null &&
+            user.company!.name.isNotEmpty) {
           _companyCtrl.text = user.company!.name;
           debugPrint('✅ Company pre-filled: ${user.company!.name}');
 
@@ -396,7 +397,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 if (isCompanyLinked) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -539,7 +541,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 _buildPremiumSwitch(
                   title: 'Afficher LinkedIn sur ma carte',
                   value: _activeFields['linkedin'] ?? false,
-                  onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
+                  onChanged: (v) =>
+                      setState(() => _activeFields['linkedin'] = v),
                   icon: Icons.visibility_outlined,
                 ),
 

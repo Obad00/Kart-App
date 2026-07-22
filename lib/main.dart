@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'config/feature_flags.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
@@ -127,12 +128,14 @@ class KartApp extends StatelessWidget {
                 '/card-scanner/preview': (_) => const ImagePreviewScreen(),
                 '/card-scanner/result': (_) => const ScanResultScreen(),
 
-                // Onboarding
-                '/onboarding-company': (_) =>
-                    const OnboardingCompanyChoicePage(),
-                '/create-company': (_) => const CreateCompanyPage(),
-                '/company/create': (_) => const CreateCompanyPage(),
-                '/join-company': (_) => const JoinCompanyPage(),
+                // Onboarding (fonctionnalités Entreprise — masquées via FeatureFlags)
+                if (FeatureFlags.businessFeaturesEnabled) ...{
+                  '/onboarding-company': (_) =>
+                      const OnboardingCompanyChoicePage(),
+                  '/create-company': (_) => const CreateCompanyPage(),
+                  '/company/create': (_) => const CreateCompanyPage(),
+                  '/join-company': (_) => const JoinCompanyPage(),
+                },
 
                 '/scan': (_) => const ScanPage(),
                 '/my-card': (_) => const MyDigitalCardGuard(),
@@ -146,6 +149,9 @@ class KartApp extends StatelessWidget {
                   );
                 },
               },
+              onUnknownRoute: (settings) => MaterialPageRoute(
+                builder: (_) => const HomeShell(),
+              ),
             ),
           );
         },

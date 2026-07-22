@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/plan_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../config/auth_config.dart';
+import '../../../config/feature_flags.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
@@ -19,8 +20,12 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final PageController _pageController = PageController(viewportFraction: 0.88);
   int _selectedIndex = 0;
+
+  // Fonctionnalité Entreprise masquée pour la review App Store (règle 3.1.1).
+  static const bool _showJoinCompany = FeatureFlags.businessFeaturesEnabled;
+
   bool _isJoinCompanySelected =
-      true; // Par defaut, le premier item est "Rejoindre entreprise"
+      _showJoinCompany; // Par defaut, le premier item est "Rejoindre entreprise" si affiché
   bool _isLoading = false;
 
   late AnimationController _animController;
@@ -106,10 +111,13 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
     }
   }
 
-  // Filtrer les plans pour enlever le plan Free
+  // Filtrer les plans pour enlever le plan Free (et Enterprise si masqué)
   List<Map<String, dynamic>> _getFilteredPlans(
       List<Map<String, dynamic>> plans) {
-    return plans.where((plan) => plan['slug'] != 'free').toList();
+    return plans
+        .where((plan) => plan['slug'] != 'free')
+        .where((plan) => _showJoinCompany || plan['slug'] != 'enterprise')
+        .toList();
   }
 
   Future<void> _activateFreePlan(String planSlug) async {
@@ -297,11 +305,19 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
   Widget build(BuildContext context) {
     final provider = Provider.of<PlanProvider>(context);
     final allPlans = provider.plans;
-    final pendingPlanSlug = provider.pendingPlanSlug;
-    // Filtrer pour enlever le plan Free
+    final rawPendingPlanSlug = provider.pendingPlanSlug;
+    // Si Enterprise est masqué, ignorer un pending plan "enterprise" résiduel
+    // plutôt que de proposer de reprendre une activation vers une route retirée.
+    final pendingPlanSlug =
+        (!_showJoinCompany && rawPendingPlanSlug == 'enterprise')
+            ? null
+            : rawPendingPlanSlug;
+    // Filtrer pour enlever le plan Free (et Enterprise si masqué)
     final plans = _getFilteredPlans(allPlans);
-    // Total des items = 1 (rejoindre entreprise) + plans payants
-    final totalItems = plans.length + 1;
+    // Total des items = plans payants (+1 pour "rejoindre entreprise" si affiché)
+    final totalItems = plans.length + (_showJoinCompany ? 1 : 0);
+    // Index du plan correspondant à _selectedIndex dans la liste `plans`
+    final currentPlanIndex = _selectedIndex - (_showJoinCompany ? 1 : 0);
 
     if (provider.loading && allPlans.isEmpty) {
       return const Scaffold(
@@ -394,7 +410,8 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       const SizedBox(height: 20),
 
                       const Text(
-                        'Choisissez votre plan',
+                        // 'Choisissez votre plan',
+                        'Choisissez le plan Pro',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -406,7 +423,8 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       const SizedBox(height: 8),
 
                       Text(
-                        'Balayez pour découvrir les offres',
+                        // 'Balayez pour découvrir les offres',
+                        'Découvrez KART Pro',
                         style: TextStyle(
                           color: Colors.grey[500],
                           fontSize: 15,
@@ -458,14 +476,14 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                     onPageChanged: (index) {
                       setState(() {
                         _selectedIndex = index;
-                        _isJoinCompanySelected = index == 0;
+                        _isJoinCompanySelected = _showJoinCompany && index == 0;
                       });
                     },
                     itemBuilder: (_, index) {
                       final isSelected = index == _selectedIndex;
 
-                      // Premier item = Rejoindre une entreprise
-                      if (index == 0) {
+                      // Premier item = Rejoindre une entreprise (si affiché)
+                      if (_showJoinCompany && index == 0) {
                         return AnimatedPadding(
                           duration: const Duration(milliseconds: 300),
                           padding: EdgeInsets.symmetric(
@@ -480,7 +498,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       }
 
                       // Les autres items = plans payants
-                      final planIndex = index - 1;
+                      final planIndex = _showJoinCompany ? index - 1 : index;
                       final plan = plans[planIndex];
                       final slug = plan['slug'] as String?;
 
@@ -524,15 +542,15 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                         const SizedBox(height: 12),
                       ],
                       AuthPrimaryButton(
-                        label: _isJoinCompanySelected || _selectedIndex == 0
+                        label: _isJoinCompanySelected
                             ? 'Rejoindre une entreprise'
-                            : 'Continuer avec ${plans.isNotEmpty && _selectedIndex > 0 && _selectedIndex - 1 < plans.length ? plans[_selectedIndex - 1]['name'] : 'ce plan'}',
-                        icon: _isJoinCompanySelected || _selectedIndex == 0
+                            : 'Continuer avec ${plans.isNotEmpty && currentPlanIndex >= 0 && currentPlanIndex < plans.length ? plans[currentPlanIndex]['name'] : 'ce plan'}',
+                        icon: _isJoinCompanySelected
                             ? Icons.business_rounded
                             : Icons.arrow_forward_rounded,
                         loading: provider.loading,
                         onTap: () async {
-                          if (_isJoinCompanySelected || _selectedIndex == 0) {
+                          if (_isJoinCompanySelected) {
                             // Rediriger vers la page pour rejoindre une entreprise
                             Navigator.pushReplacementNamed(
                               context,
@@ -541,7 +559,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                             return;
                           }
 
-                          final planIndex = _selectedIndex - 1;
+                          final planIndex = currentPlanIndex;
                           if (planIndex < 0 || planIndex >= plans.length) {
                             return;
                           }

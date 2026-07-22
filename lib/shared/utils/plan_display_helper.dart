@@ -1,3 +1,5 @@
+import '../../config/feature_flags.dart';
+
 String resolveDisplayedPlan({
   required String? cardPlan,
   required String userPlan,
@@ -15,7 +17,7 @@ String resolveDisplayedPlan({
   }
 
   // In this project, a user linked to a company should display Enterprise.
-  if (hasCompany) {
+  if (hasCompany && FeatureFlags.businessFeaturesEnabled) {
     return 'Enterprise';
   }
 
@@ -27,7 +29,7 @@ String formatPlanName(String plan) {
     case 'pro':
       return 'Pro';
     case 'enterprise':
-      return 'Enterprise';
+      return FeatureFlags.businessFeaturesEnabled ? 'Enterprise' : 'Pro';
     case 'free':
       return 'Free';
     default:
