@@ -13,6 +13,23 @@ class CardService {
   static const String _highlightEndpoint = '/highlights';
 
 
+/// Contexte de création/édition de carte : indique si le champ entreprise
+/// doit être verrouillé (utilisateur rattaché à une entreprise).
+static Future<Map<String, dynamic>> getCreateContext() async {
+  try {
+    final response = await ApiClient.dio.get('/cards/create-context');
+
+    if (response.data is Map<String, dynamic>) {
+      return response.data as Map<String, dynamic>;
+    }
+
+    return {'company_locked': false, 'company': null};
+  } on DioException catch (e) {
+    debugPrint('⚠️ Erreur create-context (non bloquante): ${e.message}');
+    return {'company_locked': false, 'company': null};
+  }
+}
+
 static Future<Map<String, dynamic>> getCardSummary() async {
   final response = await ApiClient.dio.get('/me/card-summary');
 

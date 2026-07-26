@@ -38,6 +38,22 @@ class AuthApi {
     );
   }
 
+  Future<Response> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) {
+    return ApiClient.dio.post(
+      ApiEndpoints.changePassword,
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+        'new_password_confirmation': newPasswordConfirmation,
+      },
+      options: Options(validateStatus: (_) => true),
+    );
+  }
+
   Future<Response> deleteAccount(String password) {
     return ApiClient.dio.delete(
       ApiEndpoints.deleteAccount,

@@ -80,6 +80,17 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         );
       }
 
+      if (auth.user!.mustChangePassword) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context)
+              .pushReplacementNamed('/force-change-password');
+        });
+        return const Scaffold(
+          backgroundColor: Color(0xFF000000),
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+
       final colors = Theme.of(context).colorScheme;
 
       return Scaffold(

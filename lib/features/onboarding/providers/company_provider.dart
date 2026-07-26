@@ -7,6 +7,47 @@ class CompanyProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
+  // --- Lecture seule ("Mon entreprise") ---
+  bool isLoadingCompany = false;
+  Map<String, dynamic>? myCompany;
+  List<Map<String, dynamic>> members = [];
+
+  /// Charge les infos de l'entreprise de l'utilisateur connecté (lecture seule).
+  Future<void> loadMyCompany() async {
+    isLoadingCompany = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiClient.dio.get('/companies/me');
+      if (response.data is Map) {
+        myCompany = Map<String, dynamic>.from(response.data as Map);
+      }
+    } catch (e) {
+      error = 'Impossible de charger les informations de l\'entreprise';
+    }
+
+    isLoadingCompany = false;
+    notifyListeners();
+  }
+
+  /// Charge la liste des collègues (réservé owner/admin côté backend).
+  Future<void> loadMembers() async {
+    try {
+      final response = await ApiClient.dio.get('/company/employees');
+      final data = response.data;
+      if (data is Map && data['data'] is List) {
+        members = List<Map<String, dynamic>>.from(
+          (data['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      // Non-bloquant : un membre simple n'a pas accès à cette liste (403)
+      debugPrint('⚠️ Impossible de charger les collègues: $e');
+    }
+  }
+
   /// Créer une entreprise
   Future<void> createCompany({
     required String name,

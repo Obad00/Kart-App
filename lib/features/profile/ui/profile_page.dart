@@ -331,6 +331,31 @@ class _ProfilePageState extends State<ProfilePage>
 
                       const SizedBox(height: 16),
 
+                      // Entreprise (lecture seule)
+                      if (user.hasCompany) ...[
+                        _buildSection(
+                          colors: colors,
+                          companyColor: companyColor,
+                          icon: Icons.business_rounded,
+                          title: 'Entreprise',
+                          children: [
+                            _buildInfoRow(
+                              colors,
+                              icon: Icons.apartment_rounded,
+                              label: 'Mon entreprise',
+                              value: user.company?.name ?? '',
+                              onTap: () =>
+                                  Navigator.pushNamed(context, '/my-company'),
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                color: colors.onSurface.withValues(alpha: 0.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Apparence
                       if (card.status == CardStatus.hasCard) ...[
                         _buildSection(

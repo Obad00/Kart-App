@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/feature_flags.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/services/card_service.dart';
@@ -55,10 +54,8 @@ class CardProvider extends ChangeNotifier {
   // --- COMPANY INFO ---
   String? _companyLogo;
   String? _companyPrimaryColor;
-  String? get companyLogo =>
-      FeatureFlags.businessFeaturesEnabled ? _companyLogo : null;
-  String? get companyPrimaryColor =>
-      FeatureFlags.businessFeaturesEnabled ? _companyPrimaryColor : null;
+  String? get companyLogo => _companyLogo;
+  String? get companyPrimaryColor => _companyPrimaryColor;
 
   // --- LOADING ---
   bool _isQrLoading = false;

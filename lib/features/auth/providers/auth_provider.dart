@@ -377,6 +377,57 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final response = await _api.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        newPasswordConfirmation: newPasswordConfirmation,
+      );
+
+      final statusCode = response.statusCode ?? 0;
+
+      if (statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['user'] != null) {
+          user = User.fromJson(Map<String, dynamic>.from(data['user']));
+        } else {
+          await loadMe();
+        }
+        return true;
+      }
+
+      final data = response.data;
+      if (data is Map && data['errors'] != null) {
+        final errors = data['errors'] as Map;
+        final firstError = errors.values.first;
+        error = firstError is List && firstError.isNotEmpty
+            ? firstError.first.toString()
+            : (data['message']?.toString() ?? 'Données invalides');
+      } else if (data is Map && data['message'] != null) {
+        error = data['message'].toString();
+      } else {
+        error = 'Une erreur est survenue';
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Change password unknown error: $e');
+      error = 'Une erreur est survenue';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loginWithGoogle() async {
     isGoogleLoading = true;
     error = null;

@@ -8,6 +8,7 @@ import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
 import '../widgets/join_company_card.dart';
+import '../../../shared/utils/plan_display_helper.dart';
 
 class PlanSelectionPage extends StatefulWidget {
   const PlanSelectionPage({super.key});
@@ -534,8 +535,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       if (pendingPlanSlug != null &&
                           pendingPlanSlug.isNotEmpty) ...[
                         AuthOutlineButton(
-                          label:
-                              'Reprendre ${pendingPlanSlug == 'pro' ? 'Pro' : 'Enterprise'}',
+                          label: 'Reprendre ${formatPlanName(pendingPlanSlug)}',
                           icon: Icons.refresh_rounded,
                           onTap: () => _activateFreePlan(pendingPlanSlug),
                         ),
@@ -576,14 +576,6 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
 
                           if (!mounted) return;
                           Navigator.pushNamed(context, '/payment/methods');
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      AuthOutlineButton(
-                        label: 'Choisir plus tard',
-                        icon: Icons.schedule_rounded,
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/home');
                         },
                       ),
                     ],

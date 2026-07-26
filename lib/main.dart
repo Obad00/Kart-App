@@ -31,9 +31,11 @@ import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
 import 'features/auth/ui/register_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
+import 'features/auth/ui/force_change_password_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
 import 'features/onboarding/ui/join_company_page.dart';
+import 'features/company_info/ui/company_info_page.dart';
 import 'features/plans/ui/plan_selection_page.dart';
 import 'package:kart_app/features/scan/ui/scan_page.dart';
 
@@ -109,6 +111,9 @@ class KartApp extends StatelessWidget {
                 '/login': (_) => const LoginPage(),
                 '/register': (_) => const RegisterPage(),
                 '/complete-profile': (_) => const CompleteProfilePage(),
+                '/force-change-password': (_) =>
+                    const ForceChangePasswordPage(),
+                '/my-company': (_) => const CompanyInfoPage(),
 
                 // Plans
                 '/plans': (_) => const PlanSelectionPage(),

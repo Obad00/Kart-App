@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import '../../../config/feature_flags.dart';
 import '../../onboarding/models/company.dart';
 
 class User {
@@ -10,6 +9,9 @@ class User {
   final String? avatar;
   final String? phone;
   final String plan;
+  final String accountType;
+  final String? companyRole;
+  final bool mustChangePassword;
   final int? companyId;
   final Company? company;
 
@@ -21,6 +23,9 @@ class User {
     this.avatar,
     this.phone,
     required this.plan,
+    this.accountType = 'standard',
+    this.companyRole,
+    this.mustChangePassword = false,
     this.companyId,
     this.company,
   });
@@ -31,7 +36,6 @@ class User {
     debugPrint('   - lastname: ${json['lastname']}');
     debugPrint('   - email: ${json['email']}');
     debugPrint('   - phone: ${json['phone']}');
-    debugPrint('   - company_id: ${json['company_id']}');
     debugPrint('   - company (raw): ${json['company']}');
 
     Company? parsedCompany;
@@ -47,6 +51,10 @@ class User {
       debugPrint('❌ Error parsing Company: $e');
     }
 
+    // company_id n'est plus renvoyé à plat par le backend : il est nesté
+    // dans l'objet company (voir AuthService::buildUserPayload).
+    final rawCompanyId = json['company_id'] ?? json['company']?['id'];
+
     return User(
       id: int.tryParse(json['id'].toString()) ?? 0,
       // Handle both 'firstname'/'name' and nested 'user' object from backend
@@ -56,16 +64,18 @@ class User {
       avatar: json['avatar'],
       phone: json['phone'],
       plan: json['plan'] ?? 'free',
-      companyId: json['company_id'] != null
-          ? int.tryParse(json['company_id'].toString())
-          : null,
+      accountType: json['account_type'] ?? 'standard',
+      companyRole: json['company_role'],
+      mustChangePassword: json['must_change_password'] == true,
+      companyId:
+          rawCompanyId != null ? int.tryParse(rawCompanyId.toString()) : null,
       company: parsedCompany,
     );
   }
 
   bool get isPro => plan != 'free';
-  bool get hasCompany =>
-      FeatureFlags.businessFeaturesEnabled &&
-      (companyId != null || company != null);
+  bool get hasCompany => companyId != null || company != null;
+  bool get isCompanyOwnerOrAdmin =>
+      companyRole == 'owner' || companyRole == 'admin';
   String get fullName => '$firstname $lastname';
 }

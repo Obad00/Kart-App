@@ -49,6 +49,49 @@ class ContactCardState extends State<ContactCard>
     super.dispose();
   }
 
+  void _openPublicCard(BuildContext context) {
+    final slug = widget.contact.cardSlug;
+    if (slug == null || slug.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ce contact n\'a pas de carte associée.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => PublicCardPage(slug: slug),
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.08),
+                end: Offset.zero,
+              ).animate(curved),
+              child: ScaleTransition(
+                scale: Tween<double>(
+                  begin: 0.96,
+                  end: 1.0,
+                ).animate(curved),
+                child: child,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   String _getInitials(String name) {
     List<String> parts = name.trim().split(' ');
     if (parts.length >= 2) {
@@ -75,39 +118,7 @@ class ContactCardState extends State<ContactCard>
                     HapticFeedback.lightImpact();
                     widget.onSelect?.call(widget.contact.id);
                   }
-                : () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => PublicCardPage(
-                          slug: widget.contact.cardSlug ?? '',
-                        ),
-                        transitionsBuilder: (_, animation, __, child) {
-                          final curved = CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          );
-
-                          return FadeTransition(
-                            opacity: curved,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.08),
-                                end: Offset.zero,
-                              ).animate(curved),
-                              child: ScaleTransition(
-                                scale: Tween<double>(
-                                  begin: 0.96,
-                                  end: 1.0,
-                                ).animate(curved),
-                                child: child,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
+                : () => _openPublicCard(context),
             onLongPress: () {
               HapticFeedback.mediumImpact();
               widget.onSelect?.call(widget.contact.id);

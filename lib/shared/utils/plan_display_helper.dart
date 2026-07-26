@@ -1,5 +1,3 @@
-import '../../config/feature_flags.dart';
-
 String resolveDisplayedPlan({
   required String? cardPlan,
   required String userPlan,
@@ -16,9 +14,11 @@ String resolveDisplayedPlan({
     return formatPlanName(normalizedUserPlan);
   }
 
-  // In this project, a user linked to a company should display Enterprise.
-  if (hasCompany && FeatureFlags.businessFeaturesEnabled) {
-    return 'Enterprise';
+  // Un utilisateur rattaché à une entreprise a un accès de niveau Pro, mais
+  // le nom "Enterprise" ne doit jamais apparaître comme libellé de plan
+  // (règle App Store 3.1.1 : ça ressemble à un abonnement vendu hors app).
+  if (hasCompany) {
+    return 'Pro';
   }
 
   return 'Free';
@@ -29,7 +29,8 @@ String formatPlanName(String plan) {
     case 'pro':
       return 'Pro';
     case 'enterprise':
-      return FeatureFlags.businessFeaturesEnabled ? 'Enterprise' : 'Pro';
+      // Ne jamais afficher "Enterprise" comme nom de plan, définitivement.
+      return 'Pro';
     case 'free':
       return 'Free';
     default:

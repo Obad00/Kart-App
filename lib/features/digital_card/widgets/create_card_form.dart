@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/services/card_service.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class CreateCardForm extends StatefulWidget {
@@ -39,6 +40,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
   bool _companyInitialized =
       false; // ✅ Flag pour éviter la réinitialisation multiple
 
+  bool _companyLocked = false;
+  Map<String, dynamic>? _lockedCompany;
+
   @override
   void initState() {
     super.initState();
@@ -56,64 +60,54 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   void _initializeCompanyField() {
     if (_companyInitialized) return;
+    _companyInitialized = true;
 
     final auth = context.read<AuthProvider>();
     final user = auth.user;
 
-    debugPrint('📝 Initializing card form with user data:');
-    debugPrint('   - User: ${user?.firstname} ${user?.lastname}');
-    debugPrint('   - Phone: ${user?.phone}');
-    debugPrint('   - Email: ${user?.email}');
-    debugPrint('   - Company: ${user?.company?.name}');
+    if (user == null) return;
 
-    Future.microtask(() {
-      if (mounted && user != null) {
-        // Pre-remplir les infos utilisateur
-        if (user.firstname.isNotEmpty) {
-          _firstnameCtrl.text = user.firstname;
-        }
-        if (user.lastname.isNotEmpty) {
-          _lastnameCtrl.text = user.lastname;
-        }
+    // Pre-remplir les infos utilisateur (synchrone, ne dépend pas du réseau)
+    if (user.firstname.isNotEmpty) {
+      _firstnameCtrl.text = user.firstname;
+    }
+    if (user.lastname.isNotEmpty) {
+      _lastnameCtrl.text = user.lastname;
+    }
+    if (user.phone != null && user.phone!.isNotEmpty) {
+      _phoneCtrl.text = user.phone!;
+      _activeFields['phone'] = true;
+    }
+    if (user.email.isNotEmpty) {
+      _emailCtrl.text = user.email;
+      _activeFields['email'] = true;
+    }
 
-        // Pre-remplir le nom de l'entreprise si disponible
-        if (user.hasCompany &&
-            user.company != null &&
-            user.company!.name.isNotEmpty) {
-          _companyCtrl.text = user.company!.name;
-          debugPrint('✅ Company pre-filled: ${user.company!.name}');
+    // Meilleure estimation immédiate (évite un flash de champ déverrouillé)
+    // avant la réponse de /cards/create-context.
+    setState(() => _companyLocked = user.hasCompany);
 
-          // Pre-remplir les infos entreprise (licence entreprise)
-          final company = user.company!;
-          if (company.address != null && company.address!.isNotEmpty) {
-            _companyAddressCtrl.text = company.address!;
-          }
-          if (company.phone != null && company.phone!.isNotEmpty) {
-            _companyPhoneCtrl.text = company.phone!;
-          }
-          if (company.email != null && company.email!.isNotEmpty) {
-            _companyEmailCtrl.text = company.email!;
-          }
-        }
+    _loadCompanyContext();
+  }
 
-        // Pre-remplir le telephone si disponible
-        if (user.phone != null && user.phone!.isNotEmpty) {
-          _phoneCtrl.text = user.phone!;
-          _activeFields['phone'] = true;
-          debugPrint('✅ Phone pre-filled: ${user.phone}');
-        }
+  Future<void> _loadCompanyContext() async {
+    final createContext = await CardService.getCreateContext();
+    if (!mounted) return;
 
-        // Pre-remplir l'email si disponible
-        if (user.email.isNotEmpty) {
-          _emailCtrl.text = user.email;
-          _activeFields['email'] = true;
-          debugPrint('✅ Email pre-filled: ${user.email}');
-        }
+    final locked = createContext['company_locked'] == true;
+    final company = createContext['company'] as Map<String, dynamic>?;
 
-        _companyInitialized = true;
-        setState(() {});
-      }
+    setState(() {
+      _companyLocked = locked;
+      _lockedCompany = company;
     });
+
+    if (locked && company != null) {
+      _companyCtrl.text = company['name']?.toString() ?? '';
+      _companyAddressCtrl.text = company['address']?.toString() ?? '';
+      _companyPhoneCtrl.text = company['phone']?.toString() ?? '';
+      _companyEmailCtrl.text = company['email']?.toString() ?? '';
+    }
   }
 
   @override
@@ -144,17 +138,11 @@ class _CreateCardFormState extends State<CreateCardForm> {
           .map((e) => e.key)
           .toList();
 
-      final auth = context.read<AuthProvider>();
-      final user = auth.user;
-
-      // ✅ Utiliser le nom de l'entreprise liée OU le texte saisi
-      final companyName = user?.hasCompany == true
-          ? user!.company!.name
-          : _companyCtrl.text.trim();
-
+      // Si verrouillé, le champ est déjà prérempli et non modifiable ;
+      // le backend impose de toute façon le nom d'entreprise côté serveur.
       final data = {
         'jobTitle': _jobCtrl.text.trim(),
-        'company': companyName,
+        'company': _companyCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
         'linkedin': _linkedinCtrl.text.trim().isEmpty
@@ -241,6 +229,15 @@ class _CreateCardFormState extends State<CreateCardForm> {
     }
   }
 
+  String? get _lockedCompanyLogoUrl {
+    final logo = _lockedCompany?['logo'] as String?;
+    if (logo == null || logo.isEmpty) return null;
+    if (logo.startsWith('http://') || logo.startsWith('https://')) {
+      return logo;
+    }
+    return '${ApiEndpoints.storageUrl}/$logo';
+  }
+
   bool _isFormValid() {
     return _firstnameCtrl.text.isNotEmpty &&
         _lastnameCtrl.text.isNotEmpty &&
@@ -252,8 +249,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
-    final isCompanyLinked = auth.user?.hasCompany == true;
+    final isCompanyLinked = _companyLocked;
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     final colors = Theme.of(context).colorScheme;
@@ -375,25 +371,32 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 const SizedBox(height: 32),
 
                 // Company Info
-                Text(
-                  'Informations de l\'entreprise',
-                  style: TextStyle(
-                    color: colors.onSurface.withValues(alpha: 0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    if (isCompanyLinked && _lockedCompanyLogoUrl != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          _lockedCompanyLogoUrl!,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      'Informations de l\'entreprise',
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.7),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
 
-                const SizedBox(height: 16),
-
-                AuthTextField(
-                  label: 'Nom de l\'entreprise',
-                  controller: _companyCtrl,
-                  enabled: !isCompanyLinked,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.business_outlined,
-                  hint: 'Ex: Kart Technologies, Ma Societe...',
-                ),
                 if (isCompanyLinked) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -409,13 +412,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.verified_outlined,
+                          Icons.lock_outline_rounded,
                           color: const Color(0xFF3B82F6),
                           size: 16,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Entreprise liée à votre licence',
+                          'Défini par votre entreprise',
                           style: TextStyle(
                             color: const Color(0xFF60A5FA),
                             fontSize: 12,
@@ -430,11 +433,26 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 const SizedBox(height: 16),
 
                 AuthTextField(
+                  label: 'Nom de l\'entreprise',
+                  controller: _companyCtrl,
+                  enabled: !isCompanyLinked,
+                  onChanged: (_) => setState(() {}),
+                  prefixIcon: isCompanyLinked
+                      ? Icons.lock_outline_rounded
+                      : Icons.business_outlined,
+                  hint: 'Ex: Kart Technologies, Ma Societe...',
+                ),
+
+                const SizedBox(height: 16),
+
+                AuthTextField(
                   label: 'Adresse de l\'entreprise',
                   controller: _companyAddressCtrl,
                   enabled: !isCompanyLinked,
                   onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.location_on_outlined,
+                  prefixIcon: isCompanyLinked
+                      ? Icons.lock_outline_rounded
+                      : Icons.location_on_outlined,
                   hint: 'Ex: 123 Rue de la Paix, Dakar',
                 ),
 
@@ -445,7 +463,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   controller: _companyPhoneCtrl,
                   enabled: !isCompanyLinked,
                   onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.phone_outlined,
+                  prefixIcon: isCompanyLinked
+                      ? Icons.lock_outline_rounded
+                      : Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   hint: 'Ex: +221 33 123 45 67',
                 ),
@@ -457,7 +477,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   controller: _companyEmailCtrl,
                   enabled: !isCompanyLinked,
                   onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.email_outlined,
+                  prefixIcon: isCompanyLinked
+                      ? Icons.lock_outline_rounded
+                      : Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   hint: 'Ex: contact@entreprise.com',
                 ),
