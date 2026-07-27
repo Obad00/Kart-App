@@ -39,7 +39,7 @@ jobs:
         run: |
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Debug.xcconfig
-          flutter build ios --release --no-codesign --no-pub
+          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }}
 
       - name: Install Pods
         run: |
