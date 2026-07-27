@@ -390,6 +390,16 @@ Widget _buildQrOnly(String svg) {
     final user = authProvider.user;
 
     try {
+      // Si les donnees de la carte (slug / share_url) ne sont pas encore
+      // chargees, on les recharge avant de partager : on ne doit jamais
+      // deviner un lien a partir du nom, seul le backend connait le vrai slug.
+      if ((cardProvider.shareUrl == null || cardProvider.shareUrl!.isEmpty) &&
+          (cardProvider.slug == null || cardProvider.slug!.isEmpty)) {
+        await cardProvider.loadCardSummary();
+      }
+
+      if (!mounted) return;
+
       String? url;
 
       debugPrint('🔗 Starting share process...');
@@ -406,12 +416,6 @@ Widget _buildQrOnly(String svg) {
       else if (cardProvider.slug != null && cardProvider.slug!.isNotEmpty) {
         url = 'https://kart.business/card/${cardProvider.slug}';
         debugPrint('✅ Generated URL with slug: $url');
-      }
-      // 3. Dernier recours: generer le slug a partir du nom
-      else if (user != null) {
-        final generatedSlug = _generateSlug(user.firstname, user.lastname);
-        url = 'https://kart.business/card/$generatedSlug';
-        debugPrint('✅ Generated URL from name: $url');
       }
 
       if (!mounted) return;
@@ -444,14 +448,6 @@ Widget _buildQrOnly(String svg) {
         ),
       );
     }
-  }
-
-  /// Genere un slug a partir du prenom et nom
-  String _generateSlug(String firstname, String lastname) {
-    final slug = '${firstname.toLowerCase()}-${lastname.toLowerCase()}'
-        .replaceAll(RegExp(r'[^a-z0-9\-]'), '')
-        .replaceAll(RegExp(r'-+'), '-');
-    return slug;
   }
 
   Future<void> _exportQr(String _) async {
