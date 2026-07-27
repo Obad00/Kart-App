@@ -29,6 +29,7 @@ import 'features/leads/ui/leads_page.dart';
 import 'features/digital_card/ui/my_digital_card_guard.dart';
 import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
+import 'features/auth/ui/forgot_password_page.dart';
 import 'features/auth/ui/register_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
 import 'features/auth/ui/force_change_password_page.dart';
@@ -110,6 +111,7 @@ class KartApp extends StatelessWidget {
                 '/splash': (_) => const SplashScreen(),
                 '/login': (_) => const LoginPage(),
                 '/register': (_) => const RegisterPage(),
+                '/forgot-password': (_) => const ForgotPasswordPage(),
                 '/complete-profile': (_) => const CompleteProfilePage(),
                 '/force-change-password': (_) =>
                     const ForceChangePasswordPage(),

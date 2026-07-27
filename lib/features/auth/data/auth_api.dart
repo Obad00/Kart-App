@@ -54,6 +54,14 @@ class AuthApi {
     );
   }
 
+  Future<Response> forgotPassword(String email) {
+    return ApiClient.dio.post(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email},
+      options: Options(validateStatus: (_) => true),
+    );
+  }
+
   Future<Response> deleteAccount(String password) {
     return ApiClient.dio.delete(
       ApiEndpoints.deleteAccount,

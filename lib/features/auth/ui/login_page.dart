@@ -155,6 +155,24 @@ class _LoginPageState extends State<LoginPage>
                           onChanged: (_) => setState(() {}),
                         ),
 
+                        const SizedBox(height: 12),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pushNamed(
+                                context, '/forgot-password'),
+                            child: Text(
+                              'Mot de passe oublié ?',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+
                         // Error message
                         if (auth.error != null)
                           Padding(
