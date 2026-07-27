@@ -7,8 +7,9 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/plan_display_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
-import '../../digital_card/exceptions/theme_forbidden_exception.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
+import '../../../shared/widgets/color_picker_field.dart';
+import '../../../shared/widgets/logo_picker_field.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../digital_card/ui/create_card_page.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
@@ -26,6 +27,13 @@ class _ProfilePageState extends State<ProfilePage>
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  bool _isCardSectionExpanded = false;
+
+  // Masqué pour l'instant : un seul plan individuel existe (Pro), donc
+  // l'écran de changement de plan n'offre aucun vrai choix. À réactiver
+  // si un second plan individuel est réintroduit.
+  static const bool _planChangeEnabled = false;
 
   @override
   void initState() {
@@ -159,6 +167,12 @@ class _ProfilePageState extends State<ProfilePage>
                         companyColor: companyColor,
                         icon: Icons.credit_card_outlined,
                         title: 'Carte digitale',
+                        collapsible: true,
+                        expanded: _isCardSectionExpanded,
+                        onToggle: () => setState(
+                          () => _isCardSectionExpanded =
+                              !_isCardSectionExpanded,
+                        ),
                         children: card.status == CardStatus.hasCard
                             ? [
                                 _buildInfoRow(
@@ -277,52 +291,58 @@ class _ProfilePageState extends State<ProfilePage>
                                     userPlan: user.plan,
                                     hasCompany: user.hasCompany,
                                   ),
-                                  onTap: () => _openPlanSelection(context),
-                                  trailing: TextButton(
-                                    onPressed: () =>
-                                        _openPlanSelection(context),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: companyColor,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      minimumSize: const Size(0, 0),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        side: BorderSide(
-                                          color: companyColor.withValues(
-                                              alpha: 0.25),
+                                  onTap: _planChangeEnabled
+                                      ? () => _openPlanSelection(context)
+                                      : null,
+                                  trailing: _planChangeEnabled
+                                      ? TextButton(
+                                          onPressed: () =>
+                                              _openPlanSelection(context),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: companyColor,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: const Size(0, 0),
+                                            tapTargetSize:
+                                                MaterialTapTargetSize.shrinkWrap,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              side: BorderSide(
+                                                color: companyColor.withValues(
+                                                    alpha: 0.25),
+                                              ),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Changer',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                if (_planChangeEnabled)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        50, 0, 16, 6),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'Touchez Changer pour modifier votre plan.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.5),
                                         ),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Changer',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
                                   ),
-                                ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(50, 0, 16, 6),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'Touchez Changer pour modifier votre plan.',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: colors.onSurface
-                                            .withValues(alpha: 0.5),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ]
                             : [
                                 _buildEmptyCardState(colors, companyColor),
@@ -356,15 +376,22 @@ class _ProfilePageState extends State<ProfilePage>
                         const SizedBox(height: 16),
                       ],
 
-                      // Apparence
-                      if (card.status == CardStatus.hasCard) ...[
+                      // Apparence — masqué si l'entreprise impose déjà son
+                      // branding (celui-ci prime toujours sur la carte,
+                      // personnaliser sa propre couleur n'aurait aucun effet).
+                      if (card.status == CardStatus.hasCard &&
+                          !(user.hasCompany ||
+                              (card.companyLogo != null &&
+                                  card.companyLogo!.isNotEmpty) ||
+                              (card.companyPrimaryColor != null &&
+                                  card.companyPrimaryColor!.isNotEmpty))) ...[
                         _buildSection(
                           colors: colors,
                           companyColor: companyColor,
                           icon: Icons.palette_outlined,
                           title: 'Apparence',
                           children: [
-                            _buildThemeSelector(colors, companyColor, card),
+                            _buildBrandingRow(colors, companyColor, card),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -731,6 +758,9 @@ class _ProfilePageState extends State<ProfilePage>
     required IconData icon,
     required String title,
     required List<Widget> children,
+    bool collapsible = false,
+    bool expanded = true,
+    VoidCallback? onToggle,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -744,40 +774,55 @@ class _ProfilePageState extends State<ProfilePage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header de section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: companyColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+          InkWell(
+            onTap: collapsible ? onToggle : null,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: companyColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 16,
+                      color: companyColor,
+                    ),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 16,
-                    color: companyColor,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
+                  if (collapsible)
+                    Icon(
+                      expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 22,
+                      color: colors.onSurface.withValues(alpha: 0.4),
+                    ),
+                ],
+              ),
             ),
           ),
 
           // Contenu
-          ...children,
-
-          const SizedBox(height: 8),
+          if (!collapsible || expanded) ...[
+            ...children,
+            const SizedBox(height: 8),
+          ],
         ],
       ),
     );
@@ -969,16 +1014,24 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildThemeSelector(
+  Widget _buildBrandingRow(
       ColorScheme colors, Color companyColor, CardProvider card) {
+    final accentColor = _parseHexColor(card.accentColor) ?? companyColor;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(
-            Icons.color_lens_outlined,
-            size: 20,
-            color: colors.onSurface.withValues(alpha: 0.4),
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: accentColor,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: colors.onSurface.withValues(alpha: 0.15),
+              ),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -986,7 +1039,7 @@ class _ProfilePageState extends State<ProfilePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Thème de la carte',
+                  'Personnalisation de la carte',
                   style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.5),
@@ -995,7 +1048,9 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _themeLabel(card.theme),
+                  card.accentColor != null || card.logo != null
+                      ? 'Couleur et logo personnalisés'
+                      : 'Aucune personnalisation',
                   style: TextStyle(
                     fontSize: 15,
                     color: colors.onSurface,
@@ -1006,7 +1061,7 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ),
           TextButton(
-            onPressed: () => _openThemePicker(context),
+            onPressed: () => _openBrandingEditor(context),
             style: TextButton.styleFrom(
               foregroundColor: companyColor,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1016,7 +1071,7 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
             child: const Text(
-              'Changer',
+              'Personnaliser',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1024,6 +1079,7 @@ class _ProfilePageState extends State<ProfilePage>
       ),
     );
   }
+
 
   Widget _buildActionButtons(ColorScheme colors, BuildContext context) {
     return Column(
@@ -1732,29 +1788,18 @@ class _ProfilePageState extends State<ProfilePage>
     }
   }
 
-  void _openThemePicker(BuildContext context) {
-    final parentContext = context;
+  void _openBrandingEditor(BuildContext context) {
     HapticFeedback.lightImpact();
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ThemePicker(parentContext: parentContext),
+      builder: (_) => const _BrandingEditor(),
     );
-  }
-
-  String _themeLabel(String? theme) {
-    switch (theme) {
-      case 'dark_minimal':
-        return 'Dark minimal';
-      case 'clean_light':
-        return 'Clean light';
-      default:
-        return 'Classique';
-    }
   }
 
   String _initials(String name) {
@@ -1767,278 +1812,177 @@ class _ProfilePageState extends State<ProfilePage>
 
 // ================= THEME PICKER =================
 
-class _ThemePicker extends StatelessWidget {
-  final BuildContext parentContext;
+Color? _parseHexColor(String? hex) {
+  if (hex == null || hex.isEmpty) return null;
+  try {
+    final cleaned = hex.replaceAll('#', '');
+    if (cleaned.length == 6) {
+      return Color(int.parse('FF$cleaned', radix: 16));
+    }
+  } catch (_) {}
+  return null;
+}
 
-  const _ThemePicker({required this.parentContext});
+String _colorToHex(Color color) {
+  final argb = color.toARGB32();
+  return '#${argb.toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';
+}
+
+// ================= BRANDING EDITOR =================
+// Personnalisation gratuite de la carte : couleur d'accent + logo/photo.
+// Aucune restriction de plan (contrairement à l'ancien sélecteur de thème).
+
+class _BrandingEditor extends StatefulWidget {
+  const _BrandingEditor();
+
+  @override
+  State<_BrandingEditor> createState() => _BrandingEditorState();
+}
+
+class _BrandingEditorState extends State<_BrandingEditor> {
+  late Color _accentColor;
+  String? _newLogoPath;
+  bool _logoRemoved = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final card = context.read<CardProvider>();
+    _accentColor = _parseHexColor(card.accentColor) ?? const Color(0xFF2563EB);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await context.read<CardProvider>().updatePersonalBranding(
+            accentColorHex: _colorToHex(_accentColor),
+            localLogoPath: _newLogoPath,
+            removeLogo: _logoRemoved,
+          );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final card = context.watch<CardProvider>();
-    final auth = context.watch<AuthProvider>();
     final colors = Theme.of(context).colorScheme;
 
-    // Vérifier si l'utilisateur est premium ou entreprise
-    final bool isPremiumOrCompany = auth.user?.isPro == true ||
-        auth.user?.hasCompany == true ||
-        (card.companyPrimaryColor != null &&
-            card.companyPrimaryColor!.isNotEmpty);
-
     return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Poignée
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: colors.onSurface.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Titre
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.palette_outlined,
-                  color: colors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Text(
-                'Thème de la carte',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          _themeItem(context, card, colors, 'default', 'Classique',
-              Icons.light_mode_outlined,
-              isPremium: false, isPremiumOrCompany: isPremiumOrCompany),
-          const SizedBox(height: 10),
-          _themeItem(context, card, colors, 'clean_light', 'Clean light',
-              Icons.wb_sunny_outlined,
-              isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
-          const SizedBox(height: 10),
-          _themeItem(context, card, colors, 'dark_minimal', 'Dark minimal',
-              Icons.dark_mode_outlined,
-              isPremium: true, isPremiumOrCompany: isPremiumOrCompany),
-
-          const SizedBox(height: 16),
-        ],
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-    );
-  }
-
-  Widget _themeItem(
-    BuildContext context,
-    CardProvider card,
-    ColorScheme colors,
-    String value,
-    String label,
-    IconData icon, {
-    required bool isPremium,
-    required bool isPremiumOrCompany,
-  }) {
-    final selected = card.theme == value;
-    final bool isLocked = isPremium && !isPremiumOrCompany;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isLocked
-            ? () {
-                HapticFeedback.lightImpact();
-                Navigator.pop(context);
-                _showProDialog(parentContext,
-                    'Ce thème est réservé aux comptes Premium et Entreprise');
-              }
-            : () async {
-                HapticFeedback.lightImpact();
-                try {
-                  await card.updateTheme(value);
-                  if (context.mounted) Navigator.pop(context);
-                } on ThemeForbiddenException catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    _showProDialog(parentContext, e.message);
-                  }
-                }
-              },
-        borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: selected
-                ? colors.primary.withValues(alpha: 0.1)
-                : isLocked
-                    ? colors.onSurface.withValues(alpha: 0.02)
-                    : colors.onSurface.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected
-                  ? colors.primary.withValues(alpha: 0.3)
-                  : colors.onSurface.withValues(alpha: 0.06),
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isLocked
-                    ? colors.onSurface.withValues(alpha: 0.3)
-                    : selected
-                        ? colors.primary
-                        : colors.onSurface.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                    color: isLocked
-                        ? colors.onSurface.withValues(alpha: 0.4)
-                        : colors.onSurface,
-                  ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              if (isLocked)
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                    ),
+                    color: colors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.lock, color: Colors.white, size: 12),
-                      SizedBox(width: 4),
-                      Text(
-                        'PRO',
+                  child: Icon(
+                    Icons.palette_outlined,
+                    color: colors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Text(
+                  'Personnaliser ma carte',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            ColorPickerField(
+              label: 'Couleur d\'accent',
+              initialColor: _accentColor,
+              onColorChanged: (color) => setState(() => _accentColor = color),
+            ),
+            const SizedBox(height: 20),
+
+            LogoPickerField(
+              label: 'Logo ou photo',
+              title: 'Logo personnel',
+              initialUrl: card.logo,
+              onLogoChanged: (path) {
+                setState(() {
+                  if (path == null) {
+                    _logoRemoved = true;
+                    _newLogoPath = null;
+                  } else {
+                    _logoRemoved = false;
+                    _newLogoPath = path;
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _saving
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.onPrimary,
+                        ),
+                      )
+                    : const Text(
+                        'Enregistrer',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
                         ),
                       ),
-                    ],
-                  ),
-                )
-              else
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: selected ? 1.0 : 0.0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: colors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showProDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      useRootNavigator: true,
-      builder: (_) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.star_rounded,
-                color: Colors.amber,
-                size: 20,
               ),
             ),
-            const SizedBox(width: 12),
-            const Text('Fonction premium'),
           ],
         ),
-        content: Text(message),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () =>
-                      Navigator.of(context, rootNavigator: true).pop(),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Plus tard'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    Navigator.of(context, rootNavigator: true)
-                        .pushNamed('/plans');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Passer PRO'),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

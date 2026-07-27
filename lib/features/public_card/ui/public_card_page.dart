@@ -22,6 +22,21 @@ class _PublicCardPageState extends State<PublicCardPage>
   Map<String, dynamic>? card;
   bool isLoading = true;
 
+  Color get _accentColor =>
+      _parseHexColor(card?['accent_color'] as String?) ??
+      const Color(0xFF2563EB);
+
+  Color? _parseHexColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    try {
+      final cleaned = hex.replaceAll('#', '');
+      if (cleaned.length == 6) {
+        return Color(int.parse('FF$cleaned', radix: 16));
+      }
+    } catch (_) {}
+    return null;
+  }
+
   late AnimationController _floatController;
   late Animation<double> _floatAnimation;
   late AnimationController _appearController;
@@ -280,15 +295,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                                const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                _accentColor.withValues(alpha: 0.2),
+                                _accentColor.withValues(alpha: 0.1),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.send_rounded,
-                            color: Color(0xFF3B82F6),
+                            color: _accentColor,
                             size: 24,
                           ),
                         ),
@@ -463,7 +478,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                                     );
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3B82F6),
+                              backgroundColor: _accentColor,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -603,15 +618,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                                  const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                  _accentColor.withValues(alpha: 0.2),
+                                  _accentColor.withValues(alpha: 0.1),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.email_outlined,
-                              color: Color(0xFF3B82F6),
+                              color: _accentColor,
                               size: 24,
                             ),
                           ),
@@ -725,13 +740,13 @@ class _PublicCardPageState extends State<PublicCardPage>
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? const Color(0xFF3B82F6)
+                                          ? _accentColor
                                               .withValues(alpha: 0.1)
                                           : Theme.of(context).colorScheme.surface,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isSelected
-                                            ? const Color(0xFF3B82F6)
+                                            ? _accentColor
                                                 .withValues(alpha: 0.3)
                                             : Theme.of(context)
                                                 .colorScheme
@@ -749,7 +764,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                                             shape: BoxShape.circle,
                                             border: Border.all(
                                               color: isSelected
-                                                  ? const Color(0xFF3B82F6)
+                                                  ? _accentColor
                                                   : Theme.of(context)
                                                       .colorScheme
                                                       .onSurface
@@ -762,9 +777,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                                                   child: Container(
                                                     width: 10,
                                                     height: 10,
-                                                    decoration: const BoxDecoration(
+                                                    decoration: BoxDecoration(
                                                       shape: BoxShape.circle,
-                                                      color: Color(0xFF3B82F6),
+                                                      color: _accentColor,
                                                     ),
                                                   ),
                                                 )
@@ -780,7 +795,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                                                   ? FontWeight.w600
                                                   : FontWeight.w400,
                                               color: isSelected
-                                                  ? const Color(0xFF3B82F6)
+                                                  ? _accentColor
                                                   : Theme.of(context)
                                                       .colorScheme
                                                       .onSurface,
@@ -833,7 +848,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                             child: ElevatedButton(
                               onPressed: isSending ? null : sendEmail,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B82F6),
+                                backgroundColor: _accentColor,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding:
@@ -889,7 +904,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     return Row(
       children: [
         Icon(icon,
-            size: 18, color: const Color(0xFF3B82F6).withValues(alpha: 0.7)),
+            size: 18, color: _accentColor.withValues(alpha: 0.7)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1022,7 +1037,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation(
-              isDark ? Colors.white : const Color(0xFF2563EB),
+              isDark ? Colors.white : _accentColor,
             ),
           ),
         ),
@@ -1134,7 +1149,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     final avatarBackground =
         isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
     final avatarTextColor =
-        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+        isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1257,8 +1272,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF2563EB),
+                            decoration: BoxDecoration(
+                              color: _accentColor,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -1382,7 +1397,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+              Icon(icon, size: 16, color: _accentColor),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -1423,7 +1438,7 @@ class _PublicCardPageState extends State<PublicCardPage>
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2563EB),
+            backgroundColor: _accentColor,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -1739,7 +1754,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     final surfaceColor =
         isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
     final iconColor =
-        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+        isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1888,7 +1903,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     final surfaceColor =
         isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
     final accentColor =
-        isDark ? const Color(0xFF2563EB) : const Color(0xFF2563EB);
+        isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2076,7 +2091,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         'icon': FontAwesomeIcons.globe,
         'value': _getFieldValue('website'),
         'bgColor': const Color(0xFFEFF6FF),
-        'iconColor': const Color(0xFF2563EB),
+        'iconColor': _accentColor,
       });
     }
 

@@ -4,20 +4,25 @@ import '../../features/digital_card/providers/card_provider.dart';
 
 /// Helper pour obtenir la couleur de l'entreprise avec un fallback sur la couleur primaire
 class CompanyColorHelper {
-  /// Obtient la couleur de l'entreprise ou la couleur primaire par défaut
+  /// Obtient la couleur de l'entreprise, sinon celle personnalisée par
+  /// l'utilisateur, sinon la couleur primaire par défaut
   static Color getCompanyColor(BuildContext context) {
     final cardProvider = context.watch<CardProvider>();
     final colors = Theme.of(context).colorScheme;
-    
-    return _parseColor(cardProvider.companyPrimaryColor) ?? colors.primary;
+
+    return _parseColor(cardProvider.companyPrimaryColor) ??
+        _parseColor(cardProvider.accentColor) ??
+        colors.primary;
   }
-  
-  /// Obtient la couleur de l'entreprise ou la couleur primaire par défaut (sans watch)
+
+  /// Idem, sans watch
   static Color getCompanyColorRead(BuildContext context) {
     final cardProvider = context.read<CardProvider>();
     final colors = Theme.of(context).colorScheme;
-    
-    return _parseColor(cardProvider.companyPrimaryColor) ?? colors.primary;
+
+    return _parseColor(cardProvider.companyPrimaryColor) ??
+        _parseColor(cardProvider.accentColor) ??
+        colors.primary;
   }
   
   /// Vérifie si une couleur d'entreprise est définie

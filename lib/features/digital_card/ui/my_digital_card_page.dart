@@ -277,26 +277,36 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                   // Vérifier si l'utilisateur a une entreprise
                   // On utilise les données du CardProvider (company_logo ou company_primary_color)
                   // car elles viennent de /me/card-summary qui est plus fiable
-                  final bool isCompanyUser = user?.hasCompany == true ||
+                  final bool hasCompanyBranding = user?.hasCompany == true ||
                       (state.companyLogo != null && state.companyLogo!.isNotEmpty) ||
                       (state.companyPrimaryColor != null && state.companyPrimaryColor!.isNotEmpty);
+
+                  // Branding personnel (couleur d'accent + logo), gratuit pour tous
+                  final bool hasPersonalBranding =
+                      (state.accentColor != null && state.accentColor!.isNotEmpty) ||
+                      (state.logo != null && state.logo!.isNotEmpty);
+
+                  final bool useBrandedCard = hasCompanyBranding || hasPersonalBranding;
 
                   return FadeTransition(
                     opacity: _fade,
                     child: ScaleTransition(
                       scale: _scale,
                       child: Center(
-                        child: isCompanyUser
-                            // Carte Premium pour les utilisateurs Entreprise
+                        child: useBrandedCard
+                            // Carte brandée : entreprise ou personnalisation individuelle
                             ? CompanyQrCard(
                                 qrCode: qrWidget,
-                                companyName: state.company ?? user?.company?.name ?? 'Entreprise',
-                                companyLogo: state.companyLogo,
+                                companyName: hasCompanyBranding
+                                    ? (state.company ?? user?.company?.name ?? 'Entreprise')
+                                    : fullName,
+                                companyLogo: hasCompanyBranding ? state.companyLogo : state.logo,
                                 primaryColor: _parseColor(
-                                  state.companyPrimaryColor,
+                                  hasCompanyBranding ? state.companyPrimaryColor : state.accentColor,
                                   const Color(0xFF3B82F6),
                                 ),
                                 subtitle: state.jobTitle,
+                                badgeLabel: hasCompanyBranding ? 'PRO' : null,
                                onShare: widget.minimal ? null : share,
                                onDownload: widget.minimal ? null : download,
 
@@ -307,7 +317,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                                   );
                                 },
                               )
-                            // Carte Basique pour les utilisateurs Freemium
+                            // Carte Basique par défaut (aucun branding)
                             : BasicQrCard(
                                 qrCode: qrWidget,
                                 userName: fullName,

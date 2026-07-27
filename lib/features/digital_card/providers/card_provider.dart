@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
@@ -5,7 +7,6 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../shared/services/card_service.dart';
 
 import 'package:dio/dio.dart';
-import '../exceptions/theme_forbidden_exception.dart';
 
 enum CardStatus {
   idle,
@@ -57,6 +58,12 @@ class CardProvider extends ChangeNotifier {
   String? get companyLogo => _companyLogo;
   String? get companyPrimaryColor => _companyPrimaryColor;
 
+  // --- PERSONAL BRANDING ---
+  String? _accentColor;
+  String? _logo;
+  String? get accentColor => _accentColor;
+  String? get logo => _logo;
+
   // --- LOADING ---
   bool _isQrLoading = false;
   bool _isSummaryLoading = false;
@@ -85,6 +92,8 @@ class CardProvider extends ChangeNotifier {
         jobTitle = null;
         company = null;
         _theme = null;
+        _accentColor = null;
+        _logo = null;
       } else {
         jobTitle = res.data['job_title'];
         company = res.data['company'];
@@ -113,6 +122,16 @@ class CardProvider extends ChangeNotifier {
 
         _theme = res.data['theme'];
         debugPrint('🎨 Theme from API = $_theme');
+
+        _accentColor = res.data['accent_color'] as String?;
+        final personalLogoPath = res.data['logo'] as String?;
+        if (personalLogoPath != null && personalLogoPath.isNotEmpty) {
+          _logo = personalLogoPath.startsWith('http')
+              ? personalLogoPath
+              : '${ApiEndpoints.storageUrl}/$personalLogoPath';
+        } else {
+          _logo = null;
+        }
 
         // Récupérer les infos de l'entreprise depuis l'objet branding
         final branding = res.data['branding'] as Map<String, dynamic>?;
@@ -185,23 +204,41 @@ class CardProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateTheme(String theme) async {
+  /// Personnalise la carte (couleur d'accent + logo), gratuit pour tous.
+  Future<void> updatePersonalBranding({
+    String? accentColorHex,
+    String? localLogoPath,
+    bool removeLogo = false,
+  }) async {
     try {
-      await ApiClient.dio.put(
-        '/me/card-summary',
-        data: {'theme': theme},
-      );
+      final formData = FormData.fromMap({
+        '_method': 'PUT',
+        if (accentColorHex != null) 'accent_color': accentColorHex,
+        if (removeLogo) 'remove_logo': true,
+      });
 
-      _theme = theme;
-      notifyListeners();
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 403) {
-        throw ThemeForbiddenException(
-          e.response?.data['message'] ?? 'Thème réservé aux comptes PRO',
-        );
+      if (localLogoPath != null && !localLogoPath.startsWith('http')) {
+        final file = File(localLogoPath);
+        if (await file.exists()) {
+          formData.files.add(MapEntry(
+            'logo',
+            await MultipartFile.fromFile(
+              localLogoPath,
+              filename: localLogoPath.split('/').last,
+            ),
+          ));
+        }
       }
 
-      throw Exception('Erreur lors du changement de thème');
+      await ApiClient.dio.post(
+        '/me/card-summary',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      await loadCardSummary();
+    } on DioException catch (_) {
+      throw Exception('Erreur lors de la personnalisation de la carte');
     }
   }
 
@@ -216,6 +253,8 @@ class CardProvider extends ChangeNotifier {
     linkedin = null;
     _companyLogo = null;
     _companyPrimaryColor = null;
+    _accentColor = null;
+    _logo = null;
 
     _status = CardStatus.idle;
     notifyListeners();

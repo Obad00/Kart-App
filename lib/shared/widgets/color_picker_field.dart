@@ -92,6 +92,8 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -99,7 +101,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
         Text(
           widget.label,
           style: TextStyle(
-            color: Colors.grey[400],
+            color: colors.onSurface.withValues(alpha: 0.5),
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -110,10 +112,10 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.03),
+            color: colors.onSurface.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: colors.onSurface.withValues(alpha: 0.08),
             ),
           ),
           child: Column(
@@ -131,7 +133,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         color: _selectedColor,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: colors.onSurface.withValues(alpha: 0.2),
                           width: 2,
                         ),
                         boxShadow: [
@@ -161,10 +163,10 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: colors.onSurface.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: colors.onSurface.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Row(
@@ -172,7 +174,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                           Text(
                             '#',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: colors.onSurface.withValues(alpha: 0.4),
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -181,8 +183,8 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                           Expanded(
                             child: TextField(
                               controller: _hexController,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: colors.onSurface,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
@@ -231,8 +233,8 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: isSelected
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.1),
+                              ? colors.onSurface
+                              : colors.onSurface.withValues(alpha: 0.1),
                           width: isSelected ? 2.5 : 1,
                         ),
                         boxShadow: isSelected
@@ -268,7 +270,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
   void _showFullColorPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -317,6 +319,8 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -327,17 +331,17 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: colors.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
 
           // Titre
-          const Text(
+          Text(
             'Choisir une couleur',
             style: TextStyle(
-              color: Colors.white,
+              color: colors.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -451,7 +455,7 @@ class _AdvancedColorPickerState extends State<_AdvancedColorPicker> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),

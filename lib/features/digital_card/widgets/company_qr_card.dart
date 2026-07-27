@@ -11,6 +11,7 @@ class CompanyQrCard extends StatefulWidget {
   final String? companyLogo;
   final Color primaryColor;
   final String? subtitle;
+  final String? badgeLabel;
 final VoidCallback? onShare;
 final VoidCallback? onDownload;
   final VoidCallback? onTapQr;
@@ -22,6 +23,7 @@ final VoidCallback? onDownload;
     this.companyLogo,
     required this.primaryColor,
     this.subtitle,
+    this.badgeLabel,
 this.onShare,
 this.onDownload,
     this.onTapQr,
@@ -280,31 +282,32 @@ class _CompanyQrCardState extends State<CompanyQrCard>
         ),
 
         // Badge coloré
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [widget.primaryColor, _accentLight],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: widget.primaryColor.withValues(alpha: 0.4),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+        if (widget.badgeLabel != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [widget.primaryColor, _accentLight],
               ),
-            ],
-          ),
-          child: Text(
-            'PRO',
-            style: TextStyle(
-              color: _textOnPrimary,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.primaryColor.withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Text(
+              widget.badgeLabel!,
+              style: TextStyle(
+                color: _textOnPrimary,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
             ),
           ),
-        ),
       ],
     );
   }

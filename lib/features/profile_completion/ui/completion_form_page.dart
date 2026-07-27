@@ -54,8 +54,12 @@ final List<String> _fields = [
 ];
 
 
+/// [section] restreint le formulaire à une seule partie : 'basic', 'social',
+/// 'experiences' ou 'educations'. `null` (par défaut) affiche tout.
 class CompletionFormPage extends StatefulWidget {
-  const CompletionFormPage({super.key});
+  final String? section;
+
+  const CompletionFormPage({super.key, this.section});
 
   @override
   State<CompletionFormPage> createState() => _CompletionFormPageState();
@@ -84,12 +88,17 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     'website': false,
   };
 
+  bool _isPublic = true;
+
   final List<Map<String, TextEditingController>> _experiences = [];
   final List<Map<String, TextEditingController>> _educations = [];
 
   bool loading = false;
   String? _successMessage;
   String? _errorMessage;
+
+  bool _showSection(String key) =>
+      widget.section == null || widget.section == key;
 
   @override
   void initState() {
@@ -116,6 +125,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           _activeFields[field] = true;
         }
       }
+      _isPublic = m.isPublic;
 
       for (final exp in m.experiences) {
         _experiences.add({
@@ -299,6 +309,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           .where((e) => e.value)
           .map((e) => e.key)
           .toList(),
+      isPublic: _isPublic,
     );
 
     try {
@@ -395,138 +406,158 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     _successMessage!, Colors.green, Icons.check_circle_outline),
               if (_errorMessage != null)
                 _buildAlert(_errorMessage!, Colors.red, Icons.error_outline),
-              _buildSectionHeader(
-                  colors, Icons.person_outline, 'Informations de base'),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Poste',
-                  controller: _jobCtrl,
-                  prefixIcon: Icons.work_outline,
-                  hint: 'Ex: Développeur Flutter'),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Entreprise',
-                  controller: _companyCtrl,
-                  prefixIcon: Icons.business_outlined,
-                  hint: 'Nom de votre entreprise'),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Téléphone',
-                  controller: _phoneCtrl,
-                  prefixIcon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  hint: 'Ex: +221 77 123 45 67'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher le téléphone sur ma carte',
-                value: _activeFields['phone'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['phone'] = v),
-              ),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Email',
-                  controller: _emailCtrl,
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  hint: 'votre@email.com'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher l\'email sur ma carte',
-                value: _activeFields['email'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['email'] = v),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader(
-                  colors, Icons.share_outlined, 'Réseaux sociaux'),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'LinkedIn',
-                  controller: _linkedinCtrl,
-                  prefixIcon: Icons.work_outline,
-                  hint: 'https://linkedin.com/in/...'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher LinkedIn sur ma carte',
-                value: _activeFields['linkedin'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['linkedin'] = v),
-              ),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Instagram',
-                  controller: _instagramCtrl,
-                  prefixIcon: Icons.camera_alt_outlined,
-                  hint: 'https://instagram.com/...'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher Instagram sur ma carte',
-                value: _activeFields['instagram'] ?? false,
-                onChanged: (v) =>
-                    setState(() => _activeFields['instagram'] = v),
-              ),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'GitHub',
-                  controller: _githubCtrl,
-                  prefixIcon: Icons.code,
-                  hint: 'https://github.com/...'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher GitHub sur ma carte',
-                value: _activeFields['github'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['github'] = v),
-              ),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Facebook',
-                  controller: _facebookCtrl,
-                  prefixIcon: Icons.facebook,
-                  hint: 'https://facebook.com/...'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher Facebook sur ma carte',
-                value: _activeFields['facebook'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['facebook'] = v),
-              ),
-              const SizedBox(height: 12),
-              AuthTextField(
-                  label: 'Site web',
-                  controller: _websiteCtrl,
-                  prefixIcon: Icons.language,
-                  hint: 'https://votresite.com'),
-              const SizedBox(height: 8),
-              _buildPremiumSwitch(
-                title: 'Afficher le site web sur ma carte',
-                value: _activeFields['website'] ?? false,
-                onChanged: (v) => setState(() => _activeFields['website'] = v),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader(
-                colors,
-                Icons.history,
-                'Expériences',
-                trailing: _buildAddButton(_addExperience),
-              ),
-              const SizedBox(height: 12),
-              if (_experiences.isEmpty)
-                _buildEmptyState(colors, 'Aucune expérience',
-                    'Ajoutez votre première expérience', Icons.work_outline),
-              ..._experiences.asMap().entries.map((entry) {
-                return _buildExperienceCard(colors, entry.key, entry.value);
-              }),
-              const SizedBox(height: 24),
-              _buildSectionHeader(
-                colors,
-                Icons.school_outlined,
-                'Formation',
-                trailing: _buildAddButton(_addEducation),
-              ),
-              const SizedBox(height: 12),
-              if (_educations.isEmpty)
-                _buildEmptyState(colors, 'Aucune formation',
-                    'Ajoutez votre première formation', Icons.school_outlined),
-              ..._educations.asMap().entries.map((entry) {
-                return _buildEducationCard(colors, entry.key, entry.value);
-              }),
+              if (_showSection('basic')) ...[
+                _buildSectionHeader(
+                    colors, Icons.person_outline, 'Informations de base'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Poste',
+                    controller: _jobCtrl,
+                    prefixIcon: Icons.work_outline,
+                    hint: 'Ex: Développeur Flutter'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Entreprise',
+                    controller: _companyCtrl,
+                    prefixIcon: Icons.business_outlined,
+                    hint: 'Nom de votre entreprise'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Téléphone',
+                    controller: _phoneCtrl,
+                    prefixIcon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    hint: 'Ex: +221 77 123 45 67'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher le téléphone sur ma carte',
+                  value: _activeFields['phone'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['phone'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Email',
+                    controller: _emailCtrl,
+                    prefixIcon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    hint: 'votre@email.com'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher l\'email sur ma carte',
+                  value: _activeFields['email'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['email'] = v),
+                ),
+                const SizedBox(height: 24),
+                _buildSectionHeader(
+                    colors, Icons.public, 'Visibilité de la carte'),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  title: 'Rendre ma carte publique',
+                  value: _isPublic,
+                  onChanged: (v) => setState(() => _isPublic = v),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (_showSection('social')) ...[
+                _buildSectionHeader(
+                    colors, Icons.share_outlined, 'Réseaux sociaux'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'LinkedIn',
+                    controller: _linkedinCtrl,
+                    prefixIcon: Icons.work_outline,
+                    hint: 'https://linkedin.com/in/...'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher LinkedIn sur ma carte',
+                  value: _activeFields['linkedin'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['linkedin'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Instagram',
+                    controller: _instagramCtrl,
+                    prefixIcon: Icons.camera_alt_outlined,
+                    hint: 'https://instagram.com/...'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher Instagram sur ma carte',
+                  value: _activeFields['instagram'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['instagram'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'GitHub',
+                    controller: _githubCtrl,
+                    prefixIcon: Icons.code,
+                    hint: 'https://github.com/...'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher GitHub sur ma carte',
+                  value: _activeFields['github'] ?? false,
+                  onChanged: (v) => setState(() => _activeFields['github'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Facebook',
+                    controller: _facebookCtrl,
+                    prefixIcon: Icons.facebook,
+                    hint: 'https://facebook.com/...'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher Facebook sur ma carte',
+                  value: _activeFields['facebook'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['facebook'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Site web',
+                    controller: _websiteCtrl,
+                    prefixIcon: Icons.language,
+                    hint: 'https://votresite.com'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher le site web sur ma carte',
+                  value: _activeFields['website'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['website'] = v),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (_showSection('experiences')) ...[
+                _buildSectionHeader(
+                  colors,
+                  Icons.history,
+                  'Expériences',
+                  trailing: _buildAddButton(_addExperience),
+                ),
+                const SizedBox(height: 12),
+                if (_experiences.isEmpty)
+                  _buildEmptyState(colors, 'Aucune expérience',
+                      'Ajoutez votre première expérience', Icons.work_outline),
+                ..._experiences.asMap().entries.map((entry) {
+                  return _buildExperienceCard(colors, entry.key, entry.value);
+                }),
+                const SizedBox(height: 24),
+              ],
+              if (_showSection('educations')) ...[
+                _buildSectionHeader(
+                  colors,
+                  Icons.school_outlined,
+                  'Formation',
+                  trailing: _buildAddButton(_addEducation),
+                ),
+                const SizedBox(height: 12),
+                if (_educations.isEmpty)
+                  _buildEmptyState(colors, 'Aucune formation',
+                      'Ajoutez votre première formation', Icons.school_outlined),
+                ..._educations.asMap().entries.map((entry) {
+                  return _buildEducationCard(colors, entry.key, entry.value);
+                }),
+              ],
               const SizedBox(height: 32),
               AuthPrimaryButton(
                 label: 'Sauvegarder',

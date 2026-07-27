@@ -15,6 +15,7 @@ class ProfileCompletionModel {
   dynamic branding;
 
   List<String> activatedFields;
+  bool isPublic;
   List<ExperienceModel> experiences;
   List<EducationModel> educations;
 
@@ -32,6 +33,7 @@ class ProfileCompletionModel {
     this.plan,
     this.branding,
     List<String>? activatedFields,
+    this.isPublic = true,
     List<ExperienceModel>? experiences,
     List<EducationModel>? educations,
   })  : activatedFields = activatedFields ?? [],
@@ -59,6 +61,8 @@ class ProfileCompletionModel {
                   .toList() ??
               [],
 
+      isPublic: json['is_public'] as bool? ?? true,
+
       experiences: (json['experiences'] as List?)
               ?.map((e) => ExperienceModel.fromJson(e))
               .toList() ??
@@ -83,6 +87,7 @@ class ProfileCompletionModel {
       "facebook": facebook,
       "website": website,
       "activated_fields": activatedFields,
+      "is_public": isPublic,
       "experiences": experiences.map((e) => e.toJson()).toList(),
       "educations": educations.map((e) => e.toJson()).toList(),
     };

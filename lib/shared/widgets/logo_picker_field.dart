@@ -5,12 +5,14 @@ import 'package:image_picker/image_picker.dart';
 
 class LogoPickerField extends StatefulWidget {
   final String label;
+  final String title;
   final String? initialUrl;
   final ValueChanged<String?> onLogoChanged;
 
   const LogoPickerField({
     super.key,
     required this.label,
+    this.title = 'Logo de l\'entreprise',
     this.initialUrl,
     required this.onLogoChanged,
   });
@@ -36,7 +38,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     // Afficher un bottom sheet pour choisir la source
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -51,14 +53,14 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text(
+              Text(
                 'Choisir une image',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -98,14 +100,15 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: colors.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: colors.onSurface.withValues(alpha: 0.1)),
         ),
         child: Column(
           children: [
@@ -120,8 +123,8 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
             const SizedBox(height: 12),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: colors.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -210,14 +213,15 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
   }
 
   Widget _buildPlaceholder() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: 100,
       height: 100,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: colors.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: colors.onSurface.withValues(alpha: 0.1),
           width: 2,
         ),
       ),
@@ -227,13 +231,13 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
           Icon(
             Icons.add_photo_alternate_outlined,
             size: 32,
-            color: Colors.grey[500],
+            color: colors.onSurface.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 4),
           Text(
             'Logo',
             style: TextStyle(
-              color: Colors.grey[500],
+              color: colors.onSurface.withValues(alpha: 0.4),
               fontSize: 11,
             ),
           ),
@@ -247,7 +251,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
       width: 100,
       height: 100,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(
@@ -267,6 +271,8 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -274,7 +280,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
         Text(
           widget.label,
           style: TextStyle(
-            color: Colors.grey[400],
+            color: colors.onSurface.withValues(alpha: 0.5),
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -285,10 +291,10 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.03),
+            color: colors.onSurface.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: colors.onSurface.withValues(alpha: 0.08),
             ),
           ),
           child: Row(
@@ -306,10 +312,10 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Logo de l\'entreprise',
+                    Text(
+                      widget.title,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -320,7 +326,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
                           ? 'Appuyez pour modifier'
                           : 'Format PNG ou JPG recommandé',
                       style: TextStyle(
-                        color: Colors.grey[500],
+                        color: colors.onSurface.withValues(alpha: 0.4),
                         fontSize: 12,
                       ),
                     ),

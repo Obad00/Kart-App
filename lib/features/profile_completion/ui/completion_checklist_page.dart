@@ -64,7 +64,7 @@ class CompletionChecklistPage extends StatelessWidget {
             colors: colors,
             icon: Icons.person_outline,
             title: 'Informations de base',
-            onAddTap: () => _openForm(context),
+            onAddTap: () => _openForm(context, section: 'basic'),
             items: [
               _CheckItem('Poste', model.jobTitle, Icons.work_outline),
               _CheckItem('Entreprise', model.company, Icons.business_outlined),
@@ -79,7 +79,7 @@ class CompletionChecklistPage extends StatelessWidget {
             colors: colors,
             icon: Icons.share_outlined,
             title: 'Réseaux sociaux',
-            onAddTap: () => _openForm(context),
+            onAddTap: () => _openForm(context, section: 'social'),
             items: [
               _CheckItem('LinkedIn', model.linkedin, Icons.work_outline),
               _CheckItem('Instagram', model.instagram, Icons.camera_alt_outlined),
@@ -102,12 +102,12 @@ class CompletionChecklistPage extends StatelessWidget {
     );
   }
 
-  void _openForm(BuildContext context) {
+  void _openForm(BuildContext context, {String? section}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const CompletionFormPage(),
+      builder: (_) => CompletionFormPage(section: section),
     );
   }
 
@@ -351,7 +351,7 @@ class CompletionChecklistPage extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _openForm(context),
+                  onTap: () => _openForm(context, section: 'experiences'),
                   child: Container(
                     width: 32,
                     height: 32,
@@ -512,7 +512,7 @@ class CompletionChecklistPage extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _openForm(context),
+                  onTap: () => _openForm(context, section: 'educations'),
                   child: Container(
                     width: 32,
                     height: 32,
