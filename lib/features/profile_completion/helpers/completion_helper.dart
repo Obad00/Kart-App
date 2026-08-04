@@ -8,7 +8,10 @@ class CompletionResult {
 }
 
 class CompletionHelper {
-  static CompletionResult calculate(ProfileCompletionModel model) {
+  static CompletionResult calculate(
+    ProfileCompletionModel model, {
+    bool hasSkills = false,
+  }) {
     final missing = <String>[];
 
     void check(String key, bool ok) {
@@ -23,8 +26,9 @@ class CompletionHelper {
     check("Site web", (model.website ?? '').isNotEmpty);
     check("Expériences", model.experiences.isNotEmpty);
     check("Éducation", model.educations.isNotEmpty);
+    check("Compétences", hasSkills);
 
-    final percent = ((8 - missing.length) / 8) * 100;
+    final percent = ((9 - missing.length) / 9) * 100;
 
     return CompletionResult(percent: percent, missing: missing);
   }

@@ -19,7 +19,6 @@ import '../widgets/company_qr_card.dart';
 import '../widgets/basic_qr_card.dart';
 import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
-import '../widgets/share_bottom_sheet.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
 import '../../scan/ui/scan_page.dart';
@@ -428,15 +427,22 @@ Widget _buildQrOnly(String svg) {
         throw Exception('Impossible de générer le lien de partage. Veuillez réessayer.');
       }
 
-      debugPrint('✅ Opening share sheet with URL: $url');
+      debugPrint('✅ Opening native share sheet with URL: $url');
 
-      await ShareBottomSheet.show(
-        context,
-        shareUrl: url,
-        userName: fullName,
-        jobTitle: cardProvider.jobTitle,
-        company: cardProvider.company,
-      );
+      final buffer = StringBuffer()
+        ..write('Bonjour ! Voici ma carte de visite digitale.');
+      if (cardProvider.jobTitle != null || cardProvider.company != null) {
+        buffer.write('\n\n$fullName');
+        if (cardProvider.jobTitle != null) {
+          buffer.write(' - ${cardProvider.jobTitle}');
+        }
+        if (cardProvider.company != null) {
+          buffer.write(' @ ${cardProvider.company}');
+        }
+      }
+      buffer.write('\n\n$url');
+
+      await SharePlus.instance.share(ShareParams(text: buffer.toString()));
     } catch (e, stack) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors du partage : $e\n$stack');

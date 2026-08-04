@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+import '../model/job_feed_item.dart';
+import '../services/jobmatch_service.dart';
+
+class JobMatchProvider extends ChangeNotifier {
+  final JobMatchService service;
+
+  JobMatchProvider(this.service);
+
+  List<JobFeedItem> feed = [];
+  bool loading = false;
+  String? error;
+  JobMatchResult? lastMatch;
+
+  Future<void> loadFeed() async {
+    loading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      feed = await service.fetchFeed();
+    } catch (e) {
+      error = e.toString();
+    }
+
+    loading = false;
+    notifyListeners();
+  }
+
+  Future<void> swipe(JobFeedItem job, String action) async {
+    feed = feed.where((j) => j.id != job.id).toList();
+    notifyListeners();
+
+    try {
+      final match = await service.swipe(job.id, action);
+      if (match != null) {
+        lastMatch = match;
+        notifyListeners();
+      }
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  void dismissMatch() {
+    lastMatch = null;
+    notifyListeners();
+  }
+}

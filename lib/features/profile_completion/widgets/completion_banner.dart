@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../helpers/completion_helper.dart';
 import '../providers/profile_completion_provider.dart';
-import '../ui/completion_checklist_page.dart';
+import '../providers/candidate_skills_provider.dart';
 import '../ui/completion_form_page.dart';
 import 'package:provider/provider.dart';
 
@@ -13,13 +13,22 @@ class CompletionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProfileCompletionProvider>();
+    final skillsProvider = context.watch<CandidateSkillsProvider>();
     final model = provider.model;
-    final result = CompletionHelper.calculate(model);
+    final result = CompletionHelper.calculate(
+      model,
+      hasSkills: skillsProvider.skills.isNotEmpty,
+    );
     final colors = Theme.of(context).colorScheme;
 
     // Profil complet : afficher la carte récapitulative
     if (result.percent >= 100) {
-      return _buildCompletedCard(context, colors, model);
+      return _buildCompletedCard(
+        context,
+        colors,
+        model,
+        skillsProvider.skills.length,
+      );
     }
 
     // Profil incomplet : afficher le banner d'invitation
@@ -34,11 +43,11 @@ class CompletionBanner extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const CompletionChecklistPage(),
-          ),
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (_) => const CompletionFormPage(),
         );
       },
       child: Container(
@@ -149,7 +158,7 @@ class CompletionBanner extends StatelessWidget {
   }
 
   Widget _buildCompletedCard(
-      BuildContext context, ColorScheme colors, dynamic model) {
+      BuildContext context, ColorScheme colors, dynamic model, int skillsCount) {
     const blueColor = Color(0xFF3B82F6);
 
     // Collecter les réseaux sociaux disponibles
@@ -170,17 +179,7 @@ class CompletionBanner extends StatelessWidget {
       socials.add(_SocialItem('Site web', FontAwesomeIcons.globe, const Color(0xFF6366F1)));
     }
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const CompletionChecklistPage(),
-          ),
-        );
-      },
-      child: Container(
+    return Container(
         margin: const EdgeInsets.only(top: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -308,12 +307,16 @@ class CompletionBanner extends StatelessWidget {
               ),
             ],
 
-            // Expériences & Formations résumé
-            if (model.experiences.isNotEmpty || model.educations.isNotEmpty) ...[
+            // Expériences, Formations & Compétences résumé
+            if (model.experiences.isNotEmpty ||
+                model.educations.isNotEmpty ||
+                skillsCount > 0) ...[
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     if (model.experiences.isNotEmpty)
                       _buildBadge(
@@ -322,14 +325,19 @@ class CompletionBanner extends StatelessWidget {
                         '${model.experiences.length} exp.',
                         blueColor,
                       ),
-                    if (model.experiences.isNotEmpty && model.educations.isNotEmpty)
-                      const SizedBox(width: 8),
                     if (model.educations.isNotEmpty)
                       _buildBadge(
                         colors,
                         Icons.school_outlined,
                         '${model.educations.length} formation${model.educations.length > 1 ? 's' : ''}',
                         const Color(0xFF8B5CF6),
+                      ),
+                    if (skillsCount > 0)
+                      _buildBadge(
+                        colors,
+                        Icons.psychology_outlined,
+                        '$skillsCount compétence${skillsCount > 1 ? 's' : ''}',
+                        Colors.green,
                       ),
                   ],
                 ),
@@ -339,7 +347,6 @@ class CompletionBanner extends StatelessWidget {
             const SizedBox(height: 14),
           ],
         ),
-      ),
     );
   }
 

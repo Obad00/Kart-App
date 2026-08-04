@@ -53,6 +53,10 @@ import 'features/card_scanner/ui/scan_result_screen.dart';
 
 import 'features/profile_completion/providers/profile_completion_provider.dart';
 import 'features/profile_completion/services/profile_completion_service.dart';
+import 'features/profile_completion/providers/candidate_skills_provider.dart';
+import 'features/profile_completion/services/candidate_skills_service.dart';
+import 'features/jobmatch/providers/jobmatch_provider.dart';
+import 'features/jobmatch/services/jobmatch_service.dart';
 
 void main() {
   runApp(const KartApp());
@@ -81,6 +85,14 @@ class KartApp extends StatelessWidget {
           create: (_) => ProfileCompletionProvider(
             ProfileCompletionService(),
           )..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CandidateSkillsProvider(
+            CandidateSkillsService(),
+          )..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => JobMatchProvider(JobMatchService()),
         ),
       ],
       child: Consumer<ThemeProvider>(

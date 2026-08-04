@@ -22,13 +22,13 @@ class CardHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Trois traits a gauche - ouvre le CRM
-        _MenuLines(onTap: onLeadsTap),
-        // Menu deroulant du profil a droite
+        // Menu deroulant du profil a gauche
         _ProfileDropdownButton(
           initials: initials,
           fullName: fullName,
         ),
+        // Trois traits a droite - ouvre le CRM
+        _MenuLines(onTap: onLeadsTap),
       ],
     );
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../shared/utils/jobmatch_access.dart';
 import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
 import '../digital_card/ui/my_digital_card_page.dart';
+import '../jobmatch/ui/jobmatch_feed_page.dart';
 import '../profile/ui/profile_page.dart';
 // import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
@@ -30,9 +32,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     super.initState();
     _index = widget.initialIndex;
 
-    // Créer les contrôleurs d'animation pour chaque item
+    // Créer les contrôleurs d'animation pour chaque item (5 slots toujours
+    // alloués — le 5e, JobMatch, n'est simplement pas rendu si non-candidat).
     _scaleControllers = List.generate(
-      4,
+      5,
       (index) => AnimationController(
         duration: const Duration(milliseconds: 150),
         vsync: this,
@@ -54,12 +57,15 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  static const List<Widget> _pages = <Widget>[
-    MyDigitalCardPage(),
-    ScanPage(),
-    ContactsPage(),
-    ProfilePage(),
-  ];
+  List<Widget> _pages(bool showJobMatch) {
+    return [
+      const MyDigitalCardPage(),
+      const ScanPage(),
+      const ContactsPage(),
+      if (showJobMatch) const JobMatchFeedPage(),
+      const ProfilePage(),
+    ];
+  }
 
   void _onTap(int idx) {
     if (_index == idx) return;
@@ -92,6 +98,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       }
 
       final colors = Theme.of(context).colorScheme;
+      final showJobMatch = canAccessJobMatch(auth.user?.plan);
+      final pages = _pages(showJobMatch);
+      final safeIndex = _index.clamp(0, pages.length - 1);
 
       return Scaffold(
         backgroundColor: colors.surface,
@@ -104,16 +113,16 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
             );
           },
           child: KeyedSubtree(
-            key: ValueKey<int>(_index),
-            child: _pages[_index],
+            key: ValueKey<int>(safeIndex),
+            child: pages[safeIndex],
           ),
         ),
-        bottomNavigationBar: _buildBottomNavigation(colors),
+        bottomNavigationBar: _buildBottomNavigation(colors, showJobMatch),
       );
     });
   }
 
-  Widget _buildBottomNavigation(ColorScheme colors) {
+  Widget _buildBottomNavigation(ColorScheme colors, bool showJobMatch) {
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -157,11 +166,18 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                   label: 'Contacts',
                   index: 2,
                 ),
+                if (showJobMatch)
+                  _buildNavItem(
+                    icon: Icons.favorite_outline,
+                    activeIcon: Icons.favorite,
+                    label: 'Offres',
+                    index: 3,
+                  ),
                 _buildNavItem(
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,
                   label: 'Profil',
-                  index: 3,
+                  index: showJobMatch ? 4 : 3,
                 ),
               ],
             ),
