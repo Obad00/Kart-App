@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -527,8 +529,13 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   void _openEmailPopup(String contactEmail) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
+    // Cette page n'est jamais accessible hors de l'app (pas de route
+    // publique/deep-link) : l'utilisateur qui contacte est donc toujours
+    // connecté. On récupère directement son nom/email au lieu de les lui
+    // redemander.
+    final authUser = context.read<AuthProvider>().user;
+    final nameController = TextEditingController(text: authUser?.fullName);
+    final emailController = TextEditingController(text: authUser?.email);
     final messageController = TextEditingController();
     final selectedExampleNotifier = ValueNotifier<String?>(null);
     bool isSending = false;
@@ -543,7 +550,12 @@ class _PublicCardPageState extends State<PublicCardPage>
             final visitorEmail = emailController.text.trim();
             final content = messageController.text.trim();
 
-            if (name.isEmpty || visitorEmail.isEmpty || !visitorEmail.contains('@')) {
+            // Si l'utilisateur est connecté, son nom/email viennent de son
+            // compte (champs masqués) : rien à valider ici.
+            if (authUser == null &&
+                (name.isEmpty ||
+                    visitorEmail.isEmpty ||
+                    !visitorEmail.contains('@'))) {
               _showSnackBar(
                 title: 'Attention',
                 subtitle: 'Indiquez votre nom et une adresse email valide',
@@ -682,73 +694,77 @@ class _PublicCardPageState extends State<PublicCardPage>
                       const SizedBox(height: 24),
 
                       // Nom et email du visiteur (pour que le destinataire
-                      // puisse identifier l'expéditeur et lui répondre)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: TextField(
-                          controller: nameController,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Votre nom',
-                            hintStyle: TextStyle(
+                      // puisse identifier l'expéditeur et lui répondre) —
+                      // uniquement si l'utilisateur n'est pas connecté,
+                      // sinon ces infos viennent déjà de son compte.
+                      if (authUser == null) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.4),
+                                  .withValues(alpha: 0.1),
                             ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          child: TextField(
+                            controller: nameController,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Votre nom',
+                              hintStyle: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Votre email',
-                            hintStyle: TextStyle(
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.4),
+                                  .withValues(alpha: 0.1),
                             ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          child: TextField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Votre email',
+                              hintStyle: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                      ],
 
                       // Message Field
                       Container(
