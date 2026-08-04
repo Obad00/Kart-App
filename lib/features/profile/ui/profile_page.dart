@@ -861,7 +861,7 @@ class _ProfilePageState extends State<ProfilePage>
 
         // Version de l'app
         Text(
-          'KART v1.0.0',
+          _appVersion.isNotEmpty ? 'KART v$_appVersion' : 'KART',
           style: TextStyle(
             fontSize: 11,
             color: colors.onSurface.withValues(alpha: 0.3),

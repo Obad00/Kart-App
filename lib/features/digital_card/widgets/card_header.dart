@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../shared/utils/jobmatch_access.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class CardHeader extends StatelessWidget {
@@ -229,14 +230,19 @@ class _ProfileDropdownButton extends StatelessWidget {
   void _handleMenuSelection(BuildContext context, String value) {
     HapticFeedback.lightImpact();
 
+    // L'onglet Profil est en position 4 si l'onglet Offres (JobMatch) est
+    // visible pour ce compte (Pro), sinon en position 3.
+    final showJobMatch =
+        canAccessJobMatch(context.read<AuthProvider>().user?.plan);
+    final profileTabIndex = showJobMatch ? 4 : 3;
+
     switch (value) {
       case 'profile':
-        // Naviguer vers l'onglet profil (index 3)
         Navigator.pushNamedAndRemoveUntil(
           context,
           '/home',
           (_) => false,
-          arguments: {'tab': 3},
+          arguments: {'tab': profileTabIndex},
         );
         break;
       case 'cards':
@@ -248,7 +254,7 @@ class _ProfileDropdownButton extends StatelessWidget {
           context,
           '/home',
           (_) => false,
-          arguments: {'tab': 3},
+          arguments: {'tab': profileTabIndex},
         );
         break;
       case 'logout':
