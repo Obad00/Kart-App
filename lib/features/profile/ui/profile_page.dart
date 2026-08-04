@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,6 +35,10 @@ class _ProfilePageState extends State<ProfilePage>
   // si un second plan individuel est réintroduit.
   static const bool _planChangeEnabled = false;
 
+  bool _personalInfoExpanded = false;
+
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +61,13 @@ class _ProfilePageState extends State<ProfilePage>
     ));
 
     _animController.forward();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() => _appVersion = info.version);
   }
 
   @override
@@ -144,6 +156,11 @@ class _ProfilePageState extends State<ProfilePage>
                         companyColor: companyColor,
                         icon: Icons.person_outline,
                         title: 'Informations personnelles',
+                        collapsible: true,
+                        expanded: _personalInfoExpanded,
+                        onToggle: () => setState(
+                          () => _personalInfoExpanded = !_personalInfoExpanded,
+                        ),
                         trailing: TextButton(
                           onPressed: () => _openForm(context, section: 'basic'),
                           style: TextButton.styleFrom(
@@ -974,7 +991,7 @@ class _ProfilePageState extends State<ProfilePage>
                 title: 'Changer le mot de passe',
                 onTap: () {
                   Navigator.pop(context);
-                  // Navigation vers changement de mot de passe
+                  Navigator.pushNamed(context, '/change-password');
                 },
               ),
               const SizedBox(height: 8),
@@ -992,9 +1009,11 @@ class _ProfilePageState extends State<ProfilePage>
                 context,
                 icon: Icons.privacy_tip_outlined,
                 title: 'Confidentialité',
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navigation vers paramètres confidentialité
+                onTap: () async {
+                  final url = Uri.parse('https://kart.business/privacy');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
                 },
               ),
 
@@ -1030,10 +1049,25 @@ class _ProfilePageState extends State<ProfilePage>
 
               _buildSettingsItem(
                 context,
+                icon: Icons.travel_explore_rounded,
+                title: 'Revoir le tutoriel',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (_) => false,
+                    arguments: {'tab': 0, 'replayTour': true},
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildSettingsItem(
+                context,
                 icon: Icons.help_outline,
                 title: 'Centre d\'aide',
                 onTap: () async {
-                  final url = Uri.parse('https://kart.sn/help');
+                  final url = Uri.parse('https://kart.business/support');
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url);
                   }
@@ -1044,10 +1078,29 @@ class _ProfilePageState extends State<ProfilePage>
                 context,
                 icon: Icons.info_outline,
                 title: 'À propos de Kart',
-                subtitle: 'Version 1.0.0',
+                subtitle: _appVersion.isNotEmpty ? 'Version $_appVersion' : '',
                 onTap: () {
                   Navigator.pop(context);
-                  // Afficher infos app
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      title: const Text('KART'),
+                      content: Text(
+                        _appVersion.isNotEmpty
+                            ? 'Version $_appVersion\nVotre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.'
+                            : 'Votre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Fermer'),
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
 

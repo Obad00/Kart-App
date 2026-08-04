@@ -14,8 +14,20 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _emailCtrl = TextEditingController();
   bool _sent = false;
+  bool _emailPrefilled = false;
 
   bool _isFormValid() => _emailCtrl.text.contains('@');
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_emailPrefilled) return;
+    _emailPrefilled = true;
+    final prefillEmail = ModalRoute.of(context)?.settings.arguments as String?;
+    if (prefillEmail != null && prefillEmail.isNotEmpty) {
+      _emailCtrl.text = prefillEmail;
+    }
+  }
 
   @override
   void dispose() {

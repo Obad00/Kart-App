@@ -167,6 +167,125 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     }
   }
 
+  Future<void> _deleteSingleContact(ContactModel contact) async {
+    final provider = context.read<ContactsProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Supprimer ce contact ?'),
+        content: Text(
+          'Voulez-vous vraiment supprimer ${contact.fullname} ? Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await provider.deleteContact(contact.id);
+      if (!mounted) return;
+      selectedContacts.remove(contact.id);
+      widget.onSelectionChanged?.call(selectedContacts.length);
+      _showSnackBar(
+        title: 'Contact supprimé',
+        subtitle: '${contact.fullname} a été supprimé',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ _deleteSingleContact Exception: $e');
+      _showSnackBar(
+        title: 'Erreur',
+        subtitle: 'Une erreur est survenue lors de la suppression',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    }
+  }
+
+  Future<void> deleteSelectedContacts() async {
+    if (selectedContacts.isEmpty) {
+      _showSnackBar(
+        title: 'Aucun contact sélectionné',
+        subtitle: 'Sélectionnez au moins un contact',
+        icon: Icons.info_rounded,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    final count = selectedContacts.length;
+    final provider = context.read<ContactsProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Supprimer les contacts ?'),
+        content: Text(
+          count > 1
+              ? 'Voulez-vous vraiment supprimer ces $count contacts ? Cette action est irréversible.'
+              : 'Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await Future.wait(
+        selectedContacts.map((id) => provider.deleteContact(id)),
+      );
+
+      if (!mounted) return;
+
+      selectedContacts.clear();
+      setState(() {});
+      widget.onSelectionChanged?.call(0);
+
+      _showSnackBar(
+        title: 'Succès',
+        subtitle: count > 1
+            ? '$count contacts supprimés'
+            : 'Contact supprimé',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ deleteSelectedContacts Exception: $e');
+      _showSnackBar(
+        title: 'Erreur',
+        subtitle: 'Une erreur est survenue lors de la suppression',
+        icon: Icons.error_rounded,
+        iconColor: Colors.red,
+      );
+    }
+  }
+
   List<ContactModel> _getAllContacts(ContactsProvider provider) {
     final allContacts = <ContactModel>[];
     for (final group in provider.groups) {
@@ -1336,6 +1455,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                                         _openEmailPopup(c.email ?? '',
                                             contactId: c.id);
                                       },
+                                      onDelete: () => _deleteSingleContact(c),
                                     );
                                   },
                                 );
@@ -1426,7 +1546,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: companyColor,
-                foregroundColor: Colors.black,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
@@ -1439,13 +1559,14 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.share_rounded, size: 20),
+                  Icon(Icons.share_rounded, size: 20, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
                     'Partager ma carte',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],

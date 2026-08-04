@@ -23,6 +23,13 @@ class _ScanPageState extends State<ScanPage> {
   bool _isProcessing = false;
 
   final ScanService _service = ScanService();
+  final MobileScannerController _scannerController = MobileScannerController();
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
 
 void _showComingSoonDialog() {
   showModalBottomSheet(
@@ -176,6 +183,7 @@ void _showComingSoonDialog() {
           /// CAMERA QR
           if (_mode == ScanMode.qr)
             MobileScanner(
+              controller: _scannerController,
               onDetect: _onDetect,
             ),
 
@@ -221,10 +229,20 @@ void _showComingSoonDialog() {
                     },
                   ),
                   const Spacer(),
-                  Icon(
-                    Icons.flash_off,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+                  if (_mode == ScanMode.qr)
+                    ValueListenableBuilder<MobileScannerState>(
+                      valueListenable: _scannerController,
+                      builder: (context, state, child) {
+                        final torchOn = state.torchState == TorchState.on;
+                        return IconButton(
+                          icon: Icon(
+                            torchOn ? Icons.flash_on : Icons.flash_off,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                          onPressed: () => _scannerController.toggleTorch(),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),

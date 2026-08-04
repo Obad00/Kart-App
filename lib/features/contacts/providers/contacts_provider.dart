@@ -146,6 +146,22 @@ class ContactsProvider extends ChangeNotifier {
     }
   }
 
+  /// Supprime un contact via l'API et le retire localement des groupes.
+  Future<void> deleteContact(int contactId) async {
+    await ApiClient.dio.delete('/contacts/$contactId');
+
+    groups = groups
+        .map((group) => HighlightGroup(
+              highlight: group.highlight,
+              contacts:
+                  group.contacts.where((c) => c.id != contactId).toList(),
+            ))
+        .where((group) => group.contacts.isNotEmpty)
+        .toList();
+
+    notifyListeners();
+  }
+
   void clear() {
     groups = [];
     _query = '';

@@ -168,7 +168,9 @@ class _CompletionSectionsState extends State<CompletionSections> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.05)),
                     ),
-                  Padding(
+                  InkWell(
+                    onTap: onAddTap,
+                    child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
@@ -214,6 +216,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
                           ),
                         ),
                       ],
+                    ),
                     ),
                   ),
                 ],

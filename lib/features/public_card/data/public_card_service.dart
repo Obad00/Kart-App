@@ -49,4 +49,30 @@ class PublicCardService {
     }
     return null;
   }
+
+  /// Envoie un message au propriétaire de la carte publique [slug].
+  /// Lève une [DioException] en cas d'échec (réseau, validation, etc.).
+  Future<void> contactCardOwner({
+    required String slug,
+    required String name,
+    required String email,
+    required String message,
+  }) async {
+    final response = await _dio.post(
+      '/cards/$slug/contact',
+      data: {
+        'name': name,
+        'email': email,
+        'message': message,
+      },
+    );
+
+    if (response.statusCode != 201) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: "Erreur lors de l'envoi du message",
+      );
+    }
+  }
 }

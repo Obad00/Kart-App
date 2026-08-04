@@ -171,10 +171,8 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 24),
-            AuthPrimaryButton(
-              label: 'Ajouter des compétences',
-              expanded: false,
-              onTap: () {
+            ElevatedButton.icon(
+              onPressed: () {
                 showModalBottomSheet(
                   context: context,
                   backgroundColor: Colors.transparent,
@@ -182,6 +180,21 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                   builder: (_) => const SkillEditorSheet(),
                 );
               },
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Ajouter des compétences'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

@@ -8,7 +8,6 @@ import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../widgets/plan_card.dart';
 import '../widgets/join_company_card.dart';
-import '../../../shared/utils/plan_display_helper.dart';
 
 class PlanSelectionPage extends StatefulWidget {
   const PlanSelectionPage({super.key});
@@ -535,8 +534,8 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       if (pendingPlanSlug != null &&
                           pendingPlanSlug.isNotEmpty) ...[
                         AuthOutlineButton(
-                          label: 'Reprendre ${formatPlanName(pendingPlanSlug)}',
-                          icon: Icons.refresh_rounded,
+                          label: 'Renvoyer le mail de vérification',
+                          icon: Icons.mail_outline_rounded,
                           onTap: () => _activateFreePlan(pendingPlanSlug),
                         ),
                         const SizedBox(height: 12),
@@ -544,7 +543,14 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
                       AuthPrimaryButton(
                         label: _isJoinCompanySelected
                             ? 'Rejoindre une entreprise'
-                            : 'Continuer avec ${plans.isNotEmpty && currentPlanIndex >= 0 && currentPlanIndex < plans.length ? plans[currentPlanIndex]['name'] : 'ce plan'}',
+                            : (pendingPlanSlug != null &&
+                                    plans.isNotEmpty &&
+                                    currentPlanIndex >= 0 &&
+                                    currentPlanIndex < plans.length &&
+                                    plans[currentPlanIndex]['slug'] ==
+                                        pendingPlanSlug)
+                                ? "J'ai vérifié mon email, continuer"
+                                : 'Continuer avec ${plans.isNotEmpty && currentPlanIndex >= 0 && currentPlanIndex < plans.length ? plans[currentPlanIndex]['name'] : 'ce plan'}',
                         icon: _isJoinCompanySelected
                             ? Icons.business_rounded
                             : Icons.arrow_forward_rounded,

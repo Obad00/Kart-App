@@ -527,6 +527,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   void _openEmailPopup(String contactEmail) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
     final messageController = TextEditingController();
     final selectedExampleNotifier = ValueNotifier<String?>(null);
     bool isSending = false;
@@ -537,7 +539,19 @@ class _PublicCardPageState extends State<PublicCardPage>
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           Future<void> sendEmail() async {
+            final name = nameController.text.trim();
+            final visitorEmail = emailController.text.trim();
             final content = messageController.text.trim();
+
+            if (name.isEmpty || visitorEmail.isEmpty || !visitorEmail.contains('@')) {
+              _showSnackBar(
+                title: 'Attention',
+                subtitle: 'Indiquez votre nom et une adresse email valide',
+                icon: Icons.warning_rounded,
+                iconColor: Colors.orange,
+              );
+              return;
+            }
 
             if (content.isEmpty) {
               _showSnackBar(
@@ -552,10 +566,12 @@ class _PublicCardPageState extends State<PublicCardPage>
             setDialogState(() => isSending = true);
 
             try {
-              // await ContactsProvider().sendMessage(...)
-              
-              // Simuler l'envoi
-              await Future.delayed(const Duration(seconds: 1));
+              await _service.contactCardOwner(
+                slug: widget.slug,
+                name: name,
+                email: visitorEmail,
+                message: content,
+              );
 
               if (!dialogContext.mounted) return;
               Navigator.of(dialogContext).pop();
@@ -664,6 +680,75 @@ class _PublicCardPageState extends State<PublicCardPage>
                       ),
 
                       const SizedBox(height: 24),
+
+                      // Nom et email du visiteur (pour que le destinataire
+                      // puisse identifier l'expéditeur et lui répondre)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: nameController,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Votre nom',
+                            hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.4),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Votre email',
+                            hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.4),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
 
                       // Message Field
                       Container(

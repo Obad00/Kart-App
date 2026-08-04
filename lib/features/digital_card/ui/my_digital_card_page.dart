@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
@@ -28,10 +29,14 @@ import '../../scan/ui/scan_page.dart';
 class MyDigitalCardPage extends StatefulWidget {
 
   final bool minimal;
+  final GlobalKey? highlightBarKey;
+  final GlobalKey? createCardKey;
 
   const MyDigitalCardPage({
     super.key,
     this.minimal = false,
+    this.highlightBarKey,
+    this.createCardKey,
   });
 
   @override
@@ -50,6 +55,14 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   late final Animation<double> _qrScale;
 
   final GlobalKey _qrKey = GlobalKey();
+
+  // Repli si aucune clé externe n'est fournie (ex: mode minimal) — le
+  // Showcase se comporte alors comme un simple wrapper transparent, sans
+  // effet visuel tant que startShowCase() ne cible pas cette clé.
+  late final GlobalKey _highlightBarKeyInternal =
+      widget.highlightBarKey ?? GlobalKey();
+  late final GlobalKey _createCardKeyInternal =
+      widget.createCardKey ?? GlobalKey();
 
   @override
   void initState() {
@@ -146,11 +159,17 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
             // Highlights - remontes juste sous le header
             if (!widget.minimal)
-            const Positioned(
+            Positioned(
               top: 70,
               left: 0,
               right: 0,
-              child: HighlightBar(),
+              child: Showcase(
+                key: _highlightBarKeyInternal,
+                title: 'Highlights',
+                description:
+                    "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
+                child: const HighlightBar(),
+              ),
             ),
 
 
@@ -178,7 +197,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
                   if (state.status == CardStatus.noCard) {
                     return Center(
-                      child: NoCardCta(
+                      child: Showcase(
+                        key: _createCardKeyInternal,
+                        title: 'Créez votre carte',
+                        description:
+                            'Créez votre carte de visite digitale pour commencer à la partager.',
+                        child: NoCardCta(
                         onCreate: () async {
                           final navigator = Navigator.of(context);
                           final messenger =
@@ -244,6 +268,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                               ),
                             );
                         },
+                      ),
                       ),
                     );
                   }

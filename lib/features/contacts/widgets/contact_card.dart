@@ -9,6 +9,7 @@ class ContactCard extends StatefulWidget {
   final ContactModel contact;
   final VoidCallback onShare;
   final VoidCallback onEmailTap;
+  final VoidCallback? onDelete;
   final ValueChanged<int>? onSelect;
   final bool isSelected;
 
@@ -17,6 +18,7 @@ class ContactCard extends StatefulWidget {
     required this.contact,
     required this.onShare,
     required this.onEmailTap,
+    this.onDelete,
     this.onSelect,
     this.isSelected = false,
   });
@@ -112,7 +114,9 @@ class ContactCardState extends State<ContactCard>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Carte principale — plus de Expanded
-          GestureDetector(
+          Stack(
+            children: [
+              GestureDetector(
             onTap: widget.isSelected
                 ? () {
                     HapticFeedback.lightImpact();
@@ -260,6 +264,33 @@ class ContactCardState extends State<ContactCard>
                 ),
               ),
             ),
+          ),
+              if (widget.onDelete != null)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      widget.onDelete!();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 15,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

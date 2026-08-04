@@ -161,7 +161,10 @@ class _LoginPageState extends State<LoginPage>
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
                             onTap: () => Navigator.pushNamed(
-                                context, '/forgot-password'),
+                              context,
+                              '/forgot-password',
+                              arguments: _emailCtrl.text.trim(),
+                            ),
                             child: Text(
                               'Mot de passe oublié ?',
                               style: TextStyle(

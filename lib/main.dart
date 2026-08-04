@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'config/feature_flags.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -33,6 +34,7 @@ import 'features/auth/ui/forgot_password_page.dart';
 import 'features/auth/ui/register_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
 import 'features/auth/ui/force_change_password_page.dart';
+import 'features/auth/ui/change_password_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
 import 'features/onboarding/ui/join_company_page.dart';
@@ -101,6 +103,9 @@ class KartApp extends StatelessWidget {
             behavior: const ScrollBehavior().copyWith(scrollbars: false),
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
+              builder: (context, child) => ShowCaseWidget(
+                builder: (context) => child!,
+              ),
               theme: AppTheme.light(),
               darkTheme: AppTheme.dark(),
               themeMode: themeProvider.themeMode,
@@ -127,6 +132,7 @@ class KartApp extends StatelessWidget {
                 '/complete-profile': (_) => const CompleteProfilePage(),
                 '/force-change-password': (_) =>
                     const ForceChangePasswordPage(),
+                '/change-password': (_) => const ChangePasswordPage(),
                 '/my-company': (_) => const CompanyInfoPage(),
 
                 // Plans
@@ -165,6 +171,7 @@ class KartApp extends StatelessWidget {
 
                   return HomeShell(
                     initialIndex: args?['tab'] ?? 0,
+                    forceTourReplay: args?['replayTour'] ?? false,
                   );
                 },
               },

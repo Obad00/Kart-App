@@ -72,6 +72,25 @@ class _ContactsPageState extends State<ContactsPage> {
                     color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
+              // Bouton supprimer
+              if (selectedCount > 0)
+                FloatingActionButton.small(
+                  heroTag: 'delete_contacts',
+                  onPressed: () async {
+                    await _contactsKey.currentState
+                        ?.deleteSelectedContacts();
+                    if (mounted) {
+                      setState(() => _isSelectionMode = false);
+                    }
+                  },
+                  backgroundColor: Colors.red,
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.white, size: 20),
+                ),
+              if (selectedCount > 0) const SizedBox(width: 12),
               // Bouton exporter
               FloatingActionButton.extended(
                 heroTag: 'export_contacts',

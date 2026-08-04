@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
@@ -14,18 +16,32 @@ import '../scan/ui/scan_page.dart';
 
 class HomeShell extends StatefulWidget {
   final int initialIndex;
+  final bool forceTourReplay;
   const HomeShell({
     super.key,
     this.initialIndex = 0,
+    this.forceTourReplay = false,
   });
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
+  static const _tourSeenKey = 'has_seen_tab_tour';
+
   late int _index;
   late List<AnimationController> _scaleControllers;
   late List<Animation<double>> _scaleAnimations;
+
+  // Une clé par slot de nav (5 slots toujours alloués, comme pour
+  // _scaleControllers — le 5e, JobMatch, n'est simplement pas montré au
+  // tour si l'item n'est pas rendu pour cet utilisateur).
+  final List<GlobalKey> _navKeys = List.generate(5, (_) => GlobalKey());
+
+  // Éléments de l'onglet Carte également inclus dans le tour (visibles
+  // seulement quand cet onglet est actif, cf. _maybeStartTour).
+  final GlobalKey _highlightBarKey = GlobalKey();
+  final GlobalKey _createCardKey = GlobalKey();
 
   @override
   void initState() {
@@ -47,6 +63,48 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         CurvedAnimation(parent: controller, curve: Curves.easeInOut),
       );
     }).toList();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted) return;
+
+    if (!widget.forceTourReplay) {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_tourSeenKey) ?? false) return;
+    }
+
+    if (!mounted) return;
+
+    final showJobMatch = canAccessJobMatch(context.read<AuthProvider>().user?.plan);
+
+    final keys = <GlobalKey>[_navKeys[0]];
+
+    // Highlights et "Créer ma carte" ne sont montés que si l'onglet Carte
+    // (index 0) est bien celui affiché — c'est garanti par les deux points
+    // d'entrée de ce tour (premier lancement : initialIndex par défaut à 0 ;
+    // "Revoir le tutoriel" : navigue explicitement vers tab 0).
+    if (_index == 0) {
+      final cardProvider = context.read<CardProvider>();
+      await cardProvider.loadCardSummary();
+      if (!mounted) return;
+
+      keys.add(_highlightBarKey);
+      if (cardProvider.status == CardStatus.noCard) {
+        keys.add(_createCardKey);
+      }
+    }
+
+    keys.add(_navKeys[1]); // Scan
+    keys.add(_navKeys[2]); // Contacts
+    if (showJobMatch) keys.add(_navKeys[3]); // Offres
+    keys.add(_navKeys[showJobMatch ? 4 : 3]); // Profil
+
+    ShowCaseWidget.of(context).startShowCase(keys);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tourSeenKey, true);
   }
 
   @override
@@ -59,7 +117,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
   List<Widget> _pages(bool showJobMatch) {
     return [
-      const MyDigitalCardPage(),
+      MyDigitalCardPage(
+        highlightBarKey: _highlightBarKey,
+        createCardKey: _createCardKey,
+      ),
       const ScanPage(),
       const ContactsPage(),
       if (showJobMatch) const JobMatchFeedPage(),
@@ -152,6 +213,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                   activeIcon: Icons.credit_card,
                   label: 'Carte',
                   index: 0,
+                  tourDescription:
+                      'Votre carte de visite digitale, personnalisable et prête à partager.',
                 ),
                 _buildNavItem(
                   icon: Icons.qr_code_scanner_outlined,
@@ -159,12 +222,16 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                   label: 'Scan',
                   index: 1,
                   isSpecial: true,
+                  tourDescription:
+                      'Scannez un code QR pour échanger vos coordonnées instantanément.',
                 ),
                 _buildNavItem(
                   icon: Icons.people_outline,
                   activeIcon: Icons.people,
                   label: 'Contacts',
                   index: 2,
+                  tourDescription:
+                      'Retrouvez tous les contacts collectés au même endroit.',
                 ),
                 if (showJobMatch)
                   _buildNavItem(
@@ -172,12 +239,16 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                     activeIcon: Icons.favorite,
                     label: 'Offres',
                     index: 3,
+                    tourDescription:
+                        "Découvrez les offres d'emploi qui correspondent à votre profil.",
                   ),
                 _buildNavItem(
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,
                   label: 'Profil',
                   index: showJobMatch ? 4 : 3,
+                  tourDescription:
+                      'Gérez vos informations, votre carte et les réglages de l\'app.',
                 ),
               ],
             ),
@@ -192,6 +263,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     required IconData activeIcon,
     required String label,
     required int index,
+    required String tourDescription,
     bool isSpecial = false,
   }) {
     final selected = _index == index;
@@ -203,7 +275,12 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     final inactiveColor = colors.onSurface.withValues(alpha: 0.4);
 
     return Expanded(
-      child: GestureDetector(
+      child: Showcase(
+        key: _navKeys[index],
+        title: label,
+        description: tourDescription,
+        targetShapeBorder: const CircleBorder(),
+        child: GestureDetector(
         onTapDown: (_) => _scaleControllers[index].forward(),
         onTapUp: (_) {
           _scaleControllers[index].reverse();
@@ -274,26 +351,31 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                         ),
                 ),
                 // Label animé à côté de l'icône quand sélectionné
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  child: selected
-                      ? Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: primaryColor,
+                Flexible(
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    child: selected
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: primaryColor,
+                              ),
                             ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ),
               ],
             ),
           ),
+        ),
         ),
       ),
     );
