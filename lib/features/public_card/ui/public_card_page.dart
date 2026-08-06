@@ -1203,9 +1203,11 @@ class _PublicCardPageState extends State<PublicCardPage>
             child: OutlinedButton.icon(
               onPressed: _showHighlightPicker,
               icon: const Icon(Icons.bookmark_outline_rounded, size: 18),
-              label: const Text(
-                'Highlight',
-                style: TextStyle(
+              label: Text(
+                _currentHighlightName(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1224,6 +1226,26 @@ class _PublicCardPageState extends State<PublicCardPage>
         ],
       ],
     );
+  }
+
+  /// Nom du highlight actuellement assigné à ce contact, ou "Highlight" (le
+  /// bouton fait alors office d'invitation à en choisir un) si aucun.
+  String _currentHighlightName() {
+    final contactId = widget.contactId;
+    if (contactId == null) return 'Highlight';
+
+    // watch() pour que le libellé se mette à jour immédiatement après un
+    // changement de highlight (sans watch, le texte resterait figé jusqu'au
+    // prochain rebuild déclenché par autre chose).
+    final groups = context.watch<ContactsProvider>().groups;
+    for (final group in groups) {
+      for (final c in group.contacts) {
+        if (c.id == contactId && c.highlightId != null) {
+          return group.highlight.name;
+        }
+      }
+    }
+    return 'Highlight';
   }
 
   Widget _buildSocialNetworks(List<Map<String, dynamic>> socialProfiles) {
