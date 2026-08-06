@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/api_error.dart';
 import '../../../shared/services/card_service.dart';
 
 import 'package:dio/dio.dart';
@@ -214,7 +215,10 @@ class CardProvider extends ChangeNotifier {
       final formData = FormData.fromMap({
         '_method': 'PUT',
         if (accentColorHex != null) 'accent_color': accentColorHex,
-        if (removeLogo) 'remove_logo': true,
+        // Laravel valide 'remove_logo' avec la règle stricte 'boolean', qui
+        // n'accepte que 1/0/true/false/"1"/"0" — pas la chaîne "true" que
+        // Dio produit si on passe un bool Dart brut dans FormData.fromMap.
+        if (removeLogo) 'remove_logo': '1',
       });
 
       if (localLogoPath != null && !localLogoPath.startsWith('http')) {
@@ -237,8 +241,9 @@ class CardProvider extends ChangeNotifier {
       );
 
       await loadCardSummary();
-    } on DioException catch (_) {
-      throw Exception('Erreur lors de la personnalisation de la carte');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e,
+          fallback: 'Erreur lors de la personnalisation de la carte'));
     }
   }
 

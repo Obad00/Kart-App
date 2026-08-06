@@ -1640,7 +1640,9 @@ class _BrandingEditorState extends State<_BrandingEditor> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+          ),
         );
       }
     }

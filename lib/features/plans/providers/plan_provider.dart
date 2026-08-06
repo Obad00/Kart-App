@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/network/api_error.dart';
 import '../services/plan_service.dart';
 
 class PlanProvider extends ChangeNotifier {
@@ -43,7 +44,8 @@ class PlanProvider extends ChangeNotifier {
     try {
       _plans = await _service.fetchPlans();
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible de charger les plans. Réessayez.');
     }
 
     loading = false;
@@ -61,7 +63,8 @@ class PlanProvider extends ChangeNotifier {
       notifyListeners();
       return currentSubscriptionId;
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible de souscrire à ce plan. Réessayez.');
       loading = false;
       notifyListeners();
       return null;
@@ -79,7 +82,8 @@ class PlanProvider extends ChangeNotifier {
       notifyListeners();
       return result;
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible d\'activer ce plan. Réessayez.');
       loading = false;
       notifyListeners();
       return null;

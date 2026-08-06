@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_error.dart';
 import '../model/job_feed_item.dart';
 import '../services/jobmatch_service.dart';
 
@@ -20,7 +21,8 @@ class JobMatchProvider extends ChangeNotifier {
     try {
       feed = await service.fetchFeed();
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible de charger les offres. Réessayez.');
     }
 
     loading = false;
@@ -38,7 +40,8 @@ class JobMatchProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible d\'enregistrer votre choix. Réessayez.');
       notifyListeners();
     }
   }

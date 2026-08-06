@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_error.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
 
@@ -132,16 +133,8 @@ class AuthProvider extends ChangeNotifier {
       // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
       if (e.response?.statusCode == 401) {
         error = 'Email ou mot de passe incorrect';
-      } else if (e.response?.statusCode == 422) {
-        // Erreur de validation
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          error = data['message'];
-        } else {
-          error = 'Données invalides';
-        }
       } else {
-        error = 'Erreur serveur, réessayez';
+        error = getErrorMessage(e, fallback: 'Erreur serveur, réessayez');
       }
     } catch (e) {
       // debugPrint('❌ Unknown error: $e');
@@ -180,29 +173,7 @@ class AuthProvider extends ChangeNotifier {
     } on DioException catch (e) {
       debugPrint(
           '❌ Register DioException: ${e.response?.statusCode} - ${e.response?.data}');
-      if (e.response?.statusCode == 422) {
-        // Erreur de validation
-        final data = e.response?.data;
-        if (data is Map && data['errors'] != null) {
-          // Laravel renvoie les erreurs de validation dans 'errors'
-          final errors = data['errors'] as Map;
-          final firstError = errors.values.first;
-          if (firstError is List && firstError.isNotEmpty) {
-            error = firstError.first.toString();
-          } else {
-            error = data['message'] ?? 'Données invalides';
-          }
-        } else if (data is Map && data['message'] != null) {
-          error = data['message'];
-        } else {
-          error = 'Données invalides';
-        }
-      } else if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.connectionTimeout) {
-        error = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
-      } else {
-        error = 'Erreur serveur: ${e.response?.statusCode ?? "inconnue"}';
-      }
+      error = getErrorMessage(e, fallback: 'Erreur serveur, réessayez');
     } catch (e) {
       debugPrint('❌ Register unknown error: $e');
       error = 'Erreur inattendue: $e';

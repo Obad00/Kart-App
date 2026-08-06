@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/network/api_error.dart';
 import '../../../shared/services/card_service.dart';
 
 /// Modele representant un lead (personne ayant vu/scanne la carte)
@@ -195,7 +196,8 @@ class LeadsProvider extends ChangeNotifier {
 
       _total = response['total'] as int? ?? _leads.length;
     } catch (e) {
-      _error = e.toString();
+      _error = getErrorMessage(e,
+          fallback: 'Impossible de charger les contacts intéressés. Réessayez.');
     } finally {
       _isLoading = false;
       notifyListeners();

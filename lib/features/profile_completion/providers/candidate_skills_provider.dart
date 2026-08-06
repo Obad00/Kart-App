@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_error.dart';
 import '../model/skill_model.dart';
 import '../services/candidate_skills_service.dart';
 
@@ -19,7 +20,8 @@ class CandidateSkillsProvider extends ChangeNotifier {
     try {
       skills = await service.fetch();
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible de charger les compétences. Réessayez.');
     }
 
     loading = false;
@@ -37,7 +39,8 @@ class CandidateSkillsProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      error = e.toString();
+      error = getErrorMessage(e,
+          fallback: 'Impossible d\'enregistrer vos compétences. Réessayez.');
       loading = false;
       notifyListeners();
       return false;
