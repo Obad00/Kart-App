@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/app_update_service.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
@@ -64,7 +66,60 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       );
     }).toList();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeStartTour();
+      _maybeCheckForUpdate();
+    });
+  }
+
+  /// Rappel doux (ignorable) si une version plus récente de l'app est
+  /// disponible sur le store. Ne s'affiche pas si le tour guidé est sur le
+  /// point de démarrer (première ouverture), pour éviter de superposer
+  /// deux overlays — il sera simplement proposé au lancement suivant.
+  Future<void> _maybeCheckForUpdate() async {
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final tourAlreadySeen = prefs.getBool(_tourSeenKey) ?? false;
+    if (!tourAlreadySeen && !widget.forceTourReplay) return;
+
+    final info = await AppUpdateService.checkForUpdate();
+    if (info == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Mise à jour disponible'),
+        content: Text(
+          'Une nouvelle version de KART (${info.latestVersion}) est disponible. '
+          'Mets à jour pour profiter des dernières améliorations.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final uri = Uri.parse(info.storeUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Mettre à jour'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _maybeStartTour() async {
