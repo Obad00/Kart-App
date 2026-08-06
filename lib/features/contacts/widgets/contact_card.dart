@@ -66,7 +66,8 @@ class ContactCardState extends State<ContactCard>
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => PublicCardPage(slug: slug),
+        pageBuilder: (_, __, ___) =>
+            PublicCardPage(slug: slug, contactId: widget.contact.id),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(
             parent: animation,

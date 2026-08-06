@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../contacts/providers/contacts_provider.dart';
+import '../../contacts/providers/highlight_provider.dart';
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
 
-  const PublicCardPage({super.key, required this.slug});
+  /// Renseigné uniquement quand cette page affiche un contact déjà
+  /// enregistré (ouverte depuis la liste des contacts) — permet de proposer
+  /// des actions propres à un contact (ex: le déplacer vers un highlight).
+  /// Reste `null` pour une carte publique consultée par un visiteur.
+  final int? contactId;
+
+  const PublicCardPage({super.key, required this.slug, this.contactId});
 
   @override
   State<PublicCardPage> createState() => _PublicCardPageState();
@@ -181,352 +188,6 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  Future<void> _shareContact({
-    required String slug,
-    required String message,
-    required String ownerName,
-    required void Function(bool value) setLoading,
-  }) async {
-    if (slug.isEmpty) {
-      _showSnackBar(
-        title: 'Carte introuvable',
-        subtitle: 'Cette carte n\'a pas de slug associé.',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // await ContactsProvider().shareContact(slug: slug, message: message.trim().isNotEmpty ? message.trim() : null);
-      
-      // Simuler l'appel API (remplacer par votre vraie logique)
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-      
-      _showSnackBar(
-        title: 'Envoyé',
-        subtitle: 'Votre carte a été envoyée à $ownerName',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
-      );
-    } on DioException catch (e) {
-      String errorMessage = 'Échec de l\'envoi';
-
-      if (e.response?.statusCode == 500) {
-        errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
-      } else if (e.response?.statusCode == 422) {
-        errorMessage = 'Données invalides.';
-      } else if (e.response?.statusCode == 404) {
-        errorMessage = 'Carte introuvable';
-      } else if (e.response?.data is Map) {
-        final message = e.response?.data['message'];
-        if (message != null) {
-          errorMessage = message.toString();
-        }
-      }
-
-      _showSnackBar(
-        title: 'Erreur d\'envoi',
-        subtitle: errorMessage,
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
-      );
-    } catch (e) {
-      _showSnackBar(
-        title: 'Erreur',
-        subtitle: 'Une erreur inattendue s\'est produite',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
-      );
-    } finally {
-      if (mounted) setLoading(false);
-    }
-  }
-
-  void _openShareContactPopup() {
-    final ownerName = card?['fullname']?.toString() ?? 'le propriétaire';
-    final email = _getFieldValue('email');
-    final phone = _getFieldValue('phone').isNotEmpty
-        ? _getFieldValue('phone')
-        : _getFieldValue('telephone').isNotEmpty
-            ? _getFieldValue('telephone')
-            : _getFieldValue('mobile');
-    
-    final messageController = TextEditingController();
-    bool isLoading = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 500),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                _accentColor.withValues(alpha: 0.2),
-                                _accentColor.withValues(alpha: 0.1),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            Icons.send_rounded,
-                            color: _accentColor,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Relancer le contact',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Renvoyer votre carte',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Contact Info
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoRow(Icons.person_rounded, 'Nom', ownerName),
-                          if (email.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            _buildInfoRow(Icons.email_rounded, 'Email', email),
-                          ],
-                          if (phone.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            _buildInfoRow(Icons.phone_rounded, 'Téléphone', phone),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Optional message
-                    Text(
-                      "Message personnalisé (optionnel)",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: TextField(
-                        controller: messageController,
-                        maxLines: 3,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.5,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: "Ajoutez un message personnel...",
-                          hintStyle: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.4),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => Navigator.of(dialogContext).pop(),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              'Annuler',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: isLoading
-                                ? null
-                                : () async {
-                                    await _shareContact(
-                                      slug: widget.slug,
-                                      message: messageController.text.trim(),
-                                      ownerName: ownerName,
-                                      setLoading: (value) =>
-                                          setDialogState(() => isLoading = value),
-                                    );
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _accentColor,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  )
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.send_rounded,
-                                          size: 18, color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Envoyer',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   void _openEmailPopup(String contactEmail) {
     // Cette page n'est jamais accessible hors de l'app (pas de route
@@ -1001,45 +662,6 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon,
-            size: 18, color: _accentColor.withValues(alpha: 0.7)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   String _getInitials(String name) {
     List<String> parts = name.trim().split(' ');
     if (parts.length >= 2) {
@@ -1420,34 +1042,6 @@ class _PublicCardPageState extends State<PublicCardPage>
                             ),
                         ],
                       ),
-                      // ✅ NOUVEAU BOUTON RELANCER AJOUTÉ ICI
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _openShareContactPopup,
-                          icon: const Icon(Icons.send_outlined, size: 18),
-                          label: const Text(
-                            'Relancer',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: isDark ? Colors.white : const Color(0xFF111827),
-                            side: BorderSide(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE5E7EB),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ],
                 ],
@@ -1603,6 +1197,31 @@ class _PublicCardPageState extends State<PublicCardPage>
             ),
           ),
         ),
+        if (widget.contactId != null) ...[
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _showHighlightPicker,
+              icon: const Icon(Icons.bookmark_outline_rounded, size: 18),
+              label: const Text(
+                'Highlight',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFF59E0B),
+                side: BorderSide(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1664,6 +1283,127 @@ class _PublicCardPageState extends State<PublicCardPage>
         ),
       ],
     );
+  }
+
+  /// Ouvre un sélecteur permettant de déplacer ce contact vers un highlight
+  /// (ou de l'en retirer). Uniquement disponible quand `widget.contactId`
+  /// est renseigné (page ouverte depuis la liste des contacts).
+  void _showHighlightPicker() {
+    final contactId = widget.contactId;
+    if (contactId == null) return;
+
+    HapticFeedback.lightImpact();
+    final highlightProvider = context.read<HighlightProvider>();
+    final contactsProvider = context.read<ContactsProvider>();
+    final colors = Theme.of(context).colorScheme;
+
+    // Highlight actuellement assigné à ce contact (pour cocher l'élément
+    // correspondant dans la liste), retrouvé parmi les groupes déjà chargés.
+    int? currentHighlightId;
+    for (final group in contactsProvider.groups) {
+      for (final c in group.contacts) {
+        if (c.id == contactId) {
+          currentHighlightId = c.highlightId;
+          break;
+        }
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Déplacer vers un highlight',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (highlightProvider.highlights.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Aucun highlight créé pour le moment.',
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.remove_circle_outline_rounded,
+                      color: colors.onSurface.withValues(alpha: 0.5)),
+                  title: const Text('Sans highlight'),
+                  trailing: currentHighlightId == null
+                      ? Icon(Icons.check_rounded, color: colors.primary)
+                      : null,
+                  onTap: () =>
+                      _assignHighlight(sheetContext, contactsProvider, contactId, null),
+                ),
+                for (final h in highlightProvider.highlights)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.bookmark_rounded,
+                        color: Color(0xFFF59E0B)),
+                    title: Text(h.name),
+                    trailing: currentHighlightId == h.id
+                        ? Icon(Icons.check_rounded, color: colors.primary)
+                        : null,
+                    onTap: () => _assignHighlight(
+                        sheetContext, contactsProvider, contactId, h.id),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _assignHighlight(
+    BuildContext sheetContext,
+    ContactsProvider contactsProvider,
+    int contactId,
+    int? highlightId,
+  ) async {
+    final navigator = Navigator.of(sheetContext);
+    final scaffoldMessenger = ScaffoldMessenger.of(sheetContext);
+    try {
+      await contactsProvider.moveContactToHighlight(contactId, highlightId);
+      if (navigator.mounted) navigator.pop();
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors du déplacement du contact'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showFollowOptions(List<Map<String, dynamic>> profiles) {
