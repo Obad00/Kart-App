@@ -103,6 +103,10 @@ class _HighlightItem extends StatelessWidget {
         : colors.onSurface.withValues(alpha: 0.2);
 
     return GestureDetector(
+onLongPress: () {
+  _openCreateHighlightModal(context, accentColor, isCompanyUser,
+      existing: highlight);
+},
 onTap: () async {
   final bool isCurrentlyActive = highlight.isActive;
 
@@ -311,8 +315,9 @@ class _AddHighlightButton extends StatelessWidget {
 }
 
 void _openCreateHighlightModal(
-    BuildContext context, Color accentColor, bool isCompanyUser) {
-  final controller = TextEditingController();
+    BuildContext context, Color accentColor, bool isCompanyUser,
+    {HighlightModel? existing}) {
+  final controller = TextEditingController(text: existing?.name ?? '');
 
   showModalBottomSheet(
     context: context,
@@ -327,6 +332,7 @@ void _openCreateHighlightModal(
         accentColor: accentColor,
         isCompanyUser: isCompanyUser,
         parentContext: context,
+        existing: existing,
       );
     },
   );
@@ -337,12 +343,14 @@ class _CreateHighlightSheet extends StatefulWidget {
   final Color accentColor;
   final bool isCompanyUser;
   final BuildContext parentContext;
+  final HighlightModel? existing;
 
   const _CreateHighlightSheet({
     required this.controller,
     required this.accentColor,
     required this.isCompanyUser,
     required this.parentContext,
+    this.existing,
   });
 
   @override
@@ -363,7 +371,11 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
     final scaffoldMessenger = ScaffoldMessenger.of(widget.parentContext);
 
     try {
-      await provider.createHighlight(name);
+      if (widget.existing != null) {
+        await provider.updateHighlight(widget.existing!, name);
+      } else {
+        await provider.createHighlight(name);
+      }
       if (navigator.mounted) {
         navigator.pop();
       }
@@ -429,7 +441,9 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
                     ),
                   ),
                 Text(
-                  'Nouveau highlight',
+                  widget.existing != null
+                      ? 'Modifier le highlight'
+                      : 'Nouveau highlight',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -508,9 +522,9 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Créer',
-                        style: TextStyle(
+                    : Text(
+                        widget.existing != null ? 'Enregistrer' : 'Créer',
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),

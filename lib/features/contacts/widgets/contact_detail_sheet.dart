@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/contact_model.dart';
+import '../providers/contacts_provider.dart';
+import '../providers/highlight_provider.dart';
 import '../../public_card/ui/public_card_page.dart';
 
 class ContactDetailSheet extends StatelessWidget {
@@ -244,6 +247,14 @@ class ContactDetailSheet extends StatelessWidget {
                             onShare();
                           },
                         ),
+                        const SizedBox(width: 16),
+                        _buildQuickAction(
+                          context,
+                          icon: Icons.bookmark_rounded,
+                          label: 'Highlight',
+                          color: const Color(0xFFF59E0B),
+                          onTap: () => _showHighlightPicker(context),
+                        ),
                       ],
                     ),
                   ],
@@ -311,6 +322,110 @@ class ContactDetailSheet extends StatelessWidget {
       ),
       )
     );
+  }
+
+  /// Ouvre un sélecteur permettant de déplacer ce contact vers un highlight
+  /// (ou de l'en retirer).
+  void _showHighlightPicker(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final highlightProvider = context.read<HighlightProvider>();
+    final contactsProvider = context.read<ContactsProvider>();
+    final colors = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Déplacer vers un highlight',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (highlightProvider.highlights.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Aucun highlight créé pour le moment.',
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.remove_circle_outline_rounded,
+                      color: colors.onSurface.withValues(alpha: 0.5)),
+                  title: const Text('Sans highlight'),
+                  trailing: contact.highlightId == null
+                      ? Icon(Icons.check_rounded, color: colors.primary)
+                      : null,
+                  onTap: () => _assignHighlight(
+                      sheetContext, contactsProvider, null),
+                ),
+                for (final h in highlightProvider.highlights)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.bookmark_rounded,
+                        color: Color(0xFFF59E0B)),
+                    title: Text(h.name),
+                    trailing: contact.highlightId == h.id
+                        ? Icon(Icons.check_rounded, color: colors.primary)
+                        : null,
+                    onTap: () => _assignHighlight(
+                        sheetContext, contactsProvider, h.id),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _assignHighlight(
+    BuildContext sheetContext,
+    ContactsProvider contactsProvider,
+    int? highlightId,
+  ) async {
+    final navigator = Navigator.of(sheetContext);
+    final scaffoldMessenger = ScaffoldMessenger.of(sheetContext);
+    try {
+      await contactsProvider.moveContactToHighlight(contact.id, highlightId);
+      if (navigator.mounted) navigator.pop();
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors du déplacement du contact'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   bool _hasAnySocial() {

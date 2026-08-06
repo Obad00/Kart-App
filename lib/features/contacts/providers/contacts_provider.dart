@@ -162,6 +162,17 @@ class ContactsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Déplace un contact vers un highlight (ou le retire du highlight
+  /// courant si [highlightId] est null), puis recharge les groupes depuis
+  /// le serveur (plus simple/fiable que de reconstruire les groupes en local).
+  Future<void> moveContactToHighlight(int contactId, int? highlightId) async {
+    await ApiClient.dio.patch(
+      '/contacts/$contactId/highlight',
+      data: {'highlight_id': highlightId},
+    );
+    await fetchGroupedContacts();
+  }
+
   void clear() {
     groups = [];
     _query = '';

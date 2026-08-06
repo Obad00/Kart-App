@@ -293,6 +293,29 @@ static Future<Map<String, dynamic>> createHighlight(String name) async {
   }
 }
 
+static Future<Map<String, dynamic>> updateHighlight(
+    int highlightId, String name) async {
+  try {
+    final response = await ApiClient.dio.put(
+      '$_highlightEndpoint/$highlightId',
+      data: {'name': name},
+    );
+
+    if (response.data is Map<String, dynamic>) {
+      return response.data;
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      error: 'Erreur modification highlight',
+      type: DioExceptionType.unknown,
+    );
+  } on DioException catch (e) {
+    _handleError(e);
+    rethrow;
+  }
+}
+
 static Future<void> activateHighlight(int highlightId) async {
   try {
     await ApiClient.dio.post(

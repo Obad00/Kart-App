@@ -1245,7 +1245,12 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
             // Content
             Expanded(
-              child: Builder(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (selectedContacts.isNotEmpty) clearSelection();
+                },
+                child: Builder(
                 builder: (context) {
                   if (provider.isLoading) {
                     return Center(
@@ -1467,6 +1472,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                     },
                   );
                 },
+                ),
               ),
             ),
           ],
