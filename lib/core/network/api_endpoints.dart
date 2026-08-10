@@ -48,5 +48,6 @@ class ApiEndpoints {
   static String jobMatchSwipe(int jobId) => '/candidate/jobmatch/jobs/$jobId/swipe';
   static const jobMatchMatches = '/candidate/jobmatch/matches';
   static const jobMatchLiked = '/candidate/jobmatch/liked';
+  static const jobMatchRejected = '/candidate/jobmatch/rejected';
   static const jobMatchSummary = '/candidate/jobmatch/summary';
 }
