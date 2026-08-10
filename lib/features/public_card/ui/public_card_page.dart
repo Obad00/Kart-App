@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
@@ -214,7 +215,15 @@ class _PublicCardPageState extends State<PublicCardPage>
     final experiences = _getExperiences();
     final educations = _getEducations();
     final socialProfiles = _socialProfiles();
-    final portraitUrl = card?['avatar_url']?.toString() ?? '';
+    // Le backend renvoie 'avatar' (chemin relatif, ex. "avatars/foo.jpg"),
+    // pas 'avatar_url' — il faut le préfixer avec le domaine de stockage,
+    // sauf s'il s'agit déjà d'une URL complète (ex. photo Google OAuth).
+    final rawAvatar = card?['avatar']?.toString() ?? '';
+    final portraitUrl = rawAvatar.isEmpty
+        ? ''
+        : (rawAvatar.startsWith('http')
+            ? rawAvatar
+            : '${ApiEndpoints.storageUrl}/$rawAvatar');
     final fullName = card?['fullname']?.toString() ?? '';
     final jobTitle = card?['job_title']?.toString() ?? '';
     final company = card?['company']?.toString() ?? '';
