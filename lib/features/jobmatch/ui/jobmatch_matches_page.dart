@@ -15,6 +15,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
   final _service = JobMatchService();
   List<JobMatchResult> _matches = [];
   List<LikedJobItem> _liked = [];
+  List<LikedJobItem> _rejected = [];
   JobMatchSummary? _summary;
   bool _loading = true;
 
@@ -30,15 +31,33 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
       final results = await Future.wait([
         _service.fetchMatches(),
         _service.fetchLiked(),
+        _service.fetchRejected(),
         _service.fetchSummary(),
       ]);
       _matches = results[0] as List<JobMatchResult>;
       _liked = results[1] as List<LikedJobItem>;
-      _summary = results[2] as JobMatchSummary;
+      _rejected = results[2] as List<LikedJobItem>;
+      _summary = results[3] as JobMatchSummary;
     } catch (_) {
       // silencieux : listes vides affichées par défaut
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _reconsider(LikedJobItem job) async {
+    try {
+      await _service.unswipe(job.jobId);
+      if (!mounted) return;
+      setState(() => _rejected.removeWhere((r) => r.jobId == job.jobId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${job.jobTitle} est de retour dans votre fil')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur, réessayez')),
+      );
+    }
   }
 
   @override
@@ -46,7 +65,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
     final colors = Theme.of(context).colorScheme;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
@@ -58,6 +77,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
             tabs: [
               Tab(text: 'Matchs'),
               Tab(text: 'Aimées'),
+              Tab(text: 'Passées'),
             ],
           ),
         ),
@@ -71,6 +91,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
                       children: [
                         _buildMatchesList(colors),
                         _buildLikedList(colors),
+                        _buildRejectedList(colors),
                       ],
                     ),
                   ),
@@ -172,6 +193,31 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
     );
   }
 
+  Widget _buildRejectedList(ColorScheme colors) {
+    if (_rejected.isEmpty) {
+      return _buildEmpty(colors, 'Aucune offre passée pour l\'instant');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: _rejected.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final job = _rejected[index];
+        return _buildRow(
+          colors,
+          icon: Icons.close_rounded,
+          iconColor: colors.onSurface.withValues(alpha: 0.4),
+          title: job.jobTitle,
+          subtitle: job.companyName,
+          trailingWidget: TextButton(
+            onPressed: () => _reconsider(job),
+            child: const Text('Reconsidérer'),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildRow(
     ColorScheme colors, {
     required IconData icon,
@@ -179,6 +225,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
     required String title,
     required String subtitle,
     String? trailing,
+    Widget? trailingWidget,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -208,7 +255,9 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
               ],
             ),
           ),
-          if (trailing != null)
+          if (trailingWidget != null)
+            trailingWidget
+          else if (trailing != null)
             Text(trailing, style: const TextStyle(fontWeight: FontWeight.w800, color: _accentBlue)),
         ],
       ),

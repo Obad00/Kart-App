@@ -37,4 +37,15 @@ class JobMatchService {
     final res = await dio.get(ApiEndpoints.jobMatchSummary);
     return JobMatchSummary.fromJson(res.data);
   }
+
+  Future<List<LikedJobItem>> fetchRejected() async {
+    final res = await dio.get(ApiEndpoints.jobMatchRejected);
+    final list = res.data['rejected'] as List;
+    return list.map((e) => LikedJobItem.fromJson(e)).toList();
+  }
+
+  /// Annule un rejet — l'offre réapparaît dans le feed principal.
+  Future<void> unswipe(int jobId) async {
+    await dio.delete(ApiEndpoints.jobMatchSwipe(jobId));
+  }
 }
