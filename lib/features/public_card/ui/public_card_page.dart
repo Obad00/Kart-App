@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 
@@ -128,540 +128,6 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  // =============================
-  // WORKFLOWS RELANCE & EMAIL
-  // =============================
-
-  void _showSnackBar({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        backgroundColor: Colors.white,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(16),
-        elevation: 8,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-
-  void _openEmailPopup(String contactEmail) {
-    // Cette page n'est jamais accessible hors de l'app (pas de route
-    // publique/deep-link) : l'utilisateur qui contacte est donc toujours
-    // connecté. On récupère directement son nom/email au lieu de les lui
-    // redemander.
-    final authUser = context.read<AuthProvider>().user;
-    final nameController = TextEditingController(text: authUser?.fullName);
-    final emailController = TextEditingController(text: authUser?.email);
-    final messageController = TextEditingController();
-    final selectedExampleNotifier = ValueNotifier<String?>(null);
-    bool isSending = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          Future<void> sendEmail() async {
-            final name = nameController.text.trim();
-            final visitorEmail = emailController.text.trim();
-            final content = messageController.text.trim();
-
-            // Si l'utilisateur est connecté, son nom/email viennent de son
-            // compte (champs masqués) : rien à valider ici.
-            if (authUser == null &&
-                (name.isEmpty ||
-                    visitorEmail.isEmpty ||
-                    !visitorEmail.contains('@'))) {
-              _showSnackBar(
-                title: 'Attention',
-                subtitle: 'Indiquez votre nom et une adresse email valide',
-                icon: Icons.warning_rounded,
-                iconColor: Colors.orange,
-              );
-              return;
-            }
-
-            if (content.isEmpty) {
-              _showSnackBar(
-                title: 'Attention',
-                subtitle: 'Le message ne peut pas être vide',
-                icon: Icons.warning_rounded,
-                iconColor: Colors.orange,
-              );
-              return;
-            }
-
-            setDialogState(() => isSending = true);
-
-            try {
-              await _service.contactCardOwner(
-                slug: widget.slug,
-                name: name,
-                email: visitorEmail,
-                message: content,
-              );
-
-              if (!dialogContext.mounted) return;
-              Navigator.of(dialogContext).pop();
-
-              if (!mounted) return;
-              _showSnackBar(
-                title: 'Message envoyé',
-                subtitle: 'Votre message a été envoyé avec succès',
-                icon: Icons.check_circle_rounded,
-                iconColor: Colors.green,
-              );
-
-              messageController.clear();
-            } catch (e) {
-              if (!mounted) return;
-              _showSnackBar(
-                title: 'Erreur',
-                subtitle: 'Une erreur est survenue lors de l\'envoi',
-                icon: Icons.error_rounded,
-                iconColor: Colors.red,
-              );
-            } finally {
-              if (dialogContext.mounted) {
-                setDialogState(() => isSending = false);
-              }
-            }
-          }
-
-          return Dialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24)),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 500),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(28),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  _accentColor.withValues(alpha: 0.2),
-                                  _accentColor.withValues(alpha: 0.1),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(
-                              Icons.email_outlined,
-                              color: _accentColor,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Envoyer un message',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: isSending
-                                ? null
-                                : () => Navigator.of(dialogContext).pop(),
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Nom et email du visiteur (pour que le destinataire
-                      // puisse identifier l'expéditeur et lui répondre) —
-                      // uniquement si l'utilisateur n'est pas connecté,
-                      // sinon ces infos viennent déjà de son compte.
-                      if (authUser == null) ...[
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.1),
-                            ),
-                          ),
-                          child: TextField(
-                            controller: nameController,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Votre nom',
-                              hintStyle: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.4),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.all(16),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.1),
-                            ),
-                          ),
-                          child: TextField(
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Votre email',
-                              hintStyle: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.4),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.all(16),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-                      ],
-
-                      // Message Field
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: TextField(
-                          controller: messageController,
-                          maxLines: 5,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            height: 1.5,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: "Écrivez votre message...",
-                            hintStyle: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.4),
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Examples Section
-                      Text(
-                        "Suggestions",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      ...exampleMessages.map((msg) {
-                        return ValueListenableBuilder<String?>(
-                          valueListenable: selectedExampleNotifier,
-                          builder: (context, selected, _) {
-                            final isSelected = selected == msg;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    selectedExampleNotifier.value = msg;
-                                    messageController.text = msg;
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? _accentColor
-                                              .withValues(alpha: 0.1)
-                                          : Theme.of(context).colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? _accentColor
-                                                .withValues(alpha: 0.3)
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.08),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? _accentColor
-                                                  : Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withValues(alpha: 0.3),
-                                              width: 2,
-                                            ),
-                                          ),
-                                          child: isSelected
-                                              ? Center(
-                                                  child: Container(
-                                                    width: 10,
-                                                    height: 10,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: _accentColor,
-                                                    ),
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            msg,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.w400,
-                                              color: isSelected
-                                                  ? _accentColor
-                                                  : Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }),
-
-                      const SizedBox(height: 24),
-
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: isSending
-                                  ? null
-                                  : () => Navigator.of(dialogContext).pop(),
-                              style: TextButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                'Annuler',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: isSending ? null : sendEmail,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _accentColor,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: isSending
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                      ),
-                                    )
-                                  : const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.send_rounded,
-                                            size: 18, color: Colors.white),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Envoyer',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   String _getInitials(String name) {
     List<String> parts = name.trim().split(' ');
     if (parts.length >= 2) {
@@ -749,7 +215,15 @@ class _PublicCardPageState extends State<PublicCardPage>
     final experiences = _getExperiences();
     final educations = _getEducations();
     final socialProfiles = _socialProfiles();
-    final portraitUrl = card?['avatar_url']?.toString() ?? '';
+    // Le backend renvoie 'avatar' (chemin relatif, ex. "avatars/foo.jpg"),
+    // pas 'avatar_url' — il faut le préfixer avec le domaine de stockage,
+    // sauf s'il s'agit déjà d'une URL complète (ex. photo Google OAuth).
+    final rawAvatar = card?['avatar']?.toString() ?? '';
+    final portraitUrl = rawAvatar.isEmpty
+        ? ''
+        : (rawAvatar.startsWith('http')
+            ? rawAvatar
+            : '${ApiEndpoints.storageUrl}/$rawAvatar');
     final fullName = card?['fullname']?.toString() ?? '';
     final jobTitle = card?['job_title']?.toString() ?? '';
     final company = card?['company']?.toString() ?? '';
@@ -820,9 +294,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                           firstName: firstName,
                         ),
                         const SizedBox(height: 18),
-                        _buildSecondaryActions(
-                          socialProfiles: socialProfiles,
-                        ),
+                        _buildSecondaryActions(),
                         if (socialProfiles.isNotEmpty) ...[
                           const SizedBox(height: 18),
                           _buildSocialNetworks(socialProfiles),
@@ -1119,7 +591,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         ElevatedButton.icon(
           onPressed: () {
             if (email.isNotEmpty) {
-              _openEmailPopup(email); // ✅ Ouvre la popup d'envoi de message
+              _openEmail(email); // Ouvre directement l'app mail, comme l'icône email
             } else {
               _showContactForm();
             }
@@ -1145,9 +617,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  Widget _buildSecondaryActions({
-    required List<Map<String, dynamic>> socialProfiles,
-  }) {
+  Widget _buildSecondaryActions() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor =
         isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
@@ -1172,27 +642,6 @@ class _PublicCardPageState extends State<PublicCardPage>
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => _showFollowOptions(socialProfiles),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: foregroundColor,
-              side: BorderSide(color: borderColor),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text(
-              'Follow',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1339,7 +788,13 @@ class _PublicCardPageState extends State<PublicCardPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
-        return SafeArea(
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
@@ -1402,6 +857,7 @@ class _PublicCardPageState extends State<PublicCardPage>
               ],
             ),
           ),
+          ),
         );
       },
     );
@@ -1426,120 +882,6 @@ class _PublicCardPageState extends State<PublicCardPage>
         ),
       );
     }
-  }
-
-  void _showFollowOptions(List<Map<String, dynamic>> profiles) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-        final subtitleColor =
-            isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-        final dividerColor =
-            isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6);
-        final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
-
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          color: backgroundColor,
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 24,
-            bottom: MediaQuery.of(context).viewPadding.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Suivre sur',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (profiles.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Text(
-                      'Aucun réseau social disponible.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: subtitleColor,
-                      ),
-                    ),
-                  )
-                else
-                  ...profiles.map((profile) {
-                    return Column(
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: (profile['bgColor'] as Color)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: profile['icon'] is IconData
-                                  ? Icon(
-                                      profile['icon'] as IconData,
-                                      color: profile['iconColor'] as Color,
-                                      size: 18,
-                                    )
-                                  : FaIcon(
-                                      profile['icon'],
-                                      color: profile['iconColor'] as Color,
-                                      size: 18,
-                                    ),
-                            ),
-                          ),
-                          title: Text(
-                            profile['label'] as String,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: titleColor,
-                            ),
-                          ),
-                          subtitle: Text(
-                            profile['value'] as String,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: subtitleColor,
-                            ),
-                          ),
-                          onTap: () => _openUrl(profile['value'] as String),
-                        ),
-                        if (profiles.indexOf(profile) != profiles.length - 1)
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: dividerColor,
-                          ),
-                      ],
-                    );
-                  }),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildAbout(bool isDark) {

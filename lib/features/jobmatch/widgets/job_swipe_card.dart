@@ -227,10 +227,102 @@ class _JobSwipeCardState extends State<JobSwipeCard>
             children: [
               if (job.contractType != null) _buildChip(job.contractType!, colors),
               if (job.isRemote) _buildChip('Remote', colors),
+              if (job.experienceRequired != null)
+                _buildChip(
+                  "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''} d'expérience",
+                  colors,
+                ),
             ],
           ),
+          if ((job.description ?? '').isNotEmpty) ...[
+            const Spacer(),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _showDetails(context),
+                icon: const Icon(Icons.info_outline_rounded, size: 18),
+                label: const Text('Voir les détails'),
+                style: TextButton.styleFrom(foregroundColor: _accentBlue),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  void _showDetails(BuildContext context) {
+    final job = widget.job;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final colors = Theme.of(sheetContext).colorScheme;
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colors.onSurface.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    job.title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [job.companyName, job.location]
+                        .where((v) => (v ?? '').isNotEmpty)
+                        .join(' · '),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.55),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        job.description ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.6,
+                          color: colors.onSurface.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

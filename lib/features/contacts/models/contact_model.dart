@@ -12,6 +12,7 @@ class ContactModel {
   final String? instagram;
   final String? website;
   final int? highlightId;
+  final String? avatar;
 
   ContactModel({
     required this.id,
@@ -27,6 +28,7 @@ class ContactModel {
     this.instagram,
     this.website,
     this.highlightId,
+    this.avatar,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class ContactModel {
       highlightId: json['highlight_id'] != null
           ? int.tryParse(json['highlight_id'].toString())
           : null,
+      avatar: json['avatar'],
     );
   }
 }

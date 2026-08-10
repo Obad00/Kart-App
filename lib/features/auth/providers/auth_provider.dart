@@ -183,6 +183,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Met à jour la photo de profil (remplace l'initiale affichée par
+  /// défaut) puis recharge l'utilisateur pour refléter le changement.
+  Future<void> updateAvatar(Uint8List bytes, String filename) async {
+    try {
+      await _api.updateAvatar(bytes, filename);
+      await loadMe();
+    } on DioException catch (e) {
+      throw Exception(
+          getErrorMessage(e, fallback: 'Erreur lors de la mise à jour de la photo'));
+    }
+  }
+
+  Future<void> deleteAvatar() async {
+    try {
+      await _api.deleteAvatar();
+      await loadMe();
+    } on DioException catch (e) {
+      throw Exception(
+          getErrorMessage(e, fallback: 'Erreur lors de la suppression de la photo'));
+    }
+  }
+
   Future<void> logout() async {
     if (kIsWeb && !_isGoogleSignInConfigured) {
       debugPrint(

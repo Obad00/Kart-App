@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
 
@@ -95,6 +96,14 @@ class ContactCardState extends State<ContactCard>
     );
   }
 
+  String? get _avatarUrl {
+    final avatar = widget.contact.avatar;
+    if (avatar == null || avatar.isEmpty) return null;
+    return avatar.startsWith('http')
+        ? avatar
+        : '${ApiEndpoints.storageUrl}/$avatar';
+  }
+
   String _getInitials(String name) {
     List<String> parts = name.trim().split(' ');
     if (parts.length >= 2) {
@@ -164,15 +173,27 @@ class ContactCardState extends State<ContactCard>
                           Container(
                             width: 52,
                             height: 52,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: _avatarUrl == null
+                                  ? const LinearGradient(
+                                      colors: [
+                                        Color(0xFF2563EB),
+                                        Color(0xFF1D4ED8)
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
+                              image: _avatarUrl != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(_avatarUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
-                            child: Center(
+                            child: _avatarUrl == null
+                                ? Center(
                               child: Text(
                                 _getInitials(widget.contact.fullname),
                                 style: const TextStyle(
@@ -181,7 +202,8 @@ class ContactCardState extends State<ContactCard>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
+                            )
+                                : null,
                           ),
                           if (widget.isSelected)
                             Positioned(

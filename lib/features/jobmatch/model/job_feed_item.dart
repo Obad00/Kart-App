@@ -8,6 +8,8 @@ class JobFeedItem {
   final int? salaryMin;
   final int? salaryMax;
   final int score;
+  final String? description;
+  final int? experienceRequired;
 
   JobFeedItem({
     required this.id,
@@ -19,6 +21,8 @@ class JobFeedItem {
     this.salaryMin,
     this.salaryMax,
     required this.score,
+    this.description,
+    this.experienceRequired,
   });
 
   factory JobFeedItem.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class JobFeedItem {
       salaryMin: json['salary_min'],
       salaryMax: json['salary_max'],
       score: json['score'] ?? 0,
+      description: json['description'],
+      experienceRequired: json['experience_required'],
     );
   }
 }
