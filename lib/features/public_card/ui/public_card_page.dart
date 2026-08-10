@@ -7,6 +7,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
+import '../../../shared/widgets/photo_viewer.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 
@@ -136,6 +137,30 @@ class _PublicCardPageState extends State<PublicCardPage>
       return parts[0][0].toUpperCase();
     }
     return '';
+  }
+
+  /// Avatar tapable ouvrant la photo en plein écran (comme les applis
+  /// modernes) — seulement si une vraie photo est disponible, sinon reste
+  /// un simple rond d'initiales non interactif.
+  Widget _buildAvatarCircle({
+    required String avatarUrl,
+    required double radius,
+    required Color backgroundColor,
+    Widget? child,
+  }) {
+    final circle = CircleAvatar(
+      radius: radius,
+      backgroundColor: backgroundColor,
+      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+      child: child,
+    );
+
+    if (avatarUrl.isEmpty) return circle;
+
+    return GestureDetector(
+      onTap: () => PhotoViewer.show(context, avatarUrl),
+      child: Hero(tag: avatarUrl, child: circle),
+    );
   }
 
   String _getFirstName() {
@@ -520,11 +545,10 @@ class _PublicCardPageState extends State<PublicCardPage>
               ),
             ),
             const SizedBox(width: 20),
-            CircleAvatar(
+            _buildAvatarCircle(
+              avatarUrl: avatarUrl,
               radius: 40,
               backgroundColor: avatarBackground,
-              backgroundImage:
-                  avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
               child: avatarUrl.isEmpty
                   ? Text(
                       _getInitials(fullName),
