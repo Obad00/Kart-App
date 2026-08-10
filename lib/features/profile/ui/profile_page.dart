@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/plan_display_helper.dart';
@@ -341,6 +343,12 @@ class _ProfilePageState extends State<ProfilePage>
       ColorScheme colors, Color companyColor, String fullName, String? email) {
     final card = context.watch<CardProvider>();
     final hasCard = card.status == CardStatus.hasCard;
+    final avatarPath = context.watch<AuthProvider>().user?.avatar;
+    final avatarUrl = (avatarPath != null && avatarPath.isNotEmpty)
+        ? (avatarPath.startsWith('http')
+            ? avatarPath
+            : '${ApiEndpoints.storageUrl}/$avatarPath')
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -362,54 +370,61 @@ class _ProfilePageState extends State<ProfilePage>
         children: [
           Row(
             children: [
-              // Avatar avec badge de statut
-              Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          companyColor,
-                          companyColor.withValues(alpha: 0.7),
-                        ],
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 32,
-                      backgroundColor: colors.surface,
-                      child: Text(
-                        _initials(fullName),
-                        style: TextStyle(
-                          color: companyColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
+              // Avatar avec badge de statut + édition de la photo
+              GestureDetector(
+                onTap: _pickAndUploadAvatar,
+                child: Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                        color: Colors.green,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colors.surface,
-                          width: 2,
+                        gradient: LinearGradient(
+                          colors: [
+                            companyColor,
+                            companyColor.withValues(alpha: 0.7),
+                          ],
                         ),
                       ),
-                      child: const Icon(
-                        Icons.check,
-                        size: 10,
-                        color: Colors.white,
+                      child: CircleAvatar(
+                        radius: 32,
+                        backgroundColor: colors.surface,
+                        backgroundImage:
+                            avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                        child: avatarUrl == null
+                            ? Text(
+                                _initials(fullName),
+                                style: TextStyle(
+                                  color: companyColor,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: companyColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: colors.surface,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 11,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(width: 16),
@@ -1582,6 +1597,28 @@ class _ProfilePageState extends State<ProfilePage>
     if (parts.isEmpty || parts[0].isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1200,
+    );
+    if (picked == null || !mounted) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      await authProvider.updateAvatar(picked.path);
+    } catch (e) {
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 }
 

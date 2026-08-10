@@ -820,9 +820,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                           firstName: firstName,
                         ),
                         const SizedBox(height: 18),
-                        _buildSecondaryActions(
-                          socialProfiles: socialProfiles,
-                        ),
+                        _buildSecondaryActions(),
                         if (socialProfiles.isNotEmpty) ...[
                           const SizedBox(height: 18),
                           _buildSocialNetworks(socialProfiles),
@@ -1145,9 +1143,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  Widget _buildSecondaryActions({
-    required List<Map<String, dynamic>> socialProfiles,
-  }) {
+  Widget _buildSecondaryActions() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor =
         isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
@@ -1172,27 +1168,6 @@ class _PublicCardPageState extends State<PublicCardPage>
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => _showFollowOptions(socialProfiles),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: foregroundColor,
-              side: BorderSide(color: borderColor),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text(
-              'Follow',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1426,120 +1401,6 @@ class _PublicCardPageState extends State<PublicCardPage>
         ),
       );
     }
-  }
-
-  void _showFollowOptions(List<Map<String, dynamic>> profiles) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-        final subtitleColor =
-            isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-        final dividerColor =
-            isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6);
-        final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
-
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          color: backgroundColor,
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 24,
-            bottom: MediaQuery.of(context).viewPadding.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Suivre sur',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (profiles.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Text(
-                      'Aucun réseau social disponible.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: subtitleColor,
-                      ),
-                    ),
-                  )
-                else
-                  ...profiles.map((profile) {
-                    return Column(
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: (profile['bgColor'] as Color)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: profile['icon'] is IconData
-                                  ? Icon(
-                                      profile['icon'] as IconData,
-                                      color: profile['iconColor'] as Color,
-                                      size: 18,
-                                    )
-                                  : FaIcon(
-                                      profile['icon'],
-                                      color: profile['iconColor'] as Color,
-                                      size: 18,
-                                    ),
-                            ),
-                          ),
-                          title: Text(
-                            profile['label'] as String,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: titleColor,
-                            ),
-                          ),
-                          subtitle: Text(
-                            profile['value'] as String,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: subtitleColor,
-                            ),
-                          ),
-                          onTap: () => _openUrl(profile['value'] as String),
-                        ),
-                        if (profiles.indexOf(profile) != profiles.length - 1)
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: dividerColor,
-                          ),
-                      ],
-                    );
-                  }),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildAbout(bool isDark) {

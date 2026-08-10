@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -98,6 +99,12 @@ class _ProfileDropdownButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final avatarPath = context.watch<AuthProvider>().user?.avatar;
+    final avatarUrl = (avatarPath != null && avatarPath.isNotEmpty)
+        ? (avatarPath.startsWith('http')
+            ? avatarPath
+            : '${ApiEndpoints.storageUrl}/$avatarPath')
+        : null;
 
     return PopupMenuButton<String>(
       offset: const Offset(0, 50),
@@ -142,6 +149,7 @@ class _ProfileDropdownButton extends StatelessWidget {
       child: Container(
         width: 44,
         height: 44,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: colors.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
@@ -149,8 +157,16 @@ class _ProfileDropdownButton extends StatelessWidget {
             color: colors.primary.withValues(alpha: 0.2),
             width: 1,
           ),
+          image: avatarUrl != null
+              ? DecorationImage(
+                  image: NetworkImage(avatarUrl),
+                  fit: BoxFit.cover,
+                )
+              : null,
         ),
-        child: Center(
+        child: avatarUrl != null
+            ? null
+            : Center(
           child: Text(
             initials,
             style: TextStyle(

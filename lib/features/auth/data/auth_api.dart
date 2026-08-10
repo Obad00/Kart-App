@@ -38,6 +38,20 @@ class AuthApi {
     );
   }
 
+  Future<Response> updateAvatar(String localFilePath) async {
+    final formData = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(
+        localFilePath,
+        filename: localFilePath.split('/').last,
+      ),
+    });
+    return ApiClient.dio.post(ApiEndpoints.meAvatar, data: formData);
+  }
+
+  Future<Response> deleteAvatar() {
+    return ApiClient.dio.delete(ApiEndpoints.meAvatar);
+  }
+
   Future<Response> changePassword({
     required String currentPassword,
     required String newPassword,
