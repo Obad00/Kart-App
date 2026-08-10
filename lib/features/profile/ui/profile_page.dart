@@ -1612,7 +1612,8 @@ class _ProfilePageState extends State<ProfilePage>
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      await authProvider.updateAvatar(picked.path);
+      final bytes = await picked.readAsBytes();
+      await authProvider.updateAvatar(bytes, picked.name);
     } catch (e) {
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -38,12 +40,12 @@ class AuthApi {
     );
   }
 
-  Future<Response> updateAvatar(String localFilePath) async {
+  /// Prend des bytes bruts (plutôt qu'un chemin de fichier) pour fonctionner
+  /// aussi bien sur mobile que sur Flutter Web — `MultipartFile.fromFile`
+  /// s'appuie sur dart:io, indisponible sur le web.
+  Future<Response> updateAvatar(Uint8List bytes, String filename) async {
     final formData = FormData.fromMap({
-      'avatar': await MultipartFile.fromFile(
-        localFilePath,
-        filename: localFilePath.split('/').last,
-      ),
+      'avatar': MultipartFile.fromBytes(bytes, filename: filename),
     });
     return ApiClient.dio.post(ApiEndpoints.meAvatar, data: formData);
   }

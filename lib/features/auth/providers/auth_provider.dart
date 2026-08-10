@@ -185,9 +185,9 @@ class AuthProvider extends ChangeNotifier {
 
   /// Met à jour la photo de profil (remplace l'initiale affichée par
   /// défaut) puis recharge l'utilisateur pour refléter le changement.
-  Future<void> updateAvatar(String localFilePath) async {
+  Future<void> updateAvatar(Uint8List bytes, String filename) async {
     try {
-      await _api.updateAvatar(localFilePath);
+      await _api.updateAvatar(bytes, filename);
       await loadMe();
     } on DioException catch (e) {
       throw Exception(
