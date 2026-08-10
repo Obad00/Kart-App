@@ -13,6 +13,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
+import '../../../shared/widgets/photo_viewer.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
 import '../../profile_completion/widgets/completion_sections.dart';
@@ -370,12 +371,15 @@ class _ProfilePageState extends State<ProfilePage>
         children: [
           Row(
             children: [
-              // Avatar avec badge de statut + édition de la photo
-              GestureDetector(
-                onTap: _pickAndUploadAvatar,
-                child: Stack(
-                  children: [
-                    Container(
+              // Avatar : tap = voir en grand (comme les applis modernes),
+              // badge caméra séparé = changer la photo.
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: avatarUrl == null
+                        ? _pickAndUploadAvatar
+                        : () => PhotoViewer.show(context, avatarUrl),
+                    child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -386,26 +390,32 @@ class _ProfilePageState extends State<ProfilePage>
                           ],
                         ),
                       ),
-                      child: CircleAvatar(
-                        radius: 32,
-                        backgroundColor: colors.surface,
-                        backgroundImage:
-                            avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                        child: avatarUrl == null
-                            ? Text(
-                                _initials(fullName),
-                                style: TextStyle(
-                                  color: companyColor,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
-                                ),
-                              )
-                            : null,
+                      child: Hero(
+                        tag: avatarUrl ?? 'profile-avatar-placeholder',
+                        child: CircleAvatar(
+                          radius: 32,
+                          backgroundColor: colors.surface,
+                          backgroundImage:
+                              avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                          child: avatarUrl == null
+                              ? Text(
+                                  _initials(fullName),
+                                  style: TextStyle(
+                                    color: companyColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickAndUploadAvatar,
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
@@ -423,8 +433,8 @@ class _ProfilePageState extends State<ProfilePage>
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
               const SizedBox(width: 16),

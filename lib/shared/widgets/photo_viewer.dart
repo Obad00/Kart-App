@@ -1,0 +1,75 @@
+import 'package:flutter/material.dart';
+
+/// Visualiseur plein écran pour une photo (avatar, logo...), comme dans les
+/// applications modernes : fond noir, zoom au pincement, se ferme au tap ou
+/// en balayant vers le bas.
+class PhotoViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const PhotoViewer({super.key, required this.imageUrl});
+
+  static Future<void> show(BuildContext context, String imageUrl) {
+    return Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (_, __, ___) => PhotoViewer(imageUrl: imageUrl),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        onVerticalDragEnd: (details) {
+          if ((details.primaryVelocity ?? 0) > 250) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Hero(
+                  tag: imageUrl,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white54),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          color: Colors.white38, size: 48),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: SafeArea(
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
