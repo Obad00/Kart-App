@@ -35,11 +35,25 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Calculer la version marketing (toujours strictement croissante)
+        # App Store refuse tout nouvel envoi dont la version marketing
+        # (CFBundleShortVersionString) n'est pas strictement supérieure à la
+        # dernière version APPROUVÉE — un simple build number croissant ne
+        # suffit pas. Pour ne plus jamais avoir à bumper pubspec.yaml à la
+        # main avant chaque soumission, on garde MAJOR.MINOR défini dans
+        # pubspec.yaml (pour les vraies montées de version), mais le PATCH
+        # est toujours le run number du workflow — strictement croissant à
+        # chaque exécution, par construction GitHub Actions.
+        run: |
+          BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
+          MAJOR_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f1,2)
+          echo "BUILD_NAME=${MAJOR_MINOR}.${{ github.run_number }}" >> "$GITHUB_ENV"
+
       - name: Générer les fichiers iOS (plugins registrant)
         run: |
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Debug.xcconfig
-          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }}
+          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
 
       - name: Install Pods
         run: |
