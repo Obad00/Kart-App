@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
+import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
@@ -305,10 +306,25 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       (state.companyLogo != null && state.companyLogo!.isNotEmpty) ||
                       (state.companyPrimaryColor != null && state.companyPrimaryColor!.isNotEmpty);
 
-                  // Branding personnel (couleur d'accent + logo), gratuit pour tous
+                  // Photo de profil en repli si aucun logo de carte n'a été
+                  // choisi explicitement — évite de forcer un second upload
+                  // pour la même chose (cf. discussion : unifier les deux
+                  // par défaut, tout en gardant le logo dédié prioritaire
+                  // pour qui veut vraiment un visuel différent).
+                  final String? avatarUrl = (user?.avatar != null && user!.avatar!.isNotEmpty)
+                      ? (user.avatar!.startsWith('http')
+                          ? user.avatar
+                          : '${ApiEndpoints.storageUrl}/${user.avatar}')
+                      : null;
+                  final String? personalLogo =
+                      (state.logo != null && state.logo!.isNotEmpty)
+                          ? state.logo
+                          : avatarUrl;
+
+                  // Branding personnel (couleur d'accent + logo/photo), gratuit pour tous
                   final bool hasPersonalBranding =
                       (state.accentColor != null && state.accentColor!.isNotEmpty) ||
-                      (state.logo != null && state.logo!.isNotEmpty);
+                      (personalLogo != null && personalLogo.isNotEmpty);
 
                   final bool useBrandedCard = hasCompanyBranding || hasPersonalBranding;
 
@@ -324,7 +340,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                                 companyName: hasCompanyBranding
                                     ? (state.company ?? user?.company?.name ?? 'Entreprise')
                                     : fullName,
-                                companyLogo: hasCompanyBranding ? state.companyLogo : state.logo,
+                                companyLogo: hasCompanyBranding ? state.companyLogo : personalLogo,
                                 primaryColor: _parseColor(
                                   hasCompanyBranding ? state.companyPrimaryColor : state.accentColor,
                                   const Color(0xFF3B82F6),
