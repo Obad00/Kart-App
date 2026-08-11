@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'config/feature_flags.dart';
+import 'core/deep_links/deep_link_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
@@ -60,12 +61,33 @@ import 'features/profile_completion/services/candidate_skills_service.dart';
 import 'features/jobmatch/providers/jobmatch_provider.dart';
 import 'features/jobmatch/services/jobmatch_service.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(const KartApp());
 }
 
-class KartApp extends StatelessWidget {
+class KartApp extends StatefulWidget {
   const KartApp({super.key});
+
+  @override
+  State<KartApp> createState() => _KartAppState();
+}
+
+class _KartAppState extends State<KartApp> {
+  late final DeepLinkService _deepLinkService;
+
+  @override
+  void initState() {
+    super.initState();
+    _deepLinkService = DeepLinkService(navigatorKey)..init();
+  }
+
+  @override
+  void dispose() {
+    _deepLinkService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +124,7 @@ class KartApp extends StatelessWidget {
           return ScrollConfiguration(
             behavior: const ScrollBehavior().copyWith(scrollbars: false),
             child: MaterialApp(
+              navigatorKey: navigatorKey,
               debugShowCheckedModeBanner: false,
               builder: (context, child) => ShowCaseWidget(
                 builder: (context) => child!,
@@ -172,6 +195,7 @@ class KartApp extends StatelessWidget {
                   return HomeShell(
                     initialIndex: args?['tab'] ?? 0,
                     forceTourReplay: args?['replayTour'] ?? false,
+                    openLikedJobs: args?['openLikedJobs'] ?? false,
                   );
                 },
               },

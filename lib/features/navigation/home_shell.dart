@@ -10,19 +10,25 @@ import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
 import '../digital_card/ui/my_digital_card_page.dart';
 import '../jobmatch/ui/jobmatch_feed_page.dart';
+import '../jobmatch/ui/jobmatch_matches_page.dart';
 import '../profile/ui/profile_page.dart';
 // import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
 import '../scan/ui/scan_page.dart';
 
-
 class HomeShell extends StatefulWidget {
   final int initialIndex;
   final bool forceTourReplay;
+
+  /// Renseigné par le deep link `kart://jobmatch/liked` (bouton du mail
+  /// d'intérêt candidat) — ouvre directement l'onglet "Aimées" du tableau
+  /// de bord JobMatch au premier frame affiché.
+  final bool openLikedJobs;
   const HomeShell({
     super.key,
     this.initialIndex = 0,
     this.forceTourReplay = false,
+    this.openLikedJobs = false,
   });
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -67,9 +73,25 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     }).toList();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybeStartTour();
+      if (widget.openLikedJobs) {
+        // Vient d'un deep link (mail d'intérêt candidat) : priorité à la
+        // navigation demandée, pas de tour guidé cette fois-ci pour ne pas
+        // superposer deux overlays.
+        _openLikedJobsPage();
+      } else {
+        _maybeStartTour();
+      }
       _maybeCheckForUpdate();
     });
+  }
+
+  void _openLikedJobsPage() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const JobMatchMatchesPage(initialTabIndex: 1),
+      ),
+    );
   }
 
   /// Rappel doux (ignorable) si une version plus récente de l'app est
@@ -132,7 +154,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
-    final showJobMatch = canAccessJobMatch(context.read<AuthProvider>().user?.plan);
+    final showJobMatch =
+        canAccessJobMatch(context.read<AuthProvider>().user?.plan);
 
     final keys = <GlobalKey>[_navKeys[0]];
 
@@ -204,8 +227,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
       if (auth.user!.mustChangePassword) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.of(context)
-              .pushReplacementNamed('/force-change-password');
+          Navigator.of(context).pushReplacementNamed('/force-change-password');
         });
         return const Scaffold(
           backgroundColor: Color(0xFF000000),
@@ -336,101 +358,101 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         description: tourDescription,
         targetShapeBorder: const CircleBorder(),
         child: GestureDetector(
-        onTapDown: (_) => _scaleControllers[index].forward(),
-        onTapUp: (_) {
-          _scaleControllers[index].reverse();
-          _onTap(index);
-        },
-        onTapCancel: () => _scaleControllers[index].reverse(),
-        behavior: HitTestBehavior.opaque,
-        child: ScaleTransition(
-          scale: _scaleAnimations[index],
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-            decoration: BoxDecoration(
-              color: selected
-                  ? primaryColor.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icône avec animation
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) {
-                    return ScaleTransition(
-                      scale: animation,
-                      child: child,
-                    );
-                  },
-                  child: isSpecial && selected
-                      ? Container(
-                          key: ValueKey('special_$selected'),
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                primaryColor,
-                                primaryColor.withValues(alpha: 0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryColor.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            activeIcon,
-                            key: ValueKey('icon_${index}_$selected'),
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        )
-                      : Icon(
-                          selected ? activeIcon : icon,
-                          key: ValueKey('icon_${index}_$selected'),
-                          color: selected ? primaryColor : inactiveColor,
-                          size: 22,
-                        ),
-                ),
-                // Label animé à côté de l'icône quand sélectionné
-                Flexible(
-                  child: AnimatedSize(
+          onTapDown: (_) => _scaleControllers[index].forward(),
+          onTapUp: (_) {
+            _scaleControllers[index].reverse();
+            _onTap(index);
+          },
+          onTapCancel: () => _scaleControllers[index].reverse(),
+          behavior: HitTestBehavior.opaque,
+          child: ScaleTransition(
+            scale: _scaleAnimations[index],
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              decoration: BoxDecoration(
+                color: selected
+                    ? primaryColor.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icône avec animation
+                  AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    child: selected
-                        ? Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: primaryColor,
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(
+                        scale: animation,
+                        child: child,
+                      );
+                    },
+                    child: isSpecial && selected
+                        ? Container(
+                            key: ValueKey('special_$selected'),
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  primaryColor,
+                                  primaryColor.withValues(alpha: 0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryColor.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              activeIcon,
+                              key: ValueKey('icon_${index}_$selected'),
+                              color: Colors.white,
+                              size: 18,
                             ),
                           )
-                        : const SizedBox.shrink(),
+                        : Icon(
+                            selected ? activeIcon : icon,
+                            key: ValueKey('icon_${index}_$selected'),
+                            color: selected ? primaryColor : inactiveColor,
+                            size: 22,
+                          ),
                   ),
-                ),
-              ],
+                  // Label animé à côté de l'icône quand sélectionné
+                  Flexible(
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      child: selected
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );
