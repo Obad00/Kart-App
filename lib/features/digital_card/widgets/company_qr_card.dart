@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,8 +13,8 @@ class CompanyQrCard extends StatefulWidget {
   final Color primaryColor;
   final String? subtitle;
   final String? badgeLabel;
-final VoidCallback? onShare;
-final VoidCallback? onDownload;
+  final VoidCallback? onShare;
+  final VoidCallback? onDownload;
   final VoidCallback? onTapQr;
 
   const CompanyQrCard({
@@ -24,8 +25,8 @@ final VoidCallback? onDownload;
     required this.primaryColor,
     this.subtitle,
     this.badgeLabel,
-this.onShare,
-this.onDownload,
+    this.onShare,
+    this.onDownload,
     this.onTapQr,
   });
 
@@ -341,14 +342,11 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: widget.companyLogo != null && widget.companyLogo!.isNotEmpty
-            ? Image.network(
-                widget.companyLogo!,
+            ? CachedNetworkImage(
+                imageUrl: widget.companyLogo!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildLogoPlaceholder(),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return _buildLogoPlaceholder();
-                },
+                errorWidget: (_, __, ___) => _buildLogoPlaceholder(),
+                placeholder: (_, __) => _buildLogoPlaceholder(),
               )
             : _buildLogoPlaceholder(),
       ),

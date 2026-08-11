@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -151,7 +152,8 @@ class _PublicCardPageState extends State<PublicCardPage>
     final circle = CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor,
-      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+      backgroundImage:
+          avatarUrl.isNotEmpty ? CachedNetworkImageProvider(avatarUrl) : null,
       child: child,
     );
 

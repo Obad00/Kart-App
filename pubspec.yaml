@@ -72,6 +72,10 @@ dependencies:
   # CSV export
   csv: ^6.0.0
 
+  # Cache disque/mémoire pour les images réseau (avatars, logos) — évite de
+  # retélécharger la même photo à chaque affichage.
+  cached_network_image: ^3.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

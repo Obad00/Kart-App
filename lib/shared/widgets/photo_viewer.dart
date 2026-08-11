@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 /// Visualiseur plein écran pour une photo (avatar, logo...), comme dans les
@@ -45,18 +46,18 @@ class PhotoViewer extends StatelessWidget {
                 maxScale: 4,
                 child: Hero(
                   tag: imageUrl,
-                  child: Image.network(
-                    imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.contain,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.white54),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => const Center(
+                    // Cache disque : déjà vue (avatar de contact, de profil...)
+                    // l'image plein écran s'affiche instantanément.
+                    fadeInDuration: const Duration(milliseconds: 150),
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
+                    ),
+                    errorWidget: (_, __, ___) => const Center(
                       child: Icon(Icons.broken_image_outlined,
                           color: Colors.white38, size: 48),
                     ),

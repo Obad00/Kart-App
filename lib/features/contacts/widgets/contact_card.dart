@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -127,167 +128,168 @@ class ContactCardState extends State<ContactCard>
           Stack(
             children: [
               GestureDetector(
-            onTap: widget.isSelected
-                ? () {
-                    HapticFeedback.lightImpact();
-                    widget.onSelect?.call(widget.contact.id);
-                  }
-                : () => _openPublicCard(context),
-            onLongPress: () {
-              HapticFeedback.mediumImpact();
-              widget.onSelect?.call(widget.contact.id);
-            },
-            child: DefaultTextStyle.merge(
-              style: const TextStyle(decoration: TextDecoration.none),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: widget.isSelected
-                      ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
-                      : Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(20.0),
-                  border: Border.all(
-                    color: widget.isSelected
-                        ? const Color(0xFF3B82F6)
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.08),
-                    width: widget.isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Avatar with checkbox
-                      Stack(
+                onTap: widget.isSelected
+                    ? () {
+                        HapticFeedback.lightImpact();
+                        widget.onSelect?.call(widget.contact.id);
+                      }
+                    : () => _openPublicCard(context),
+                onLongPress: () {
+                  HapticFeedback.mediumImpact();
+                  widget.onSelect?.call(widget.contact.id);
+                },
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(decoration: TextDecoration.none),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: widget.isSelected
+                          ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(20.0),
+                      border: Border.all(
+                        color: widget.isSelected
+                            ? const Color(0xFF3B82F6)
+                            : Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.08),
+                        width: widget.isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 14),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: _avatarUrl == null
-                                  ? const LinearGradient(
-                                      colors: [
-                                        Color(0xFF2563EB),
-                                        Color(0xFF1D4ED8)
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : null,
-                              image: _avatarUrl != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(_avatarUrl!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: _avatarUrl == null
-                                ? Center(
-                              child: Text(
-                                _getInitials(widget.contact.fullname),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
-                                : null,
-                          ),
-                          if (widget.isSelected)
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: const BoxDecoration(
+                          // Avatar with checkbox
+                          Stack(
+                            children: [
+                              Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Color(0xFF3B82F6),
+                                  gradient: _avatarUrl == null
+                                      ? const LinearGradient(
+                                          colors: [
+                                            Color(0xFF2563EB),
+                                            Color(0xFF1D4ED8)
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : null,
+                                  image: _avatarUrl != null
+                                      ? DecorationImage(
+                                          image: CachedNetworkImageProvider(
+                                              _avatarUrl!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 12,
-                                ),
+                                child: _avatarUrl == null
+                                    ? Center(
+                                        child: Text(
+                                          _getInitials(widget.contact.fullname),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                               ),
+                              if (widget.isSelected)
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    width: 18,
+                                    height: 18,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFF3B82F6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Nom
+                          Text(
+                            widget.contact.fullname,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          // Job
+                          if (widget.contact.job != null &&
+                              widget.contact.job!.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              widget.contact.job!,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.5),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+
+                          // Company
+                          if (widget.contact.company != null &&
+                              widget.contact.company!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              '@ ${widget.contact.company}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+
+                          const SizedBox(height: 10),
+
+                          // Boutons sociaux
+                          _buildSocialButtons(),
                         ],
                       ),
-                      const SizedBox(height: 8),
-
-                      // Nom
-                      Text(
-                        widget.contact.fullname,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      // Job
-                      if (widget.contact.job != null &&
-                          widget.contact.job!.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          widget.contact.job!,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-
-                      // Company
-                      if (widget.contact.company != null &&
-                          widget.contact.company!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '@ ${widget.contact.company}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.4),
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-
-                      const SizedBox(height: 10),
-
-                      // Boutons sociaux
-                      _buildSocialButtons(),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
               if (widget.onDelete != null)
                 Positioned(
                   top: 6,
@@ -484,15 +486,17 @@ class ContactCardState extends State<ContactCard>
           ],
         ),
         child: Center(
-          child: icon is IconData ? Icon(
-            icon,
-            size: 18,
-            color: color,
-          ) : FaIcon(
-            icon,
-            size: 18,
-            color: color,
-          ),
+          child: icon is IconData
+              ? Icon(
+                  icon,
+                  size: 18,
+                  color: color,
+                )
+              : FaIcon(
+                  icon,
+                  size: 18,
+                  color: color,
+                ),
         ),
       ),
     );

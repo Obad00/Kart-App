@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -159,7 +160,7 @@ class _ProfileDropdownButton extends StatelessWidget {
           ),
           image: avatarUrl != null
               ? DecorationImage(
-                  image: NetworkImage(avatarUrl),
+                  image: CachedNetworkImageProvider(avatarUrl),
                   fit: BoxFit.cover,
                 )
               : null,
@@ -167,15 +168,15 @@ class _ProfileDropdownButton extends StatelessWidget {
         child: avatarUrl != null
             ? null
             : Center(
-          child: Text(
-            initials,
-            style: TextStyle(
-              color: colors.primary,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
-        ),
+                child: Text(
+                  initials,
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
       ),
     );
   }
