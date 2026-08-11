@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -168,13 +169,15 @@ class _ProfilePageState extends State<ProfilePage>
                           onPressed: () => _openForm(context, section: 'basic'),
                           style: TextButton.styleFrom(
                             foregroundColor: companyColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             minimumSize: const Size(0, 0),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: const Text(
                             'Modifier',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                         children: [
@@ -227,7 +230,8 @@ class _ProfilePageState extends State<ProfilePage>
                                 : null,
                             trailing: _planChangeEnabled
                                 ? TextButton(
-                                    onPressed: () => _openPlanSelection(context),
+                                    onPressed: () =>
+                                        _openPlanSelection(context),
                                     style: TextButton.styleFrom(
                                       foregroundColor: companyColor,
                                       padding: const EdgeInsets.symmetric(
@@ -240,7 +244,8 @@ class _ProfilePageState extends State<ProfilePage>
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                         side: BorderSide(
-                                          color: companyColor.withValues(alpha: 0.25),
+                                          color: companyColor.withValues(
+                                              alpha: 0.25),
                                         ),
                                       ),
                                     ),
@@ -264,7 +269,8 @@ class _ProfilePageState extends State<ProfilePage>
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: colors.onSurface.withValues(alpha: 0.5),
+                                    color:
+                                        colors.onSurface.withValues(alpha: 0.5),
                                   ),
                                 ),
                               ),
@@ -395,8 +401,9 @@ class _ProfilePageState extends State<ProfilePage>
                         child: CircleAvatar(
                           radius: 32,
                           backgroundColor: colors.surface,
-                          backgroundImage:
-                              avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                          backgroundImage: avatarUrl != null
+                              ? CachedNetworkImageProvider(avatarUrl)
+                              : null,
                           child: avatarUrl == null
                               ? Text(
                                   _initials(fullName),
@@ -833,7 +840,6 @@ class _ProfilePageState extends State<ProfilePage>
       ),
     );
   }
-
 
   Widget _buildActionButtons(ColorScheme colors, BuildContext context) {
     return Column(
@@ -1724,7 +1730,6 @@ class _BrandingEditorState extends State<_BrandingEditor> {
               ),
             ),
             const SizedBox(height: 20),
-
             Row(
               children: [
                 Container(
@@ -1750,14 +1755,12 @@ class _BrandingEditorState extends State<_BrandingEditor> {
               ],
             ),
             const SizedBox(height: 24),
-
             ColorPickerField(
               label: 'Couleur d\'accent',
               initialColor: _accentColor,
               onColorChanged: (color) => setState(() => _accentColor = color),
             ),
             const SizedBox(height: 20),
-
             LogoPickerField(
               label: 'Logo ou photo',
               title: 'Logo personnel',
@@ -1775,7 +1778,6 @@ class _BrandingEditorState extends State<_BrandingEditor> {
               },
             ),
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

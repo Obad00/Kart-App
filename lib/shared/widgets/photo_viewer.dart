@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 /// Visualiseur plein écran pour une photo (avatar, logo...), comme dans les
@@ -34,22 +35,29 @@ class PhotoViewer extends StatelessWidget {
         },
         child: Stack(
           children: [
-            Center(
+            // Positioned.fill (plutôt que Center) donne des contraintes
+            // bornées à l'InteractiveViewer : sans ça, Image.network se
+            // dimensionne à la résolution native du fichier (souvent une
+            // petite miniature), et BoxFit.contain n'a rien à agrandir —
+            // d'où la photo minuscule constatée sur les avatars compressés.
+            Positioned.fill(
               child: InteractiveViewer(
                 minScale: 1,
                 maxScale: 4,
                 child: Hero(
                   tag: imageUrl,
-                  child: Image.network(
-                    imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.contain,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.white54),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => const Center(
+                    // Cache disque : déjà vue (avatar de contact, de profil...)
+                    // l'image plein écran s'affiche instantanément.
+                    fadeInDuration: const Duration(milliseconds: 150),
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
+                    ),
+                    errorWidget: (_, __, ___) => const Center(
                       child: Icon(Icons.broken_image_outlined,
                           color: Colors.white38, size: 48),
                     ),
@@ -62,7 +70,8 @@ class PhotoViewer extends StatelessWidget {
               right: 8,
               child: SafeArea(
                 child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                  icon: const Icon(Icons.close_rounded,
+                      color: Colors.white, size: 28),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
