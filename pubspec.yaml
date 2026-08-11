@@ -76,6 +76,10 @@ dependencies:
   # retélécharger la même photo à chaque affichage.
   cached_network_image: ^3.4.1
 
+  # Deep links (kart://...) — ex: bouton "Voir mes offres likées" du mail
+  # d'intérêt candidat, qui doit rouvrir l'app directement sur cet écran.
+  app_links: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

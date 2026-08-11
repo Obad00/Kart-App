@@ -5,14 +5,21 @@ import '../services/jobmatch_service.dart';
 const _accentBlue = Color(0xFF3B82F6);
 
 class JobMatchMatchesPage extends StatefulWidget {
-  const JobMatchMatchesPage({super.key});
+  /// Onglet ouvert au premier affichage (0 = Matchs, 1 = Aimées, 2 =
+  /// Passées) — permet par ex. au deep link `kart://jobmatch/liked` de
+  /// pointer directement sur l'onglet "Aimées".
+  final int initialTabIndex;
+
+  const JobMatchMatchesPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<JobMatchMatchesPage> createState() => _JobMatchMatchesPageState();
 }
 
-class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
+class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
+    with SingleTickerProviderStateMixin {
   final _service = JobMatchService();
+  late final TabController _tabController;
   List<JobMatchResult> _matches = [];
   List<LikedJobItem> _liked = [];
   List<LikedJobItem> _rejected = [];
@@ -22,7 +29,18 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -64,40 +82,39 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: colors.surface,
-        appBar: AppBar(
-          title: const Text('Mon tableau de bord'),
-          centerTitle: true,
-          bottom: const TabBar(
-            labelColor: _accentBlue,
-            indicatorColor: _accentBlue,
-            tabs: [
-              Tab(text: 'Matchs'),
-              Tab(text: 'Aimées'),
-              Tab(text: 'Passées'),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: const Text('Mon tableau de bord'),
+        centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: _accentBlue,
+          indicatorColor: _accentBlue,
+          tabs: const [
+            Tab(text: 'Matchs'),
+            Tab(text: 'Aimées'),
+            Tab(text: 'Passées'),
+          ],
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  if (_summary != null) _buildSummaryRow(colors, _summary!),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildMatchesList(colors),
-                        _buildLikedList(colors),
-                        _buildRejectedList(colors),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_summary != null) _buildSummaryRow(colors, _summary!),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildMatchesList(colors),
+                      _buildLikedList(colors),
+                      _buildRejectedList(colors),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -106,11 +123,16 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
-          Expanded(child: _buildStat('Matchs', summary.matches, Colors.green, colors)),
+          Expanded(
+              child:
+                  _buildStat('Matchs', summary.matches, Colors.green, colors)),
           const SizedBox(width: 10),
-          Expanded(child: _buildStat('Aimées', summary.liked, _accentBlue, colors)),
+          Expanded(
+              child: _buildStat('Aimées', summary.liked, _accentBlue, colors)),
           const SizedBox(width: 10),
-          Expanded(child: _buildStat('En attente', summary.pendingSuggestions, Colors.orange, colors)),
+          Expanded(
+              child: _buildStat('En attente', summary.pendingSuggestions,
+                  Colors.orange, colors)),
         ],
       ),
     );
@@ -128,12 +150,16 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
         children: [
           Text(
             '$value',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color),
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w800, color: color),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5)),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface.withValues(alpha: 0.5)),
           ),
         ],
       ),
@@ -249,16 +275,23 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: colors.onSurface)),
+                Text(title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.5))),
               ],
             ),
           ),
           if (trailingWidget != null)
             trailingWidget
           else if (trailing != null)
-            Text(trailing, style: const TextStyle(fontWeight: FontWeight.w800, color: _accentBlue)),
+            Text(trailing,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, color: _accentBlue)),
         ],
       ),
     );

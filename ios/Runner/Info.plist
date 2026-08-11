@@ -63,6 +63,16 @@
 				<string>com.googleusercontent.apps.51355966688-lvu552purb93c8u49rr9kogjp5ja5hqv</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>cloud.meblo.kart.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kart</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
