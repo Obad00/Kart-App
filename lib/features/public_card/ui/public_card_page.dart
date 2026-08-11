@@ -282,62 +282,75 @@ class _PublicCardPageState extends State<PublicCardPage>
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: AnimatedBuilder(
-                    animation: _floatAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, _floatAnimation.value),
-                        child: child,
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildHero(
-                          isDark: isDark,
-                          fullName: fullName,
-                          jobTitle: jobTitle,
-                          company: company,
-                          location: location,
-                          email: email,
-                          phone: phone,
-                          avatarUrl: portraitUrl,
-                        ),
-                        _buildSectionDivider(),
-                        _buildCallToActions(
-                          email: email,
-                          firstName: firstName,
-                        ),
-                        const SizedBox(height: 18),
-                        _buildSecondaryActions(),
-                        if (socialProfiles.isNotEmpty) ...[
+      // Cette page est parfois ouverte via un PageRouteBuilder à transition
+      // personnalisée (depuis la liste des contacts), qui — contrairement à
+      // MaterialPageRoute sur iOS — n'active pas le geste natif de retour
+      // par glissement. On le réimplémente ici : glisser vers la droite
+      // referme la page et revient à la liste des contacts.
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if ((details.primaryVelocity ?? 0) > 250 &&
+              Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: AnimatedBuilder(
+                      animation: _floatAnimation,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(0, _floatAnimation.value),
+                          child: child,
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildHero(
+                            isDark: isDark,
+                            fullName: fullName,
+                            jobTitle: jobTitle,
+                            company: company,
+                            location: location,
+                            email: email,
+                            phone: phone,
+                            avatarUrl: portraitUrl,
+                          ),
+                          _buildSectionDivider(),
+                          _buildCallToActions(
+                            email: email,
+                            firstName: firstName,
+                          ),
                           const SizedBox(height: 18),
-                          _buildSocialNetworks(socialProfiles),
-                        ],
-                        if (_getFieldValue('bio').isNotEmpty) ...[
+                          _buildSecondaryActions(),
+                          if (socialProfiles.isNotEmpty) ...[
+                            const SizedBox(height: 18),
+                            _buildSocialNetworks(socialProfiles),
+                          ],
+                          if (_getFieldValue('bio').isNotEmpty) ...[
+                            _buildSectionDivider(),
+                            _buildAbout(isDark),
+                          ],
+                          if (skills.isNotEmpty) ...[
+                            _buildSectionDivider(),
+                            _buildSkills(isDark, skills),
+                          ],
                           _buildSectionDivider(),
-                          _buildAbout(isDark),
-                        ],
-                        if (skills.isNotEmpty) ...[
+                          _buildExperienceTimeline(isDark, experiences),
                           _buildSectionDivider(),
-                          _buildSkills(isDark, skills),
+                          _buildEducation(isDark, educations),
+                          const SizedBox(height: 12),
                         ],
-                        _buildSectionDivider(),
-                        _buildExperienceTimeline(isDark, experiences),
-                        _buildSectionDivider(),
-                        _buildEducation(isDark, educations),
-                        const SizedBox(height: 12),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -368,8 +381,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         isDark ? const Color(0xFF334155) : const Color(0xFFDCFCE7);
     final avatarBackground =
         isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
-    final avatarTextColor =
-        isDark ? _accentColor : _accentColor;
+    final avatarTextColor = isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -615,7 +627,8 @@ class _PublicCardPageState extends State<PublicCardPage>
         ElevatedButton.icon(
           onPressed: () {
             if (email.isNotEmpty) {
-              _openEmail(email); // Ouvre directement l'app mail, comme l'icône email
+              _openEmail(
+                  email); // Ouvre directement l'app mail, comme l'icône email
             } else {
               _showContactForm();
             }
@@ -819,68 +832,68 @@ class _PublicCardPageState extends State<PublicCardPage>
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: colors.onSurface.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Text(
-                  'Déplacer vers un highlight',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (highlightProvider.highlights.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Aucun highlight créé pour le moment.',
-                      style: TextStyle(
-                        color: colors.onSurface.withValues(alpha: 0.5),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colors.onSurface.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.remove_circle_outline_rounded,
-                      color: colors.onSurface.withValues(alpha: 0.5)),
-                  title: const Text('Sans highlight'),
-                  trailing: currentHighlightId == null
-                      ? Icon(Icons.check_rounded, color: colors.primary)
-                      : null,
-                  onTap: () =>
-                      _assignHighlight(sheetContext, contactsProvider, contactId, null),
-                ),
-                for (final h in highlightProvider.highlights)
+                  Text(
+                    'Déplacer vers un highlight',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (highlightProvider.highlights.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'Aucun highlight créé pour le moment.',
+                        style: TextStyle(
+                          color: colors.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.bookmark_rounded,
-                        color: Color(0xFFF59E0B)),
-                    title: Text(h.name),
-                    trailing: currentHighlightId == h.id
+                    leading: Icon(Icons.remove_circle_outline_rounded,
+                        color: colors.onSurface.withValues(alpha: 0.5)),
+                    title: const Text('Sans highlight'),
+                    trailing: currentHighlightId == null
                         ? Icon(Icons.check_rounded, color: colors.primary)
                         : null,
                     onTap: () => _assignHighlight(
-                        sheetContext, contactsProvider, contactId, h.id),
+                        sheetContext, contactsProvider, contactId, null),
                   ),
-              ],
+                  for (final h in highlightProvider.highlights)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.bookmark_rounded,
+                          color: Color(0xFFF59E0B)),
+                      title: Text(h.name),
+                      trailing: currentHighlightId == h.id
+                          ? Icon(Icons.check_rounded, color: colors.primary)
+                          : null,
+                      onTap: () => _assignHighlight(
+                          sheetContext, contactsProvider, contactId, h.id),
+                    ),
+                ],
+              ),
             ),
-          ),
           ),
         );
       },
@@ -982,8 +995,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
     final surfaceColor =
         isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
-    final iconColor =
-        isDark ? _accentColor : _accentColor;
+    final iconColor = isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1131,8 +1143,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
     final surfaceColor =
         isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
-    final accentColor =
-        isDark ? _accentColor : _accentColor;
+    final accentColor = isDark ? _accentColor : _accentColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

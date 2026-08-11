@@ -34,7 +34,12 @@ class PhotoViewer extends StatelessWidget {
         },
         child: Stack(
           children: [
-            Center(
+            // Positioned.fill (plutôt que Center) donne des contraintes
+            // bornées à l'InteractiveViewer : sans ça, Image.network se
+            // dimensionne à la résolution native du fichier (souvent une
+            // petite miniature), et BoxFit.contain n'a rien à agrandir —
+            // d'où la photo minuscule constatée sur les avatars compressés.
+            Positioned.fill(
               child: InteractiveViewer(
                 minScale: 1,
                 maxScale: 4,
@@ -42,6 +47,8 @@ class PhotoViewer extends StatelessWidget {
                   tag: imageUrl,
                   child: Image.network(
                     imageUrl,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.contain,
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
@@ -62,7 +69,8 @@ class PhotoViewer extends StatelessWidget {
               right: 8,
               child: SafeArea(
                 child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                  icon: const Icon(Icons.close_rounded,
+                      color: Colors.white, size: 28),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
