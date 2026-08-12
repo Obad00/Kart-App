@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/app_update_service.dart';
@@ -15,6 +14,7 @@ import '../profile/ui/profile_page.dart';
 // import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
 import '../scan/ui/scan_page.dart';
+import '../../shared/tour/tour_prefs.dart';
 
 class HomeShell extends StatefulWidget {
   final int initialIndex;
@@ -35,7 +35,7 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
-  static const _tourSeenKey = 'has_seen_tab_tour';
+  static const _tourKey = 'tab_bar';
 
   late int _index;
   late List<AnimationController> _scaleControllers;
@@ -101,8 +101,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   Future<void> _maybeCheckForUpdate() async {
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final tourAlreadySeen = prefs.getBool(_tourSeenKey) ?? false;
+    final tourAlreadySeen = await TourPrefs.hasSeen(_tourKey);
     if (!tourAlreadySeen && !widget.forceTourReplay) return;
 
     final info = await AppUpdateService.checkForUpdate();
@@ -147,9 +146,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   Future<void> _maybeStartTour() async {
     if (!mounted) return;
 
-    if (!widget.forceTourReplay) {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool(_tourSeenKey) ?? false) return;
+    if (!widget.forceTourReplay && await TourPrefs.hasSeen(_tourKey)) {
+      return;
     }
 
     if (!mounted) return;
@@ -179,10 +177,12 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     if (showJobMatch) keys.add(_navKeys[3]); // Offres
     keys.add(_navKeys[showJobMatch ? 4 : 3]); // Profil
 
+    // Marqué "vu" dès le démarrage (pas à la fin) : que l'utilisateur suive
+    // le guide jusqu'au bout ou clique "Passer" en cours de route, il ne
+    // doit plus jamais redémarrer tout seul après.
+    await TourPrefs.markSeen(_tourKey);
+    if (!mounted) return;
     ShowCaseWidget.of(context).startShowCase(keys);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_tourSeenKey, true);
   }
 
   @override

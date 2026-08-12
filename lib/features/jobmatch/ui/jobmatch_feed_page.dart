@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
@@ -17,12 +19,24 @@ class JobMatchFeedPage extends StatefulWidget {
 }
 
 class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
+  final _dashboardTourKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<JobMatchProvider>().loadFeed();
+      _maybeStartTour();
     });
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('jobmatch_feed')) return;
+
+    await TourPrefs.markSeen('jobmatch_feed');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase([_dashboardTourKey]);
   }
 
   @override
@@ -42,11 +56,18 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.favorite_outline_rounded),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const JobMatchMatchesPage()),
+          Showcase(
+            key: _dashboardTourKey,
+            title: 'Votre tableau de bord',
+            description:
+                'Retrouvez ici vos matchs, les offres aimées et celles passées.',
+            targetShapeBorder: const CircleBorder(),
+            child: IconButton(
+              icon: const Icon(Icons.favorite_outline_rounded),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const JobMatchMatchesPage()),
+              ),
             ),
           ),
         ],
@@ -59,7 +80,6 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
             _buildEmptyState(context, colors)
           else
             _buildCardStack(context, provider),
-
           if (provider.lastMatch != null) _buildMatchOverlay(context, provider),
         ],
       ),
@@ -157,18 +177,23 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 color: _accentBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.work_outline_rounded, size: 40, color: _accentBlue),
+              child: const Icon(Icons.work_outline_rounded,
+                  size: 40, color: _accentBlue),
             ),
             const SizedBox(height: 20),
             Text(
               'Aucune offre pour le moment',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: colors.onSurface),
             ),
             const SizedBox(height: 8),
             Text(
               'Ajoutez des compétences à votre profil pour recevoir des suggestions d\'offres correspondantes.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.5)),
+              style: TextStyle(
+                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -185,7 +210,8 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accentBlue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -217,7 +243,10 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               const SizedBox(height: 20),
               const Text(
                 "C'est un match !",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+                style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white),
               ),
               const SizedBox(height: 10),
               Text(
@@ -242,7 +271,8 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                       provider.dismissMatch();
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const JobMatchMatchesPage()),
+                        MaterialPageRoute(
+                            builder: (_) => const JobMatchMatchesPage()),
                       );
                     },
                   ),

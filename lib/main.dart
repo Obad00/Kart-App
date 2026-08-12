@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'config/feature_flags.dart';
 import 'core/deep_links/deep_link_service.dart';
+import 'core/services/connectivity_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'shared/widgets/offline_banner.dart';
 
 import 'features/auth/providers/auth_provider.dart';
 import 'features/digital_card/providers/card_provider.dart';
@@ -94,6 +96,7 @@ class _KartAppState extends State<KartApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
@@ -127,7 +130,53 @@ class _KartAppState extends State<KartApp> {
               navigatorKey: navigatorKey,
               debugShowCheckedModeBanner: false,
               builder: (context, child) => ShowCaseWidget(
-                builder: (context) => child!,
+                builder: (context) => Column(
+                  children: [
+                    const OfflineBanner(),
+                    Expanded(child: child!),
+                  ],
+                ),
+                // Boutons Précédent/Passer/Suivant affichés sur CHAQUE guide
+                // de l'app (tous écrans confondus) — pas besoin de les
+                // redéfinir par tour. "Passer" ferme juste l'overlay ; le
+                // guide est déjà marqué comme vu dès son démarrage (cf.
+                // TourPrefs), donc il ne revient pas au prochain lancement.
+                globalTooltipActionConfig: const TooltipActionConfig(
+                  position: TooltipActionPosition.outside,
+                  alignment: MainAxisAlignment.spaceBetween,
+                ),
+                globalTooltipActions: [
+                  TooltipActionButton(
+                    type: TooltipDefaultActionType.previous,
+                    name: 'Précédent',
+                    backgroundColor: Colors.transparent,
+                    textStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TooltipActionButton(
+                    type: TooltipDefaultActionType.skip,
+                    name: 'Passer',
+                    backgroundColor: Colors.transparent,
+                    textStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TooltipActionButton(
+                    type: TooltipDefaultActionType.next,
+                    name: 'Suivant',
+                    backgroundColor: Colors.white,
+                    textStyle: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
               theme: AppTheme.light(),
               darkTheme: AppTheme.dark(),

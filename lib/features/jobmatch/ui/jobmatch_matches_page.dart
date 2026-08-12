@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../../../shared/tour/tour_prefs.dart';
 import '../model/job_feed_item.dart';
 import '../services/jobmatch_service.dart';
 
@@ -20,6 +22,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
     with SingleTickerProviderStateMixin {
   final _service = JobMatchService();
   late final TabController _tabController;
+  final _tabsTourKey = GlobalKey();
   List<JobMatchResult> _matches = [];
   List<LikedJobItem> _liked = [];
   List<LikedJobItem> _rejected = [];
@@ -35,6 +38,16 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       initialIndex: widget.initialTabIndex,
     );
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('jobmatch_matches')) return;
+
+    await TourPrefs.markSeen('jobmatch_matches');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase([_tabsTourKey]);
   }
 
   @override
@@ -87,15 +100,24 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       appBar: AppBar(
         title: const Text('Mon tableau de bord'),
         centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: _accentBlue,
-          indicatorColor: _accentBlue,
-          tabs: const [
-            Tab(text: 'Matchs'),
-            Tab(text: 'Aimées'),
-            Tab(text: 'Passées'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Showcase(
+            key: _tabsTourKey,
+            title: 'Vos offres',
+            description:
+                'Matchs mutuels, offres aimées, et offres passées que vous pouvez reconsidérer.',
+            child: TabBar(
+              controller: _tabController,
+              labelColor: _accentBlue,
+              indicatorColor: _accentBlue,
+              tabs: const [
+                Tab(text: 'Matchs'),
+                Tab(text: 'Aimées'),
+                Tab(text: 'Passées'),
+              ],
+            ),
+          ),
         ),
       ),
       body: _loading

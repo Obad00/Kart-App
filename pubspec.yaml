@@ -80,6 +80,15 @@ dependencies:
   # d'intérêt candidat, qui doit rouvrir l'app directement sur cet écran.
   app_links: ^6.3.2
 
+  # Mode hors-ligne (lecture seule) : met en cache disque les réponses GET
+  # de l'API, servies automatiquement si le réseau ne répond pas — aucune
+  # donnée déjà chargée ne disparaît si la connexion coupe.
+  dio_cache_interceptor: ^3.5.0
+  dio_cache_interceptor_file_store: ^1.1.0
+
+  # Détection de l'état de la connexion, pour afficher un bandeau "Hors ligne".
+  connectivity_plus: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
