@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
+import '../model/job_feed_item.dart';
 import '../providers/jobmatch_provider.dart';
 import '../widgets/job_swipe_card.dart';
 import 'jobmatch_matches_page.dart';
@@ -20,6 +22,24 @@ class JobMatchFeedPage extends StatefulWidget {
 
 class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
   final _dashboardTourKey = GlobalKey();
+
+  // Petite célébration (icône + retour haptique/sonore) à chaque "like" —
+  // distincte de l'overlay "C'est un match !" (ça, c'est réservé à un vrai
+  // match mutuel confirmé par le serveur). Purement visuelle/immédiate,
+  // ne bloque rien : elle disparaît toute seule.
+  JobFeedItem? _celebrating;
+
+  void _handleLike(JobFeedItem job, JobMatchProvider provider) {
+    HapticFeedback.mediumImpact();
+    SystemSound.play(SystemSoundType.click);
+    setState(() => _celebrating = job);
+    Future.delayed(const Duration(milliseconds: 1300), () {
+      if (mounted && _celebrating?.id == job.id) {
+        setState(() => _celebrating = null);
+      }
+    });
+    provider.swipe(job, 'like');
+  }
 
   @override
   void initState() {
@@ -81,6 +101,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
           else
             _buildCardStack(context, provider),
           if (provider.lastMatch != null) _buildMatchOverlay(context, provider),
+          if (_celebrating != null) _buildLikedCelebration(_celebrating!),
         ],
       ),
     );
@@ -110,7 +131,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               _buildActionButton(
                 icon: Icons.favorite_rounded,
                 color: Colors.green,
-                onTap: () => provider.swipe(topJob, 'like'),
+                onTap: () => _handleLike(topJob, provider),
               ),
             ],
           ),
@@ -157,7 +178,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         return JobSwipeCard(
           key: ValueKey(job.id),
           job: job,
-          onLike: () => provider.swipe(job, 'like'),
+          onLike: () => _handleLike(job, provider),
           onReject: () => provider.swipe(job, 'reject'),
         );
       }).toList(),
@@ -255,18 +276,14 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 style: const TextStyle(fontSize: 15, color: Colors.white70),
               ),
               const SizedBox(height: 36),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              // Empilés (plutôt que côte à côte) : deux boutons "expanded"
+              // dans une Row débordaient sur la plupart des téléphones
+              // (chacun a une largeur minimale de 200px, largement plus que
+              // ce que la moitié d'un écran standard peut offrir).
+              Column(
                 children: [
-                  AuthOutlineButton(
-                    label: 'Continuer',
-                    expanded: false,
-                    onTap: () => provider.dismissMatch(),
-                  ),
-                  const SizedBox(width: 14),
                   AuthPrimaryButton(
                     label: 'Voir mes matchs',
-                    expanded: false,
                     onTap: () {
                       provider.dismissMatch();
                       Navigator.push(
@@ -276,9 +293,90 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                       );
                     },
                   ),
+                  const SizedBox(height: 12),
+                  AuthOutlineButton(
+                    label: 'Continuer',
+                    onTap: () => provider.dismissMatch(),
+                  ),
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Petite célébration immédiate au like — pas bloquante, disparaît toute
+  /// seule (contrairement à l'overlay de match, qu'il faut fermer).
+  Widget _buildLikedCelebration(JobFeedItem job) {
+    return IgnorePointer(
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(job.id),
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.elasticOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value.clamp(0.0, 1.3),
+              child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.celebration_rounded,
+                    color: Colors.white, size: 44),
+                const SizedBox(height: 12),
+                const Text(
+                  'Bravo ! 🎉',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Vous avez aimé l'offre",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+                Text(
+                  job.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

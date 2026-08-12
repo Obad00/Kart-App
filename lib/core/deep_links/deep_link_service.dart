@@ -32,15 +32,30 @@ class DeepLinkService {
 
   void _handle(Uri uri) {
     if (uri.scheme != 'kart') return;
+    if (uri.host != 'jobmatch') return;
 
-    // kart://jobmatch/liked — ouvre l'onglet "Aimées" du tableau de bord
-    // JobMatch, depuis le mail envoyé quand un candidat like une offre.
-    if (uri.host == 'jobmatch' && uri.pathSegments.contains('liked')) {
-      _openLikedJobs();
+    // kart://jobmatch/liked — mail envoyé quand un candidat like une offre.
+    if (uri.pathSegments.contains('liked')) {
+      _openDashboard(tabIndex: 1); // Aimées
+      return;
     }
+
+    // kart://jobmatch/matches — mail envoyé quand un match se crée.
+    if (uri.pathSegments.contains('matches')) {
+      _openDashboard(tabIndex: 0); // Matchs
+      return;
+    }
+
+    // kart://jobmatch (sans chemin) — mail envoyé quand une entreprise
+    // like un candidat qui n'a pas encore liké l'offre : pas de tableau de
+    // bord à ouvrir spécifiquement (pas encore de match/like), juste le
+    // fil d'offres où il peut la retrouver et l'aimer.
+    _openFeedTab();
   }
 
-  void _openLikedJobs() {
+  /// [tabIndex] : onglet du tableau de bord JobMatch à ouvrir (0 = Matchs,
+  /// 1 = Aimées, 2 = Passées).
+  void _openDashboard({required int tabIndex}) {
     // Attend que le premier frame soit posé (cas cold start, où l'app vient
     // tout juste de démarrer) avant de naviguer.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -49,7 +64,19 @@ class DeepLinkService {
       navigator.pushNamedAndRemoveUntil(
         '/home',
         (route) => false,
-        arguments: {'tab': 3, 'openLikedJobs': true},
+        arguments: {'tab': 3, 'openDashboardTab': tabIndex},
+      );
+    });
+  }
+
+  void _openFeedTab() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      navigator.pushNamedAndRemoveUntil(
+        '/home',
+        (route) => false,
+        arguments: {'tab': 3},
       );
     });
   }

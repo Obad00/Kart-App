@@ -3,6 +3,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../model/job_feed_item.dart';
 import '../services/jobmatch_service.dart';
+import '../widgets/job_details_sheet.dart';
 
 const _accentBlue = Color(0xFF3B82F6);
 
@@ -205,6 +206,13 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           title: match.jobTitle,
           subtitle: match.companyName,
           trailing: '${match.score}%',
+          onTap: () => showJobDetailsSheet(
+            context,
+            title: match.jobTitle,
+            companyName: match.companyName,
+            location: match.location,
+            description: match.description,
+          ),
         );
       },
     );
@@ -227,6 +235,13 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           title: liked.jobTitle,
           subtitle: liked.companyName,
           trailing: null,
+          onTap: () => showJobDetailsSheet(
+            context,
+            title: liked.jobTitle,
+            companyName: liked.companyName,
+            location: liked.location,
+            description: liked.description,
+          ),
         );
       },
     );
@@ -274,8 +289,9 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
     required String subtitle,
     String? trailing,
     Widget? trailingWidget,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final content = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.onSurface.withValues(alpha: 0.03),
@@ -316,6 +332,14 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
                     fontWeight: FontWeight.w800, color: _accentBlue)),
         ],
       ),
+    );
+
+    if (onTap == null) return content;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: content,
     );
   }
 }

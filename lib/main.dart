@@ -259,7 +259,7 @@ class _KartAppState extends State<KartApp> {
                   return HomeShell(
                     initialIndex: args?['tab'] ?? 0,
                     forceTourReplay: args?['replayTour'] ?? false,
-                    openLikedJobs: args?['openLikedJobs'] ?? false,
+                    openDashboardTab: args?['openDashboardTab'] as int?,
                   );
                 },
               },
