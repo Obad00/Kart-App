@@ -46,9 +46,19 @@ class AppUpdateService {
 
   static Future<AppUpdateInfo?> _checkAppStore(
       PackageInfo packageInfo) async {
+    // Sans paramètre 'country', l'API iTunes lookup interroge le store US
+    // par défaut — où traînait une fiche périmée (version 1.0.3, jamais mise
+    // à jour) alors que l'app est réellement publiée/à jour côté store
+    // Sénégal ('sn'). Résultat : la comparaison de version pensait que
+    // l'utilisateur avait toujours la dernière version, l'alerte ne
+    // s'affichait donc jamais. Fixé en interrogeant explicitement le store
+    // où l'app est effectivement suivie.
     final response = await _dio.get(
       'https://itunes.apple.com/lookup',
-      queryParameters: {'bundleId': packageInfo.packageName},
+      queryParameters: {
+        'bundleId': packageInfo.packageName,
+        'country': 'sn',
+      },
     );
 
     final results = response.data?['results'];

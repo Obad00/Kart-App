@@ -12,9 +12,14 @@ import '../digital_card/ui/my_digital_card_page.dart';
 import '../jobmatch/ui/jobmatch_feed_page.dart';
 import '../jobmatch/ui/jobmatch_matches_page.dart';
 import '../profile/ui/profile_page.dart';
+import '../profile_completion/helpers/completion_helper.dart';
+import '../profile_completion/providers/candidate_skills_provider.dart';
+import '../profile_completion/providers/profile_completion_provider.dart';
+import '../profile_completion/ui/completion_form_page.dart';
 // import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
 import '../scan/ui/scan_page.dart';
+import '../../shared/tour/tour_prefs.dart';
 
 class HomeShell extends StatefulWidget {
   final int initialIndex;
@@ -35,7 +40,8 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
-  static const _tourSeenKey = 'has_seen_tab_tour';
+  static const _tourKey = 'tab_bar';
+  static const _profileReminderLastShownKey = 'profile_reminder_last_shown';
 
   late int _index;
   late List<AnimationController> _scaleControllers;
@@ -82,6 +88,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         _maybeStartTour();
       }
       _maybeCheckForUpdate();
+      _maybeShowProfileReminder();
     });
   }
 
@@ -101,8 +108,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   Future<void> _maybeCheckForUpdate() async {
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final tourAlreadySeen = prefs.getBool(_tourSeenKey) ?? false;
+    final tourAlreadySeen = await TourPrefs.hasSeen(_tourKey);
     if (!tourAlreadySeen && !widget.forceTourReplay) return;
 
     final info = await AppUpdateService.checkForUpdate();
@@ -144,12 +150,76 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     );
   }
 
+  /// Rappel doux, une fois par jour max, tant que le profil est sous 80% de
+  /// complétude — ne s'affiche pas le jour du tout premier lancement (pour
+  /// ne pas superposer avec le tour guidé).
+  Future<void> _maybeShowProfileReminder() async {
+    if (!mounted) return;
+
+    final tourAlreadySeen = await TourPrefs.hasSeen(_tourKey);
+    if (!tourAlreadySeen && !widget.forceTourReplay) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (prefs.getString(_profileReminderLastShownKey) == today) return;
+
+    if (!mounted) return;
+    final completionProvider = context.read<ProfileCompletionProvider>();
+    final skillsProvider = context.read<CandidateSkillsProvider>();
+    if (completionProvider.loading || skillsProvider.loading) return;
+
+    final result = CompletionHelper.calculate(
+      completionProvider.model,
+      hasSkills: skillsProvider.skills.isNotEmpty,
+    );
+    if (result.percent >= 80) return;
+
+    await prefs.setString(_profileReminderLastShownKey, today);
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Complétez votre profil'),
+        content: Text(
+          'Votre profil est complété à ${result.percent.toInt()}%. '
+          'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (_) => const CompletionFormPage(),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Compléter'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _maybeStartTour() async {
     if (!mounted) return;
 
-    if (!widget.forceTourReplay) {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool(_tourSeenKey) ?? false) return;
+    if (!widget.forceTourReplay && await TourPrefs.hasSeen(_tourKey)) {
+      return;
     }
 
     if (!mounted) return;
@@ -179,10 +249,12 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     if (showJobMatch) keys.add(_navKeys[3]); // Offres
     keys.add(_navKeys[showJobMatch ? 4 : 3]); // Profil
 
+    // Marqué "vu" dès le démarrage (pas à la fin) : que l'utilisateur suive
+    // le guide jusqu'au bout ou clique "Passer" en cours de route, il ne
+    // doit plus jamais redémarrer tout seul après.
+    await TourPrefs.markSeen(_tourKey);
+    if (!mounted) return;
     ShowCaseWidget.of(context).startShowCase(keys);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_tourSeenKey, true);
   }
 
   @override

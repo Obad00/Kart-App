@@ -15,6 +15,8 @@ import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/tour/tour_prefs.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
 import '../../profile_completion/widgets/completion_sections.dart';
@@ -43,6 +45,10 @@ class _ProfilePageState extends State<ProfilePage>
 
   String _appVersion = '';
 
+  final _avatarTourKey = GlobalKey();
+  final _editInfoTourKey = GlobalKey();
+  final _settingsTourKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +72,19 @@ class _ProfilePageState extends State<ProfilePage>
 
     _animController.forward();
     _loadAppVersion();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('profile')) return;
+
+    await TourPrefs.markSeen('profile');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase(
+      [_avatarTourKey, _editInfoTourKey, _settingsTourKey],
+    );
   }
 
   Future<void> _loadAppVersion() async {
@@ -116,11 +135,18 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             centerTitle: true,
             actions: [
-              IconButton(
-                onPressed: () => _showSettings(context),
-                icon: Icon(
-                  Icons.settings_outlined,
-                  color: colors.onSurface.withValues(alpha: 0.7),
+              Showcase(
+                key: _settingsTourKey,
+                title: 'Réglages',
+                description:
+                    'Retrouvez vos préférences, le centre d\'aide et les guides ici.',
+                targetShapeBorder: const CircleBorder(),
+                child: IconButton(
+                  onPressed: () => _showSettings(context),
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: colors.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
             ],
@@ -165,19 +191,26 @@ class _ProfilePageState extends State<ProfilePage>
                         onToggle: () => setState(
                           () => _personalInfoExpanded = !_personalInfoExpanded,
                         ),
-                        trailing: TextButton(
-                          onPressed: () => _openForm(context, section: 'basic'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: companyColor,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            minimumSize: const Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Modifier',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600),
+                        trailing: Showcase(
+                          key: _editInfoTourKey,
+                          title: 'Modifier vos infos',
+                          description:
+                              'Mettez à jour votre nom, email, poste, entreprise et téléphone ici.',
+                          child: TextButton(
+                            onPressed: () =>
+                                _openForm(context, section: 'basic'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: companyColor,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Modifier',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         children: [
@@ -379,69 +412,76 @@ class _ProfilePageState extends State<ProfilePage>
             children: [
               // Avatar : tap = voir en grand (comme les applis modernes),
               // badge caméra séparé = changer la photo.
-              Stack(
-                children: [
-                  GestureDetector(
-                    onTap: avatarUrl == null
-                        ? _pickAndUploadAvatar
-                        : () => PhotoViewer.show(context, avatarUrl),
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            companyColor,
-                            companyColor.withValues(alpha: 0.7),
-                          ],
-                        ),
-                      ),
-                      child: Hero(
-                        tag: avatarUrl ?? 'profile-avatar-placeholder',
-                        child: CircleAvatar(
-                          radius: 32,
-                          backgroundColor: colors.surface,
-                          backgroundImage: avatarUrl != null
-                              ? CachedNetworkImageProvider(avatarUrl)
-                              : null,
-                          child: avatarUrl == null
-                              ? Text(
-                                  _initials(fullName),
-                                  style: TextStyle(
-                                    color: companyColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 20,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _pickAndUploadAvatar,
+              Showcase(
+                key: _avatarTourKey,
+                title: 'Votre photo',
+                description:
+                    'Appuyez pour l\'agrandir, ou sur l\'icône appareil photo pour la changer.',
+                targetShapeBorder: const CircleBorder(),
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: avatarUrl == null
+                          ? _pickAndUploadAvatar
+                          : () => PhotoViewer.show(context, avatarUrl),
                       child: Container(
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
-                          color: companyColor,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: colors.surface,
-                            width: 2,
+                          gradient: LinearGradient(
+                            colors: [
+                              companyColor,
+                              companyColor.withValues(alpha: 0.7),
+                            ],
                           ),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          size: 11,
-                          color: Colors.white,
+                        child: Hero(
+                          tag: avatarUrl ?? 'profile-avatar-placeholder',
+                          child: CircleAvatar(
+                            radius: 32,
+                            backgroundColor: colors.surface,
+                            backgroundImage: avatarUrl != null
+                                ? CachedNetworkImageProvider(avatarUrl)
+                                : null,
+                            child: avatarUrl == null
+                                ? Text(
+                                    _initials(fullName),
+                                    style: TextStyle(
+                                      color: companyColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _pickAndUploadAvatar,
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: companyColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colors.surface,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(width: 16),
@@ -1081,8 +1121,14 @@ class _ProfilePageState extends State<ProfilePage>
               _buildSettingsItem(
                 context,
                 icon: Icons.travel_explore_rounded,
-                title: 'Revoir le tutoriel',
-                onTap: () {
+                title: 'Revoir les guides',
+                onTap: () async {
+                  // Réinitialise tous les guides (barre de navigation +
+                  // chaque écran), pas seulement celui de la barre — ils se
+                  // redéclenchent alors au fil de la navigation, comme au
+                  // tout premier lancement.
+                  await TourPrefs.resetAll();
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                   Navigator.pushNamedAndRemoveUntil(
                     context,

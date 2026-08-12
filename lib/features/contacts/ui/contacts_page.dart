@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../../../shared/tour/tour_prefs.dart';
 import 'contacts_grouped_view.dart';
 
 class ContactsPage extends StatefulWidget {
@@ -12,7 +14,23 @@ class _ContactsPageState extends State<ContactsPage> {
   final GlobalKey<ContactsGroupedViewState> _contactsKey =
       GlobalKey<ContactsGroupedViewState>();
   final ValueNotifier<int> _selectedCountNotifier = ValueNotifier<int>(0);
+  final _exportTourKey = GlobalKey();
   bool _isSelectionMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('contacts')) return;
+
+    await TourPrefs.markSeen('contacts');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase([_exportTourKey]);
+  }
 
   @override
   void dispose() {
@@ -42,14 +60,20 @@ class _ContactsPageState extends State<ContactsPage> {
           const Color themeBlue = Color(0xFF3B82F6);
 
           if (!_isSelectionMode) {
-            return FloatingActionButton(
-              onPressed: () => setState(() => _isSelectionMode = true),
-              backgroundColor: themeBlue,
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child:
-                  const Icon(Icons.download_rounded, color: Colors.white),
+            return Showcase(
+              key: _exportTourKey,
+              title: 'Exporter vos contacts',
+              description:
+                  'Sélectionnez des contacts pour les exporter en CSV.',
+              targetShapeBorder: const CircleBorder(),
+              child: FloatingActionButton(
+                onPressed: () => setState(() => _isSelectionMode = true),
+                backgroundColor: themeBlue,
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: const Icon(Icons.download_rounded, color: Colors.white),
+              ),
             );
           }
 
@@ -77,8 +101,7 @@ class _ContactsPageState extends State<ContactsPage> {
                 FloatingActionButton.small(
                   heroTag: 'delete_contacts',
                   onPressed: () async {
-                    await _contactsKey.currentState
-                        ?.deleteSelectedContacts();
+                    await _contactsKey.currentState?.deleteSelectedContacts();
                     if (mounted) {
                       setState(() => _isSelectionMode = false);
                     }
