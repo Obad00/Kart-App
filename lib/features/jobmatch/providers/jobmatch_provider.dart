@@ -13,6 +13,15 @@ class JobMatchProvider extends ChangeNotifier {
   String? error;
   JobMatchResult? lastMatch;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    feed = [];
+    loading = false;
+    error = null;
+    lastMatch = null;
+    notifyListeners();
+  }
+
   Future<void> loadFeed() async {
     loading = true;
     error = null;

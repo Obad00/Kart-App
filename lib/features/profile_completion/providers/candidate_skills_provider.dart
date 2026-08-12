@@ -12,6 +12,14 @@ class CandidateSkillsProvider extends ChangeNotifier {
   bool loading = false;
   String? error;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    skills = [];
+    loading = false;
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     loading = true;
     error = null;

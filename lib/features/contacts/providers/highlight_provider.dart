@@ -6,6 +6,13 @@ class HighlightProvider extends ChangeNotifier {
   List<HighlightModel> highlights = [];
   bool isLoading = false;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    highlights = [];
+    isLoading = false;
+    notifyListeners();
+  }
+
   HighlightModel? get active {
     try {
       return highlights.firstWhere((h) => h.isActive);
@@ -21,8 +28,7 @@ class HighlightProvider extends ChangeNotifier {
 
     try {
       final data = await CardService.fetchHighlights();
-      highlights =
-          data.map((e) => HighlightModel.fromJson(e)).toList();
+      highlights = data.map((e) => HighlightModel.fromJson(e)).toList();
     } finally {
       isLoading = false;
       notifyListeners();

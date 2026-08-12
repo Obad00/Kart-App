@@ -11,6 +11,13 @@ class ProfileCompletionProvider extends ChangeNotifier {
 
   bool loading = false;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    model = ProfileCompletionModel();
+    loading = false;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     loading = true;
     notifyListeners();
@@ -19,17 +26,16 @@ class ProfileCompletionProvider extends ChangeNotifier {
 
     loading = false;
     notifyListeners();
-  } 
+  }
 
   Future<bool> save() async {
     return await service.update(model);
   }
 
   void updateModel(ProfileCompletionModel newModel) {
-  model = newModel;
-  notifyListeners();
-}
-
+    model = newModel;
+    notifyListeners();
+  }
 
   // getters shortcuts
   String? get jobTitle => model.jobTitle;

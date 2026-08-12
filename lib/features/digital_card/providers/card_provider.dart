@@ -78,6 +78,40 @@ class CardProvider extends ChangeNotifier {
   bool get hasQrCode => _qrSvg != null && _qrSvg!.isNotEmpty;
   bool get isReady => _status == CardStatus.hasCard && hasQrCode;
 
+  /// Remet le provider à zéro — appelé à la déconnexion pour qu'un nouveau
+  /// compte connecté sur le même appareil ne voie jamais, même un instant,
+  /// les données du compte précédent (ce provider est un singleton qui
+  /// persiste tant que l'app tourne, il n'est jamais recréé au logout).
+  void reset() {
+    _status = CardStatus.idle;
+    _qrSvg = null;
+    _error = null;
+    jobTitle = null;
+    company = null;
+    phone = null;
+    email = null;
+    linkedin = null;
+    _theme = null;
+    website = null;
+    github = null;
+    instagram = null;
+    facebook = null;
+    experiences = [];
+    educations = [];
+    plan = null;
+    scanCount = null;
+    shareCount = null;
+    _slug = null;
+    _shareUrl = null;
+    _companyLogo = null;
+    _companyPrimaryColor = null;
+    _accentColor = null;
+    _logo = null;
+    _isQrLoading = false;
+    _isSummaryLoading = false;
+    notifyListeners();
+  }
+
   // --- METHODS ---
   Future<void> loadCardSummary() async {
     _isSummaryLoading = true;
