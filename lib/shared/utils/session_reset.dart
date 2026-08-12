@@ -5,6 +5,9 @@ import '../../features/contacts/providers/contacts_provider.dart';
 import '../../features/contacts/providers/highlight_provider.dart';
 import '../../features/digital_card/providers/card_provider.dart';
 import '../../features/jobmatch/providers/jobmatch_provider.dart';
+import '../../features/leads/providers/leads_provider.dart';
+import '../../features/onboarding/providers/company_provider.dart';
+import '../../features/plans/providers/plan_provider.dart';
 import '../../features/profile_completion/providers/candidate_skills_provider.dart';
 import '../../features/profile_completion/providers/profile_completion_provider.dart';
 
@@ -20,12 +23,37 @@ import '../../features/profile_completion/providers/profile_completion_provider.
 /// partout où l'utilisateur se déconnecte.
 Future<void> logoutAndResetSession(BuildContext context) async {
   await context.read<AuthProvider>().logout();
-
   if (!context.mounted) return;
+  resetSessionProviders(context);
+}
+
+/// La partie "vider les providers" seule, sans repasser par
+/// `AuthProvider.logout()` — pour les flux qui appellent déjà `logout()`
+/// eux-mêmes en interne (ex: `AuthProvider.deleteAccount()`).
+void resetSessionProviders(BuildContext context) {
   context.read<CardProvider>().reset();
   context.read<ContactsProvider>().clear();
   context.read<HighlightProvider>().reset();
   context.read<ProfileCompletionProvider>().reset();
   context.read<CandidateSkillsProvider>().reset();
   context.read<JobMatchProvider>().reset();
+  context.read<CompanyProvider>().reset();
+  context.read<PlanProvider>().reset();
+  context.read<LeadsProvider>().reset();
+}
+
+/// Symétrique de [logoutAndResetSession] : recharge les données du compte
+/// désormais connecté. Ces providers ne sont chargés qu'une seule fois à
+/// la création de l'app (dans le MultiProvider) — après une déconnexion
+/// suivie d'une reconnexion (même compte ou un autre) sans redémarrage
+/// complet de l'app, rien ne les rechargeait, ils restaient vides
+/// indéfiniment. À appeler juste après une connexion réussie.
+Future<void> loadSessionData(BuildContext context) async {
+  await Future.wait([
+    context.read<CardProvider>().loadCardSummary(),
+    context.read<ContactsProvider>().fetchGroupedContacts(),
+    context.read<HighlightProvider>().loadHighlights(),
+    context.read<ProfileCompletionProvider>().load(),
+    context.read<CandidateSkillsProvider>().load(),
+  ]);
 }

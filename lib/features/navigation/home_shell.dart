@@ -20,6 +20,7 @@ import '../profile_completion/ui/completion_form_page.dart';
 import '../contacts/ui/contacts_page.dart';
 import '../scan/ui/scan_page.dart';
 import '../../shared/tour/tour_prefs.dart';
+import '../../shared/utils/session_reset.dart';
 
 class HomeShell extends StatefulWidget {
   final int initialIndex;
@@ -41,7 +42,24 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   static const _tourKey = 'tab_bar';
-  static const _profileReminderLastShownKey = 'profile_reminder_last_shown';
+  // Rappel de complétion de profil : jusqu'à 3 fois par jour, avec au
+  // moins 3h30 d'écart entre deux affichages (évite qu'il s'affiche
+  // plusieurs fois quasi coup sur coup si l'app est rouverte plusieurs
+  // fois d'affilée en peu de temps).
+  static const _profileReminderMaxPerDay = 3;
+  static const _profileReminderMinGap = Duration(hours: 3, minutes: 30);
+  static const _profileReminderDateKey = 'profile_reminder_date';
+  static const _profileReminderCountKey = 'profile_reminder_count';
+  static const _profileReminderLastShownAtKey =
+      'profile_reminder_last_shown_at';
+
+  // Suivi de l'utilisateur pour lequel les données (profil, compétences,
+  // contacts...) ont été chargées — statique pour survivre à un
+  // remount de HomeShell (ex: après une déconnexion/reconnexion sans
+  // redémarrage complet de l'app). Ces providers ne sont chargés qu'une
+  // seule fois à la création de l'app ; sans ce suivi, rien ne les
+  // rechargeait après un changement de session, et ils restaient vides.
+  static int? _sessionDataLoadedForUserId;
 
   late int _index;
   late List<AnimationController> _scaleControllers;
@@ -86,6 +104,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       await _migrateLegacyTourFlag();
       if (!mounted) return;
 
+      await _maybeReloadSessionData();
+      if (!mounted) return;
+
       if (widget.openLikedJobs) {
         // Vient d'un deep link (mail d'intérêt candidat) : priorité à la
         // navigation demandée, pas de tour guidé cette fois-ci pour ne pas
@@ -97,6 +118,20 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       _maybeCheckForUpdate();
       _maybeShowProfileReminder();
     });
+  }
+
+  /// Recharge les données propres au compte (profil, compétences,
+  /// contacts, highlights, carte) si elles ne l'ont pas déjà été pour cet
+  /// utilisateur précis — couvre le cas d'une connexion fraîche après une
+  /// déconnexion, sans redémarrage complet de l'app (où rien d'autre ne
+  /// déclenche ce chargement, cf. session_reset.dart).
+  Future<void> _maybeReloadSessionData() async {
+    if (!mounted) return;
+    final userId = context.read<AuthProvider>().user?.id;
+    if (userId == null || userId == _sessionDataLoadedForUserId) return;
+
+    _sessionDataLoadedForUserId = userId;
+    await loadSessionData(context);
   }
 
   static const _legacyTourSeenKey = 'has_seen_tab_tour';
@@ -168,14 +203,28 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   }
 
   /// Rappel doux, une fois par jour max, tant que le profil est sous 80% de
-  /// complétude — ne s'affiche pas le jour du tout premier lancement (pour
-  /// ne pas superposer avec le tour guidé).
+  /// complétude — jusqu'à 3 fois par jour (espacées d'au moins 3h30), ne
+  /// s'affiche pas le jour du tout premier lancement (pour ne pas
+  /// superposer avec le tour guidé).
   Future<void> _maybeShowProfileReminder() async {
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (prefs.getString(_profileReminderLastShownKey) == today) return;
+    final now = DateTime.now();
+    final today = now.toIso8601String().substring(0, 10);
+
+    final storedDate = prefs.getString(_profileReminderDateKey);
+    final countToday =
+        storedDate == today ? (prefs.getInt(_profileReminderCountKey) ?? 0) : 0;
+    if (countToday >= _profileReminderMaxPerDay) return;
+
+    final lastShownAtMillis = prefs.getInt(_profileReminderLastShownAtKey);
+    if (lastShownAtMillis != null) {
+      final elapsed = now.difference(
+        DateTime.fromMillisecondsSinceEpoch(lastShownAtMillis),
+      );
+      if (elapsed < _profileReminderMinGap) return;
+    }
 
     // Laisse une chance au tour guidé (démarrage async : charge d'abord le
     // résumé de la carte) de s'afficher en premier s'il doit le faire, pour
@@ -197,7 +246,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     );
     if (result.percent >= 80) return;
 
-    await prefs.setString(_profileReminderLastShownKey, today);
+    await prefs.setString(_profileReminderDateKey, today);
+    await prefs.setInt(_profileReminderCountKey, countToday + 1);
+    await prefs.setInt(
+        _profileReminderLastShownAtKey, now.millisecondsSinceEpoch);
     if (!mounted) return;
 
     showDialog(

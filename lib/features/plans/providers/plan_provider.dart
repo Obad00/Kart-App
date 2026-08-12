@@ -16,6 +16,17 @@ class PlanProvider extends ChangeNotifier {
   int? currentSubscriptionId;
   String? pendingPlanSlug;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset) —
+  /// ne touche pas [_plans] : c'est le catalogue des offres, pas une
+  /// donnée propre au compte.
+  void reset() {
+    error = null;
+    loading = false;
+    currentSubscriptionId = null;
+    pendingPlanSlug = null;
+    notifyListeners();
+  }
+
   List<Map<String, dynamic>> get plans => _plans;
 
   Future<void> loadPendingPlanSlug() async {

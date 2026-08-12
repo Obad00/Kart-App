@@ -8,6 +8,7 @@ import 'core/network/api_client.dart';
 import 'core/services/connectivity_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'shared/utils/session_reset.dart';
 import 'shared/widgets/offline_banner.dart';
 
 import 'features/auth/providers/auth_provider.dart';
@@ -108,7 +109,10 @@ class _KartAppState extends State<KartApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (context) => AuthProvider()
+            ..onSessionExpired = () => resetSessionProviders(context),
+        ),
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
         ChangeNotifierProvider(
