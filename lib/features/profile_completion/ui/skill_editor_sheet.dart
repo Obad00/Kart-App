@@ -17,9 +17,9 @@ const _levels = [
 
 String levelLabel(String level) {
   return _levels.firstWhere(
-        (l) => l['value'] == level,
-        orElse: () => _levels[1],
-      )['label'] as String;
+    (l) => l['value'] == level,
+    orElse: () => _levels[1],
+  )['label'] as String;
 }
 
 class SkillEditorSheet extends StatefulWidget {
@@ -57,7 +57,8 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
 
   void _onSearchChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () => _performSearch(value));
+    _debounce =
+        Timer(const Duration(milliseconds: 300), () => _performSearch(value));
   }
 
   Future<void> _performSearch(String query) async {
@@ -68,7 +69,8 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
 
     setState(() => _searching = true);
     try {
-      final results = await context.read<CandidateSkillsProvider>().service.search(trimmed);
+      final results =
+          await context.read<CandidateSkillsProvider>().service.search(trimmed);
       if (!mounted) return;
       setState(() {
         _results = results;
@@ -99,10 +101,14 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
     if (level == null) return;
 
     setState(() {
-      _selected.add(CandidateSkillModel.fromSuggestion(suggestion, level: level));
+      _selected
+          .add(CandidateSkillModel.fromSuggestion(suggestion, level: level));
       _searchCtrl.clear();
-      _results = [];
     });
+    // Réaffiche la liste (top des compétences) pour continuer à en choisir
+    // d'autres — vider la liste ici forçait à retaper une recherche à
+    // chaque compétence ajoutée.
+    await _performSearch('');
   }
 
   Future<void> _addFreeText() async {
@@ -115,8 +121,8 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
     setState(() {
       _selected.add(CandidateSkillModel(name: query, level: level));
       _searchCtrl.clear();
-      _results = [];
     });
+    await _performSearch('');
   }
 
   void _removeSelected(CandidateSkillModel skill) {
@@ -203,35 +209,38 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
                       // Toujours proposé, même s'il y a des suggestions :
                       // l'utilisateur peut vouloir saisir une compétence
                       // absente du référentiel.
-                      if (_searchCtrl.text.trim().isNotEmpty && !_exactMatchExists)
-                      GestureDetector(
-                        onTap: _addFreeText,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: blueColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: blueColor.withValues(alpha: 0.2)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.add_rounded, size: 18, color: blueColor),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Ajouter "${_searchCtrl.text.trim()}"',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: blueColor,
+                      if (_searchCtrl.text.trim().isNotEmpty &&
+                          !_exactMatchExists)
+                        GestureDetector(
+                          onTap: _addFreeText,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: blueColor.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: blueColor.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.add_rounded,
+                                    size: 18, color: blueColor),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Ajouter "${_searchCtrl.text.trim()}"',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: blueColor,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                     ],
                     Text(
                       'Sélectionnées (${_selected.length})',
@@ -395,11 +404,13 @@ Future<String?> _pickLevel(BuildContext context) {
                   child: GestureDetector(
                     onTap: () => Navigator.of(context).pop(value),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
                         color: accentBlue.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: accentBlue.withValues(alpha: 0.15)),
+                        border: Border.all(
+                            color: accentBlue.withValues(alpha: 0.15)),
                       ),
                       child: Row(
                         children: [
@@ -413,7 +424,8 @@ Future<String?> _pickLevel(BuildContext context) {
                                 decoration: BoxDecoration(
                                   color: i <= index
                                       ? accentBlue
-                                      : colors.onSurface.withValues(alpha: 0.12),
+                                      : colors.onSurface
+                                          .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               );
@@ -437,7 +449,8 @@ Future<String?> _pickLevel(BuildContext context) {
                                   _levelDescriptions[value] ?? '',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: colors.onSurface.withValues(alpha: 0.5),
+                                    color:
+                                        colors.onSurface.withValues(alpha: 0.5),
                                   ),
                                 ),
                               ],
