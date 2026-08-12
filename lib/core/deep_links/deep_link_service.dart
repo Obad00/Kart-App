@@ -43,7 +43,14 @@ class DeepLinkService {
     // kart://jobmatch/matches — mail envoyé quand un match se crée.
     if (uri.pathSegments.contains('matches')) {
       _openDashboard(tabIndex: 0); // Matchs
+      return;
     }
+
+    // kart://jobmatch (sans chemin) — mail envoyé quand une entreprise
+    // like un candidat qui n'a pas encore liké l'offre : pas de tableau de
+    // bord à ouvrir spécifiquement (pas encore de match/like), juste le
+    // fil d'offres où il peut la retrouver et l'aimer.
+    _openFeedTab();
   }
 
   /// [tabIndex] : onglet du tableau de bord JobMatch à ouvrir (0 = Matchs,
@@ -58,6 +65,18 @@ class DeepLinkService {
         '/home',
         (route) => false,
         arguments: {'tab': 3, 'openDashboardTab': tabIndex},
+      );
+    });
+  }
+
+  void _openFeedTab() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      navigator.pushNamedAndRemoveUntil(
+        '/home',
+        (route) => false,
+        arguments: {'tab': 3},
       );
     });
   }
