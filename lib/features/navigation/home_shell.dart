@@ -202,39 +202,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Complétez votre profil'),
-        content: Text(
-          'Votre profil est complété à ${result.percent.toInt()}%. '
-          'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Plus tard'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              showModalBottomSheet(
-                context: context,
-                backgroundColor: Colors.transparent,
-                isScrollControlled: true,
-                builder: (_) => const CompletionFormPage(),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Compléter'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) =>
+          _ProfileReminderDialog(percent: result.percent),
     );
   }
 
@@ -564,5 +533,161 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     } catch (_) {
       return null;
     }
+  }
+}
+
+/// Rappel de complétion de profil — même langage visuel que CompletionBanner
+/// (onglet Profil) : carte à dégradé ambre, icône fusée, barre de
+/// progression — plutôt qu'une AlertDialog générique du système.
+class _ProfileReminderDialog extends StatelessWidget {
+  final double percent;
+
+  const _ProfileReminderDialog({required this.percent});
+
+  static const _accentColor = Color(0xFFF59E0B);
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final progress = percent / 100;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    _accentColor.withValues(alpha: 0.18),
+                    _accentColor.withValues(alpha: 0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.rocket_launch_rounded,
+                size: 26,
+                color: _accentColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Complétez votre profil',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: colors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: colors.onSurface.withValues(alpha: 0.08),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_accentColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${percent.toInt()}%',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: _accentColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      'Plus tard',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (_) => const CompletionFormPage(),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Compléter',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

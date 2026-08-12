@@ -119,7 +119,8 @@ class ContactsProvider extends ChangeNotifier {
   }) async {
     try {
       if (kDebugMode) {
-        debugPrint('📤 Tentative de partage du contact: /cards/$slug/share-contact');
+        debugPrint(
+            '📤 Tentative de partage du contact: /cards/$slug/share-contact');
         debugPrint('📤 Message: ${message ?? "null"}');
       }
 
@@ -153,8 +154,7 @@ class ContactsProvider extends ChangeNotifier {
     groups = groups
         .map((group) => HighlightGroup(
               highlight: group.highlight,
-              contacts:
-                  group.contacts.where((c) => c.id != contactId).toList(),
+              contacts: group.contacts.where((c) => c.id != contactId).toList(),
             ))
         .where((group) => group.contacts.isNotEmpty)
         .toList();

@@ -16,6 +16,7 @@ import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../widgets/edit_profile_form.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
@@ -1632,7 +1633,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
 
     if (confirm == true && currentContext.mounted) {
-      await context.read<AuthProvider>().logout();
+      await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
         Navigator.of(currentContext)
             .pushNamedAndRemoveUntil('/login', (_) => false);

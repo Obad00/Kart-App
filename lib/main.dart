@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'config/feature_flags.dart';
 import 'core/deep_links/deep_link_service.dart';
+import 'core/network/api_client.dart';
 import 'core/services/connectivity_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -65,7 +66,17 @@ import 'features/jobmatch/services/jobmatch_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
+  // IMPORTANT : plusieurs providers lancent leur premier appel réseau dès
+  // leur création dans le MultiProvider ci-dessous (compétences, contacts,
+  // complétion de profil...), avant même que le splash screen ne finisse
+  // son animation. Sans ce await ici, ces appels partaient parfois avant
+  // que le token d'authentification soit attaché au client réseau
+  // (ApiClient.init() est asynchrone — lecture du secure storage) : la
+  // requête échouait silencieusement (401) et la liste restait vide,
+  // même si les données existaient bien côté serveur.
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiClient.init();
   runApp(const KartApp());
 }
 

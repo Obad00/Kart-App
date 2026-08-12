@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/jobmatch_access.dart';
+import '../../../shared/utils/session_reset.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class CardHeader extends StatelessWidget {
@@ -351,7 +352,7 @@ class _ProfileDropdownButton extends StatelessWidget {
     );
 
     if (confirm == true && currentContext.mounted) {
-      await currentContext.read<AuthProvider>().logout();
+      await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
         Navigator.of(currentContext)
             .pushNamedAndRemoveUntil('/login', (_) => false);
