@@ -78,7 +78,14 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       );
     }).toList();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Migre l'ancien flag (avant l'introduction de TourPrefs) — sinon
+      // tous les comptes qui avaient déjà vu le tour le revoient une fois
+      // de plus sur cette version, et le rappel de profil reste bloqué en
+      // attendant (cf. _maybeShowProfileReminder).
+      await _migrateLegacyTourFlag();
+      if (!mounted) return;
+
       if (widget.openLikedJobs) {
         // Vient d'un deep link (mail d'intérêt candidat) : priorité à la
         // navigation demandée, pas de tour guidé cette fois-ci pour ne pas
@@ -90,6 +97,16 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       _maybeCheckForUpdate();
       _maybeShowProfileReminder();
     });
+  }
+
+  static const _legacyTourSeenKey = 'has_seen_tab_tour';
+
+  Future<void> _migrateLegacyTourFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_legacyTourSeenKey) == true &&
+        !(await TourPrefs.hasSeen(_tourKey))) {
+      await TourPrefs.markSeen(_tourKey);
+    }
   }
 
   void _openLikedJobsPage() {
@@ -156,12 +173,18 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   Future<void> _maybeShowProfileReminder() async {
     if (!mounted) return;
 
-    final tourAlreadySeen = await TourPrefs.hasSeen(_tourKey);
-    if (!tourAlreadySeen && !widget.forceTourReplay) return;
-
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
     if (prefs.getString(_profileReminderLastShownKey) == today) return;
+
+    // Laisse une chance au tour guidé (démarrage async : charge d'abord le
+    // résumé de la carte) de s'afficher en premier s'il doit le faire, pour
+    // ne pas superposer les deux overlays — sans pour autant dépendre d'un
+    // flag "tour déjà vu" qui bloquerait le rappel toute la journée si ce
+    // flag n'était pas encore posé (ex: juste après une mise à jour de l'app).
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    if (ShowCaseWidget.of(context).ids != null) return;
 
     if (!mounted) return;
     final completionProvider = context.read<ProfileCompletionProvider>();
