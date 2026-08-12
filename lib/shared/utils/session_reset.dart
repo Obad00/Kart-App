@@ -29,3 +29,19 @@ Future<void> logoutAndResetSession(BuildContext context) async {
   context.read<CandidateSkillsProvider>().reset();
   context.read<JobMatchProvider>().reset();
 }
+
+/// Symétrique de [logoutAndResetSession] : recharge les données du compte
+/// désormais connecté. Ces providers ne sont chargés qu'une seule fois à
+/// la création de l'app (dans le MultiProvider) — après une déconnexion
+/// suivie d'une reconnexion (même compte ou un autre) sans redémarrage
+/// complet de l'app, rien ne les rechargeait, ils restaient vides
+/// indéfiniment. À appeler juste après une connexion réussie.
+Future<void> loadSessionData(BuildContext context) async {
+  await Future.wait([
+    context.read<CardProvider>().loadCardSummary(),
+    context.read<ContactsProvider>().fetchGroupedContacts(),
+    context.read<HighlightProvider>().loadHighlights(),
+    context.read<ProfileCompletionProvider>().load(),
+    context.read<CandidateSkillsProvider>().load(),
+  ]);
+}

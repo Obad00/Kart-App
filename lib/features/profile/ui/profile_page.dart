@@ -22,6 +22,8 @@ import '../widgets/edit_profile_form.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
 import '../../profile_completion/widgets/completion_sections.dart';
 import '../../profile_completion/ui/completion_form_page.dart';
+import '../../profile_completion/providers/profile_completion_provider.dart';
+import '../../profile_completion/providers/candidate_skills_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -73,6 +75,14 @@ class _ProfilePageState extends State<ProfilePage>
 
     _animController.forward();
     _loadAppVersion();
+
+    // Recharge la complétion et les compétences à chaque entrée sur cet
+    // onglet — sans ça, ces providers ne se rafraîchissent jamais tout
+    // seuls après une modification faite ailleurs (ex: formulaire
+    // "Informations personnelles"), donnant l'impression que la
+    // complétion "met du temps à se mettre à jour".
+    context.read<ProfileCompletionProvider>().load();
+    context.read<CandidateSkillsProvider>().load();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
   }
