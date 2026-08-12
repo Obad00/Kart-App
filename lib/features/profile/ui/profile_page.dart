@@ -1376,6 +1376,12 @@ class _ProfilePageState extends State<ProfilePage>
               if (result.status == DeleteAccountStatus.success) {
                 Navigator.of(dialogContext).pop();
                 if (!mounted || !pageContext.mounted) return;
+                // deleteAccount() appelle déjà logout() en interne, mais pas
+                // le reset des autres providers (cf. session_reset.dart) —
+                // sans ça, un compte connecté juste après sur le même
+                // appareil verrait les données de celui qui vient d'être
+                // supprimé.
+                resetSessionProviders(pageContext);
                 ScaffoldMessenger.of(pageContext).showSnackBar(
                   const SnackBar(
                     content: Text('Votre compte a été supprimé avec succès'),

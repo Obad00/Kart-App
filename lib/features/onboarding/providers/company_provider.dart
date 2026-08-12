@@ -12,6 +12,16 @@ class CompanyProvider extends ChangeNotifier {
   Map<String, dynamic>? myCompany;
   List<Map<String, dynamic>> members = [];
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    isLoading = false;
+    error = null;
+    isLoadingCompany = false;
+    myCompany = null;
+    members = [];
+    notifyListeners();
+  }
+
   /// Charge les infos de l'entreprise de l'utilisateur connecté (lecture seule).
   Future<void> loadMyCompany() async {
     isLoadingCompany = true;

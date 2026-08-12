@@ -42,7 +42,16 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   static const _tourKey = 'tab_bar';
-  static const _profileReminderLastShownKey = 'profile_reminder_last_shown';
+  // Rappel de complétion de profil : jusqu'à 3 fois par jour, avec au
+  // moins 3h30 d'écart entre deux affichages (évite qu'il s'affiche
+  // plusieurs fois quasi coup sur coup si l'app est rouverte plusieurs
+  // fois d'affilée en peu de temps).
+  static const _profileReminderMaxPerDay = 3;
+  static const _profileReminderMinGap = Duration(hours: 3, minutes: 30);
+  static const _profileReminderDateKey = 'profile_reminder_date';
+  static const _profileReminderCountKey = 'profile_reminder_count';
+  static const _profileReminderLastShownAtKey =
+      'profile_reminder_last_shown_at';
 
   // Suivi de l'utilisateur pour lequel les données (profil, compétences,
   // contacts...) ont été chargées — statique pour survivre à un
@@ -194,14 +203,28 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   }
 
   /// Rappel doux, une fois par jour max, tant que le profil est sous 80% de
-  /// complétude — ne s'affiche pas le jour du tout premier lancement (pour
-  /// ne pas superposer avec le tour guidé).
+  /// complétude — jusqu'à 3 fois par jour (espacées d'au moins 3h30), ne
+  /// s'affiche pas le jour du tout premier lancement (pour ne pas
+  /// superposer avec le tour guidé).
   Future<void> _maybeShowProfileReminder() async {
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (prefs.getString(_profileReminderLastShownKey) == today) return;
+    final now = DateTime.now();
+    final today = now.toIso8601String().substring(0, 10);
+
+    final storedDate = prefs.getString(_profileReminderDateKey);
+    final countToday =
+        storedDate == today ? (prefs.getInt(_profileReminderCountKey) ?? 0) : 0;
+    if (countToday >= _profileReminderMaxPerDay) return;
+
+    final lastShownAtMillis = prefs.getInt(_profileReminderLastShownAtKey);
+    if (lastShownAtMillis != null) {
+      final elapsed = now.difference(
+        DateTime.fromMillisecondsSinceEpoch(lastShownAtMillis),
+      );
+      if (elapsed < _profileReminderMinGap) return;
+    }
 
     // Laisse une chance au tour guidé (démarrage async : charge d'abord le
     // résumé de la carte) de s'afficher en premier s'il doit le faire, pour
@@ -223,7 +246,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     );
     if (result.percent >= 80) return;
 
-    await prefs.setString(_profileReminderLastShownKey, today);
+    await prefs.setString(_profileReminderDateKey, today);
+    await prefs.setInt(_profileReminderCountKey, countToday + 1);
+    await prefs.setInt(
+        _profileReminderLastShownAtKey, now.millisecondsSinceEpoch);
     if (!mounted) return;
 
     showDialog(

@@ -177,6 +177,15 @@ class LeadsProvider extends ChangeNotifier {
   String? get error => _error;
   bool get hasError => _error != null;
 
+  /// Remet le provider à zéro à la déconnexion (cf. CardProvider.reset).
+  void reset() {
+    _leads = [];
+    _total = 0;
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   /// Charge les leads depuis l'API
   Future<void> loadLeads() async {
     _isLoading = true;
@@ -197,7 +206,8 @@ class LeadsProvider extends ChangeNotifier {
       _total = response['total'] as int? ?? _leads.length;
     } catch (e) {
       _error = getErrorMessage(e,
-          fallback: 'Impossible de charger les contacts intéressés. Réessayez.');
+          fallback:
+              'Impossible de charger les contacts intéressés. Réessayez.');
     } finally {
       _isLoading = false;
       notifyListeners();
