@@ -47,24 +47,46 @@ class JobMatchResult {
   final int score;
   final String jobTitle;
   final String companyName;
+  final String? location;
+  final bool isRemote;
+  final String? contractType;
+  final int? salaryMin;
+  final int? salaryMax;
+  final String? description;
+  final int? experienceRequired;
 
   JobMatchResult({
     required this.id,
     required this.score,
     required this.jobTitle,
     required this.companyName,
+    this.location,
+    this.isRemote = false,
+    this.contractType,
+    this.salaryMin,
+    this.salaryMax,
+    this.description,
+    this.experienceRequired,
   });
 
   factory JobMatchResult.fromJson(Map<String, dynamic> json) {
     final job = json['job'] as Map<String, dynamic>?;
     final company = job?['company'];
-    final companyName = company is Map ? (company['name'] ?? '') : (company ?? '');
+    final companyName =
+        company is Map ? (company['name'] ?? '') : (company ?? '');
 
     return JobMatchResult(
       id: json['id'],
       score: json['score'] ?? 0,
       jobTitle: job?['title'] ?? '',
       companyName: companyName?.toString() ?? '',
+      location: job?['location'],
+      isRemote: job?['is_remote'] ?? false,
+      contractType: job?['contract_type'],
+      salaryMin: job?['salary_min'],
+      salaryMax: job?['salary_max'],
+      description: job?['description'],
+      experienceRequired: job?['experience_required'],
     );
   }
 }
@@ -73,11 +95,25 @@ class LikedJobItem {
   final int jobId;
   final String jobTitle;
   final String companyName;
+  final String? location;
+  final bool isRemote;
+  final String? contractType;
+  final int? salaryMin;
+  final int? salaryMax;
+  final String? description;
+  final int? experienceRequired;
 
   LikedJobItem({
     required this.jobId,
     required this.jobTitle,
     required this.companyName,
+    this.location,
+    this.isRemote = false,
+    this.contractType,
+    this.salaryMin,
+    this.salaryMax,
+    this.description,
+    this.experienceRequired,
   });
 
   factory LikedJobItem.fromJson(Map<String, dynamic> json) {
@@ -86,6 +122,13 @@ class LikedJobItem {
       jobId: job?['id'] ?? 0,
       jobTitle: job?['title'] ?? '',
       companyName: job?['company']?['name'] ?? '',
+      location: job?['location'],
+      isRemote: job?['is_remote'] ?? false,
+      contractType: job?['contract_type'],
+      salaryMin: job?['salary_min'],
+      salaryMax: job?['salary_max'],
+      description: job?['description'],
+      experienceRequired: job?['experience_required'],
     );
   }
 }

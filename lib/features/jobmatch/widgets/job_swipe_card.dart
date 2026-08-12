@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/job_feed_item.dart';
+import 'job_details_sheet.dart';
 
 const _accentBlue = Color(0xFF3B82F6);
 
@@ -171,11 +172,13 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                   color: _accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.business_rounded, color: _accentBlue, size: 26),
+                child:
+                    Icon(Icons.business_rounded, color: _accentBlue, size: 26),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _accentBlue.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -202,7 +205,9 @@ class _JobSwipeCardState extends State<JobSwipeCard>
           ),
           const SizedBox(height: 6),
           Text(
-            [job.companyName, job.location].where((v) => (v ?? '').isNotEmpty).join(' · '),
+            [job.companyName, job.location]
+                .where((v) => (v ?? '').isNotEmpty)
+                .join(' · '),
             style: TextStyle(
               fontSize: 14,
               color: colors.onSurface.withValues(alpha: 0.55),
@@ -225,7 +230,8 @@ class _JobSwipeCardState extends State<JobSwipeCard>
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (job.contractType != null) _buildChip(job.contractType!, colors),
+              if (job.contractType != null)
+                _buildChip(job.contractType!, colors),
               if (job.isRemote) _buildChip('Remote', colors),
               if (job.experienceRequired != null)
                 _buildChip(
@@ -253,76 +259,12 @@ class _JobSwipeCardState extends State<JobSwipeCard>
 
   void _showDetails(BuildContext context) {
     final job = widget.job;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        final colors = Theme.of(sheetContext).colorScheme;
-        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: colors.onSurface.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    job.title,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: colors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [job.companyName, job.location]
-                        .where((v) => (v ?? '').isNotEmpty)
-                        .join(' · '),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.onSurface.withValues(alpha: 0.55),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: Text(
-                        job.description ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.6,
-                          color: colors.onSurface.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    showJobDetailsSheet(
+      context,
+      title: job.title,
+      companyName: job.companyName,
+      location: job.location,
+      description: job.description,
     );
   }
 

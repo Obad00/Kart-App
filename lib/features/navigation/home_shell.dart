@@ -26,15 +26,17 @@ class HomeShell extends StatefulWidget {
   final int initialIndex;
   final bool forceTourReplay;
 
-  /// Renseigné par le deep link `kart://jobmatch/liked` (bouton du mail
-  /// d'intérêt candidat) — ouvre directement l'onglet "Aimées" du tableau
-  /// de bord JobMatch au premier frame affiché.
-  final bool openLikedJobs;
+  /// Renseigné par les deep links `kart://jobmatch/liked` (mail d'intérêt
+  /// candidat, onglet 1 = Aimées) et `kart://jobmatch/matches` (mail de
+  /// match, onglet 0 = Matchs) — ouvre directement le tableau de bord
+  /// JobMatch sur cet onglet au premier frame affiché. `null` = pas de
+  /// deep link, comportement normal (tour guidé éventuel...).
+  final int? openDashboardTab;
   const HomeShell({
     super.key,
     this.initialIndex = 0,
     this.forceTourReplay = false,
-    this.openLikedJobs = false,
+    this.openDashboardTab,
   });
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -107,11 +109,11 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       await _maybeReloadSessionData();
       if (!mounted) return;
 
-      if (widget.openLikedJobs) {
-        // Vient d'un deep link (mail d'intérêt candidat) : priorité à la
-        // navigation demandée, pas de tour guidé cette fois-ci pour ne pas
-        // superposer deux overlays.
-        _openLikedJobsPage();
+      if (widget.openDashboardTab != null) {
+        // Vient d'un deep link (mail d'intérêt candidat ou de match) :
+        // priorité à la navigation demandée, pas de tour guidé cette
+        // fois-ci pour ne pas superposer deux overlays.
+        _openDashboardPage(widget.openDashboardTab!);
       } else {
         _maybeStartTour();
       }
@@ -144,11 +146,11 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     }
   }
 
-  void _openLikedJobsPage() {
+  void _openDashboardPage(int tabIndex) {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const JobMatchMatchesPage(initialTabIndex: 1),
+        builder: (_) => JobMatchMatchesPage(initialTabIndex: tabIndex),
       ),
     );
   }
