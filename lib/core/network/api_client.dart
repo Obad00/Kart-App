@@ -54,6 +54,7 @@ class ApiClient {
   }
 
   static bool _cacheReady = false;
+  static CacheStore? _cacheStore;
 
   static Future<void> init() async {
     final token = await getToken();
@@ -76,16 +77,25 @@ class ApiClient {
     try {
       final cacheDir = await getApplicationSupportDirectory();
       final store = FileCacheStore('${cacheDir.path}/api_cache');
+      _cacheStore = store;
 
       dio.interceptors.add(
         DioCacheInterceptor(
           options: CacheOptions(
             store: store,
-            // 'forceCache' met en cache toute réponse GET réussie même si
-            // le backend n'envoie pas d'en-têtes Cache-Control (notre API
-            // Laravel n'en envoie pas) — sans ça rien ne serait mis en
-            // cache du tout.
-            policy: CachePolicy.forceCache,
+            // IMPORTANT : 'refreshForceCache' (pas 'forceCache') — toujours
+            // interroger le réseau en premier et ne se rabattre sur le
+            // cache QUE si la requête échoue. 'forceCache'/'request'
+            // servaient le cache directement dès qu'une entrée valide
+            // existait, SANS jamais retenter le réseau tant qu'elle n'a
+            // pas expiré (jusqu'à 7 jours) — donc même en ligne, et même
+            // après une déconnexion/reconnexion avec un autre compte,
+            // l'app resservait les anciennes données (ex: /me d'un compte
+            // précédent). 'refreshForceCache' force quand même la mise en
+            // cache de toute réponse réussie (notre API Laravel n'envoie
+            // pas d'en-têtes Cache-Control) sans jamais la préférer au
+            // réseau en priorité de lecture.
+            policy: CachePolicy.refreshForceCache,
             // Liste vide = ressert le cache sur n'importe quelle erreur
             // (pas de réseau, timeout, 5xx...), pas seulement certains
             // codes HTTP précis.
@@ -96,6 +106,17 @@ class ApiClient {
       );
     } catch (e) {
       debugPrint('⚠️ Cache hors-ligne indisponible: $e');
+    }
+  }
+
+  /// Vide le cache hors-ligne — appelé à la déconnexion pour qu'un compte
+  /// ne puisse jamais voir, même un instant, des données mises en cache
+  /// par un compte précédent sur le même appareil.
+  static Future<void> clearOfflineCache() async {
+    try {
+      await _cacheStore?.clean(priorityOrBelow: CachePriority.high);
+    } catch (e) {
+      debugPrint('⚠️ Impossible de vider le cache hors-ligne: $e');
     }
   }
 
