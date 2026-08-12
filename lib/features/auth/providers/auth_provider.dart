@@ -190,8 +190,8 @@ class AuthProvider extends ChangeNotifier {
       await _api.updateAvatar(bytes, filename);
       await loadMe();
     } on DioException catch (e) {
-      throw Exception(
-          getErrorMessage(e, fallback: 'Erreur lors de la mise à jour de la photo'));
+      throw Exception(getErrorMessage(e,
+          fallback: 'Erreur lors de la mise à jour de la photo'));
     }
   }
 
@@ -200,8 +200,8 @@ class AuthProvider extends ChangeNotifier {
       await _api.deleteAvatar();
       await loadMe();
     } on DioException catch (e) {
-      throw Exception(
-          getErrorMessage(e, fallback: 'Erreur lors de la suppression de la photo'));
+      throw Exception(getErrorMessage(e,
+          fallback: 'Erreur lors de la suppression de la photo'));
     }
   }
 
@@ -218,6 +218,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     await ApiClient.clearToken();
+    await ApiClient.clearOfflineCache();
     await _clearUserLocalCaches();
     user = null;
     error = null;
@@ -278,17 +279,17 @@ class AuthProvider extends ChangeNotifier {
         status: DeleteAccountStatus.error,
         message: 'Une erreur est survenue. Veuillez réessayer.',
       );
-   } on DioException catch (e) {
-  debugPrint("DELETE ACCOUNT ERROR");
-  debugPrint("Status : ${e.response?.statusCode}");
-  debugPrint("Data : ${e.response?.data}");
-  debugPrint("Message : ${e.message}");
+    } on DioException catch (e) {
+      debugPrint("DELETE ACCOUNT ERROR");
+      debugPrint("Status : ${e.response?.statusCode}");
+      debugPrint("Data : ${e.response?.data}");
+      debugPrint("Message : ${e.message}");
 
-  return DeleteAccountResult(
-    status: DeleteAccountStatus.error,
-    message: e.response?.data.toString() ?? e.message,
-  );
-} catch (_) {
+      return DeleteAccountResult(
+        status: DeleteAccountStatus.error,
+        message: e.response?.data.toString() ?? e.message,
+      );
+    } catch (_) {
       return const DeleteAccountResult(
         status: DeleteAccountStatus.error,
         message: 'Une erreur est survenue. Veuillez réessayer.',
