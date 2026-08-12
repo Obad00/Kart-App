@@ -41,7 +41,7 @@ class OfflineBanner extends StatelessWidget {
                       SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          'Vous êtes hors ligne — affichage des dernières données chargées',
+                          'Vous êtes hors ligne',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,

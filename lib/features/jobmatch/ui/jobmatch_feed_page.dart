@@ -33,7 +33,9 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     HapticFeedback.mediumImpact();
     SystemSound.play(SystemSoundType.click);
     setState(() => _celebrating = job);
-    Future.delayed(const Duration(milliseconds: 1300), () {
+    // 1300ms ne laissait pas le temps de lire "Bravo ! 🎉" + le titre de
+    // l'offre avant que ça disparaisse — remonté comme "trop rapide".
+    Future.delayed(const Duration(milliseconds: 2200), () {
       if (mounted && _celebrating?.id == job.id) {
         setState(() => _celebrating = null);
       }
@@ -101,7 +103,15 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
           else
             _buildCardStack(context, provider),
           if (provider.lastMatch != null) _buildMatchOverlay(context, provider),
-          if (_celebrating != null) _buildLikedCelebration(_celebrating!),
+          // AnimatedSwitcher : fondu à l'apparition ET à la disparition,
+          // au lieu d'un "pop"/disparition brutale quand _celebrating
+          // repasse à null.
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _celebrating != null
+                ? _buildLikedCelebration(_celebrating!)
+                : const SizedBox.shrink(key: ValueKey('no-celebration')),
+          ),
         ],
       ),
     );
@@ -311,9 +321,9 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
   /// seule (contrairement à l'overlay de match, qu'il faut fermer).
   Widget _buildLikedCelebration(JobFeedItem job) {
     return IgnorePointer(
+      key: ValueKey(job.id),
       child: Center(
         child: TweenAnimationBuilder<double>(
-          key: ValueKey(job.id),
           tween: Tween(begin: 0, end: 1),
           duration: const Duration(milliseconds: 450),
           curve: Curves.elasticOut,
