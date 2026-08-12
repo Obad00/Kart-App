@@ -48,6 +48,14 @@ class AuthProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  /// Appelé quand la session expire en cours d'usage (token devenu
+  /// invalide côté serveur, détecté par loadMe()) — branché depuis
+  /// main.dart sur resetSessionProviders(), pour que les autres providers
+  /// (profil, compétences, contacts...) soient vidés même dans ce cas,
+  /// pas seulement lors d'une déconnexion manuelle explicite. AuthProvider
+  /// n'a pas de BuildContext pour appeler ça lui-même directement.
+  VoidCallback? onSessionExpired;
+
   AuthProvider() {
     _init();
   }
@@ -91,6 +99,7 @@ class AuthProvider extends ChangeNotifier {
           '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await logout();
+        onSessionExpired?.call();
       } else {
         error = 'Impossible de récupérer l\'utilisateur';
       }
