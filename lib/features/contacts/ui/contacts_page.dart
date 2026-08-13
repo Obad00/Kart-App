@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:showcaseview/showcaseview.dart';
-import '../../../shared/tour/tour_prefs.dart';
-import '../../explore/ui/explore_page.dart';
 import 'contacts_grouped_view.dart';
 
 class ContactsPage extends StatefulWidget {
@@ -15,23 +12,7 @@ class _ContactsPageState extends State<ContactsPage> {
   final GlobalKey<ContactsGroupedViewState> _contactsKey =
       GlobalKey<ContactsGroupedViewState>();
   final ValueNotifier<int> _selectedCountNotifier = ValueNotifier<int>(0);
-  final _exportTourKey = GlobalKey();
   bool _isSelectionMode = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
-  }
-
-  Future<void> _maybeStartTour() async {
-    if (!mounted || await TourPrefs.hasSeen('contacts')) return;
-
-    await TourPrefs.markSeen('contacts');
-    if (!mounted) return;
-
-    ShowCaseWidget.of(context).startShowCase([_exportTourKey]);
-  }
 
   @override
   void dispose() {
@@ -81,62 +62,10 @@ class _ContactsPageState extends State<ContactsPage> {
 
           if (!_isSelectionMode) {
             // La sélection démarre maintenant depuis le menu "..." en haut
-            // de la page (Exporter/Sélectionner/Supprimer) — ce bouton
-            // flottant est donc libre pour "Explorer" (annuaire des cartes
-            // publiques + mise en relation). Cercle + libellé en dessous,
-            // pas un FAB étendu classique.
-            return Showcase(
-              key: _exportTourKey,
-              title: 'Explorez KART',
-              description:
-                  'Découvrez d\'autres utilisateurs et connectez-vous avec eux.',
-              targetShapeBorder: const CircleBorder(),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ExplorePage()),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF0A0A0A),
-                        border: Border.all(color: themeBlue, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: themeBlue.withValues(alpha: 0.35),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(Icons.explore_rounded,
-                          color: themeBlue, size: 28),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Explorer',
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            // de la page (Exporter/Sélectionner/Supprimer) — plus besoin
+            // d'un bouton flottant ici. "Explorer" a sa propre entrée dans
+            // la barre de navigation du bas.
+            return const SizedBox.shrink();
           }
 
           return Row(

@@ -522,6 +522,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
+                  FocusScope.of(context).unfocus();
                   if (selectedContacts.isNotEmpty) {
                     clearSelection();
                     widget.onCancelSelection?.call();
@@ -647,6 +648,8 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
     return ListView.builder(
       padding: const EdgeInsets.only(top: 4, bottom: 24),
+      // Un simple scroll ferme aussi le clavier — en plus du tap.
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemCount: contacts.length,
       itemBuilder: (context, index) => _buildContactRow(contacts[index]),
     );
