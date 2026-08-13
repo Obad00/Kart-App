@@ -18,7 +18,7 @@ import '../profile_completion/providers/profile_completion_provider.dart';
 import '../profile_completion/ui/completion_form_page.dart';
 // import '../scan/ui/card_scan_switcher_page.dart';
 import '../contacts/ui/contacts_page.dart';
-import '../scan/ui/scan_page.dart';
+import '../explore/ui/explore_page.dart';
 import '../../shared/tour/tour_prefs.dart';
 import '../../shared/utils/session_reset.dart';
 
@@ -290,9 +290,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       }
     }
 
-    keys.add(_navKeys[1]); // Scan
-    keys.add(_navKeys[2]); // Contacts
-    if (showJobMatch) keys.add(_navKeys[3]); // Offres
+    keys.add(_navKeys[1]); // Contacts
+    if (showJobMatch) keys.add(_navKeys[2]); // Offres
+    keys.add(_navKeys[showJobMatch ? 3 : 2]); // Explorer
     keys.add(_navKeys[showJobMatch ? 4 : 3]); // Profil
 
     // Marqué "vu" dès le démarrage (pas à la fin) : que l'utilisateur suive
@@ -317,9 +317,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         highlightBarKey: _highlightBarKey,
         createCardKey: _createCardKey,
       ),
-      const ScanPage(),
       const ContactsPage(),
       if (showJobMatch) const JobMatchFeedPage(),
+      const ExplorePage(),
       const ProfilePage(),
     ];
   }
@@ -409,22 +409,13 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                   label: 'Carte',
                   index: 0,
                   tourDescription:
-                      'Votre carte de visite digitale, personnalisable et prête à partager.',
-                ),
-                _buildNavItem(
-                  icon: Icons.qr_code_scanner_outlined,
-                  activeIcon: Icons.qr_code_scanner,
-                  label: 'Scan',
-                  index: 1,
-                  isSpecial: true,
-                  tourDescription:
-                      'Scannez un code QR pour échanger vos coordonnées instantanément.',
+                      'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
                 ),
                 _buildNavItem(
                   icon: Icons.people_outline,
                   activeIcon: Icons.people,
                   label: 'Contacts',
-                  index: 2,
+                  index: 1,
                   tourDescription:
                       'Retrouvez tous les contacts collectés au même endroit.',
                 ),
@@ -433,10 +424,18 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                     icon: Icons.favorite_outline,
                     activeIcon: Icons.favorite,
                     label: 'Offres',
-                    index: 3,
+                    index: 2,
                     tourDescription:
                         "Découvrez les offres d'emploi qui correspondent à votre profil.",
                   ),
+                _buildNavItem(
+                  icon: Icons.explore_outlined,
+                  activeIcon: Icons.explore,
+                  label: 'Explorer',
+                  index: showJobMatch ? 3 : 2,
+                  tourDescription:
+                      'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                ),
                 _buildNavItem(
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,

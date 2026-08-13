@@ -64,7 +64,9 @@ class DeepLinkService {
       navigator.pushNamedAndRemoveUntil(
         '/home',
         (route) => false,
-        arguments: {'tab': 3, 'openDashboardTab': tabIndex},
+        // Onglet "Offres" (JobMatch) : index 2 depuis le retrait de Scan de
+        // la barre du bas (Carte=0, Contacts=1, Offres=2, Explorer=3, Profil=4).
+        arguments: {'tab': 2, 'openDashboardTab': tabIndex},
       );
     });
   }
@@ -76,7 +78,7 @@ class DeepLinkService {
       navigator.pushNamedAndRemoveUntil(
         '/home',
         (route) => false,
-        arguments: {'tab': 3},
+        arguments: {'tab': 2}, // Offres
       );
     });
   }

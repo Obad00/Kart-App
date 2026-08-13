@@ -110,32 +110,34 @@ class ContactRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Cercle de sélection — toujours visible (comme dans les
-              // apps Apple), pas seulement en "mode sélection".
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  onSelect?.call(contact.id);
-                },
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? _themeBlue : Colors.transparent,
-                    border: Border.all(
-                      color: isSelected
-                          ? _themeBlue
-                          : colors.onSurface.withValues(alpha: 0.25),
-                      width: 1.5,
+              // Cercle de sélection — visible seulement une fois le mode
+              // sélection démarré (pas en navigation normale).
+              if (selectable) ...[
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onSelect?.call(contact.id);
+                  },
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? _themeBlue : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected
+                            ? _themeBlue
+                            : colors.onSurface.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
                     ),
+                    child: isSelected
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : null,
                   ),
-                  child: isSelected
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
-                      : null,
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
+              ],
 
               // Avatar
               Container(

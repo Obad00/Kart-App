@@ -80,10 +80,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         ),
       );
       provider.reset();
-      // Navigate to contacts tab
+      // Navigate to contacts tab (index 1 depuis le retrait de Scan de la barre)
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => const HomeShell(initialIndex: 2),
+          builder: (_) => const HomeShell(initialIndex: 1),
         ),
         (route) => false,
       );

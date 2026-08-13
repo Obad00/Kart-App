@@ -162,9 +162,11 @@ void _showComingSoonDialog() {
 
     if (!mounted) return;
 
+    // Index 1 : Contacts (Scan n'est plus dans la barre du bas, remplacé
+    // par Explorer — la carte se retourne pour scanner).
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => const HomeShell(initialIndex: 2),
+        builder: (_) => const HomeShell(initialIndex: 1),
       ),
       (route) => false,
     );

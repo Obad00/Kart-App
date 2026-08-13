@@ -93,12 +93,16 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
           ),
         ),
         body: SafeArea(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildDiscoverTab(),
-              _buildMyRequestsTab(),
-            ],
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDiscoverTab(),
+                _buildMyRequestsTab(),
+              ],
+            ),
           ),
         ),
       ),
@@ -170,6 +174,7 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
               return ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.only(bottom: 24),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index >= provider.users.length) {
