@@ -233,41 +233,45 @@ onTap: () async {
                 ),
               ),
               // Icône crayon visible pour renommer ce highlight — évite de
-              // ne compter que sur l'appui long (non découvrable).
-              Positioned(
-                top: -2,
-                right: -2,
-                child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _openCreateHighlightModal(context, accentColor, isCompanyUser,
-                        existing: highlight);
-                  },
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colors.surface, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.edit_rounded,
-                      size: 12,
-                      color: isCompanyUser
-                          ? accentColor
-                          : colors.onSurface.withValues(alpha: 0.7),
+              // ne compter que sur l'appui long (non découvrable). Affichée
+              // seulement sur le highlight actif : sur les autres, l'appui
+              // long reste disponible mais on n'encombre pas visuellement
+              // toute la rangée.
+              if (highlight.isActive)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _openCreateHighlightModal(context, accentColor, isCompanyUser,
+                          existing: highlight);
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colors.surface, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.edit_rounded,
+                        size: 12,
+                        color: isCompanyUser
+                            ? accentColor
+                            : colors.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 6),

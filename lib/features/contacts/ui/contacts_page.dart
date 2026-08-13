@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../explore/ui/explore_page.dart';
 import 'contacts_grouped_view.dart';
 
 class ContactsPage extends StatefulWidget {
@@ -79,19 +80,61 @@ class _ContactsPageState extends State<ContactsPage> {
           const Color themeBlue = Color(0xFF3B82F6);
 
           if (!_isSelectionMode) {
+            // La sélection démarre maintenant depuis le menu "..." en haut
+            // de la page (Exporter/Sélectionner/Supprimer) — ce bouton
+            // flottant est donc libre pour "Explorer" (annuaire des cartes
+            // publiques + mise en relation). Cercle + libellé en dessous,
+            // pas un FAB étendu classique.
             return Showcase(
               key: _exportTourKey,
-              title: 'Exporter vos contacts',
+              title: 'Explorez KART',
               description:
-                  'Sélectionnez des contacts pour les exporter en CSV.',
+                  'Découvrez d\'autres utilisateurs et connectez-vous avec eux.',
               targetShapeBorder: const CircleBorder(),
-              child: FloatingActionButton(
-                onPressed: () => setState(() => _isSelectionMode = true),
-                backgroundColor: themeBlue,
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                child: const Icon(Icons.download_rounded, color: Colors.white),
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ExplorePage()),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF0A0A0A),
+                        border: Border.all(color: themeBlue, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: themeBlue.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.explore_rounded,
+                          color: themeBlue, size: 28),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Explorer',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }

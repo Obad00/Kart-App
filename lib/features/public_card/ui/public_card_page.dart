@@ -11,6 +11,9 @@ import '../widgets/lead_capture_sheet.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../explore/models/explore_user.dart';
+import '../../explore/widgets/connect_action_button.dart';
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -328,12 +331,22 @@ class _PublicCardPageState extends State<PublicCardPage>
                             avatarUrl: portraitUrl,
                           ),
                           _buildSectionDivider(),
-                          _buildCallToActions(
-                            email: email,
-                            firstName: firstName,
-                          ),
-                          const SizedBox(height: 18),
-                          _buildSecondaryActions(),
+                          // Contacter/Partager directement depuis la carte
+                          // publique n'est proposé que si ce profil est
+                          // déjà un contact (scanné, ou demande de mise en
+                          // relation acceptée) — pas depuis une simple
+                          // consultation via Explorer, où le bon chemin est
+                          // "Se connecter" (avec l'accord de l'autre).
+                          if (widget.contactId != null) ...[
+                            _buildCallToActions(
+                              email: email,
+                              firstName: firstName,
+                            ),
+                            const SizedBox(height: 18),
+                            _buildSecondaryActions(),
+                          ] else ...[
+                            _buildConnectSection(fullName),
+                          ],
                           if (socialProfiles.isNotEmpty) ...[
                             const SizedBox(height: 18),
                             _buildSocialNetworks(socialProfiles),
@@ -531,7 +544,13 @@ class _PublicCardPageState extends State<PublicCardPage>
                         runSpacing: 10,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (email.isNotEmpty)
+                          // Envoyer un mail direct n'a de sens que si ce
+                          // profil est déjà un contact — sinon ça
+                          // court-circuiterait le principe de la demande de
+                          // mise en relation (Explorer), qui existe
+                          // justement pour ne pas échanger les coordonnées
+                          // sans consentement mutuel.
+                          if (email.isNotEmpty && widget.contactId != null)
                             _buildInlineContactChip(
                               icon: Icons.email_outlined,
                               label: email,
@@ -541,7 +560,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                                   ? const Color(0xFF334155)
                                   : const Color(0xFFE5E7EB),
                             ),
-                          if (phone.isNotEmpty)
+                          // Même principe que l'email : le téléphone ne
+                          // s'affiche que pour un contact déjà établi.
+                          if (phone.isNotEmpty && widget.contactId != null)
                             _buildInlineContactChip(
                               icon: Icons.phone_outlined,
                               label: phone,
@@ -713,6 +734,27 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
         ],
       ],
+    );
+  }
+
+  /// Bouton "Se connecter" — même widget que dans la liste Explorer,
+  /// affiché à la place de Contacter/Partager tant que ce profil n'est pas
+  /// encore un contact établi (mise en relation avec consentement mutuel).
+  Widget _buildConnectSection(String fullName) {
+    final targetUserId = card?['user_id'];
+    final currentUserId = context.watch<AuthProvider>().user?.id;
+
+    if (targetUserId == null) return const SizedBox.shrink();
+
+    final id = int.tryParse(targetUserId.toString());
+    if (id == null || id == currentUserId) return const SizedBox.shrink();
+
+    return Center(
+      child: ConnectActionButton(
+        userId: id,
+        userName: fullName.isNotEmpty ? fullName : 'ce profil',
+        initialStatus: ConnectionStatus.none,
+      ),
     );
   }
 
@@ -1340,7 +1382,10 @@ class _PublicCardPageState extends State<PublicCardPage>
     final phone = _getFieldValue('phone');
     final ownerName = card?['fullname']?.toString() ?? '';
 
-    if (phone.isNotEmpty) {
+    // Même principe que l'email/téléphone affichés dans l'en-tête : pas de
+    // WhatsApp (dérivé du numéro) tant que ce profil n'est pas un contact
+    // établi.
+    if (phone.isNotEmpty && widget.contactId != null) {
       final formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
 
       profiles.add({
