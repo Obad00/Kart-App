@@ -7,20 +7,36 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
 import '../providers/contacts_provider.dart';
-import '../widgets/contact_card.dart';
+import '../widgets/contact_row.dart';
+import '../widgets/add_contact_sheet.dart';
+import '../widgets/favorites_strip.dart';
 
 // Couleur bleue thème
 const Color _themeBlue = Color(0xFF3B82F6);
 
 class ContactsGroupedView extends StatefulWidget {
   final ValueChanged<int>? onSelectionChanged;
+  final bool selectionModeActive;
+  // Pré-arme le mode sélection (0 contact sélectionné pour l'instant) —
+  // permet ensuite de sélectionner en tapant n'importe où sur une ligne,
+  // pas seulement son cercle dédié.
+  final VoidCallback? onEnterSelectionMode;
+  // Annule complètement la sélection en cours (vide la liste ET quitte le
+  // mode) — utilisé par "Terminer la sélection" et le tap en dehors des
+  // contacts.
+  final VoidCallback? onCancelSelection;
 
-  const ContactsGroupedView({super.key, this.onSelectionChanged});
+  const ContactsGroupedView({
+    super.key,
+    this.onSelectionChanged,
+    this.selectionModeActive = false,
+    this.onEnterSelectionMode,
+    this.onCancelSelection,
+  });
 
   @override
   State<ContactsGroupedView> createState() => ContactsGroupedViewState();
@@ -30,6 +46,8 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final Set<int> selectedContacts = {};
+  // null = tous highlights confondus.
+  int? _highlightFilterId;
 
   void clearSelection() {
     setState(() {
@@ -427,14 +445,6 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   }
 
 
-  Future<void> _openEmailApp(String email) async {
-    if (email.isEmpty) return;
-    final uri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
   void _openShareContactPopup(ContactModel contact) {
     final messageController = TextEditingController();
     bool isLoading = false;
@@ -763,14 +773,99 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
     return Consumer<ContactsProvider>(
       builder: (context, provider, _) {
+        final colors = Theme.of(context).colorScheme;
+
         return Column(
           children: [
-            // Modern Search Bar
+            // En-tête : titre + total de contacts / favoris + actions (+ / ...)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Contacts',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: colors.onSurface,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${provider.allContacts.length} contacts'
+                          ' · ${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colors.onSurface.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _SquareIconButton(
+                    icon: Icons.person_add_alt_1_rounded,
+                    tooltip: 'Ajouter un contact',
+                    onTap: () => showAddContactSheet(context),
+                  ),
+                  const SizedBox(width: 8),
+                  _ContactsMenuButton(
+                    // Basé sur la sélection RÉELLE (selectedContacts), pas
+                    // sur le flag externe — sinon "Supprimer"/"Exporter" ne
+                    // faisaient rien la première fois qu'on les cliquait
+                    // quand la sélection avait démarré via le cercle d'une
+                    // ligne plutôt que via ce menu.
+                    selectionModeActive: selectedContacts.isNotEmpty,
+                    onSelect: () {
+                      if (selectedContacts.isNotEmpty) {
+                        clearSelection();
+                        widget.onCancelSelection?.call();
+                      } else {
+                        widget.onEnterSelectionMode?.call();
+                      }
+                    },
+                    onExport: () {
+                      if (selectedContacts.isEmpty) {
+                        widget.onEnterSelectionMode?.call();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Sélectionnez les contacts à exporter, puis validez en bas.'),
+                          ),
+                        );
+                      } else {
+                        exportSelectedContacts();
+                      }
+                    },
+                    onDelete: () {
+                      if (selectedContacts.isEmpty) {
+                        widget.onEnterSelectionMode?.call();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Sélectionnez les contacts à supprimer, puis validez en bas.'),
+                          ),
+                        );
+                      } else {
+                        deleteSelectedContacts();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            // Barre de recherche
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -782,17 +877,11 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                 ),
                 child: TextField(
                   controller: _searchController,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(color: colors.onSurface, fontSize: 15),
                   decoration: InputDecoration(
                     hintText: 'Rechercher un contact...',
                     hintStyle: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.4),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                       fontSize: 15,
                     ),
                     prefixIcon: Icon(
@@ -804,10 +893,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                         ? IconButton(
                             icon: Icon(
                               Icons.close_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5),
+                              color: colors.onSurface.withValues(alpha: 0.5),
                               size: 20,
                             ),
                             onPressed: () {
@@ -818,7 +904,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
+                    fillColor: colors.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
@@ -836,12 +922,29 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               ),
             ),
 
+            // Filtre par highlight — plusieurs événements peuvent se
+            // mélanger dans "Tous", pratique pour isoler par ex. seulement
+            // les contacts du "Dakar Business Forum".
+            _buildHighlightFilterRow(provider),
+
+            // Favoris — accès rapide façon "à la une"
+            FavoritesStrip(
+              favorites: provider.favoriteContacts,
+              onTapFavorite: (contact) {
+                HapticFeedback.lightImpact();
+                _openShareContactPopup(contact);
+              },
+            ),
+
             // Content
             Expanded(
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
-                  if (selectedContacts.isNotEmpty) clearSelection();
+                  if (selectedContacts.isNotEmpty) {
+                    clearSelection();
+                    widget.onCancelSelection?.call();
+                  }
                 },
                 child: Builder(
                 builder: (context) {
@@ -918,151 +1021,25 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                     return _noMatchState(context);
                   }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    itemCount: provider.filteredGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = provider.filteredGroups[index];
+                  // Liste plate de lignes (avatar, nom, poste, badge
+                  // highlight + date), triée par date d'ajout la plus
+                  // récente — les sections par highlight ont été
+                  // abandonnées au profit de ce badge par ligne, plus
+                  // lisible, et filtrable via les chips au-dessus.
+                  final contacts = provider.allContacts
+                      .where((c) => provider.matchesQuery(c))
+                      .where((c) =>
+                          _highlightFilterId == null ||
+                          c.highlightId == _highlightFilterId)
+                      .toList()
+                    ..sort((a, b) {
+                      if (a.capturedAt == null && b.capturedAt == null) return 0;
+                      if (a.capturedAt == null) return 1;
+                      if (b.capturedAt == null) return -1;
+                      return b.capturedAt!.compareTo(a.capturedAt!);
+                    });
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Section Header
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        companyColor.withValues(alpha: 0.15),
-                                        companyColor.withValues(alpha: 0.05),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: companyColor.withValues(alpha: 0.2),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: companyColor,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: companyColor.withValues(
-                                                  alpha: 0.4),
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        group.highlight.name.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: companyColor,
-                                          letterSpacing: 1.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${group.contacts.length}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Contacts Grid
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final crossAxisCount =
-                                    constraints.maxWidth > 600 ? 3 : 2;
-
-                                return GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 8,
-                                    mainAxisSpacing: 8,
-                                    childAspectRatio: 0.75,
-                                  ),
-                                  itemCount: group.contacts.length,
-                                  itemBuilder: (context, contactIndex) {
-                                    final c = group.contacts[contactIndex];
-                                    return ContactCard(
-                                      contact: c,
-                                      isSelected: selectedContacts.contains(c.id),
-                                      onSelect: (id) {
-                                        setState(() {
-                                          if (selectedContacts.contains(id)) {
-                                            selectedContacts.remove(id);
-                                          } else {
-                                            selectedContacts.add(id);
-                                          }
-                                        });
-                                        widget.onSelectionChanged?.call(selectedContacts.length);
-                                      },
-                                      onShare: () {
-                                        HapticFeedback.lightImpact();
-                                        _openShareContactPopup(c);
-                                      },
-                                      onEmailTap: () {
-                                        HapticFeedback.lightImpact();
-                                        _openEmailApp(c.email ?? '');
-                                      },
-                                      onDelete: () => _deleteSingleContact(c),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
+                  return _buildFlatList(context, contacts);
                 },
                 ),
               ),
@@ -1070,6 +1047,105 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
           ],
         );
       },
+    );
+  }
+
+  /// Liste plate de lignes (recherche / filtre highlight) — remplace
+  /// l'ancienne grille groupée par sections de highlight.
+  Widget _buildFlatList(BuildContext context, List<ContactModel> contacts) {
+    if (contacts.isEmpty) {
+      return Center(
+        child: Text(
+          'Aucun contact',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 4, bottom: 24),
+      itemCount: contacts.length,
+      itemBuilder: (context, index) => _buildContactRow(contacts[index]),
+    );
+  }
+
+  Widget _buildContactRow(ContactModel c) {
+    return ContactRow(
+      contact: c,
+      isSelected: selectedContacts.contains(c.id),
+      selectionModeActive: widget.selectionModeActive,
+      onSelect: (id) {
+        setState(() {
+          if (selectedContacts.contains(id)) {
+            selectedContacts.remove(id);
+          } else {
+            selectedContacts.add(id);
+          }
+        });
+        widget.onSelectionChanged?.call(selectedContacts.length);
+      },
+      onToggleFavorite: () => context.read<ContactsProvider>().toggleFavorite(c.id),
+      onDelete: () => _deleteSingleContact(c),
+    );
+  }
+
+  /// Rangée de chips pour filtrer la liste par highlight (événement) —
+  /// masquée s'il n'y a aucun highlight utilisé sur ces contacts.
+  Widget _buildHighlightFilterRow(ContactsProvider provider) {
+    final highlights = provider.groups
+        .map((g) => g.highlight)
+        .where((h) => h.id != 0)
+        .toList();
+
+    if (highlights.isEmpty) return const SizedBox.shrink();
+
+    final colors = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        scrollDirection: Axis.horizontal,
+        itemCount: highlights.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            final active = _highlightFilterId == null;
+            return ChoiceChip(
+              label: const Text('Tous highlights'),
+              selected: active,
+              onSelected: (_) => setState(() => _highlightFilterId = null),
+              labelStyle: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+              ),
+              selectedColor: _themeBlue,
+              backgroundColor: colors.onSurface.withValues(alpha: 0.06),
+              side: BorderSide.none,
+            );
+          }
+
+          final highlight = highlights[index - 1];
+          final active = _highlightFilterId == highlight.id;
+          return ChoiceChip(
+            label: Text(highlight.name),
+            selected: active,
+            onSelected: (_) => setState(() =>
+                _highlightFilterId = active ? null : highlight.id),
+            labelStyle: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+            ),
+            selectedColor: _themeBlue,
+            backgroundColor: colors.onSurface.withValues(alpha: 0.06),
+            side: BorderSide.none,
+          );
+        },
+      ),
     );
   }
 
@@ -1219,3 +1295,158 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     );
   }
 }
+
+/// Bouton carré à côté de la barre de recherche (Sélectionner / Ajouter).
+class _SquareIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _SquareIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: colors.surface,
+        shape: const CircleBorder(),
+        elevation: 0,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _themeBlue, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: _themeBlue,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bouton "..." → menu Exporter / Sélectionner / Supprimer, en haut à côté
+/// du titre (façon menu contextuel Apple).
+class _ContactsMenuButton extends StatelessWidget {
+  final bool selectionModeActive;
+  final VoidCallback onSelect;
+  final VoidCallback onExport;
+  final VoidCallback onDelete;
+
+  const _ContactsMenuButton({
+    required this.selectionModeActive,
+    required this.onSelect,
+    required this.onExport,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return PopupMenuButton<String>(
+      tooltip: 'Plus d\'options',
+      color: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF2A2A2A)
+          : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onSelected: (value) {
+        HapticFeedback.lightImpact();
+        switch (value) {
+          case 'export':
+            onExport();
+            break;
+          case 'select':
+            onSelect();
+            break;
+          case 'delete':
+            onDelete();
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'export',
+          child: Row(
+            children: [
+              Icon(Icons.file_upload_outlined, color: _themeBlue, size: 20),
+              SizedBox(width: 12),
+              Text('Exporter (.CSV)'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'select',
+          child: Row(
+            children: [
+              Icon(
+                selectionModeActive
+                    ? Icons.check_circle_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: _themeBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(selectionModeActive ? 'Terminer la sélection' : 'Sélectionner'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+              SizedBox(width: 12),
+              Text('Supprimer', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.more_horiz_rounded,
+          color: colors.onSurface.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
+}
+
