@@ -40,6 +40,22 @@ class _ContactsPageState extends State<ContactsPage> {
 
   void _onSelectionChanged(int count) {
     _selectedCountNotifier.value = count;
+    // Le mode sélection suit l'état réel de la sélection : sélectionner un
+    // contact (même sans être passé par "Sélectionner" dans le menu) active
+    // les contrôles, et revenir à 0 sélection les referme automatiquement
+    // — avant, une fois activé, seul "Terminer la sélection" dans le menu
+    // pouvait le refermer, même après avoir tout désélectionné.
+    if (count == 0 || !_isSelectionMode) {
+      setState(() => _isSelectionMode = count > 0);
+    }
+  }
+
+  /// Annule complètement la sélection (vide la liste ET quitte le mode) —
+  /// utilisé par "Terminer la sélection" et par le tap en dehors des
+  /// contacts.
+  void _cancelSelection() {
+    _contactsKey.currentState?.clearSelection();
+    setState(() => _isSelectionMode = false);
   }
 
   @override
@@ -52,6 +68,9 @@ class _ContactsPageState extends State<ContactsPage> {
         child: ContactsGroupedView(
           key: _contactsKey,
           onSelectionChanged: _onSelectionChanged,
+          selectionModeActive: _isSelectionMode,
+          onEnterSelectionMode: () => setState(() => _isSelectionMode = true),
+          onCancelSelection: _cancelSelection,
         ),
       ),
       floatingActionButton: ValueListenableBuilder<int>(
@@ -83,11 +102,7 @@ class _ContactsPageState extends State<ContactsPage> {
               // Bouton annuler
               FloatingActionButton.small(
                 heroTag: 'cancel_selection',
-                onPressed: () {
-                  widget.key;
-                  _contactsKey.currentState?.clearSelection();
-                  setState(() => _isSelectionMode = false);
-                },
+                onPressed: _cancelSelection,
                 backgroundColor: Colors.grey.withValues(alpha: 0.7),
                 elevation: 4,
                 shape: RoundedRectangleBorder(

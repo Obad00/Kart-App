@@ -13,6 +13,12 @@ class ContactModel {
   final String? website;
   final int? highlightId;
   final String? avatar;
+  final bool isFavorite;
+  final DateTime? capturedAt;
+  // Renseigné côté client lors de l'aplatissement des groupes (l'API ne
+  // renvoie que highlight_id par contact, pas le nom) — voir
+  // ContactsProvider.allContacts.
+  final String? highlightName;
 
   ContactModel({
     required this.id,
@@ -29,6 +35,9 @@ class ContactModel {
     this.website,
     this.highlightId,
     this.avatar,
+    this.isFavorite = false,
+    this.capturedAt,
+    this.highlightName,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -49,6 +58,32 @@ class ContactModel {
           ? int.tryParse(json['highlight_id'].toString())
           : null,
       avatar: json['avatar'],
+      isFavorite: json['is_favorite'] == true,
+      capturedAt: json['captured_at'] != null
+          ? DateTime.tryParse(json['captured_at'].toString())
+          : null,
+    );
+  }
+
+  ContactModel copyWith({bool? isFavorite, String? highlightName}) {
+    return ContactModel(
+      id: id,
+      fullname: fullname,
+      email: email,
+      phone: phone,
+      company: company,
+      job: job,
+      cardSlug: cardSlug,
+      linkedin: linkedin,
+      twitter: twitter,
+      facebook: facebook,
+      instagram: instagram,
+      website: website,
+      highlightId: highlightId,
+      avatar: avatar,
+      isFavorite: isFavorite ?? this.isFavorite,
+      capturedAt: capturedAt,
+      highlightName: highlightName ?? this.highlightName,
     );
   }
 }
