@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../shared/widgets/app_search_bar.dart';
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
 import '../providers/contacts_provider.dart';
@@ -95,7 +96,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   Future<void> _exportContactsAsCSV() async {
     try {
       final provider = context.read<ContactsProvider>();
-      final allContacts = _getAllContacts(provider);
+      final allContacts = provider.allContacts;
       final selectedContactsList = allContacts
           .where((contact) => selectedContacts.contains(contact.id))
           .toList();
@@ -110,7 +111,8 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
         return;
       }
 
-      // Prepare CSV headers
+      // Prepare CSV headers — toutes les infos disponibles sur un contact,
+      // pas juste un sous-ensemble.
       final headers = [
         'Nom',
         'Email',
@@ -121,7 +123,10 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
         'Twitter',
         'Facebook',
         'Instagram',
-        'Site Web'
+        'Site Web',
+        'Highlight',
+        'Date de rencontre',
+        'Favori',
       ];
 
       // Prepare CSV rows
@@ -136,6 +141,13 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
             contact.facebook ?? '',
             contact.instagram ?? '',
             contact.website ?? '',
+            contact.highlightName ?? '',
+            contact.capturedAt != null
+                ? '${contact.capturedAt!.day.toString().padLeft(2, '0')}/'
+                    '${contact.capturedAt!.month.toString().padLeft(2, '0')}/'
+                    '${contact.capturedAt!.year}'
+                : '',
+            contact.isFavorite ? 'Oui' : 'Non',
           ]).toList();
 
       // Generate CSV
@@ -303,14 +315,6 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
         iconColor: Colors.red,
       );
     }
-  }
-
-  List<ContactModel> _getAllContacts(ContactsProvider provider) {
-    final allContacts = <ContactModel>[];
-    for (final group in provider.groups) {
-      allContacts.addAll(group.contacts);
-    }
-    return allContacts;
   }
 
   Future<void> _shareContact({
@@ -797,12 +801,23 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '${provider.allContacts.length} contacts'
-                          ' · ${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: colors.onSurface.withValues(alpha: 0.55),
+                        RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colors.onSurface.withValues(alpha: 0.55),
+                            ),
+                            children: [
+                              TextSpan(text: '${provider.allContacts.length} contacts · '),
+                              TextSpan(
+                                text:
+                                    '${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
+                                style: const TextStyle(
+                                  color: _themeBlue,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -863,62 +878,14 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
             // Barre de recherche
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: colors.onSurface, fontSize: 15),
-                  decoration: InputDecoration(
-                    hintText: 'Rechercher un contact...',
-                    hintStyle: TextStyle(
-                      color: colors.onSurface.withValues(alpha: 0.4),
-                      fontSize: 15,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: companyColor.withValues(alpha: 0.6),
-                      size: 22,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: colors.onSurface.withValues(alpha: 0.5),
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              provider.filterContacts('');
-                              setState(() {});
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: colors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    provider.filterContacts(value);
-                    setState(() {});
-                  },
-                ),
+              child: AppSearchBar(
+                controller: _searchController,
+                hintText: 'Rechercher un contact...',
+                accentColor: companyColor,
+                onChanged: (value) {
+                  provider.filterContacts(value);
+                  setState(() {});
+                },
               ),
             ),
 
@@ -1325,8 +1292,8 @@ class _SquareIconButton extends StatelessWidget {
             onTap();
           },
           child: Container(
-            width: 48,
-            height: 48,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: _themeBlue, width: 1.5),
@@ -1341,7 +1308,7 @@ class _SquareIconButton extends StatelessWidget {
             child: Icon(
               icon,
               color: _themeBlue,
-              size: 22,
+              size: 14,
             ),
           ),
         ),
@@ -1428,8 +1395,8 @@ class _ContactsMenuButton extends StatelessWidget {
         ),
       ],
       child: Container(
-        width: 48,
-        height: 48,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
           color: colors.surface,
           shape: BoxShape.circle,
@@ -1444,6 +1411,7 @@ class _ContactsMenuButton extends StatelessWidget {
         child: Icon(
           Icons.more_horiz_rounded,
           color: colors.onSurface.withValues(alpha: 0.7),
+          size: 20,
         ),
       ),
     );
