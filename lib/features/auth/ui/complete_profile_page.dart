@@ -106,9 +106,11 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -152,10 +154,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
                   Text(
                     'Bienvenue ${auth.user?.firstname ?? ''} !',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: colors.onSurface,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -166,7 +168,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                     'Votre compte a été créé avec succès.\nComplétez vos informations pour continuer.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey[400],
+                      color: colors.onSurface.withValues(alpha: 0.6),
                       fontSize: 15,
                       height: 1.4,
                     ),
@@ -177,9 +179,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                   // Stepper indicator
                   Row(
                     children: [
-                      _buildStep(1, 'Profil', true),
-                      _buildStepLine(),
-                      _buildStep(2, 'Plan', false),
+                      _buildStep(colors, 1, 'Profil', true),
+                      _buildStepLine(colors),
+                      _buildStep(colors, 2, 'Plan', false),
                     ],
                   ),
 
@@ -189,22 +191,22 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
+                      color: colors.onSurface.withValues(alpha: isDark ? 0.03 : 0.035),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
                         width: 1,
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Informations personnelles',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: colors.onSurface,
                           ),
                         ),
 
@@ -213,7 +215,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                         Text(
                           'Ces informations seront visibles sur votre carte digitale',
                           style: TextStyle(
-                            color: Colors.grey[500],
+                            color: colors.onSurface.withValues(alpha: 0.5),
                             fontSize: 13,
                           ),
                         ),
@@ -282,7 +284,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                             child: Text(
                               'Passer cette étape',
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: colors.onSurface.withValues(alpha: 0.5),
                                 fontSize: 14,
                               ),
                             ),
@@ -300,7 +302,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     );
   }
 
-  Widget _buildStep(int number, String label, bool isActive) {
+  Widget _buildStep(ColorScheme colors, int number, String label, bool isActive) {
     return Expanded(
       child: Column(
         children: [
@@ -310,12 +312,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isActive
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.1),
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.1),
               border: Border.all(
                 color: isActive
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.2),
+                    ? colors.onSurface
+                    : colors.onSurface.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -323,7 +325,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
               child: Text(
                 '$number',
                 style: TextStyle(
-                  color: isActive ? Colors.black : Colors.grey[500],
+                  color: isActive ? colors.surface : colors.onSurface.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -334,7 +336,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
           Text(
             label,
             style: TextStyle(
-              color: isActive ? Colors.white : Colors.grey[600],
+              color: isActive ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
               fontSize: 12,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -344,7 +346,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     );
   }
 
-  Widget _buildStepLine() {
+  Widget _buildStepLine(ColorScheme colors) {
     return Expanded(
       child: Container(
         height: 2,
@@ -352,8 +354,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.white.withValues(alpha: 0.4),
-              Colors.white.withValues(alpha: 0.1),
+              colors.onSurface.withValues(alpha: 0.4),
+              colors.onSurface.withValues(alpha: 0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(1),

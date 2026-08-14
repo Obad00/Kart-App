@@ -146,18 +146,28 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = colors.onSurface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF0A0A0A),
-              const Color(0xFF1A1A1A),
-              const Color(0xFF0D0D0D),
-            ],
+            colors: isDark
+                ? const [
+                    Color(0xFF0A0A0A),
+                    Color(0xFF1A1A1A),
+                    Color(0xFF0D0D0D),
+                  ]
+                : [
+                    colors.surface,
+                    colors.onSurface.withValues(alpha: 0.03),
+                    colors.surface,
+                  ],
             stops: const [0.0, 0.5, 1.0],
           ),
         ),
@@ -184,7 +194,7 @@ class _SplashScreenState extends State<SplashScreen>
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(
+                                  color: foreground.withValues(
                                       alpha: 0.15 * _glowAnimation.value),
                                   blurRadius: 30 + (_glowAnimation.value * 20),
                                   spreadRadius:
@@ -203,10 +213,10 @@ class _SplashScreenState extends State<SplashScreen>
                           fontSize: 64,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 4.5,
-                          color: Colors.white,
+                          color: foreground,
                           shadows: [
                             BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: foreground.withValues(alpha: 0.08),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -224,7 +234,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _lineAnimation,
                 child: CustomPaint(
-                  painter: AnimatedLinePainter(_lineAnimation.value),
+                  painter: AnimatedLinePainter(_lineAnimation.value, foreground),
                   size: const Size(80, 2),
                 ),
               ),
@@ -238,7 +248,8 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 24,
                   height: 24,
                   child: CustomPaint(
-                    painter: PremiumLoaderPainter(_animationController.value),
+                    painter: PremiumLoaderPainter(
+                        _animationController.value, foreground),
                   ),
                 ),
               ),
@@ -253,13 +264,14 @@ class _SplashScreenState extends State<SplashScreen>
 /// Painter for the animated line
 class AnimatedLinePainter extends CustomPainter {
   final double progress;
+  final Color color;
 
-  AnimatedLinePainter(this.progress);
+  AnimatedLinePainter(this.progress, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.8)
+      ..color = color.withValues(alpha: 0.8)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
 
@@ -274,19 +286,20 @@ class AnimatedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(AnimatedLinePainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }
 
 /// Premium subtle loader painter
 class PremiumLoaderPainter extends CustomPainter {
   final double progress;
+  final Color color;
 
-  PremiumLoaderPainter(this.progress);
+  PremiumLoaderPainter(this.progress, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.5)
+      ..color = color.withValues(alpha: 0.5)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -313,5 +326,5 @@ class PremiumLoaderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(PremiumLoaderPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }

@@ -153,9 +153,11 @@ class _RegisterPageState extends State<RegisterPage>
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: FadeTransition(
@@ -170,17 +172,17 @@ class _RegisterPageState extends State<RegisterPage>
             child: Column(
               children: [
                 // Header with back button
-                _buildHeader(),
+                _buildHeader(colors),
 
                 const SizedBox(height: 24),
 
                 // Progress indicator
-                _buildProgressIndicator(),
+                _buildProgressIndicator(colors),
 
                 const SizedBox(height: 32),
 
                 // Step info
-                _buildStepInfo(),
+                _buildStepInfo(colors, isDark),
 
                 const SizedBox(height: 32),
 
@@ -191,7 +193,7 @@ class _RegisterPageState extends State<RegisterPage>
                       ? _buildNameStep()
                       : _currentPage == 1
                           ? _buildEmailStep()
-                          : _buildPasswordStep(),
+                          : _buildPasswordStep(colors),
                 ),
 
                 const SizedBox(height: 32),
@@ -216,7 +218,7 @@ class _RegisterPageState extends State<RegisterPage>
                         children: [
                           Icon(
                             Icons.error_outline_rounded,
-                            color: Colors.red[300],
+                            color: Colors.red[isDark ? 300 : 700],
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -224,7 +226,7 @@ class _RegisterPageState extends State<RegisterPage>
                             child: Text(
                               auth.error!,
                               style: TextStyle(
-                                color: Colors.red[300],
+                                color: Colors.red[isDark ? 300 : 700],
                                 fontSize: 14,
                               ),
                             ),
@@ -240,7 +242,7 @@ class _RegisterPageState extends State<RegisterPage>
                 const SizedBox(height: 20),
 
                 // Login link
-                _buildLoginLink(),
+                _buildLoginLink(colors),
               ],
             ),
           ),
@@ -249,7 +251,7 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ColorScheme colors) {
     return Row(
       children: [
         if (_currentPage > 0)
@@ -258,12 +260,12 @@ class _RegisterPageState extends State<RegisterPage>
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: colors.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_rounded,
-                color: Colors.white,
+                color: colors.onSurface,
                 size: 22,
               ),
             ),
@@ -274,24 +276,24 @@ class _RegisterPageState extends State<RegisterPage>
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: colors.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.close_rounded,
-                color: Colors.white,
+                color: colors.onSurface,
                 size: 22,
               ),
             ),
           ),
         const Spacer(),
-        const Text(
+        Text(
           'KART',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             letterSpacing: 3,
-            color: Colors.white,
+            color: colors.onSurface,
           ),
         ),
         const Spacer(),
@@ -300,7 +302,7 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  Widget _buildProgressIndicator() {
+  Widget _buildProgressIndicator(ColorScheme colors) {
     return Row(
       children: List.generate(3, (i) {
         final isActive = i <= _currentPage;
@@ -313,13 +315,13 @@ class _RegisterPageState extends State<RegisterPage>
             margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
             decoration: BoxDecoration(
               color: isActive
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.15),
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(2),
               boxShadow: isCurrent
                   ? [
                       BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: colors.onSurface.withValues(alpha: 0.3),
                         blurRadius: 8,
                       ),
                     ]
@@ -331,7 +333,7 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  Widget _buildStepInfo() {
+  Widget _buildStepInfo(ColorScheme colors, bool isDark) {
     return Column(
       children: [
         // Icon
@@ -344,8 +346,8 @@ class _RegisterPageState extends State<RegisterPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withValues(alpha: 0.12),
-                  Colors.white.withValues(alpha: 0.04),
+                  colors.onSurface.withValues(alpha: isDark ? 0.12 : 0.08),
+                  colors.onSurface.withValues(alpha: isDark ? 0.04 : 0.03),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -354,7 +356,7 @@ class _RegisterPageState extends State<RegisterPage>
             ),
             child: Icon(
               _getStepIcon(),
-              color: Colors.white,
+              color: colors.onSurface,
               size: 28,
             ),
           ),
@@ -368,10 +370,10 @@ class _RegisterPageState extends State<RegisterPage>
           child: Text(
             _getStepTitle(),
             key: ValueKey('title$_currentPage'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: colors.onSurface,
               letterSpacing: -0.5,
             ),
           ),
@@ -386,7 +388,7 @@ class _RegisterPageState extends State<RegisterPage>
             _getStepSubtitle(),
             key: ValueKey('sub$_currentPage'),
             style: TextStyle(
-              color: Colors.grey[400],
+              color: colors.onSurface.withValues(alpha: 0.6),
               fontSize: 15,
             ),
           ),
@@ -445,7 +447,7 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  Widget _buildPasswordStep() {
+  Widget _buildPasswordStep(ColorScheme colors) {
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -472,14 +474,14 @@ class _RegisterPageState extends State<RegisterPage>
           if (_passwordCtrl.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 20),
-              child: _buildPasswordStrength(),
+              child: _buildPasswordStrength(colors),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildPasswordStrength() {
+  Widget _buildPasswordStrength(ColorScheme colors) {
     final password = _passwordCtrl.text;
     int strength = 0;
 
@@ -515,7 +517,7 @@ class _RegisterPageState extends State<RegisterPage>
                 decoration: BoxDecoration(
                   color: i < strength
                       ? color.withValues(alpha: 0.8)
-                      : Colors.white.withValues(alpha: 0.1),
+                      : colors.onSurface.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -566,14 +568,14 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  Widget _buildLoginLink() {
+  Widget _buildLoginLink(ColorScheme colors) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Déjà un compte ? ',
           style: TextStyle(
-            color: Colors.grey[500],
+            color: colors.onSurface.withValues(alpha: 0.5),
             fontSize: 15,
           ),
         ),
@@ -585,13 +587,13 @@ class _RegisterPageState extends State<RegisterPage>
               vertical: 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: colors.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
+            child: Text(
               'Se connecter',
               style: TextStyle(
-                color: Colors.white,
+                color: colors.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
