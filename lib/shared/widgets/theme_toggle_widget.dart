@@ -140,7 +140,7 @@ class ThemeToggleWidget extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.6),
+                color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(height: 4),
               Text(
@@ -148,7 +148,7 @@ class ThemeToggleWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.6),
+                  color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
