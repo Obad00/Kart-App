@@ -50,13 +50,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: colors.onSurface),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -65,12 +67,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Mot de passe oublié',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: colors.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -78,7 +80,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               Text(
                 'Indiquez votre adresse email, nous vous enverrons un lien pour le réinitialiser.',
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: colors.onSurface.withValues(alpha: 0.6),
                   fontSize: 15,
                 ),
               ),
@@ -97,12 +99,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.check_circle_outline_rounded,
-                          color: Colors.green[300], size: 22),
+                          color: Colors.green[isDark ? 300 : 700], size: 22),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           "Si un compte existe avec cet email, un lien de réinitialisation vient d'être envoyé. Vérifiez votre boîte de réception (et vos spams).",
-                          style: TextStyle(color: Colors.green[100], fontSize: 14),
+                          style: TextStyle(
+                              color: Colors.green[isDark ? 100 : 900], fontSize: 14),
                         ),
                       ),
                     ],
@@ -141,7 +144,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         children: [
                           Icon(
                             Icons.error_outline_rounded,
-                            color: Colors.red[300],
+                            color: Colors.red[isDark ? 300 : 700],
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -149,7 +152,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             child: Text(
                               auth.error!,
                               style: TextStyle(
-                                color: Colors.red[300],
+                                color: Colors.red[isDark ? 300 : 700],
                                 fontSize: 14,
                               ),
                             ),

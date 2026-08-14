@@ -73,9 +73,11 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: FadeTransition(
@@ -92,7 +94,7 @@ class _LoginPageState extends State<LoginPage>
               child: Column(
                 children: [
                   // Logo / Brand
-                  _buildLogo(),
+                  _buildLogo(colors, isDark),
 
                   const SizedBox(height: 56),
 
@@ -100,10 +102,10 @@ class _LoginPageState extends State<LoginPage>
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
+                      color: colors.onSurface.withValues(alpha: isDark ? 0.03 : 0.035),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
                         width: 1,
                       ),
                     ),
@@ -111,12 +113,12 @@ class _LoginPageState extends State<LoginPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Title
-                        const Text(
+                        Text(
                           'Connexion',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: colors.onSurface,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -126,7 +128,7 @@ class _LoginPageState extends State<LoginPage>
                         Text(
                           'Accédez à votre carte digitale',
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: colors.onSurface.withValues(alpha: 0.6),
                             fontSize: 15,
                           ),
                         ),
@@ -168,7 +170,7 @@ class _LoginPageState extends State<LoginPage>
                             child: Text(
                               'Mot de passe oublié ?',
                               style: TextStyle(
-                                color: Colors.grey[400],
+                                color: colors.onSurface.withValues(alpha: 0.6),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -199,7 +201,7 @@ class _LoginPageState extends State<LoginPage>
                                     children: [
                                       Icon(
                                         Icons.error_outline_rounded,
-                                        color: Colors.red[300],
+                                        color: Colors.red[isDark ? 300 : 700],
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -207,7 +209,7 @@ class _LoginPageState extends State<LoginPage>
                                         child: Text(
                                           auth.error!,
                                           style: TextStyle(
-                                            color: Colors.red[300],
+                                            color: Colors.red[isDark ? 300 : 700],
                                             fontSize: 14,
                                           ),
                                         ),
@@ -220,7 +222,7 @@ class _LoginPageState extends State<LoginPage>
                                       child: Text(
                                         auth.errorDetails!,
                                         style: TextStyle(
-                                          color: Colors.red[200],
+                                          color: Colors.red[isDark ? 200 : 800],
                                           fontSize: 12,
                                           fontFamily: 'monospace',
                                         ),
@@ -252,7 +254,7 @@ class _LoginPageState extends State<LoginPage>
                   const SizedBox(height: 32),
 
                   // Register Link
-                  _buildRegisterLink(),
+                  _buildRegisterLink(context),
                 ],
               ),
             ),
@@ -262,7 +264,7 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(ColorScheme colors, bool isDark) {
     return Column(
       children: [
         // Logo icon
@@ -272,21 +274,21 @@ class _LoginPageState extends State<LoginPage>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white.withValues(alpha: 0.15),
-                Colors.white.withValues(alpha: 0.05),
+                colors.onSurface.withValues(alpha: isDark ? 0.15 : 0.08),
+                colors.onSurface.withValues(alpha: isDark ? 0.05 : 0.03),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: colors.onSurface.withValues(alpha: isDark ? 0.1 : 0.12),
             ),
           ),
-          child: const Center(
+          child: Center(
             child: Icon(
               Icons.credit_card_rounded,
-              color: Colors.white,
+              color: colors.onSurface,
               size: 36,
             ),
           ),
@@ -295,13 +297,13 @@ class _LoginPageState extends State<LoginPage>
         const SizedBox(height: 20),
 
         // Brand name
-        const Text(
+        Text(
           'KART',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.w800,
             letterSpacing: 6,
-            color: Colors.white,
+            color: colors.onSurface,
           ),
         ),
 
@@ -310,7 +312,7 @@ class _LoginPageState extends State<LoginPage>
         Text(
           'Votre carte de visite digitale',
           style: TextStyle(
-            color: Colors.grey[500],
+            color: colors.onSurface.withValues(alpha: 0.5),
             fontSize: 14,
             letterSpacing: 0.5,
           ),
@@ -380,7 +382,9 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  Widget _buildRegisterLink() {
+  Widget _buildRegisterLink(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -388,7 +392,7 @@ class _LoginPageState extends State<LoginPage>
           child: Text(
             'Pas encore de compte ? ',
             style: TextStyle(
-              color: Colors.grey[500],
+              color: colors.onSurface.withValues(alpha: 0.5),
               fontSize: 15,
             ),
           ),
@@ -401,13 +405,13 @@ class _LoginPageState extends State<LoginPage>
               vertical: 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: colors.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
+            child: Text(
               'Créer un compte',
               style: TextStyle(
-                color: Colors.white,
+                color: colors.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),

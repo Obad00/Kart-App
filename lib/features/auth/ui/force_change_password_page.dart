@@ -61,10 +61,13 @@ class _ForceChangePasswordPageState extends State<ForceChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: colors.surface,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -77,34 +80,34 @@ class _ForceChangePasswordPageState extends State<ForceChangePasswordPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.white.withValues(alpha: 0.04),
+                        colors.onSurface.withValues(alpha: isDark ? 0.12 : 0.08),
+                        colors.onSurface.withValues(alpha: isDark ? 0.04 : 0.03),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock_outline_rounded,
-                    color: Colors.white,
+                    color: colors.onSurface,
                     size: 32,
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Sécurisez votre compte',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: colors.onSurface,
                     letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Choisissez un nouveau mot de passe pour continuer.',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 15),
+                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6), fontSize: 15),
                 ),
                 const SizedBox(height: 32),
                 AuthTextField(

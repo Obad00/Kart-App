@@ -64,12 +64,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: colors.onSurface),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -78,19 +80,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Changer le mot de passe',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: colors.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Saisissez votre mot de passe actuel puis choisissez-en un nouveau.',
-                style: TextStyle(color: Colors.grey[400], fontSize: 15),
+                style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6), fontSize: 15),
               ),
               const SizedBox(height: 32),
               AuthTextField(
