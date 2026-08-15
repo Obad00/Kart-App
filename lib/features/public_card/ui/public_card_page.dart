@@ -36,6 +36,15 @@ class _PublicCardPageState extends State<PublicCardPage>
   Map<String, dynamic>? card;
   bool isLoading = true;
 
+  // Vrai si ce profil est déjà un contact — soit parce que la page a été
+  // ouverte depuis la liste des contacts (widget.contactId), soit parce
+  // que le backend nous dit qu'un contact mutuel existe déjà (demande de
+  // mise en relation acceptée) même en arrivant ici via un lien/QR direct.
+  // Sans ce second cas, la page reste bloquée sur "Se connecter" à chaque
+  // réouverture après acceptation, même si le contact a bien été créé.
+  bool get _isConnected =>
+      widget.contactId != null || card?['connection_status'] == 'contact';
+
   Color get _accentColor =>
       _parseHexColor(card?['accent_color'] as String?) ??
       const Color(0xFF2563EB);
@@ -337,7 +346,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                           // relation acceptée) — pas depuis une simple
                           // consultation via Explorer, où le bon chemin est
                           // "Se connecter" (avec l'accord de l'autre).
-                          if (widget.contactId != null) ...[
+                          if (_isConnected) ...[
                             _buildCallToActions(
                               email: email,
                               firstName: firstName,
@@ -550,7 +559,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                           // mise en relation (Explorer), qui existe
                           // justement pour ne pas échanger les coordonnées
                           // sans consentement mutuel.
-                          if (email.isNotEmpty && widget.contactId != null)
+                          if (email.isNotEmpty && _isConnected)
                             _buildInlineContactChip(
                               icon: Icons.email_outlined,
                               label: email,
@@ -562,7 +571,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                             ),
                           // Même principe que l'email : le téléphone ne
                           // s'affiche que pour un contact déjà établi.
-                          if (phone.isNotEmpty && widget.contactId != null)
+                          if (phone.isNotEmpty && _isConnected)
                             _buildInlineContactChip(
                               icon: Icons.phone_outlined,
                               label: phone,
@@ -753,9 +762,27 @@ class _PublicCardPageState extends State<PublicCardPage>
       child: ConnectActionButton(
         userId: id,
         userName: fullName.isNotEmpty ? fullName : 'ce profil',
-        initialStatus: ConnectionStatus.none,
+        initialStatus: _connectionStatusFromCard(),
+        initialRequestId: card?['connection_request_id'] != null
+            ? int.tryParse(card!['connection_request_id'].toString())
+            : null,
       ),
     );
+  }
+
+  /// Traduit le 'connection_status' renvoyé par le backend (voir
+  /// DigitalCardQrController::show) en ConnectionStatus — sans ça, le
+  /// bouton repartait toujours de "Se connecter" à chaque réouverture de
+  /// la page, même après l'envoi (ou l'acceptation) d'une demande.
+  ConnectionStatus _connectionStatusFromCard() {
+    switch (card?['connection_status']) {
+      case 'pending_sent':
+        return ConnectionStatus.pendingSent;
+      case 'pending_received':
+        return ConnectionStatus.pendingReceived;
+      default:
+        return ConnectionStatus.none;
+    }
   }
 
   /// Nom du highlight actuellement assigné à ce contact, ou "Highlight" (le
@@ -1385,7 +1412,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     // Même principe que l'email/téléphone affichés dans l'en-tête : pas de
     // WhatsApp (dérivé du numéro) tant que ce profil n'est pas un contact
     // établi.
-    if (phone.isNotEmpty && widget.contactId != null) {
+    if (phone.isNotEmpty && _isConnected) {
       final formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
 
       profiles.add({

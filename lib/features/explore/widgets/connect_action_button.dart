@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/explore_user.dart';
@@ -55,9 +56,26 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
     });
   }
 
-  void _snack(String message) {
+  void _snack(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red : null,
+    ));
+  }
+
+  /// Message d'erreur lisible depuis une DioException — sans ça, un échec
+  /// réseau/serveur sur Envoyer/Annuler/Accepter/Refuser ne montrait
+  /// strictement rien à l'utilisateur : le bouton redevenait juste
+  /// cliquable, sans aucune explication ("j'accepte et rien ne se passe").
+  String _errorMessage(Object e) {
+    if (e is DioException) {
+      final serverMessage = e.response?.data is Map
+          ? (e.response?.data as Map)['message']?.toString()
+          : null;
+      if (serverMessage != null && serverMessage.isNotEmpty) return serverMessage;
+    }
+    return 'Une erreur est survenue, réessayez.';
   }
 
   Future<void> _send() async {
@@ -66,6 +84,8 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       final id = await _service.connect(widget.userId);
       _setStatus(ConnectionStatus.pendingSent, requestId: id);
       _snack('Demande envoyée à ${widget.userName}');
+    } catch (e) {
+      _snack(_errorMessage(e), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -79,6 +99,8 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       await _service.cancel(requestId);
       _setStatus(ConnectionStatus.none);
       _snack('Demande à ${widget.userName} annulée');
+    } catch (e) {
+      _snack(_errorMessage(e), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -95,6 +117,8 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
         _snack('${widget.userName} ajouté à vos contacts');
       }
       widget.onResolved?.call();
+    } catch (e) {
+      _snack(_errorMessage(e), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

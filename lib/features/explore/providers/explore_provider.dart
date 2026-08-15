@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
@@ -108,8 +109,21 @@ class ExploreProvider extends ChangeNotifier {
   /// jour son statut localement au lieu de la faire disparaître (utile ici
   /// pour voir tout de suite le résultat, contrairement à la liste de
   /// découverte).
-  Future<void> respondFromMyRequests(int requestId, String action) async {
-    await _service.respond(requestId, action);
+  ///
+  /// Retourne un message d'erreur en cas d'échec (à afficher par l'appelant,
+  /// ex: SnackBar) ou `null` en cas de succès — sans ça, un échec réseau/
+  /// serveur ne montrait rien à l'utilisateur ("j'accepte et rien ne se
+  /// passe").
+  Future<String?> respondFromMyRequests(int requestId, String action) async {
+    try {
+      await _service.respond(requestId, action);
+    } catch (e) {
+      return e is DioException
+          ? ((e.response?.data is Map ? (e.response?.data as Map)['message']?.toString() : null) ??
+              'Une erreur est survenue, réessayez.')
+          : 'Une erreur est survenue, réessayez.';
+    }
+
     myRequests = myRequests
         .map((r) => r.id == requestId
             ? ConnectionRequestItem(
@@ -122,6 +136,7 @@ class ExploreProvider extends ChangeNotifier {
             : r)
         .toList();
     notifyListeners();
+    return null;
   }
 
   void reset() {

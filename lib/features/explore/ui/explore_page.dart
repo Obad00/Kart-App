@@ -367,6 +367,18 @@ class _MyRequestRow extends StatelessWidget {
     }
   }
 
+  /// Sans afficher l'erreur retournée par le provider, un échec réseau/
+  /// serveur sur Accepter/Refuser ne montrait strictement rien à
+  /// l'utilisateur — d'où l'impression que "rien ne se passe".
+  Future<void> _respond(BuildContext context, String action) async {
+    final error = await context.read<ExploreProvider>().respondFromMyRequests(item.id, action);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -419,15 +431,13 @@ class _MyRequestRow extends StatelessWidget {
                   _CircleActionButton(
                     icon: Icons.close_rounded,
                     color: Colors.red,
-                    onTap: () =>
-                        context.read<ExploreProvider>().respondFromMyRequests(item.id, 'decline'),
+                    onTap: () => _respond(context, 'decline'),
                   ),
                   const SizedBox(width: 8),
                   _CircleActionButton(
                     icon: Icons.check_rounded,
                     color: Colors.green,
-                    onTap: () =>
-                        context.read<ExploreProvider>().respondFromMyRequests(item.id, 'accept'),
+                    onTap: () => _respond(context, 'accept'),
                   ),
                 ],
               )
