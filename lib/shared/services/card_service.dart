@@ -391,6 +391,7 @@ static Future<void> deactivateHighlight(int highlightId) async {
     String? email,
     String? phone,
     String source = 'qr_scan',
+    int? userId,
   }) async {
     try {
       // Collecter automatiquement les informations de l'appareil
@@ -406,6 +407,7 @@ static Future<void> deactivateHighlight(int highlightId) async {
         if (name != null && name.isNotEmpty) 'name': name,
         if (email != null && email.isNotEmpty) 'email': email,
         if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (userId != null) 'user_id': userId,
         'source': source,
         // Informations collectées automatiquement
         'device': deviceInfo['device'],

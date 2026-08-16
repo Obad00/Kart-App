@@ -106,7 +106,17 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       await _migrateLegacyTourFlag();
       if (!mounted) return;
 
-      await _maybeReloadSessionData();
+      // Un échec ici (réseau instable au tout début du lancement, souci
+      // backend passager...) ne doit jamais empêcher le tour guidé, le
+      // rappel de mise à jour et le rappel de profil de s'exécuter — sans
+      // ce try/catch, une exception non rattrapée stoppait net le reste de
+      // cette séquence de démarrage (les 3 appels suivants ne se
+      // déclenchaient tout simplement jamais pour ce lancement).
+      try {
+        await _maybeReloadSessionData();
+      } catch (e) {
+        debugPrint('⚠️ _maybeReloadSessionData a échoué: $e');
+      }
       if (!mounted) return;
 
       if (widget.openDashboardTab != null) {

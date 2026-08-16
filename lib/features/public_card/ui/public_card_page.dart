@@ -124,10 +124,21 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Future<void> _registerView() async {
+    // Le propriétaire qui consulte sa propre carte (aperçu, ou après avoir
+    // été redirigé ici par erreur) ne doit jamais compter comme un scan.
+    final viewerId = context.read<AuthProvider>().user?.id;
+    final ownerId = int.tryParse(card?['user_id']?.toString() ?? '');
+    if (viewerId != null && ownerId != null && viewerId == ownerId) return;
+
     try {
       await CardService.registerCardView(
         slug: widget.slug,
         source: 'qr_scan',
+        // Permet au backend de dédupliquer : sans ça, un même visiteur
+        // connecté qui rouvre plusieurs fois la carte (ex: navigue plusieurs
+        // fois vers un même contact/profil) faisait remonter le compteur de
+        // scans à chaque réouverture, au lieu d'une fois par visiteur.
+        userId: viewerId,
       );
     } catch (_) {
       // Ignorer les erreurs silencieusement
