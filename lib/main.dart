@@ -64,6 +64,7 @@ import 'features/profile_completion/providers/candidate_skills_provider.dart';
 import 'features/profile_completion/services/candidate_skills_service.dart';
 import 'features/jobmatch/providers/jobmatch_provider.dart';
 import 'features/jobmatch/services/jobmatch_service.dart';
+import 'features/explore/providers/connection_badge_provider.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -135,6 +136,9 @@ class _KartAppState extends State<KartApp> {
         ),
         ChangeNotifierProvider(
           create: (_) => JobMatchProvider(JobMatchService()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectionBadgeProvider()..refresh(),
         ),
       ],
       child: Consumer<ThemeProvider>(

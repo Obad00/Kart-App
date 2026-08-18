@@ -21,6 +21,7 @@ import '../contacts/ui/contacts_page.dart';
 import '../explore/ui/explore_page.dart';
 import '../../shared/tour/tour_prefs.dart';
 import '../../shared/utils/session_reset.dart';
+import '../explore/providers/connection_badge_provider.dart';
 
 class HomeShell extends StatefulWidget {
   final int initialIndex;
@@ -42,7 +43,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
+class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, WidgetsBindingObserver {
   static const _tourKey = 'tab_bar';
   // Rappel de complétion de profil : jusqu'à 3 fois par jour, avec au
   // moins 3h30 d'écart entre deux affichages (évite qu'il s'affiche
@@ -81,6 +82,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _index = widget.initialIndex;
+    WidgetsBinding.instance.addObserver(this);
 
     // Créer les contrôleurs d'animation pour chaque item (5 slots toujours
     // alloués — le 5e, JobMatch, n'est simplement pas rendu si non-candidat).
@@ -314,7 +316,15 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<ConnectionBadgeProvider>().refresh();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (var controller in _scaleControllers) {
       controller.dispose();
     }
@@ -337,6 +347,11 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   void _onTap(int idx) {
     if (_index == idx) return;
     HapticFeedback.lightImpact();
+    final showJobMatch = canAccessJobMatch(context.read<AuthProvider>().user?.plan);
+    final exploreIndex = showJobMatch ? 3 : 2;
+    if (idx == exploreIndex) {
+      context.read<ConnectionBadgeProvider>().clearBadge();
+    }
     setState(() => _index = idx);
   }
 
@@ -389,6 +404,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   }
 
   Widget _buildBottomNavigation(ColorScheme colors, bool showJobMatch) {
+    final badgeCount = context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -445,6 +462,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                   index: showJobMatch ? 3 : 2,
                   tourDescription:
                       'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                  badgeCount: badgeCount,
                 ),
                 _buildNavItem(
                   icon: Icons.person_outline,
@@ -469,6 +487,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     required int index,
     required String tourDescription,
     bool isSpecial = false,
+    int badgeCount = 0,
   }) {
     final selected = _index == index;
     final colors = Theme.of(context).colorScheme;
@@ -509,50 +528,78 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Icône avec animation
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, animation) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: child,
-                      );
-                    },
-                    child: isSpecial && selected
-                        ? Container(
-                            key: ValueKey('special_$selected'),
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  primaryColor,
-                                  primaryColor.withValues(alpha: 0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primaryColor.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                  // Icône avec animation et badge optionnel
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          );
+                        },
+                        child: isSpecial && selected
+                            ? Container(
+                                key: ValueKey('special_$selected'),
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      primaryColor,
+                                      primaryColor.withValues(alpha: 0.8),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryColor.withValues(alpha: 0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                                child: Icon(
+                                  activeIcon,
+                                  key: ValueKey('icon_${index}_$selected'),
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              )
+                            : Icon(
+                                selected ? activeIcon : icon,
+                                key: ValueKey('icon_${index}_$selected'),
+                                color: selected ? primaryColor : inactiveColor,
+                                size: 22,
+                              ),
+                      ),
+                      if (badgeCount > 0)
+                        Positioned(
+                          top: -5,
+                          right: -7,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
                             ),
-                            child: Icon(
-                              activeIcon,
-                              key: ValueKey('icon_${index}_$selected'),
-                              color: Colors.white,
-                              size: 18,
+                            child: Text(
+                              badgeCount > 9 ? '9+' : '$badgeCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                height: 1,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                          )
-                        : Icon(
-                            selected ? activeIcon : icon,
-                            key: ValueKey('icon_${index}_$selected'),
-                            color: selected ? primaryColor : inactiveColor,
-                            size: 22,
                           ),
+                        ),
+                    ],
                   ),
                   // Label animé à côté de l'icône quand sélectionné
                   Flexible(
