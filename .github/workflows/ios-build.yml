@@ -346,6 +346,17 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
+      - name: Vérifier l'entitlement aps-environment (notifications push)
+        run: |
+          APP_PATH="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+          codesign -d --entitlements :- "$APP_PATH" > /tmp/entitlements.plist 2>/dev/null
+          APS_ENV=$(/usr/libexec/PlistBuddy -c "Print :aps-environment" /tmp/entitlements.plist 2>/dev/null || echo "MISSING")
+          echo "aps-environment signé dans le binaire : $APS_ENV"
+          if [ "$APS_ENV" != "production" ]; then
+            echo "::error::aps-environment devrait être 'production' pour un build App Store Connect, trouvé: '$APS_ENV'. Les notifications push ne seront pas délivrées par Firebase tant que ce n'est pas corrigé."
+            exit 1
+          fi
+
       - name: Sauvegarder le fichier IPA (artifact)
         uses: actions/upload-artifact@v4
         with:

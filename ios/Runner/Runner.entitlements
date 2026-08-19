@@ -2,7 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- "production" (pas "development") : le pipeline CI (ios-build.yml)
+	     signe exclusivement en distribution App Store Connect (certificat
+	     "Apple Distribution" + profil de distribution) — aucun build de
+	     développement local n'existe pour cette app. Un binaire signé pour
+	     l'App Store/TestFlight doit obligatoirement utiliser l'environnement
+	     APNs "production", sinon les push envoyés par Firebase (qui route
+	     via l'APNs production) ne sont jamais délivrés à l'appareil. -->
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 </dict>
 </plist>
