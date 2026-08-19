@@ -23,6 +23,11 @@ dependencies:
   # HTTP client (API Laravel)
   dio: ^5.4.0
 
+  # Notifications push (FCM)
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.6
+  flutter_local_notifications: ^18.0.1
+
   # State management
   provider: ^6.1.2
 

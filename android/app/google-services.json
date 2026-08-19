@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572176532309",
+    "project_id": "kart-e3274",
+    "storage_bucket": "kart-e3274.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572176532309:android:74b7ed903eddf1ce9725dc",
+        "android_client_info": {
+          "package_name": "com.kartapp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQLRi3EEy2wNdiWcp3wTt8Fmu1V3Dg4V0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

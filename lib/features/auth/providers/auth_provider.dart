@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error.dart';
+import '../../../core/services/push_notification_service.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
 
@@ -94,6 +97,10 @@ class AuthProvider extends ChangeNotifier {
       final meResponse = await _api.me();
       debugPrint('👤 /me response: \\${meResponse.data}');
       user = User.fromJson(meResponse.data);
+      // Fire-and-forget : ne doit jamais bloquer/faire échouer le chargement
+      // de l'utilisateur (couvre login, loginWithGoogle et l'auto-connexion
+      // au démarrage, qui passent tous par loadMe()).
+      unawaited(PushNotificationService.registerToken());
     } on DioException catch (e) {
       debugPrint(
           '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
@@ -225,6 +232,10 @@ class AuthProvider extends ChangeNotifier {
         debugPrint('GoogleSignIn signOut error: $e\n$st');
       }
     }
+
+    // Avant de vider le token d'auth : l'appel DELETE /device-tokens a
+    // besoin du header Authorization pour identifier l'utilisateur.
+    await PushNotificationService.deleteToken();
 
     await ApiClient.clearToken();
     await ApiClient.clearOfflineCache();

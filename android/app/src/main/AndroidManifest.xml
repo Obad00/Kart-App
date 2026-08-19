@@ -12,6 +12,9 @@
     <!-- Internet for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Notifications push (FCM) — permission d'affichage requise depuis Android 13 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Contacts permissions for adding contacts -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
@@ -50,6 +53,15 @@
                 <data android:scheme="kart"/>
             </intent-filter>
         </activity>
+        <!-- Notifications push (FCM) — icône et canal par défaut utilisés
+             quand l'app est en arrière-plan/fermée. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="kart_default_channel" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

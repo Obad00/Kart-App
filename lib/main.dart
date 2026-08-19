@@ -6,6 +6,7 @@ import 'config/feature_flags.dart';
 import 'core/deep_links/deep_link_service.dart';
 import 'core/network/api_client.dart';
 import 'core/services/connectivity_provider.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'shared/utils/session_reset.dart';
@@ -91,16 +92,19 @@ class KartApp extends StatefulWidget {
 
 class _KartAppState extends State<KartApp> {
   late final DeepLinkService _deepLinkService;
+  late final PushNotificationService _pushNotificationService;
 
   @override
   void initState() {
     super.initState();
     _deepLinkService = DeepLinkService(navigatorKey)..init();
+    _pushNotificationService = PushNotificationService(navigatorKey)..init();
   }
 
   @override
   void dispose() {
     _deepLinkService.dispose();
+    _pushNotificationService.dispose();
     super.dispose();
   }
 
