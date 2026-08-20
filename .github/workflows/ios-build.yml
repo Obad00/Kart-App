@@ -363,9 +363,34 @@ jobs:
           unzip -q "$IPA_PATH" -d /tmp/ipa_check
           APP_PATH=$(find /tmp/ipa_check/Payload -maxdepth 1 -name "*.app" | head -1)
 
-          codesign -d --entitlements :- "$APP_PATH" > /tmp/entitlements.plist 2>/dev/null
+          # Diagnostic : ce que le PROFIL DE PROVISIONNEMENT lui-même autorise
+          # (source de vérité côté Apple — indépendant de ce que Xcode a fait
+          # ensuite lors de la signature/export). Émis en ::notice:: (pas en
+          # simple echo) car les logs bruts de ce step ne sont pas lisibles
+          # depuis l'extérieur du dépôt — seules les annotations le sont.
+          if [ -f "$APP_PATH/embedded.mobileprovision" ]; then
+            security cms -D -i "$APP_PATH/embedded.mobileprovision" > /tmp/profile.plist 2>/dev/null
+            echo "::notice::PROFIL — entitlements accordés :"
+            /usr/libexec/PlistBuddy -c "Print :Entitlements" /tmp/profile.plist 2>/tmp/profile_err.txt \
+              | while IFS= read -r line; do echo "::notice::PROFIL: $line"; done
+            if [ -s /tmp/profile_err.txt ]; then
+              echo "::notice::PROFIL: (lecture impossible) $(cat /tmp/profile_err.txt)"
+            fi
+          else
+            echo "::notice::PROFIL: aucun embedded.mobileprovision trouvé dans $APP_PATH"
+          fi
+
+          codesign -d --entitlements :- "$APP_PATH" > /tmp/entitlements.plist 2>/tmp/codesign_err.txt
+          echo "::notice::BINAIRE — entitlements réellement signés :"
+          if [ -s /tmp/entitlements.plist ]; then
+            /usr/libexec/PlistBuddy -c "Print" /tmp/entitlements.plist 2>/dev/null \
+              | while IFS= read -r line; do echo "::notice::BINAIRE: $line"; done
+          else
+            echo "::notice::BINAIRE: (vide) $(cat /tmp/codesign_err.txt)"
+          fi
+
           APS_ENV=$(/usr/libexec/PlistBuddy -c "Print :aps-environment" /tmp/entitlements.plist 2>/dev/null || echo "MISSING")
-          echo "aps-environment signé dans le .ipa exporté : $APS_ENV"
+          echo "::notice::aps-environment signé dans le .ipa exporté : $APS_ENV"
           if [ "$APS_ENV" != "production" ]; then
             echo "::error::aps-environment devrait être 'production' pour un build App Store Connect, trouvé: '$APS_ENV'. Les notifications push ne seront pas délivrées par Firebase tant que ce n'est pas corrigé."
             exit 1
