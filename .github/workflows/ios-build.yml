@@ -59,12 +59,6 @@ jobs:
           # 2. Injecter CODE_SIGN_ENTITLEMENTS UNIQUEMENT pour le target Runner
           perl -0777 -pi -e 's/(PRODUCT_NAME = Runner;)/$1\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner\/Runner.entitlements;/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Générer les fichiers iOS (plugins registrant)
-        run: |
-          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
-          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Debug.xcconfig
-          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
-
       - name: Install Pods
         run: |
           cd ios
@@ -296,6 +290,18 @@ jobs:
 
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
 
+      - name: Configuration de la signature isolée dans Release.xcconfig
+        run: |
+          PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
+          echo "PROVISIONING_PROFILE_SPECIFIER = $PROFILE_UUID" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_STYLE = Manual" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_IDENTITY = Apple Distribution" >> ios/Flutter/Release.xcconfig
+
+      - name: Générer les fichiers iOS (Flutter Build)
+        run: |
+          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
+
       - name: Créer le fichier ExportOptions
         run: |
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
@@ -334,17 +340,11 @@ jobs:
           
           echo "=== DÉBUT ARCHIVAGE XCODEBUILD ==="
           
-          PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
-          
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             -destination "generic/platform=iOS" \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*][target=Runner]=$PROFILE_UUID" \
             archive 2>&1 | tee /tmp/xcode_archive.log || ARCHIVE_FAILED=true
 
           if [ "$ARCHIVE_FAILED" = "true" ]; then
@@ -412,7 +412,7 @@ jobs:
           APS_ENV=$(/usr/libexec/PlistBuddy -c "Print :aps-environment" /tmp/entitlements.plist 2>/dev/null || echo "MISSING")
           echo "::notice::aps-environment signé dans le .ipa exporté : $APS_ENV"
           if [ "$APS_ENV" != "production" ]; then
-            echo "::error::aps-environment devrait être 'production' pour un build App Store Connect, trouvé: '$APS_ENV'. Les notifications push ne seront pas délivrées par Firebase tant que ce n'est pas corrigé."
+            echo "::error::aps-environment devrait être 'production' pour un build App Store Connect, trouvé: '$APS_ENV'."
             exit 1
           fi
 
