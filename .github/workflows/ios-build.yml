@@ -12,6 +12,67 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Vérifier que Push Notifications est activé sur l'App ID
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          BUNDLE_ID: com.kartapp.app
+        run: |
+          pip3 install PyJWT cryptography --break-system-packages
+
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          python3 - <<'PYEOF'
+          import jwt, time, json, urllib.request, os
+
+          key_id = os.environ['KEY_ID']
+          issuer_id = os.environ['ISSUER_ID']
+          bundle_id = os.environ['BUNDLE_ID']
+          key_path = os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{key_id}.p8")
+
+          with open(key_path) as f:
+              private_key = f.read()
+
+          def make_token():
+              payload = {
+                  "iss": issuer_id,
+                  "iat": int(time.time()),
+                  "exp": int(time.time()) + 1200,
+                  "aud": "appstoreconnect-v1"
+              }
+              return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
+
+          def api_request(url):
+              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {make_token()}"})
+              with urllib.request.urlopen(req) as resp:
+                  return json.loads(resp.read())
+
+          # 1. Résoudre l'App ID
+          bundle_data = api_request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={bundle_id}")
+          if not bundle_data["data"]:
+              print(f"::error::Bundle ID {bundle_id} introuvable sur le portail Apple Developer.")
+              exit(1)
+          bundle_resource_id = bundle_data["data"][0]["id"]
+
+          # 2. Lister ses capabilities
+          caps_data = api_request(f"https://api.appstoreconnect.apple.com/v1/bundleIds/{bundle_resource_id}/bundleIdCapabilities")
+          capability_types = [c["attributes"]["capabilityType"] for c in caps_data.get("data", [])]
+
+          print(f"Capabilities actuelles sur {bundle_id}: {capability_types}")
+
+          if "PUSH_NOTIFICATIONS" not in capability_types:
+              print(f"::error::La capability Push Notifications n'est PAS activée sur l'App ID {bundle_id}. "
+                    f"Va sur https://developer.apple.com/account/resources/identifiers/list, sélectionne "
+                    f"{bundle_id}, coche Push Notifications, puis relance le workflow. "
+                    f"Sans ça, le profil de provisionnement généré par ce pipeline ne contiendra jamais "
+                    f"l'entitlement aps-environment.")
+              exit(1)
+          else:
+              print("✅ Push Notifications est bien activé sur l'App ID.")
+          PYEOF
+
       - name: Sélectionner Xcode latest
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -187,7 +248,7 @@ jobs:
               print("⚠️ Aucun certificat trouvé. Création d'un nouveau...")
               os.system("openssl genrsa -out /tmp/distribution.key 2048")
               os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
-              
+
               with open("/tmp/distribution.csr", "rb") as f:
                   csr_content = base64.b64encode(f.read()).decode()
 
