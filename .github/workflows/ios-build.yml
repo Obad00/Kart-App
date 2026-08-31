@@ -75,7 +75,7 @@ jobs:
           security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
-          # 2. Créer l'arborescence ios/fastlane/Fastfile
+          # 2. Créer l'arborescence officielle ios/fastlane/Fastfile
           mkdir -p ios/fastlane
           cat << 'FASTFILE_EOF' > ios/fastlane/Fastfile
           default_platform(:ios)
@@ -104,10 +104,11 @@ jobs:
           end
           FASTFILE_EOF
 
+          # Exécution de la lane Fastlane depuis le dossier ios
           cd ios
           KEYCHAIN_PATH="$KEYCHAIN_PATH" fastlane ios get_certs_and_profiles
 
-          # Extraire l'UUID du profil téléchargé
+          # Extraire l'UUID du profil télécharge
           PROFILE_PATH=$(find . -name "appstore.mobileprovision" | head -1)
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(security cms -D -i "$PROFILE_PATH") 2>/dev/null || echo "")
 
