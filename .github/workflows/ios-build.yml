@@ -46,6 +46,26 @@ jobs:
 
 
       # ============================================================
+      # KEYCHAIN INITIALIZATION
+      # ============================================================
+      - name: Initialiser le Keychain CI
+        run: |
+          echo "======================================"
+          echo "KEYCHAIN SETUP"
+          echo "======================================"
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD="tempci123password"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | xargs)
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+
+      # ============================================================
       # PYTHON / APP STORE CONNECT API
       # ============================================================
       - name: Installer les dépendances API Apple
@@ -179,12 +199,6 @@ jobs:
                   f"sur {bundle_id}."
               )
 
-              print(
-                  "::error::Active Push Notifications dans "
-                  "Apple Developer > Certificates, Identifiers & Profiles "
-                  "> Identifiers."
-              )
-
               sys.exit(1)
 
           print("✅ Push Notifications est activé.")
@@ -208,19 +222,13 @@ jobs:
 
 
       # ============================================================
-      # FLUTTER PRECACHE
+      # FLUTTER PRECACHE & DEPENDENCIES
       # ============================================================
       - name: Flutter precache iOS
-        run: |
-          flutter precache --ios
+        run: flutter precache --ios
 
-
-      # ============================================================
-      # DEPENDENCIES
-      # ============================================================
       - name: Installer les dépendances Flutter
-        run: |
-          flutter pub get
+        run: flutter pub get
 
 
       # ============================================================
@@ -271,9 +279,7 @@ jobs:
       - name: Installer CocoaPods
         run: |
           set -e
-
           cd ios
-
           pod install --repo-update
 
 
@@ -310,82 +316,12 @@ jobs:
         run: |
           set -e
 
-          echo "======================================"
-          echo "NETTOYAGE PODS"
-          echo "======================================"
-
           find ios/Pods -name "*.pbxproj" -type f -print0 |
           while IFS= read -r -d '' file; do
-
             if grep -q "Runner/Runner.entitlements" "$file"; then
-              echo "Correction : $file"
-
-              sed -i '' \
-                's#Runner/Runner.entitlements##g' \
-                "$file"
+              sed -i '' 's#Runner/Runner.entitlements##g' "$file"
             fi
-
           done
-
-          echo "Références Pods corrigées."
-
-
-      # ============================================================
-      # CONFIGURATION XCODE PROJECT
-      # ============================================================
-      - name: Configurer le projet Xcode
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "CONFIGURATION XCODE PROJECT"
-          echo "======================================"
-
-          gem install xcodeproj --no-document
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-
-          project_path = 'ios/Runner.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-
-          project.targets.each do |target|
-
-            puts "Target: #{target.name}"
-
-            # Seulement le target principal Runner
-            next unless target.name == 'Runner'
-
-            target.build_configurations.each do |config|
-
-              puts "  Configuration: #{config.name}"
-
-              settings = config.build_settings
-
-              settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.kartapp.app'
-              settings['DEVELOPMENT_TEAM'] = ENV['TEAM_ID']
-
-              settings['CODE_SIGN_STYLE'] = 'Manual'
-
-              settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] =
-                'Apple Distribution'
-
-              settings['CODE_SIGN_ENTITLEMENTS'] =
-                'Runner/Runner.entitlements'
-
-              settings['PROVISIONING_PROFILE_SPECIFIER'] =
-                ENV['PROFILE_UUID']
-
-              settings['CODE_SIGNING_ALLOWED'] = 'YES'
-              settings['CODE_SIGNING_REQUIRED'] = 'YES'
-
-            end
-          end
-
-          project.save
-
-          puts "Projet Xcode configuré correctement."
-          RUBY
 
 
       # ============================================================
@@ -421,16 +357,13 @@ jobs:
               private_key = f.read()
 
           def token():
-
               now = int(time.time())
-
               payload = {
                   "iss": issuer_id,
                   "iat": now,
                   "exp": now + 1200,
                   "aud": "appstoreconnect-v1"
               }
-
               return jwt.encode(
                   payload,
                   private_key,
@@ -439,417 +372,115 @@ jobs:
               )
 
           def request(url, data=None, method=None):
-
               headers = {
                   "Authorization": f"Bearer {token()}",
                   "Content-Type": "application/json"
               }
-
-              body = None
-
-              if data is not None:
-                  body = json.dumps(data).encode()
-
+              body = json.dumps(data).encode() if data is not None else None
               req = urllib.request.Request(
                   url,
                   data=body,
                   headers=headers,
                   method=method or ("POST" if body else "GET")
               )
-
               with urllib.request.urlopen(req) as response:
                   content = response.read()
-
-                  if not content:
-                      return {}
-
-                  return json.loads(content)
+                  return json.loads(content) if content else {}
 
           print("======================================")
           print("CERTIFICAT DISTRIBUTION")
           print("======================================")
 
-          certs = request(
-              "https://api.appstoreconnect.apple.com/v1/certificates"
-              "?filter[certificateType]=IOS_DISTRIBUTION&limit=20"
-          )
+          # Génération d'une nouvelle clé privée locale
+          subprocess.run(["openssl", "genrsa", "-out", "/tmp/distribution.key", "2048"], check=True)
+          subprocess.run([
+              "openssl", "req", "-new", "-key", "/tmp/distribution.key",
+              "-out", "/tmp/distribution.csr", "-subj", "/CN=Apple Distribution/O=KartApp/C=US"
+          ], check=True)
 
-          distribution_certs = certs.get("data", [])
+          with open("/tmp/distribution.csr", "rb") as f:
+              csr = base64.b64encode(f.read()).decode()
 
-          cert_id = None
-          cert_content = None
-          local_key = False
-
-          if distribution_certs:
-
-              distribution_certs.sort(
-                  key=lambda x: x["attributes"]["expirationDate"],
-                  reverse=True
-              )
-
-              cert = distribution_certs[0]
-
-              cert_id = cert["id"]
-              cert_content = cert["attributes"]["certificateContent"]
-
-              print(
-                  f"✅ Certificat existant réutilisé : {cert_id}"
-              )
-
-          else:
-
-              print("Aucun certificat Distribution trouvé.")
-
-              print("Création d'un nouveau certificat...")
-
-              subprocess.run(
-                  [
-                      "openssl",
-                      "genrsa",
-                      "-out",
-                      "/tmp/distribution.key",
-                      "2048"
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "openssl",
-                      "req",
-                      "-new",
-                      "-key",
-                      "/tmp/distribution.key",
-                      "-out",
-                      "/tmp/distribution.csr",
-                      "-subj",
-                      "/CN=Apple Distribution/O=KartApp/C=US"
-                  ],
-                  check=True
-              )
-
-              with open("/tmp/distribution.csr", "rb") as f:
-                  csr = base64.b64encode(f.read()).decode()
-
-              cert_data = request(
-                  "https://api.appstoreconnect.apple.com/v1/certificates",
-                  {
-                      "data": {
-                          "type": "certificates",
-                          "attributes": {
-                              "certificateType": "IOS_DISTRIBUTION",
-                              "csrContent": csr
-                          }
+          cert_data = request(
+              "https://api.appstoreconnect.apple.com/v1/certificates",
+              {
+                  "data": {
+                      "type": "certificates",
+                      "attributes": {
+                          "certificateType": "IOS_DISTRIBUTION",
+                          "csrContent": csr
                       }
                   }
-              )
+              }
+          )
 
-              cert_id = cert_data["data"]["id"]
-
-              cert_content = cert_data["data"]["attributes"][
-                  "certificateContent"
-              ]
-
-              local_key = True
-
-              print(
-                  f"✅ Nouveau certificat créé : {cert_id}"
-              )
+          cert_id = cert_data["data"]["id"]
+          cert_content = cert_data["data"]["attributes"]["certificateContent"]
+          print(f"✅ Nouveau certificat créé : {cert_id}")
 
           with open("/tmp/distribution.cer", "wb") as f:
               f.write(base64.b64decode(cert_content))
 
-          # ========================================================
-          # BUNDLE ID
-          # ========================================================
+          # Import dans le Keychain CI
+          subprocess.run(["openssl", "x509", "-inform", "DER", "-in", "/tmp/distribution.cer", "-out", "/tmp/distribution.pem"], check=True)
+          subprocess.run([
+              "openssl", "pkcs12", "-export", "-inkey", "/tmp/distribution.key",
+              "-in", "/tmp/distribution.pem", "-out", "/tmp/distribution.p12",
+              "-passout", "pass:tempci123", "-legacy"
+          ], check=True)
 
-          encoded_bundle = urllib.parse.quote(
-              bundle_id,
-              safe=""
-          )
+          keychain = os.environ["RUNNER_TEMP"] + "/app-signing.keychain-db"
 
-          bundle_data = request(
-              "https://api.appstoreconnect.apple.com/v1/bundleIds"
-              f"?filter[identifier]={encoded_bundle}"
-          )
+          subprocess.run(["security", "import", "/tmp/distribution.p12", "-k", keychain, "-P", "tempci123", "-A"], check=True)
+          subprocess.run(["security", "set-key-partition-list", "-S", "apple-tool:,apple:", "-s", "-k", "tempci123password", keychain], check=True)
 
-          if not bundle_data.get("data"):
-              raise Exception(
-                  f"Bundle ID {bundle_id} introuvable."
-              )
-
+          # Bundle ID lookup
+          encoded_bundle = urllib.parse.quote(bundle_id, safe="")
+          bundle_data = request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={encoded_bundle}")
           bundle_resource_id = bundle_data["data"][0]["id"]
 
-          print(
-              f"Bundle Resource ID : {bundle_resource_id}"
-          )
-
-          # ========================================================
-          # SUPPRIMER LES ANCIENS PROFILS KARTAPP
-          # ========================================================
-
-          print("")
-          print("Nettoyage des anciens profils...")
-
-          profiles = request(
-              "https://api.appstoreconnect.apple.com/v1/profiles"
-              "?filter[profileType]=IOS_APP_STORE&limit=50"
-          )
-
+          # Nettoyage anciens profils
+          profiles = request("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=50")
           for profile in profiles.get("data", []):
-
-              name = profile["attributes"]["name"]
-
-              if "KartApp AppStore CI" in name:
-
-                  profile_id = profile["id"]
-
-                  print(
-                      f"Suppression profil : {name}"
-                  )
-
+              if "KartApp AppStore CI" in profile["attributes"]["name"]:
                   try:
-
-                      request(
-                          f"https://api.appstoreconnect.apple.com/v1/profiles/{profile_id}",
-                          method="DELETE"
-                      )
-
+                      request(f"https://api.appstoreconnect.apple.com/v1/profiles/{profile['id']}", method="DELETE")
                   except Exception as e:
+                      pass
 
-                      print(
-                          f"Impossible de supprimer {profile_id}: {e}"
-                      )
-
-          # ========================================================
-          # CREATION DU PROFILE
-          # ========================================================
-
-          print("")
-          print("Création du provisioning profile...")
-
+          # Création Profil
           profile_data = request(
               "https://api.appstoreconnect.apple.com/v1/profiles",
               {
                   "data": {
                       "type": "profiles",
                       "attributes": {
-                          "name": (
-                              f"KartApp AppStore CI "
-                              f"{int(time.time())}"
-                          ),
+                          "name": f"KartApp AppStore CI {int(time.time())}",
                           "profileType": "IOS_APP_STORE"
                       },
                       "relationships": {
-                          "bundleId": {
-                              "data": {
-                                  "type": "bundleIds",
-                                  "id": bundle_resource_id
-                              }
-                          },
-                          "certificates": {
-                              "data": [
-                                  {
-                                      "type": "certificates",
-                                      "id": cert_id
-                                  }
-                              ]
-                          }
+                          "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}},
+                          "certificates": {"data": [{"type": "certificates", "id": cert_id}]}
                       }
                   }
               }
           )
 
           profile = profile_data["data"]
-
           profile_content = profile["attributes"]["profileContent"]
-
           profile_uuid = profile["attributes"]["uuid"]
 
-          profile_name = profile["attributes"]["name"]
+          profiles_dir = os.path.expanduser("~/Library/MobileDevice/Provisioning Profiles")
+          os.makedirs(profiles_dir, exist_ok=True)
+          destination = os.path.join(profiles_dir, f"{profile_uuid}.mobileprovision")
 
-          with open(
-              "/tmp/profile.mobileprovision",
-              "wb"
-          ) as f:
+          with open(destination, "wb") as f:
+              f.write(base64.b64decode(profile_content))
 
-              f.write(
-                  base64.b64decode(profile_content)
-              )
+          print(f"✅ Provisioning profile {profile_uuid} installé.")
 
-          print("")
-          print("======================================")
-          print("PROFILE")
-          print("======================================")
-
-          print(f"Nom  : {profile_name}")
-          print(f"UUID : {profile_uuid}")
-
-          with open("/tmp/profile_uuid.txt", "w") as f:
-              f.write(profile_uuid)
-
-          # ========================================================
-          # IMPORT CERTIFICAT SI NOUVELLE CLÉ LOCALE
-          # ========================================================
-
-          if local_key:
-
-              print("Import du certificat local...")
-
-              subprocess.run(
-                  [
-                      "openssl",
-                      "x509",
-                      "-inform",
-                      "DER",
-                      "-in",
-                      "/tmp/distribution.cer",
-                      "-out",
-                      "/tmp/distribution.pem"
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "openssl",
-                      "pkcs12",
-                      "-export",
-                      "-inkey",
-                      "/tmp/distribution.key",
-                      "-in",
-                      "/tmp/distribution.pem",
-                      "-out",
-                      "/tmp/distribution.p12",
-                      "-passout",
-                      "pass:tempci123",
-                      "-legacy"
-                  ],
-                  check=True
-              )
-
-              keychain = (
-                  os.environ["RUNNER_TEMP"]
-                  + "/app-signing.keychain-db"
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "create-keychain",
-                      "-p",
-                      "temppass",
-                      keychain
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "set-keychain-settings",
-                      "-lut",
-                      "21600",
-                      keychain
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "unlock-keychain",
-                      "-p",
-                      "temppass",
-                      keychain
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "import",
-                      "/tmp/distribution.p12",
-                      "-k",
-                      keychain,
-                      "-P",
-                      "tempci123",
-                      "-A"
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "list-keychain",
-                      "-d",
-                      "user",
-                      "-s",
-                      keychain
-                  ],
-                  check=True
-              )
-
-              subprocess.run(
-                  [
-                      "security",
-                      "set-key-partition-list",
-                      "-S",
-                      "apple-tool:,apple:",
-                      "-s",
-                      "-k",
-                      "temppass",
-                      keychain
-                  ],
-                  check=True
-              )
-
-          # ========================================================
-          # INSTALL PROFILE
-          # ========================================================
-
-          profiles_dir = os.path.expanduser(
-              "~/Library/MobileDevice/Provisioning Profiles"
-          )
-
-          os.makedirs(
-              profiles_dir,
-              exist_ok=True
-          )
-
-          destination = os.path.join(
-              profiles_dir,
-              f"{profile_uuid}.mobileprovision"
-          )
-
-          with open(
-              "/tmp/profile.mobileprovision",
-              "rb"
-          ) as source, open(
-              destination,
-              "wb"
-          ) as dest:
-
-              dest.write(source.read())
-
-          print("")
-          print(
-              "✅ Provisioning profile installé."
-          )
-
-          with open("/tmp/profile_uuid.txt") as f:
-              profile_uuid = f.read().strip()
-
-          with open(
-              os.environ["GITHUB_ENV"],
-              "a"
-          ) as env:
-
-              env.write(
-                  f"PROFILE_UUID={profile_uuid}\n"
-              )
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"PROFILE_UUID={profile_uuid}\n")
 
           PYEOF
 
@@ -861,12 +492,6 @@ jobs:
         run: |
           set -e
 
-          echo "======================================"
-          echo "PROVISIONING PROFILE"
-          echo "======================================"
-
-          echo "PROFILE_UUID=$PROFILE_UUID"
-
           ruby <<'RUBY'
           require 'xcodeproj'
 
@@ -874,78 +499,21 @@ jobs:
           project = Xcodeproj::Project.open(project_path)
 
           project.targets.each do |target|
-
             next unless target.name == 'Runner'
-
             target.build_configurations.each do |config|
-
               settings = config.build_settings
-
-              settings['PRODUCT_BUNDLE_IDENTIFIER'] =
-                'com.kartapp.app'
-
-              settings['DEVELOPMENT_TEAM'] =
-                ENV['TEAM_ID']
-
-              settings['CODE_SIGN_STYLE'] =
-                'Manual'
-
-              settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] =
-                'Apple Distribution'
-
-              settings['PROVISIONING_PROFILE_SPECIFIER'] =
-                ENV['PROFILE_UUID']
-
-              settings['CODE_SIGN_ENTITLEMENTS'] =
-                'Runner/Runner.entitlements'
-
+              settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.kartapp.app'
+              settings['DEVELOPMENT_TEAM'] = ENV['TEAM_ID']
+              settings['CODE_SIGN_STYLE'] = 'Manual'
+              settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Distribution'
+              settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV['PROFILE_UUID']
+              settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
             end
           end
 
           project.save
-
           puts "✅ Runner configuré."
           RUBY
-
-
-      # ============================================================
-      # VÉRIFICATION PROFIL
-      # ============================================================
-      - name: Vérifier le provisioning profile
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "VÉRIFICATION PROFILE"
-          echo "======================================"
-
-          security cms \
-            -D \
-            -i "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision" \
-            > /tmp/profile.plist
-
-          echo "Entitlements du profil :"
-
-          /usr/libexec/PlistBuddy \
-            -c "Print :Entitlements" \
-            /tmp/profile.plist
-
-          APS_ENV=$(
-            /usr/libexec/PlistBuddy \
-              -c "Print :Entitlements:aps-environment" \
-              /tmp/profile.plist \
-              2>/dev/null || echo "MISSING"
-          )
-
-          echo ""
-          echo "aps-environment = $APS_ENV"
-
-          if [ "$APS_ENV" != "production" ]; then
-            echo "::error::Le provisioning profile ne contient pas aps-environment=production."
-            exit 1
-          fi
-
-          echo "✅ Push Notifications autorisées dans le profil."
 
 
       # ============================================================
@@ -978,57 +546,24 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            CODE_SIGN_ENTITLEMENTS="Runner/Runner.entitlements" \
             CODE_SIGNING_ALLOWED=YES \
-            archive \
-            2>&1 | tee /tmp/xcodebuild-archive.log
+            archive 2>&1 | tee /tmp/xcodebuild-archive.log
 
 
       # ============================================================
-      # VÉRIFIER ARCHIVE
+      # DIAGNOSTIC LOGS SI ÉCHEC
       # ============================================================
-      - name: Vérifier archive
+      - name: Afficher les logs d'échec Xcode
+        if: failure()
         run: |
-          set -e
-
           echo "======================================"
-          echo "ARCHIVE VALIDATION"
+          echo "XCODEBUILD ERROR LOGS"
           echo "======================================"
-
-          APP_PATH="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
-
-          if [ ! -d "$APP_PATH" ]; then
-            echo "::error::Runner.app introuvable dans l'archive."
-            exit 1
-          fi
-
-          echo "Application : $APP_PATH"
-
-          echo ""
-          echo "Entitlements signés :"
-
-          codesign \
-            -d \
-            --entitlements :- \
-            "$APP_PATH" \
-            2>/tmp/codesign.err \
-            > /tmp/archive-entitlements.plist || true
-
-          if [ -s /tmp/archive-entitlements.plist ]; then
-
-            /usr/libexec/PlistBuddy \
-              -c "Print" \
-              /tmp/archive-entitlements.plist
-
-          else
-
-            cat /tmp/codesign.err
-
-          fi
+          grep -i -C 5 "error:" /tmp/xcodebuild-archive.log || cat /tmp/xcodebuild-archive.log | tail -n 120
 
 
       # ============================================================
-      # EXPORT OPTIONS
+      # EXPORT OPTIONS & IPA
       # ============================================================
       - name: Créer ExportOptions.plist
         run: |
@@ -1037,45 +572,29 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-
               <key>destination</key>
               <string>export</string>
-
               <key>method</key>
               <string>app-store-connect</string>
-
               <key>signingStyle</key>
               <string>manual</string>
-
               <key>teamID</key>
               <string>${TEAM_ID}</string>
-
               <key>provisioningProfiles</key>
               <dict>
                   <key>${BUNDLE_ID}</key>
                   <string>${PROFILE_UUID}</string>
               </dict>
-
               <key>signingCertificate</key>
               <string>Apple Distribution</string>
-
               <key>uploadSymbols</key>
               <true/>
-
               <key>compileBitcode</key>
               <false/>
-
           </dict>
           </plist>
           EOF
 
-          echo "ExportOptions.plist :"
-          cat ios/ExportOptions.plist
-
-
-      # ============================================================
-      # EXPORT IPA
-      # ============================================================
       - name: Exporter IPA
         run: |
           set -o pipefail
@@ -1090,152 +609,5 @@ jobs:
           xcodebuild \
             -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
-            -exportPath build/ios/ipa \
             -exportOptionsPlist ios/ExportOptions.plist \
-            2>&1 | tee /tmp/xcodebuild-export.log
-
-
-      # ============================================================
-      # VÉRIFIER IPA + APS
-      # ============================================================
-      - name: Vérifier aps-environment dans IPA
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "VÉRIFICATION IPA"
-          echo "======================================"
-
-          IPA_PATH=$(find build/ios/ipa \
-            -maxdepth 1 \
-            -name "*.ipa" \
-            | head -1)
-
-          if [ -z "$IPA_PATH" ]; then
-            echo "::error::Aucun IPA trouvé."
-            exit 1
-          fi
-
-          echo "IPA : $IPA_PATH"
-
-          rm -rf /tmp/ipa_check
-          mkdir -p /tmp/ipa_check
-
-          unzip -q "$IPA_PATH" -d /tmp/ipa_check
-
-          APP_PATH=$(
-            find /tmp/ipa_check/Payload \
-              -maxdepth 1 \
-              -name "*.app" \
-              | head -1
-          )
-
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::Application .app introuvable."
-            exit 1
-          fi
-
-          echo ""
-          echo "======================================"
-          echo "ENTITLEMENTS SIGNÉS"
-          echo "======================================"
-
-          codesign \
-            -d \
-            --entitlements :- \
-            "$APP_PATH" \
-            2>/tmp/final-codesign.err \
-            > /tmp/final-entitlements.plist || true
-
-          if [ ! -s /tmp/final-entitlements.plist ]; then
-
-            echo "::error::Aucun entitlement trouvé."
-
-            cat /tmp/final-codesign.err
-
-            exit 1
-
-          fi
-
-          /usr/libexec/PlistBuddy \
-            -c "Print" \
-            /tmp/final-entitlements.plist
-
-          APS_ENV=$(
-            /usr/libexec/PlistBuddy \
-              -c "Print :aps-environment" \
-              /tmp/final-entitlements.plist \
-              2>/dev/null || echo "MISSING"
-          )
-
-          echo ""
-          echo "======================================"
-          echo "APS ENVIRONMENT"
-          echo "======================================"
-
-          echo "aps-environment = $APS_ENV"
-
-          if [ "$APS_ENV" != "production" ]; then
-
-            echo "::error::aps-environment n'est pas production."
-
-            echo ""
-            echo "Entitlements trouvés :"
-
-            cat /tmp/final-entitlements.plist
-
-            exit 1
-          fi
-
-          echo ""
-          echo "✅ aps-environment = production"
-          echo "✅ Push Notifications présentes dans le binaire."
-
-
-      # ============================================================
-      # UPLOAD ARTIFACT
-      # ============================================================
-      - name: Sauvegarder IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: KartApp-iOS
-          path: build/ios/ipa/*.ipa
-
-
-      # ============================================================
-      # UPLOAD APP STORE CONNECT
-      # ============================================================
-      - name: Soumettre à App Store Connect
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
-        run: |
-          set -e
-
-          IPA_PATH=$(find build/ios/ipa \
-            -name "*.ipa" \
-            | head -1)
-
-          if [ -z "$IPA_PATH" ]; then
-            echo "::error::IPA introuvable."
-            exit 1
-          fi
-
-          echo "Upload : $IPA_PATH"
-
-          xcrun altool \
-            --upload-app \
-            --type ios \
-            --file "$IPA_PATH" \
-            --apiKey "$KEY_ID" \
-            --apiIssuer "$ISSUER_ID" \
-            --verbose
-
-
-      # ============================================================
-      # CLEAN KEYCHAIN
-      # ============================================================
-      - name: Nettoyer le trousseau
-        if: always()
-        run: |
-          security delete-keychain \
-            "$RUNNER_TEMP/app-signing.keychain-db" \
-            2>/dev/null || true
+            -exportPath build/ios/ipa 2>&1 | tee /tmp/xcodebuild-export.log
