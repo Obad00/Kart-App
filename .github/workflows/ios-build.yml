@@ -56,8 +56,8 @@ jobs:
           </plist>
           EOF
 
-          # 2. Injecter CODE_SIGN_ENTITLEMENTS dans project.pbxproj pour toutes les configurations
-          perl -pi -e 's/PRODUCT_NAME = "\$\(TARGET_NAME\)";/PRODUCT_NAME = "\$\(TARGET_NAME\)";\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner\/Runner.entitlements;/g' ios/Runner.xcodeproj/project.pbxproj
+          # 2. Injecter CODE_SIGN_ENTITLEMENTS UNIQUEMENT pour le target Runner
+          perl -0777 -pi -e 's/(PRODUCT_NAME = Runner;)/$1\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner\/Runner.entitlements;/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Générer les fichiers iOS (plugins registrant)
         run: |
@@ -337,7 +337,6 @@ jobs:
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            CODE_SIGN_ENTITLEMENTS="Runner/Runner.entitlements" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             PROVISIONING_PROFILE_SPECIFIER_APP_="$PROFILE_UUID" \
             PROVISIONING_PROFILE_SPECIFIER_Runner="$PROFILE_UUID" \
