@@ -136,11 +136,13 @@ class LikedJobItem {
 class JobMatchSummary {
   final int matches;
   final int liked;
+  final int rejected;
   final int pendingSuggestions;
 
   JobMatchSummary({
     required this.matches,
     required this.liked,
+    required this.rejected,
     required this.pendingSuggestions,
   });
 
@@ -148,6 +150,7 @@ class JobMatchSummary {
     return JobMatchSummary(
       matches: json['matches'] ?? 0,
       liked: json['liked'] ?? 0,
+      rejected: json['rejected'] ?? 0,
       pendingSuggestions: json['pending_suggestions'] ?? 0,
     );
   }
