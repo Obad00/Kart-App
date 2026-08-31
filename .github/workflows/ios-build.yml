@@ -75,7 +75,7 @@ jobs:
           security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
-          # 2. Créer l'arborescence officielle ios/fastlane/Fastfile
+          # 2. Créer l'arborescence ios/fastlane/Fastfile
           mkdir -p ios/fastlane
           cat << 'EOF' > ios/fastlane/Fastfile
           default_platform(:ios)
@@ -104,24 +104,28 @@ jobs:
           end
           EOF
 
-          # Exécution de la lane dans le dossier ios avec l'environnement Keychain transmis
           cd ios
           KEYCHAIN_PATH="$KEYCHAIN_PATH" fastlane ios get_certs_and_profiles
 
-          # Déplacer et exporter le profil généré
+          # Extraire l'UUID du profil téléchargé
           PROFILE_PATH=$(find . -name "appstore.mobileprovision" | head -1)
-          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | grep -A1 UUID | string | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p' || true)
-          
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(security cms -D -i "$PROFILE_PATH") 2>/dev/null || echo "")
+
           if [ -z "$PROFILE_UUID" ]; then
-            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(security cms -D -i "$PROFILE_PATH"))
+            PROFILE_UUID=$(grep -aA1 "UUID" "$PROFILE_PATH" | grep -oE '[a-f0-9]{8}-([a-f0-9]{4}-){3}[a-f0-9]{12}' | head -1)
           fi
+
+          if [ -z "$PROFILE_UUID" ]; then
+            echo "::error::Impossible de déterminer l'UUID du profil de provisionnement."
+            exit 1
+          fi
+
+          echo "UUID extrait : $PROFILE_UUID"
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
           echo "$PROFILE_UUID" > profile_uuid.txt
-
           security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
 
       - name: Configuration de la signature dans Release.xcconfig
@@ -139,7 +143,13 @@ jobs:
       - name: Créer le fichier ExportOptions
         run: |
           PROFILE_UUID=$(cat ios/profile_uuid.txt)
-          cat <<EOF > ios/ExportOptions.plist
+          
+          if [ -z "$PROFILE_UUID" ]; then
+            echo "::error::PROFILE_UUID est vide."
+            exit 1
+          fi
+
+          cat << EOF > ios/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -163,6 +173,9 @@ jobs:
               </dict>
           </dict>
           EOF
+
+          # Valider la structure Plist
+          plutil -lint ios/ExportOptions.plist
 
       - name: Archiver et Signer avec Xcodebuild
         env:
