@@ -329,6 +329,10 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          set -o pipefail
+          
+          echo "=== DÉBUT ARCHIVAGE XCODEBUILD ==="
+          
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -341,13 +345,18 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER_APP_="$PROFILE_UUID" \
             PROVISIONING_PROFILE_SPECIFIER_Runner="$PROFILE_UUID" \
             CODE_SIGNING_ALLOWED=YES \
-            archive 2>&1 | tee /tmp/xcodebuild.log; \
-          EXIT_CODE=${PIPESTATUS[0]}; \
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "=== DETECTED XCODEBUILD ERRORS ==="
-            grep -E "error:|failed" /tmp/xcodebuild.log | head -50
-            exit $EXIT_CODE
+            archive 2>&1 | tee /tmp/xcode_archive.log || ARCHIVE_FAILED=true
+
+          if [ "$ARCHIVE_FAILED" = "true" ]; then
+            echo "::error::================ ÉCHEC DE L'ARCHIVAGE XCODEBUILD ================"
+            grep -i -E "(error:|fatal error:|failed:|error :)" /tmp/xcode_archive.log | grep -v "0 errors" | tail -n 30 | while read -r line; do
+              echo "::error::$line"
+            done
+            echo "::error::================================================================="
+            exit 1
           fi
+
+          echo "=== DÉBUT EXPORTATION IPA ==="
 
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
@@ -356,7 +365,16 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8 2>&1 | tee /tmp/xcode_export.log || EXPORT_FAILED=true
+
+          if [ "$EXPORT_FAILED" = "true" ]; then
+            echo "::error::================ ÉCHEC DE L'EXPORTATION IPA ================"
+            grep -i -E "(error:|fatal error:|failed:|error :)" /tmp/xcode_export.log | grep -v "0 errors" | tail -n 30 | while read -r line; do
+              echo "::error::$line"
+            done
+            echo "::error::================================================================="
+            exit 1
+          fi
 
       - name: Vérifier l'entitlement aps-environment (notifications push)
         run: |
