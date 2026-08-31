@@ -298,6 +298,7 @@ jobs:
 
       - name: Créer le fichier ExportOptions
         run: |
+          PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
           cat <<EOF > ios/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -333,6 +334,8 @@ jobs:
           
           echo "=== DÉBUT ARCHIVAGE XCODEBUILD ==="
           
+          PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+          
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -341,7 +344,7 @@ jobs:
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            CODE_SIGNING_ALLOWED=YES \
+            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*][target=Runner]=$PROFILE_UUID" \
             archive 2>&1 | tee /tmp/xcode_archive.log || ARCHIVE_FAILED=true
 
           if [ "$ARCHIVE_FAILED" = "true" ]; then
@@ -423,7 +426,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_STORE_CONNECT_ISSUER_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Uploading targeting path: $IPA_PATH"
