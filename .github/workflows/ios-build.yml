@@ -2,456 +2,237 @@ name: Build & Deploy iOS App
 
 on:
   push:
-    branches:
-      - main
-      - release/flutter
-      - payment
+    branches: [main, release/flutter, payment]
 
 jobs:
   build:
     runs-on: macos-15
 
-    env:
-      BUNDLE_ID: com.kartapp.app
-      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-
     steps:
-
-      # ============================================================
-      # CHECKOUT
-      # ============================================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      # ============================================================
-      # XCODE
-      # ============================================================
-      - name: Sélectionner Xcode
+      - name: Sélectionner Xcode latest
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: "latest-stable"
 
-      - name: Vérifier Xcode
+      - name: Vérifier la version Xcode & SDK
         run: |
-          echo "======================================"
-          echo "XCODE"
-          echo "======================================"
-
           xcode-select --print-path
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 
-
-      # ============================================================
-      # KEYCHAIN INITIALIZATION
-      # ============================================================
-      - name: Initialiser le Keychain CI
-        run: |
-          echo "======================================"
-          echo "KEYCHAIN SETUP"
-          echo "======================================"
-
-          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
-          KEYCHAIN_PASSWORD="tempci123password"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | xargs)
-          security default-keychain -s "$KEYCHAIN_PATH"
-
-
-      # ============================================================
-      # PYTHON / APP STORE CONNECT API
-      # ============================================================
-      - name: Installer les dépendances API Apple
-        run: |
-          pip3 install PyJWT cryptography --break-system-packages
-
-
-      # ============================================================
-      # CRÉER LA CLÉ APP STORE CONNECT
-      # ============================================================
-      - name: Configurer App Store Connect API
-        env:
-          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
-        run: |
-          set -e
-
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-
-          printf '%s' "$KEY_CONTENT" \
-            > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
-
-          chmod 600 \
-            "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
-
-          echo "Clé App Store Connect configurée."
-
-
-      # ============================================================
-      # VÉRIFIER BUNDLE ID + PUSH NOTIFICATIONS
-      # ============================================================
-      - name: Vérifier Push Notifications
-        run: |
-          set -e
-
-          python3 <<'PYEOF'
-          import jwt
-          import time
-          import json
-          import urllib.request
-          import urllib.parse
-          import os
-          import sys
-
-          key_id = os.environ["KEY_ID"]
-          issuer_id = os.environ["ISSUER_ID"]
-          bundle_id = os.environ["BUNDLE_ID"]
-
-          key_path = os.path.expanduser(
-              f"~/.appstoreconnect/private_keys/AuthKey_{key_id}.p8"
-          )
-
-          with open(key_path, "r") as f:
-              private_key = f.read()
-
-          def make_token():
-              now = int(time.time())
-
-              payload = {
-                  "iss": issuer_id,
-                  "iat": now,
-                  "exp": now + 1200,
-                  "aud": "appstoreconnect-v1"
-              }
-
-              return jwt.encode(
-                  payload,
-                  private_key,
-                  algorithm="ES256",
-                  headers={"kid": key_id}
-              )
-
-          def api_request(url):
-              request = urllib.request.Request(
-                  url,
-                  headers={
-                      "Authorization": f"Bearer {make_token()}",
-                      "Content-Type": "application/json"
-                  }
-              )
-
-              with urllib.request.urlopen(request) as response:
-                  return json.loads(response.read())
-
-          print("======================================")
-          print("APPLE APP ID")
-          print("======================================")
-
-          encoded_bundle = urllib.parse.quote(bundle_id, safe="")
-
-          url = (
-              "https://api.appstoreconnect.apple.com/v1/bundleIds"
-              f"?filter[identifier]={encoded_bundle}"
-          )
-
-          bundle_data = api_request(url)
-
-          if not bundle_data.get("data"):
-              print(
-                  f"::error::Bundle ID {bundle_id} introuvable."
-              )
-              sys.exit(1)
-
-          bundle = bundle_data["data"][0]
-          bundle_resource_id = bundle["id"]
-
-          print(f"Bundle ID : {bundle_id}")
-          print(f"Resource ID : {bundle_resource_id}")
-
-          print("")
-          print("======================================")
-          print("CAPABILITIES")
-          print("======================================")
-
-          caps_url = (
-              "https://api.appstoreconnect.apple.com/v1/bundleIds/"
-              f"{bundle_resource_id}/bundleIdCapabilities"
-          )
-
-          caps_data = api_request(caps_url)
-
-          capabilities = [
-              item["attributes"]["capabilityType"]
-              for item in caps_data.get("data", [])
-          ]
-
-          print("Capabilities :", capabilities)
-
-          if "PUSH_NOTIFICATIONS" not in capabilities:
-              print(
-                  "::error::Push Notifications n'est pas activé "
-                  f"sur {bundle_id}."
-              )
-
-              sys.exit(1)
-
-          print("✅ Push Notifications est activé.")
-
-          PYEOF
-
-
-      # ============================================================
-      # FLUTTER
-      # ============================================================
-      - name: Installer Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          channel: "stable"
           architecture: arm64
 
-      - name: Vérifier Flutter
-        run: |
-          flutter --version
-          dart --version
-
-
-      # ============================================================
-      # FLUTTER PRECACHE & DEPENDENCIES
-      # ============================================================
       - name: Flutter precache iOS
         run: flutter precache --ios
 
-      - name: Installer les dépendances Flutter
+      - name: Install Dependencies
         run: flutter pub get
 
-
-      # ============================================================
-      # VERSION
-      # ============================================================
-      - name: Calculer la version
+      - name: Calculer la version marketing (toujours strictement croissante)
+        # App Store refuse tout nouvel envoi dont la version marketing
+        # (CFBundleShortVersionString) n'est pas strictement supérieure à la
+        # dernière version APPROUVÉE — un simple build number croissant ne
+        # suffit pas. Pour ne plus jamais avoir à bumper pubspec.yaml à la
+        # main avant chaque soumission, on garde MAJOR.MINOR défini dans
+        # pubspec.yaml (pour les vraies montées de version), mais le PATCH
+        # est toujours le run number du workflow — strictement croissant à
+        # chaque exécution, par construction GitHub Actions.
         run: |
-          set -e
-
-          BASE_VERSION=$(grep '^version:' pubspec.yaml \
-            | sed 's/version: *//' \
-            | cut -d'+' -f1)
-
+          BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
           MAJOR_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f1,2)
+          echo "BUILD_NAME=${MAJOR_MINOR}.${{ github.run_number }}" >> "$GITHUB_ENV"
 
-          BUILD_NAME="${MAJOR_MINOR}.${GITHUB_RUN_NUMBER}"
-
-          echo "BUILD_NAME=$BUILD_NAME" >> "$GITHUB_ENV"
-
-          echo "Version marketing : $BUILD_NAME"
-          echo "Build number      : $GITHUB_RUN_NUMBER"
-
-
-      # ============================================================
-      # FLUTTER IOS PROJECT
-      # ============================================================
-      - name: Générer le projet iOS
+      - name: Générer les fichiers iOS (plugins registrant)
         run: |
-          set -e
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Debug.xcconfig
+          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
 
-          echo "DEVELOPMENT_TEAM = $TEAM_ID" \
-            >> ios/Flutter/Release.xcconfig
-
-          echo "DEVELOPMENT_TEAM = $TEAM_ID" \
-            >> ios/Flutter/Debug.xcconfig
-
-          flutter build ios \
-            --release \
-            --no-codesign \
-            --no-pub \
-            --build-number="$GITHUB_RUN_NUMBER" \
-            --build-name="$BUILD_NAME"
-
-
-      # ============================================================
-      # PODS
-      # ============================================================
-      - name: Installer CocoaPods
+      - name: Install Pods
         run: |
-          set -e
           cd ios
           pod install --repo-update
 
-
-      # ============================================================
-      # CONFIGURER LES ENTITLEMENTS RUNNER
-      # ============================================================
-      - name: Configurer les entitlements Push Notifications
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "CONFIGURATION ENTITLEMENTS"
-          echo "======================================"
-
-          cat > ios/Runner/Runner.entitlements <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>aps-environment</key>
-              <string>production</string>
-          </dict>
-          </plist>
-          EOF
-
-          echo "Entitlements créés :"
-          cat ios/Runner/Runner.entitlements
-
-
-      # ============================================================
-      # NETTOYER LES REFERENCES ENTITLEMENTS DES PODS
-      # ============================================================
-      - name: Corriger les entitlements des Pods
-        run: |
-          set -e
-
-          find ios/Pods -name "*.pbxproj" -type f -print0 |
-          while IFS= read -r -d '' file; do
-            if grep -q "Runner/Runner.entitlements" "$file"; then
-              sed -i '' 's#Runner/Runner.entitlements##g' "$file"
-            fi
-          done
-
-
-      # ============================================================
-      # CERTIFICAT DISTRIBUTION + PROFILE
-      # ============================================================
-      - name: Générer certificat Distribution et profil App Store
+      - name: Nettoyer les vieux certificats de développement via API
         env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
         run: |
-          set -e
+          pip3 install PyJWT cryptography --break-system-packages
 
-          python3 <<'PYEOF'
-          import jwt
-          import time
-          import json
-          import urllib.request
-          import urllib.parse
-          import base64
-          import os
-          import subprocess
-          import sys
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
-          key_id = os.environ["KEY_ID"]
-          issuer_id = os.environ["ISSUER_ID"]
-          bundle_id = os.environ["BUNDLE_ID"]
-          team_id = os.environ["TEAM_ID"]
+          python3 - <<'PYEOF'
+          import jwt, time, json, urllib.request, os
 
-          key_path = os.path.expanduser(
-              f"~/.appstoreconnect/private_keys/AuthKey_{key_id}.p8"
-          )
+          key_id = os.environ['KEY_ID']
+          issuer_id = os.environ['ISSUER_ID']
+          key_path = os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{key_id}.p8")
 
           with open(key_path) as f:
               private_key = f.read()
 
-          def token():
-              now = int(time.time())
+          def make_token():
               payload = {
                   "iss": issuer_id,
-                  "iat": now,
-                  "exp": now + 1200,
+                  "iat": int(time.time()),
+                  "exp": int(time.time()) + 1200,
                   "aud": "appstoreconnect-v1"
               }
-              return jwt.encode(
-                  payload,
-                  private_key,
-                  algorithm="ES256",
-                  headers={"kid": key_id}
-              )
+              return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
 
-          def request(url, data=None, method=None):
+          headers = {
+              "Authorization": f"Bearer {make_token()}",
+              "Content-Type": "application/json"
+          }
+
+          url = "https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DEVELOPMENT&limit=20"
+          req = urllib.request.Request(url, headers=headers)
+          with urllib.request.urlopen(req) as resp:
+              data = json.loads(resp.read())
+
+          certs = data.get("data", [])
+          print(f"Certificats de développement trouvés: {len(certs)}")
+
+          certs_sorted = sorted(certs, key=lambda c: c["attributes"]["expirationDate"], reverse=True)
+          to_delete = certs_sorted[1:]
+
+          for cert in to_delete:
+              cert_id = cert["id"]
+              name = cert["attributes"]["name"]
+              print(f"Suppression: {name} ({cert_id})")
+              del_req = urllib.request.Request(
+                  f"https://api.appstoreconnect.apple.com/v1/certificates/{cert_id}",
+                  headers={"Authorization": f"Bearer {make_token()}"},
+                  method="DELETE"
+              )
+              try:
+                  urllib.request.urlopen(del_req)
+                  print(f"  -> Supprimé")
+              except Exception as e:
+                  print(f"  -> Erreur: {e}")
+
+          print("Nettoyage des certificats de développement terminé")
+          PYEOF
+
+      - name: Gérer Certificat Distribution et Générer Profil
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          BUNDLE_ID: com.kartapp.app
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          python3 - <<'PYEOF'
+          import jwt, time, json, urllib.request, base64, os
+
+          key_id = os.environ['KEY_ID']
+          issuer_id = os.environ['ISSUER_ID']
+          bundle_id = os.environ['BUNDLE_ID']
+          key_path = os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{key_id}.p8")
+
+          with open(key_path) as f:
+              private_key = f.read()
+
+          def make_token():
+              payload = {
+                  "iss": issuer_id,
+                  "iat": int(time.time()),
+                  "exp": int(time.time()) + 1200,
+                  "aud": "appstoreconnect-v1"
+              }
+              return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
+
+          def api_request(url, data=None, method=None):
               headers = {
-                  "Authorization": f"Bearer {token()}",
+                  "Authorization": f"Bearer {make_token()}",
                   "Content-Type": "application/json"
               }
-              body = json.dumps(data).encode() if data is not None else None
               req = urllib.request.Request(
                   url,
-                  data=body,
+                  data=json.dumps(data).encode() if data else None,
                   headers=headers,
-                  method=method or ("POST" if body else "GET")
+                  method=method or ("POST" if data else "GET")
               )
-              with urllib.request.urlopen(req) as response:
-                  content = response.read()
-                  return json.loads(content) if content else {}
+              with urllib.request.urlopen(req) as resp:
+                  return json.loads(resp.read())
 
-          print("======================================")
-          print("CERTIFICAT DISTRIBUTION")
-          print("======================================")
+          # 1. Réutilisation ou création du certificat de Distribution
+          print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
+          existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=10")
 
-          # Génération d'une nouvelle clé privée locale
-          subprocess.run(["openssl", "genrsa", "-out", "/tmp/distribution.key", "2048"], check=True)
-          subprocess.run([
-              "openssl", "req", "-new", "-key", "/tmp/distribution.key",
-              "-out", "/tmp/distribution.csr", "-subj", "/CN=Apple Distribution/O=KartApp/C=US"
-          ], check=True)
+          cert_id = None
+          cert_content = None
+          has_local_key = False
 
-          with open("/tmp/distribution.csr", "rb") as f:
-              csr = base64.b64encode(f.read()).decode()
+          if existing_certs.get("data") and len(existing_certs["data"]) > 0:
+              valid_certs = sorted(existing_certs["data"], key=lambda c: c["attributes"]["expirationDate"], reverse=True)
+              best_cert = valid_certs[0]
+              cert_id = best_cert["id"]
+              cert_content = best_cert["attributes"]["certificateContent"]
+              print(f"✅ Certificat de Distribution existant réutilisé : {cert_id}")
+          else:
+              print("⚠️ Aucun certificat trouvé. Création d'un nouveau...")
+              os.system("openssl genrsa -out /tmp/distribution.key 2048")
+              os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
+              
+              with open("/tmp/distribution.csr", "rb") as f:
+                  csr_content = base64.b64encode(f.read()).decode()
 
-          cert_data = request(
-              "https://api.appstoreconnect.apple.com/v1/certificates",
-              {
-                  "data": {
-                      "type": "certificates",
-                      "attributes": {
-                          "certificateType": "IOS_DISTRIBUTION",
-                          "csrContent": csr
+              cert_data = api_request(
+                  "https://api.appstoreconnect.apple.com/v1/certificates",
+                  data={
+                      "data": {
+                          "type": "certificates",
+                          "attributes": {
+                              "certificateType": "IOS_DISTRIBUTION",
+                              "csrContent": csr_content
+                          }
                       }
                   }
-              }
-          )
-
-          cert_id = cert_data["data"]["id"]
-          cert_content = cert_data["data"]["attributes"]["certificateContent"]
-          print(f"✅ Nouveau certificat créé : {cert_id}")
+              )
+              cert_content = cert_data["data"]["attributes"]["certificateContent"]
+              cert_id = cert_data["data"]["id"]
+              has_local_key = True
+              print(f"✅ Nouveau certificat créé : {cert_id}")
 
           with open("/tmp/distribution.cer", "wb") as f:
               f.write(base64.b64decode(cert_content))
 
-          # Import dans le Keychain CI
-          subprocess.run(["openssl", "x509", "-inform", "DER", "-in", "/tmp/distribution.cer", "-out", "/tmp/distribution.pem"], check=True)
-          subprocess.run([
-              "openssl", "pkcs12", "-export", "-inkey", "/tmp/distribution.key",
-              "-in", "/tmp/distribution.pem", "-out", "/tmp/distribution.p12",
-              "-passout", "pass:tempci123", "-legacy"
-          ], check=True)
+          with open("/tmp/has_local_key.txt", "w") as f:
+              f.write("true" if has_local_key else "false")
 
-          keychain = os.environ["RUNNER_TEMP"] + "/app-signing.keychain-db"
-
-          subprocess.run(["security", "import", "/tmp/distribution.p12", "-k", keychain, "-P", "tempci123", "-A"], check=True)
-          subprocess.run(["security", "set-key-partition-list", "-S", "apple-tool:,apple:", "-s", "-k", "tempci123password", keychain], check=True)
-
-          # Bundle ID lookup
-          encoded_bundle = urllib.parse.quote(bundle_id, safe="")
-          bundle_data = request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={encoded_bundle}")
+          # 2. Bundle ID Resource Lookup
+          bundle_data = api_request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={bundle_id}")
+          if not bundle_data["data"]:
+              raise Exception(f"Bundle ID {bundle_id} non trouvé")
           bundle_resource_id = bundle_data["data"][0]["id"]
 
-          # Nettoyage anciens profils
-          profiles = request("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=50")
-          for profile in profiles.get("data", []):
-              if "KartApp AppStore CI" in profile["attributes"]["name"]:
+          # 3. Nettoyage des anciens profils
+          profiles_data = api_request("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=20")
+          for profile in profiles_data.get("data", []):
+              if "KartApp" in profile["attributes"]["name"]:
                   try:
-                      request(f"https://api.appstoreconnect.apple.com/v1/profiles/{profile['id']}", method="DELETE")
-                  except Exception as e:
+                      api_request(f"https://api.appstoreconnect.apple.com/v1/profiles/{profile['id']}", method="DELETE")
+                  except:
                       pass
 
-          # Création Profil
-          profile_data = request(
+          # 4. Génération du profil de provisionnement
+          profile_data = api_request(
               "https://api.appstoreconnect.apple.com/v1/profiles",
-              {
+              data={
                   "data": {
                       "type": "profiles",
                       "attributes": {
@@ -459,115 +240,55 @@ jobs:
                           "profileType": "IOS_APP_STORE"
                       },
                       "relationships": {
-                          "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}},
-                          "certificates": {"data": [{"type": "certificates", "id": cert_id}]}
+                          "bundleId": {
+                              "data": {"type": "bundleIds", "id": bundle_resource_id}
+                          },
+                          "certificates": {
+                              "data": [{"type": "certificates", "id": cert_id}]
+                          }
                       }
                   }
               }
           )
 
-          profile = profile_data["data"]
-          profile_content = profile["attributes"]["profileContent"]
-          profile_uuid = profile["attributes"]["uuid"]
+          profile_content = profile_data["data"]["attributes"]["profileContent"]
+          profile_uuid = profile_data["data"]["attributes"]["uuid"]
 
-          profiles_dir = os.path.expanduser("~/Library/MobileDevice/Provisioning Profiles")
-          os.makedirs(profiles_dir, exist_ok=True)
-          destination = os.path.join(profiles_dir, f"{profile_uuid}.mobileprovision")
-
-          with open(destination, "wb") as f:
+          with open("/tmp/profile.mobileprovision", "wb") as f:
               f.write(base64.b64decode(profile_content))
 
-          print(f"✅ Provisioning profile {profile_uuid} installé.")
+          with open("/tmp/profile_uuid.txt", "w") as f:
+              f.write(profile_uuid)
 
-          with open(os.environ["GITHUB_ENV"], "a") as env:
-              env.write(f"PROFILE_UUID={profile_uuid}\n")
-
+          print(f"🚀 Profil créé - UUID: {profile_uuid}")
           PYEOF
 
+          # Import des clés si génération locale
+          HAS_LOCAL_KEY=$(cat /tmp/has_local_key.txt)
+          if [ "$HAS_LOCAL_KEY" = "true" ]; then
+            openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
+            openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123 -legacy 2>/dev/null || \
+            openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123
 
-      # ============================================================
-      # CONFIGURATION FINALE XCODE
-      # ============================================================
-      - name: Appliquer le profil de provisioning
+            KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+            security create-keychain -p "temppass" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
+            security import /tmp/distribution.p12 -k "$KEYCHAIN_PATH" -P "tempci123" -A -t cert -f pkcs12
+            security list-keychain -d user -s "$KEYCHAIN_PATH"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
+          fi
+
+          # Installer le profil sur le Mac virtuel
+          PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
+      - name: Créer le fichier ExportOptions
         run: |
-          set -e
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-
-          project_path = 'ios/Runner.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-
-          project.targets.each do |target|
-            next unless target.name == 'Runner'
-            target.build_configurations.each do |config|
-              settings = config.build_settings
-              settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.kartapp.app'
-              settings['DEVELOPMENT_TEAM'] = ENV['TEAM_ID']
-              settings['CODE_SIGN_STYLE'] = 'Manual'
-              settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Distribution'
-              settings['PROVISIONING_PROFILE_SPECIFIER'] = ENV['PROFILE_UUID']
-              settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
-            end
-          end
-
-          project.save
-          puts "✅ Runner configuré."
-          RUBY
-
-
-      # ============================================================
-      # CLEAN
-      # ============================================================
-      - name: Nettoyer DerivedData
-        run: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData/*
-
-
-      # ============================================================
-      # ARCHIVE
-      # ============================================================
-      - name: Archiver l'application
-        run: |
-          set -o pipefail
-
-          echo "======================================"
-          echo "ARCHIVE"
-          echo "======================================"
-
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath build/ios/archive/Runner.xcarchive \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            CODE_SIGNING_ALLOWED=YES \
-            archive 2>&1 | tee /tmp/xcodebuild-archive.log
-
-
-      # ============================================================
-      # DIAGNOSTIC LOGS SI ÉCHEC
-      # ============================================================
-      - name: Afficher les logs d'échec Xcode
-        if: failure()
-        run: |
-          echo "======================================"
-          echo "XCODEBUILD ERROR LOGS"
-          echo "======================================"
-          grep -i -C 5 "error:" /tmp/xcodebuild-archive.log || cat /tmp/xcodebuild-archive.log | tail -n 120
-
-
-      # ============================================================
-      # EXPORT OPTIONS & IPA
-      # ============================================================
-      - name: Créer ExportOptions.plist
-        run: |
-          cat > ios/ExportOptions.plist <<EOF
+          cat <<EOF > ios/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -577,16 +298,9 @@ jobs:
               <key>method</key>
               <string>app-store-connect</string>
               <key>signingStyle</key>
-              <string>manual</string>
+              <string>automatic</string>
               <key>teamID</key>
-              <string>${TEAM_ID}</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>${BUNDLE_ID}</key>
-                  <string>${PROFILE_UUID}</string>
-              </dict>
-              <key>signingCertificate</key>
-              <string>Apple Distribution</string>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
@@ -595,19 +309,116 @@ jobs:
           </plist>
           EOF
 
-      - name: Exporter IPA
+      - name: Archiver et Signer avec Xcodebuild
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          set -o pipefail
-
-          echo "======================================"
-          echo "EXPORT IPA"
-          echo "======================================"
-
-          rm -rf build/ios/ipa
-          mkdir -p build/ios/ipa
-
-          xcodebuild \
-            -exportArchive \
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
+            -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE_SPECIFIER_APP_="$PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER_Runner="$PROFILE_UUID" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED_APP_=YES \
+            CODE_SIGNING_ALLOWED_Runner=YES \
+            archive 2>&1 | tee /tmp/xcodebuild.log; \
+          EXIT_CODE=${PIPESTATUS[0]}; \
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "=== DETECTED XCODEBUILD ERRORS ==="
+            grep -E "error:|failed" /tmp/xcodebuild.log | head -50
+            exit $EXIT_CODE
+          fi
+
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
             -exportOptionsPlist ios/ExportOptions.plist \
-            -exportPath build/ios/ipa 2>&1 | tee /tmp/xcodebuild-export.log
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+      - name: Vérifier l'entitlement aps-environment (notifications push)
+        run: |
+          # L'archive brute (build/ios/archive/Runner.xcarchive) est produite
+          # avec CODE_SIGNING_ALLOWED=NO — elle n'est PAS signée à ce stade.
+          # C'est seulement -exportArchive (juste avant, dans l'étape
+          # précédente) qui signe réellement pour produire le .ipa final :
+          # c'est donc CE binaire-là qu'il faut inspecter, pas l'archive brute.
+          IPA_PATH=$(find build/ios/ipa -maxdepth 1 -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "::error::Aucun .ipa trouvé dans build/ios/ipa — impossible de vérifier l'entitlement."
+            exit 1
+          fi
+
+          rm -rf /tmp/ipa_check && mkdir -p /tmp/ipa_check
+          unzip -q "$IPA_PATH" -d /tmp/ipa_check
+          APP_PATH=$(find /tmp/ipa_check/Payload -maxdepth 1 -name "*.app" | head -1)
+
+          # Diagnostic : ce que le PROFIL DE PROVISIONNEMENT lui-même autorise
+          # (source de vérité côté Apple — indépendant de ce que Xcode a fait
+          # ensuite lors de la signature/export). Émis en ::notice:: (pas en
+          # simple echo) car les logs bruts de ce step ne sont pas lisibles
+          # depuis l'extérieur du dépôt — seules les annotations le sont.
+          if [ -f "$APP_PATH/embedded.mobileprovision" ]; then
+            security cms -D -i "$APP_PATH/embedded.mobileprovision" > /tmp/profile.plist 2>/dev/null
+            echo "::notice::PROFIL — entitlements accordés :"
+            /usr/libexec/PlistBuddy -c "Print :Entitlements" /tmp/profile.plist 2>/tmp/profile_err.txt \
+              | while IFS= read -r line; do echo "::notice::PROFIL: $line"; done
+            if [ -s /tmp/profile_err.txt ]; then
+              echo "::notice::PROFIL: (lecture impossible) $(cat /tmp/profile_err.txt)"
+            fi
+          else
+            echo "::notice::PROFIL: aucun embedded.mobileprovision trouvé dans $APP_PATH"
+          fi
+
+          codesign -d --entitlements :- "$APP_PATH" > /tmp/entitlements.plist 2>/tmp/codesign_err.txt
+          echo "::notice::BINAIRE — entitlements réellement signés :"
+          if [ -s /tmp/entitlements.plist ]; then
+            /usr/libexec/PlistBuddy -c "Print" /tmp/entitlements.plist 2>/dev/null \
+              | while IFS= read -r line; do echo "::notice::BINAIRE: $line"; done
+          else
+            echo "::notice::BINAIRE: (vide) $(cat /tmp/codesign_err.txt)"
+          fi
+
+          APS_ENV=$(/usr/libexec/PlistBuddy -c "Print :aps-environment" /tmp/entitlements.plist 2>/dev/null || echo "MISSING")
+          echo "::notice::aps-environment signé dans le .ipa exporté : $APS_ENV"
+          if [ "$APS_ENV" != "production" ]; then
+            echo "::error::aps-environment devrait être 'production' pour un build App Store Connect, trouvé: '$APS_ENV'. Les notifications push ne seront pas délivrées par Firebase tant que ce n'est pas corrigé."
+            exit 1
+          fi
+
+      - name: Sauvegarder le fichier IPA (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartApp-iOS
+          path: build/ios/ipa/*.ipa
+
+      - name: Soumettre à l'App Store Connect
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -1)
+          echo "Uploading targeting path: $IPA_PATH"
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID" \
+            --verbose
+
+      - name: Nettoyer le trousseau temporaire (Keychain Clean)
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
