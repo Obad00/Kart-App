@@ -154,8 +154,8 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
               child: _buildStat('Aimées', summary.liked, _accentBlue, colors)),
           const SizedBox(width: 10),
           Expanded(
-              child: _buildStat('En attente', summary.pendingSuggestions,
-                  Colors.orange, colors)),
+              child: _buildStat(
+                  'Passées', summary.rejected, Colors.orange, colors)),
         ],
       ),
     );
