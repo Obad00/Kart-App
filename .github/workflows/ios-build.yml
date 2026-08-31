@@ -63,6 +63,7 @@ jobs:
           KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
           BUNDLE_ID: com.kartapp.app
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CI: true
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
@@ -74,25 +75,27 @@ jobs:
           security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
-          # 2. Utiliser fastlane get_provisioning_profile / cert pour gérer l'écosystème automatiquement
-          cat << EOF > ios/Fastfile
+          # 2. Créer l'arborescence officielle ios/fastlane/Fastfile
+          mkdir -p ios/fastlane
+          cat << 'EOF' > ios/fastlane/Fastfile
           default_platform(:ios)
+
           platform :ios do
             lane :get_certs_and_profiles do
               app_store_connect_api_key(
-                key_id: "$KEY_ID",
-                issuer_id: "$ISSUER_ID",
-                key_content: "$KEY_CONTENT",
+                key_id: ENV["KEY_ID"],
+                issuer_id: ENV["ISSUER_ID"],
+                key_content: ENV["KEY_CONTENT"],
                 is_key_content_base64: false
               )
               get_certificates(
                 development: false,
                 force: false,
-                keychain_path: "$KEYCHAIN_PATH",
+                keychain_path: ENV["KEYCHAIN_PATH"],
                 keychain_password: "temppass"
               )
               get_provisioning_profile(
-                app_identifier: "$BUNDLE_ID",
+                app_identifier: ENV["BUNDLE_ID"],
                 adhoc: false,
                 force: true,
                 filename: "appstore.mobileprovision"
@@ -101,8 +104,9 @@ jobs:
           end
           EOF
 
+          # Exécution de la lane dans le dossier ios avec l'environnement Keychain transmis
           cd ios
-          fastlane get_certs_and_profiles
+          KEYCHAIN_PATH="$KEYCHAIN_PATH" fastlane ios get_certs_and_profiles
 
           # Déplacer et exporter le profil généré
           PROFILE_PATH=$(find . -name "appstore.mobileprovision" | head -1)
@@ -116,7 +120,7 @@ jobs:
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
-          echo "profile_uuid_val=$PROFILE_UUID" >> ios/profile_uuid.txt
+          echo "$PROFILE_UUID" > profile_uuid.txt
 
           security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
 
