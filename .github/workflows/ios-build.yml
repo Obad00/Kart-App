@@ -56,6 +56,33 @@ jobs:
           cd ios
           pod install --repo-update
 
+      - name: Auto-clean anciens certificats (évite la limite Apple)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          fastlane run ruby script:"
+            require 'spaceship'
+            token = Spaceship::ConnectAPI::Token.create(
+              key_id: '$KEY_ID',
+              issuer_id: '$ISSUER_ID',
+              filepath: File.expand_path('~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8')
+            )
+            Spaceship::ConnectAPI.token = token
+            certs = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: 'DISTRIBUTION,IOS_DISTRIBUTION' })
+            puts \"Certificats trouvés : #{certs.count}\"
+            if certs.count >= 2
+              certs.each do |c|
+                puts \"Révocation du certificat : #{c.id} (#{c.name})\"
+                c.delete! rescue puts \"Impossible de supprimer #{c.id}\"
+              end
+            end
+          " || echo "Nettoyage ignoré ou non critique."
+
       - name: Gérer Certificat & Profil via Fastlane (App Store Connect API)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -65,9 +92,6 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CI: true
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
-
           # 1. Préparer le Keychain Runner
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "temppass" "$KEYCHAIN_PATH"
@@ -108,7 +132,7 @@ jobs:
           cd ios
           KEYCHAIN_PATH="$KEYCHAIN_PATH" fastlane ios get_certs_and_profiles
 
-          # Extraire l'UUID du profil télécharge
+          # Extraire l'UUID du profil téléchargé
           PROFILE_PATH=$(find . -name "appstore.mobileprovision" | head -1)
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(security cms -D -i "$PROFILE_PATH") 2>/dev/null || echo "")
 
