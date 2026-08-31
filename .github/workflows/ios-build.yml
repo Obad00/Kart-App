@@ -62,7 +62,7 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Nettoyer et Créer Certificat Distribution + Profil
+      - name: Gérer Certificat Distribution et Profil
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -76,7 +76,7 @@ jobs:
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
           python3 - <<'PYEOF'
-          import jwt, time, json, urllib.request, base64, os
+          import jwt, time, json, urllib.request, urllib.error, base64, os
 
           key_id = os.environ['KEY_ID']
           issuer_id = os.environ['ISSUER_ID']
@@ -106,32 +106,43 @@ jobs:
                   headers=headers,
                   method=method or ("POST" if data else "GET")
               )
-              with urllib.request.urlopen(req) as resp:
-                  if resp.status == 204:
-                      return None
-                  return json.loads(resp.read())
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      if resp.status == 204:
+                          return None
+                      return json.loads(resp.read())
+              except urllib.error.HTTPError as e:
+                  err_body = e.read().decode('utf-8')
+                  print(f"❌ Erreur HTTP {e.code}: {err_body}")
+                  raise e
 
-          # 1. Nettoyage des anciens certificats de distribution pour éviter le quota max (2)
-          print("Nettoyage des certificats de distribution existants...")
+          # 1. Nettoyage préventif des certificats existants
+          print("Recherche des certificats IOS_DISTRIBUTION existants...")
           existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=20")
+          
           for cert in existing_certs.get("data", []):
               cert_id = cert["id"]
-              print(f"Suppression certificat de distribution révoqué/ancien: {cert_id}")
+              print(f"Suppression du certificat de distribution existant : {cert_id}")
               try:
                   api_request(f"https://api.appstoreconnect.apple.com/v1/certificates/{cert_id}", method="DELETE")
               except Exception as e:
-                  print(f"Erreur suppression {cert_id}: {e}")
+                  print(f"Avertissement lors de la suppression {cert_id}: {e}")
 
-          # 2. Génération d'une nouvelle clé privée et CSR sur le runner local
-          print("Génération d'une nouvelle paire de clés locale...")
+          # Attente pour que le statut de révocation se propage sur App Store Connect
+          if existing_certs.get("data"):
+              print("Attente de 5 secondes pour la propagation sur App Store Connect...")
+              time.sleep(5)
+
+          # 2. Génération CSR et Clé privée
+          print("Génération d'une nouvelle clé privée et CSR...")
           os.system("openssl genrsa -out /tmp/distribution.key 2048")
           os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
 
           with open("/tmp/distribution.csr", "rb") as f:
               csr_content = base64.b64encode(f.read()).decode()
 
-          # 3. Création du nouveau certificat sur App Store Connect avec la CSR locale
-          print("Création du nouveau certificat de Distribution via App Store Connect...")
+          # 3. Création du certificat de distribution
+          print("Création du nouveau certificat de Distribution...")
           cert_data = api_request(
               "https://api.appstoreconnect.apple.com/v1/certificates",
               data={
@@ -156,7 +167,7 @@ jobs:
               raise Exception(f"Bundle ID {bundle_id} non trouvé")
           bundle_resource_id = bundle_data["data"][0]["id"]
 
-          # 5. Nettoyage et création du Profil de provisionnement
+          # 5. Nettoyage des profils existants et création
           profiles_data = api_request("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=20")
           for profile in profiles_data.get("data", []):
               if "KartApp" in profile["attributes"]["name"]:
@@ -198,7 +209,7 @@ jobs:
           print(f"🚀 Profil créé avec succès — UUID: {profile_uuid}")
           PYEOF
 
-          # Convertir et importer le P12 dans le trousseau de clés macOS
+          # Importer le certificat et sa clé privée dans le Keychain
           openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
           openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123 -legacy 2>/dev/null || \
           openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123
@@ -211,7 +222,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
 
-          # Installer le profil sur le Runner
+          # Déposer le profil de provisionnement
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
@@ -275,7 +286,7 @@ jobs:
             -destination "generic/platform=iOS" \
             archive 2>&1 | tee /tmp/xcode_archive.log || ARCHIVE_FAILED=true
 
-          if [ "$ARCHIVE_FAILED" = "true" ]; me
+          if [ "$ARCHIVE_FAILED" = "true" ]; then
             echo "::error::================ ÉCHEC DE L'ARCHIVAGE XCODEBUILD ================"
             grep -i -E "(error:|fatal error:|failed:|error :)" /tmp/xcode_archive.log | grep -v "0 errors" | tail -n 30 | while read -r line; do
               echo "::error::$line"
