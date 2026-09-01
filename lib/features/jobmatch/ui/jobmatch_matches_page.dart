@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/widgets/glass_app_bar.dart';
 import '../model/job_feed_item.dart';
 import '../services/jobmatch_service.dart';
 import '../widgets/job_details_sheet.dart';
@@ -98,25 +99,48 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
+      appBar: GlassAppBar(
         title: const Text('Mon tableau de bord'),
-        centerTitle: true,
+        // Même pilule "segmented control" que l'onglet Explorer, pour une
+        // apparence cohérente entre les deux pages à onglets de l'app.
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
+          preferredSize: const Size.fromHeight(58),
           child: Showcase(
             key: _tabsTourKey,
             title: 'Vos offres',
             description:
                 'Matchs mutuels, offres aimées, et offres passées que vous pouvez reconsidérer.',
-            child: TabBar(
-              controller: _tabController,
-              labelColor: _accentBlue,
-              indicatorColor: _accentBlue,
-              tabs: const [
-                Tab(text: 'Matchs'),
-                Tab(text: 'Aimées'),
-                Tab(text: 'Passées'),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: _accentBlue,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  splashBorderRadius: BorderRadius.circular(999),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
+                  labelStyle: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700),
+                  unselectedLabelStyle: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                  tabs: const [
+                    Tab(text: 'Matchs'),
+                    Tab(text: 'Aimées'),
+                    Tab(text: 'Passées'),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

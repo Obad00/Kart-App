@@ -153,8 +153,8 @@ class _ProfilePageState extends State<ProfilePage>
                   decoration: BoxDecoration(
                     color: colors.surface.withValues(
                       alpha: Theme.of(context).brightness == Brightness.dark
-                          ? 0.55
-                          : 0.65,
+                          ? 0.32
+                          : 0.5,
                     ),
                     border: Border(
                       bottom: BorderSide(
