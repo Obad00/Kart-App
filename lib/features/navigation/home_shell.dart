@@ -427,79 +427,92 @@ class _HomeShellState extends State<HomeShell>
     // plein du Scaffold (celui de la page active, ou le nôtre) — toujours
     // un flou/tint verre dépoli, juste sans la couche de contenu qui
     // défile derrière (retirée, voir plus haut).
+    //
+    // L'ombre est portée par CE Container extérieur, pas par celui à
+    // l'intérieur du ClipRRect : un box-shadow posé sur un widget cloné
+    // dans ses propres bornes est entièrement rogné par le clip qui
+    // l'entoure (mêmes bornes, même rayon) — invisible. Sans cette ombre,
+    // en thème clair, la pilule (blanche, semi-transparente) se fondait
+    // dans un fond de page tout aussi blanc et ressemblait à un bloc plat
+    // sans relief plutôt qu'à une carte flottante.
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                // Verre dépoli façon Apple : un tint semi-transparent de la
-                // couleur de surface plutôt qu'un fond plein — opacité basse
-                // pour que le flou (et ce qui défile dessous) reste visible,
-                // même en thème sombre.
-                color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.55),
-                borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.14),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.credit_card_outlined,
-                    activeIcon: Icons.credit_card,
-                    label: 'Carte',
-                    index: 0,
-                    tourDescription:
-                        'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  // Verre dépoli façon Apple : un tint semi-transparent de
+                  // la couleur de surface plutôt qu'un fond plein.
+                  color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.68),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color:
+                        colors.onSurface.withValues(alpha: isDark ? 0.06 : 0.1),
                   ),
-                  _buildNavItem(
-                    icon: Icons.people_outline,
-                    activeIcon: Icons.people,
-                    label: 'Contacts',
-                    index: 1,
-                    tourDescription:
-                        'Retrouvez tous les contacts collectés au même endroit.',
-                  ),
-                  if (showJobMatch)
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
                     _buildNavItem(
-                      icon: Icons.favorite_outline,
-                      activeIcon: Icons.favorite,
-                      label: 'Offres',
-                      index: 2,
+                      icon: Icons.credit_card_outlined,
+                      activeIcon: Icons.credit_card,
+                      label: 'Carte',
+                      index: 0,
                       tourDescription:
-                          "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                          'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
                     ),
-                  _buildNavItem(
-                    icon: Icons.explore_outlined,
-                    activeIcon: Icons.explore,
-                    label: 'Explorer',
-                    index: showJobMatch ? 3 : 2,
-                    tourDescription:
-                        'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
-                    badgeCount: badgeCount,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    label: 'Profil',
-                    index: showJobMatch ? 4 : 3,
-                    tourDescription:
-                        'Gérez vos informations, votre carte et les réglages de l\'app.',
-                  ),
-                ],
+                    _buildNavItem(
+                      icon: Icons.people_outline,
+                      activeIcon: Icons.people,
+                      label: 'Contacts',
+                      index: 1,
+                      tourDescription:
+                          'Retrouvez tous les contacts collectés au même endroit.',
+                    ),
+                    if (showJobMatch)
+                      _buildNavItem(
+                        icon: Icons.favorite_outline,
+                        activeIcon: Icons.favorite,
+                        label: 'Offres',
+                        index: 2,
+                        tourDescription:
+                            "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                      ),
+                    _buildNavItem(
+                      icon: Icons.explore_outlined,
+                      activeIcon: Icons.explore,
+                      label: 'Explorer',
+                      index: showJobMatch ? 3 : 2,
+                      tourDescription:
+                          'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                      badgeCount: badgeCount,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.person_outline,
+                      activeIcon: Icons.person,
+                      label: 'Profil',
+                      index: showJobMatch ? 4 : 3,
+                      tourDescription:
+                          'Gérez vos informations, votre carte et les réglages de l\'app.',
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
