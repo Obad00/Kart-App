@@ -237,8 +237,17 @@ jobs:
                   raise
 
           # 1. Réutilisation ou création du certificat de Distribution
-          print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
-          existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=10")
+          # IMPORTANT: on cherche à la fois "DISTRIBUTION" (type unifié moderne
+          # "Apple Distribution", Xcode 11+, celui utilisé plus bas via
+          # CODE_SIGN_IDENTITY="Apple Distribution") ET "IOS_DISTRIBUTION"
+          # (ancien type "iOS Distribution"). Ce sont deux valeurs de
+          # certificateType distinctes côté API : un certificat créé/visible
+          # sous l'un des deux types n'apparaît pas si on ne filtre que sur
+          # l'autre, alors que les deux partagent le même quota Apple — d'où
+          # un 409 "Invalid Certificate" si on tente d'en créer un nouveau en
+          # pensant qu'aucun n'existe.
+          print("Recherche d'un certificat de Distribution existant (DISTRIBUTION ou IOS_DISTRIBUTION)...")
+          existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=DISTRIBUTION,IOS_DISTRIBUTION&limit=10")
 
           cert_id = None
           cert_content = None
@@ -264,7 +273,10 @@ jobs:
                       "data": {
                           "type": "certificates",
                           "attributes": {
-                              "certificateType": "IOS_DISTRIBUTION",
+                              # "DISTRIBUTION" = type unifié "Apple Distribution",
+                              # cohérent avec CODE_SIGN_IDENTITY="Apple Distribution"
+                              # utilisé dans l'étape d'archive plus bas.
+                              "certificateType": "DISTRIBUTION",
                               "csrContent": csr_content
                           }
                       }
