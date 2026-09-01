@@ -227,8 +227,14 @@ jobs:
                   headers=headers,
                   method=method or ("POST" if data else "GET")
               )
-              with urllib.request.urlopen(req) as resp:
-                  return json.loads(resp.read())
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      return json.loads(resp.read())
+              except urllib.error.HTTPError as e:
+                  body = e.read().decode()
+                  print(f"::error::Apple API a renvoyé {e.code} pour {method or ('POST' if data else 'GET')} {url}")
+                  print(f"::error::Détail: {body}")
+                  raise
 
           # 1. Réutilisation ou création du certificat de Distribution
           print("Recherche d'un certificat IOS_DISTRIBUTION existant...")
