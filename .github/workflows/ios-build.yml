@@ -292,8 +292,16 @@ jobs:
           # d'Apple n'indique explicitement pourquoi.
           os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=PEM" -sha256')
 
-          with open("/tmp/distribution.csr", "rb") as f:
-              csr_content = base64.b64encode(f.read()).decode()
+          # IMPORTANT : csrContent attend le texte PEM BRUT de la CSR (avec les
+          # balises -----BEGIN/END CERTIFICATE REQUEST-----), PAS ce texte
+          # ré-encodé en base64. Un fichier .csr au format PEM contient déjà
+          # des données encodées en base64 entre ces balises — l'encoder une
+          # seconde fois produit une CSR invalide aux yeux de l'API Apple, qui
+          # répond alors par un 409 "Invalid Certificate" générique et peu
+          # explicite. (Cas documenté sur le forum développeur Apple, thread
+          # 132084 : même erreur, même cause.)
+          with open("/tmp/distribution.csr", "r") as f:
+              csr_content = f.read()
 
           cert_data = api_request(
               "https://api.appstoreconnect.apple.com/v1/certificates",
