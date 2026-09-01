@@ -1,4 +1,7 @@
+import 'dart:io' show Platform;
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,6 +28,7 @@ import '../../profile_completion/ui/completion_form_page.dart';
 import '../../profile_completion/providers/profile_completion_provider.dart';
 import '../../profile_completion/providers/candidate_skills_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
+import 'notification_settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -1083,7 +1087,10 @@ class _ProfilePageState extends State<ProfilePage>
                 title: 'Notifications',
                 onTap: () {
                   Navigator.pop(context);
-                  // Navigation vers paramètres notifications
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+                  );
                 },
               ),
               const SizedBox(height: 8),
@@ -1158,6 +1165,24 @@ class _ProfilePageState extends State<ProfilePage>
                   final url = Uri.parse('https://kart.business/support');
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildSettingsItem(
+                context,
+                icon: Icons.system_update_alt_rounded,
+                title: 'Mettre à jour l\'app',
+                onTap: () async {
+                  // Platform.isIOS n'existe pas sur web (kIsWeb) : ce réglage
+                  // ne s'affiche de toute façon que dans l'app installée,
+                  // mais on reste défensif au cas où ce widget serait un jour
+                  // atteint depuis un build web.
+                  final url = Uri.parse((!kIsWeb && Platform.isIOS)
+                      ? 'https://apps.apple.com/sn/app/kart/id6778524832?l=fr-FR'
+                      : 'https://play.google.com/store/apps/details?id=com.kartapp.app');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
                   }
                 },
               ),

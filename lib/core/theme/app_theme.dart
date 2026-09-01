@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   AppTheme._();
@@ -39,32 +38,38 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black12,
       ),
-      textTheme: GoogleFonts.syneTextTheme(base.textTheme).copyWith(
-        headlineLarge: GoogleFonts.syne(
+      textTheme: base.textTheme.apply(fontFamily: 'Syne').copyWith(
+        headlineLarge: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: _lightTextPrimary,
           letterSpacing: -0.5,
         ),
-        headlineMedium: GoogleFonts.syne(
+        headlineMedium: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 24,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        titleLarge: GoogleFonts.syne(
+        titleLarge: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _lightTextPrimary,
         ),
-        bodyLarge: GoogleFonts.syne(
+        bodyLarge: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 16,
           color: _lightTextPrimary,
         ),
-        bodyMedium: GoogleFonts.syne(
+        bodyMedium: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 14,
           color: _lightTextSecondary,
         ),
-        labelMedium: GoogleFonts.syne(
+        labelMedium: const TextStyle(
+          fontFamily: 'Syne',
           fontSize: 12,
           color: _lightTextSecondary,
           fontWeight: FontWeight.w500,
@@ -136,9 +141,8 @@ highlightColor: _accentBlue.withValues(alpha: 0.05)    );
         onPrimary: _softBlack,
         onSurface: _softWhite,
       ),
-      textTheme: GoogleFonts.syneTextTheme(
-        base.textTheme.apply(bodyColor: _softWhite, displayColor: _softWhite),
-      ),
+      textTheme: base.textTheme
+          .apply(bodyColor: _softWhite, displayColor: _softWhite, fontFamily: 'Syne'),
       cardTheme: const CardThemeData(
         color: _surface,
         elevation: 6,

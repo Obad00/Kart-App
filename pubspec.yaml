@@ -68,9 +68,6 @@ dependencies:
   # Lottie animations
   lottie: ^3.1.0
 
-  # Google Fonts
-  google_fonts: ^6.1.0
-
   #Camera for card scanner
   camera: ^0.10.5+5
 
@@ -108,6 +105,24 @@ flutter:
 
   assets:
     - assets/icon/
+
+  # Police Syne embarquée localement (au lieu du chargement réseau via
+  # google_fonts) : évite qu'un flash de police par défaut apparaisse le
+  # temps que le fichier se télécharge, en particulier sur le splash screen
+  # qui ne reste affiché que ~2s.
+  fonts:
+    - family: Syne
+      fonts:
+        - asset: assets/fonts/Syne.ttf
+          weight: 400
+        - asset: assets/fonts/Syne.ttf
+          weight: 500
+        - asset: assets/fonts/Syne.ttf
+          weight: 600
+        - asset: assets/fonts/Syne.ttf
+          weight: 700
+        - asset: assets/fonts/Syne.ttf
+          weight: 800
 
 # App Icon Configuration
 flutter_launcher_icons:
