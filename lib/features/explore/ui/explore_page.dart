@@ -24,7 +24,11 @@ const _themeBlue = Color(0xFF3B82F6);
 /// côtés. L'onglet "Mes demandes" permet aussi de répondre directement
 /// dans l'app.
 class ExplorePage extends StatefulWidget {
-  const ExplorePage({super.key});
+  // 1 = ouvre directement "Mes demandes" — utilisé par le mail de demande
+  // de connexion et par le tap sur la notification push correspondante.
+  final int initialTabIndex;
+
+  const ExplorePage({super.key, this.initialTabIndex = 0});
 
   @override
   State<ExplorePage> createState() => _ExplorePageState();
@@ -42,7 +46,17 @@ class _ExplorePageState extends State<ExplorePage>
   void initState() {
     super.initState();
     _provider = ExploreProvider(ExploreService());
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
+    if (widget.initialTabIndex == 1) {
+      _provider.loadMyRequests();
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => context.read<ConnectionBadgeProvider>().clearBadge(),
+      );
+    }
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       if (_tabController.index == 1) {
@@ -92,128 +106,124 @@ class _ExplorePageState extends State<ExplorePage>
     final pendingCount =
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
 
+    final colors = Theme.of(context).colorScheme;
+
     final glassAppBar = GlassAppBar(
       title: const Text('Explorer'),
-      bottom: TabBar(
-        controller: _tabController,
-        labelColor: _themeBlue,
-        indicatorColor: _themeBlue,
-        tabs: [
-          const Tab(text: 'Découvrir'),
-          Tab(
-              child: _TabLabelWithBadge(
-                  label: 'Mes demandes', count: pendingCount)),
-        ],
+      // Pilule "segmented control" (fintech/travel) plutôt que le simple
+      // soulignement Material par défaut — plus proche des captures de
+      // référence pour cette page.
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(58),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: colors.onSurface.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: _themeBlue,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              splashBorderRadius: BorderRadius.circular(999),
+              labelColor: Colors.white,
+              unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
+              labelStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              unselectedLabelStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              tabs: [
+                const Tab(text: 'Découvrir'),
+                Tab(
+                    child: _TabLabelWithBadge(
+                        label: 'Mes demandes', count: pendingCount)),
+              ],
+            ),
+          ),
+        ),
       ),
     );
+
+    // Hauteur totale de la barre (statut + toolbar + TabBar) : passée aux
+    // onglets pour qu'ils réservent la place en haut de LEUR scrollable —
+    // pas via un spacer externe, sinon rien ne défile jamais derrière la
+    // barre et le flou n'a rien à flouter (elle paraît alors juste comme un
+    // fond uni classique, cf. capture d'écran).
+    final topPadding =
+        glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
 
     return ChangeNotifierProvider.value(
       value: _provider,
       child: Scaffold(
-        // extendBodyBehindAppBar : le contenu défile sous la barre verre
-        // dépoli (sinon le flou n'a rien à flouter) — le SizedBox ci-dessous
-        // compense pour que rien ne soit réellement caché derrière.
         extendBodyBehindAppBar: true,
         appBar: glassAppBar,
-        body: Column(
-          children: [
-            SizedBox(
-                height: glassAppBar.preferredSize.height +
-                    MediaQuery.of(context).padding.top),
-            Expanded(
-              child: SafeArea(
-                top: false,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () => FocusScope.of(context).unfocus(),
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildDiscoverTab(),
-                      _buildMyRequestsTab(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDiscoverTab(topPadding),
+              _buildMyRequestsTab(topPadding),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDiscoverTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: AppSearchBar(
-            controller: _searchController,
-            hintText: 'Rechercher par nom, poste, entreprise...',
-            onChanged: _onSearchChanged,
+  Widget _buildDiscoverTab(double topPadding) {
+    // top:false : le haut est déjà géré manuellement via topPadding (pour
+    // laisser le contenu défiler sous la barre verre dépoli) — seul le bas
+    // (zone de geste/home indicator) doit encore être protégé ici.
+    return SafeArea(
+      top: false,
+      child: CustomScrollView(
+        controller: _scrollController,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 8),
+              child: AppSearchBar(
+                controller: _searchController,
+                hintText: 'Rechercher par nom, poste, entreprise...',
+                onChanged: _onSearchChanged,
+              ),
+            ),
           ),
-        ),
-        Consumer<ExploreProvider>(
-          builder: (context, provider, _) => _buildJobTitleFilterRow(provider),
-        ),
-        Expanded(
-          child: Consumer<ExploreProvider>(
+          Consumer<ExploreProvider>(
+            builder: (context, provider, _) =>
+                SliverToBoxAdapter(child: _buildJobTitleFilterRow(provider)),
+          ),
+          Consumer<ExploreProvider>(
             builder: (context, provider, _) {
               if (provider.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (provider.error != null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(provider.error!),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => provider.loadUsers(),
-                        child: const Text('Réessayer'),
-                      ),
-                    ],
-                  ),
+                return const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
                 );
               }
 
-              if (provider.users.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
+              if (provider.error != null) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                _themeBlue.withValues(alpha: 0.12),
-                                const Color(0xFF6D28D9).withValues(alpha: 0.12),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Icon(Icons.explore_outlined,
-                              size: 40, color: _themeBlue),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Aucun profil à découvrir pour le moment',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.6),
-                          ),
+                        Text(provider.error!),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => provider.loadUsers(),
+                          child: const Text('Réessayer'),
                         ),
                       ],
                     ),
@@ -221,26 +231,71 @@ class _ExplorePageState extends State<ExplorePage>
                 );
               }
 
-              return ListView.builder(
-                controller: _scrollController,
+              if (provider.users.isEmpty) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  _themeBlue.withValues(alpha: 0.12),
+                                  const Color(0xFF6D28D9)
+                                      .withValues(alpha: 0.12),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.explore_outlined,
+                                size: 40, color: _themeBlue),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Aucun profil à découvrir pour le moment',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return SliverPadding(
                 padding: const EdgeInsets.only(bottom: 24),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= provider.users.length) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  return _ExploreUserRow(user: provider.users[index]);
-                },
+                sliver: SliverList.builder(
+                  itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= provider.users.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    return _ExploreUserRow(user: provider.users[index]);
+                  },
+                ),
               );
             },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -278,57 +333,68 @@ class _ExplorePageState extends State<ExplorePage>
     );
   }
 
-  Widget _buildMyRequestsTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(
-            children: [
-              _StatusChip(
-                label: 'Toutes',
-                status: 'all',
+  Widget _buildMyRequestsTab(double topPadding) {
+    return SafeArea(
+      top: false,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 4),
+              child: Row(
+                children: [
+                  _StatusChip(
+                    label: 'Toutes',
+                    status: 'all',
+                  ),
+                  const SizedBox(width: 8),
+                  _StatusChip(label: 'En attente', status: 'pending'),
+                  const SizedBox(width: 8),
+                  _StatusChip(label: 'Acceptées', status: 'accepted'),
+                  const SizedBox(width: 8),
+                  _StatusChip(label: 'Refusées', status: 'declined'),
+                ],
               ),
-              const SizedBox(width: 8),
-              _StatusChip(label: 'En attente', status: 'pending'),
-              const SizedBox(width: 8),
-              _StatusChip(label: 'Acceptées', status: 'accepted'),
-              const SizedBox(width: 8),
-              _StatusChip(label: 'Refusées', status: 'declined'),
-            ],
+            ),
           ),
-        ),
-        Expanded(
-          child: Consumer<ExploreProvider>(
+          Consumer<ExploreProvider>(
             builder: (context, provider, _) {
               if (provider.isLoadingMyRequests) {
-                return const Center(child: CircularProgressIndicator());
+                return const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                );
               }
 
               if (provider.myRequests.isEmpty) {
-                return Center(
-                  child: Text(
-                    'Aucune demande pour l\'instant',
-                    style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.5),
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'Aucune demande pour l\'instant',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
                 );
               }
 
-              return ListView.builder(
+              return SliverPadding(
                 padding: const EdgeInsets.only(bottom: 24, top: 8),
-                itemCount: provider.myRequests.length,
-                itemBuilder: (context, index) =>
-                    _MyRequestRow(item: provider.myRequests[index]),
+                sliver: SliverList.builder(
+                  itemCount: provider.myRequests.length,
+                  itemBuilder: (context, index) =>
+                      _MyRequestRow(item: provider.myRequests[index]),
+                ),
               );
             },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

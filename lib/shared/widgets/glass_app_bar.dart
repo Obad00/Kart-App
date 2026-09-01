@@ -40,10 +40,13 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
+            // Opacité volontairement basse — à 0.55/0.65 le tint écrasait le
+            // flou et la barre paraissait juste comme un fond uni classique
+            // (surtout en thème sombre, où le fond est déjà presque noir).
             // Un léger tint de la couleur de surface plutôt qu'un blanc/noir
             // plat — le verre dépoli d'Apple laisse toujours transparaître un
             // peu de la teinte du fond derrière lui.
-            color: colors.surface.withValues(alpha: isDark ? 0.55 : 0.65),
+            color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.5),
             border: Border(
               bottom: BorderSide(
                 color: colors.onSurface.withValues(alpha: 0.06),

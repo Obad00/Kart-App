@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../features/auth/providers/auth_provider.dart';
+import '../../shared/utils/jobmatch_access.dart';
 
 /// Gère les liens profonds au format `kart://...` (ex: bouton "Voir mes
 /// offres likées" du mail d'intérêt candidat) — capte le lien qui a servi à
@@ -32,6 +36,15 @@ class DeepLinkService {
 
   void _handle(Uri uri) {
     if (uri.scheme != 'kart') return;
+
+    if (uri.host == 'explore' && uri.pathSegments.contains('requests')) {
+      // kart://explore/requests — bouton unique du mail de demande de
+      // connexion (remplace les anciens liens Accepter/Refuser) : ouvre
+      // directement l'onglet "Mes demandes" dans l'app.
+      _openExploreRequests();
+      return;
+    }
+
     if (uri.host != 'jobmatch') return;
 
     // kart://jobmatch/liked — mail envoyé quand un candidat like une offre.
@@ -51,6 +64,26 @@ class DeepLinkService {
     // bord à ouvrir spécifiquement (pas encore de match/like), juste le
     // fil d'offres où il peut la retrouver et l'aimer.
     _openFeedTab();
+  }
+
+  void _openExploreRequests() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = _navigatorKey.currentState;
+      final context = _navigatorKey.currentContext;
+      if (navigator == null || context == null) return;
+
+      final showJobMatch = canAccessJobMatch(
+        context.read<AuthProvider>().user?.plan,
+      );
+      navigator.pushNamedAndRemoveUntil(
+        '/home',
+        (route) => false,
+        arguments: {
+          'tab': showJobMatch ? 3 : 2, // Explorer
+          'openExploreTab': 1, // Mes demandes
+        },
+      );
+    });
   }
 
   /// [tabIndex] : onglet du tableau de bord JobMatch à ouvrir (0 = Matchs,
