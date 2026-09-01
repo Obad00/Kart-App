@@ -439,6 +439,7 @@ jobs:
 
       - name: Archiver et Signer avec Xcodebuild
         env:
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
@@ -451,17 +452,22 @@ jobs:
           # signingStyle=automatic) ne peut pas les "retrouver" plus tard — il ne
           # fait que re-signer avec le strict minimum.
           #
-          # Les réglages de signature (CODE_SIGN_STYLE, CODE_SIGN_IDENTITY,
-          # PROVISIONING_PROFILE_SPECIFIER, DEVELOPMENT_TEAM) ne sont PAS passés
-          # ici en overrides de ligne de commande : ils sont déjà dans
-          # ios/Flutter/Release.xcconfig, où ils ne s'appliquent qu'au target
-          # Runner (voir l'étape précédente) au lieu de s'appliquer globalement
-          # à tous les pods/packages tiers du build.
+          # DEVELOPMENT_TEAM est réintroduit ici en override global (contrairement
+          # à CODE_SIGN_STYLE / CODE_SIGN_IDENTITY / PROVISIONING_PROFILE_SPECIFIER,
+          # qui restent scopés à Runner via Release.xcconfig, voir l'étape
+          # précédente). DEVELOPMENT_TEAM seul est inoffensif pour les targets
+          # tiers (pods, packages SPM) — il ne leur impose ni style de signature
+          # manuelle ni provisioning profile — mais les bundles de ressources
+          # "privacy manifest" que CocoaPods génère (ex: flutter_local_notifications
+          # -flutter_local_notifications_privacy) EXIGENT qu'une team soit définie
+          # pour signer, même sans profil complet. Sans lui : "Signing for ...
+          # requires a development team".
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGNING_ALLOWED=YES \
             archive 2>&1 | tee /tmp/xcodebuild.log; \
           EXIT_CODE=${PIPESTATUS[0]}; \
