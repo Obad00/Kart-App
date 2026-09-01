@@ -283,7 +283,14 @@ jobs:
 
           print("Génération d'un nouveau certificat de Distribution avec clé privée locale...")
           os.system("openssl genrsa -out /tmp/distribution.key 2048")
-          os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
+          # Sujet volontairement minimal ("/CN=PEM", rien d'autre) : c'est le
+          # format exact utilisé par fastlane/spaceship (l'outil open-source de
+          # référence pour la signature CI via l'API Apple), qui a fait ses
+          # preuves à grande échelle. On a constaté que des champs
+          # supplémentaires (O=, C=) provoquaient un rejet générique
+          # "Invalid Certificate" de l'API, sans que le message d'erreur
+          # d'Apple n'indique explicitement pourquoi.
+          os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=PEM" -sha256')
 
           with open("/tmp/distribution.csr", "rb") as f:
               csr_content = base64.b64encode(f.read()).decode()
