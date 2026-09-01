@@ -153,16 +153,30 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.explore_outlined,
-                            size: 64,
-                            color:
-                                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
-                        const SizedBox(height: 16),
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                _themeBlue.withValues(alpha: 0.12),
+                                const Color(0xFF6D28D9).withValues(alpha: 0.12),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.explore_outlined, size: 40, color: _themeBlue),
+                        ),
+                        const SizedBox(height: 20),
                         Text(
                           'Aucun profil à découvrir pour le moment',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
+                            fontWeight: FontWeight.w600,
                             color:
-                                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -382,17 +396,25 @@ class _MyRequestRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = item.otherUser;
     final isPendingReceived = item.status == 'pending' && item.direction == RequestDirection.received;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: colors.onSurface.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(18),
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -489,86 +511,222 @@ class _ExploreUserRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final avatarUrl = _avatarUrl;
+    final jobTitle = user.jobTitle ?? '';
+    final company = user.company ?? '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => _openCard(context),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: colors.onSurface.withValues(alpha: 0.035),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: avatarUrl == null
-                      ? const LinearGradient(
-                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          onTap: () => _openCard(context),
+          child: Container(
+            height: 300,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Photo de profil en fond — ou, à défaut, un dégradé de
+                // marque avec les initiales géantes en filigrane, pour
+                // garder le même effet "carte photo" plein cadre.
+                if (avatarUrl != null)
+                  CachedNetworkImage(
+                    imageUrl: avatarUrl,
+                    fit: BoxFit.cover,
+                    // Sans ça, une image cassée/corrompue (EncodingError)
+                    // laissait un carré vide et spammait la console — on
+                    // retombe proprement sur le même dégradé + initiales
+                    // que pour un profil sans avatar du tout.
+                    errorWidget: (context, url, error) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                        )
-                      : null,
-                  image: avatarUrl != null
-                      ? DecorationImage(
-                          image: CachedNetworkImageProvider(avatarUrl), fit: BoxFit.cover)
-                      : null,
-                ),
-                child: avatarUrl == null
-                    ? Center(
+                        ),
+                      ),
+                      child: Center(
                         child: Text(
                           _initials(user.name),
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          style: TextStyle(
+                            fontFamily: 'Syne',
+                            fontSize: 120,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white.withValues(alpha: 0.14),
+                          ),
                         ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name,
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    if ((user.jobTitle ?? user.company ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        [user.jobTitle, user.company]
-                            .where((v) => (v ?? '').isNotEmpty)
-                            .join(' · '),
+                  )
+                else
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _initials(user.name),
                         style: TextStyle(
-                            fontSize: 12.5, color: colors.onSurface.withValues(alpha: 0.55)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                          fontFamily: 'Syne',
+                          fontSize: 120,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white.withValues(alpha: 0.14),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Voile dégradé pour la lisibilité du texte en bas de carte
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.4, 1.0],
+                      colors: [Colors.transparent, Colors.black87],
+                    ),
+                  ),
+                ),
+
+                // Contenu texte + actions
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (company.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                          ),
+                          child: Text(
+                            company,
+                            style: const TextStyle(
+                              fontFamily: 'Syne',
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              fontFamily: 'Syne',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (jobTitle.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.work_outline_rounded,
+                                      size: 13, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  // Flexible est indispensable ici : dans un Row,
+                                  // un Text sans Flexible/Expanded reçoit une
+                                  // largeur non bornée et ignore maxLines/
+                                  // overflow, d'où les "RenderFlex overflowed"
+                                  // avec un intitulé de poste un peu long.
+                                  Flexible(
+                                    child: Text(
+                                      jobTitle,
+                                      style: const TextStyle(
+                                        fontFamily: 'Syne',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+
+                          // Barre "verre dépoli" pleine largeur — reprend le
+                          // traitement "Voir plus →" d'une carte de
+                          // découverte, avec le vrai bouton de connexion.
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Voir la carte',
+                                  style: TextStyle(
+                                    fontFamily: 'Syne',
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                ConnectActionButton(
+                                  userId: user.id,
+                                  userName: user.name,
+                                  initialStatus: user.connectionStatus,
+                                  initialRequestId: user.connectionRequestId,
+                                  onResolved: () =>
+                                      context.read<ExploreProvider>().removeUserLocally(user.id),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              ConnectActionButton(
-                userId: user.id,
-                userName: user.name,
-                initialStatus: user.connectionStatus,
-                initialRequestId: user.connectionRequestId,
-                onResolved: () => context.read<ExploreProvider>().removeUserLocally(user.id),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

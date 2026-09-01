@@ -7,6 +7,7 @@ import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error.dart';
 import '../../../core/services/push_notification_service.dart';
+import '../../../core/services/notification_prefs.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
 
@@ -99,8 +100,13 @@ class AuthProvider extends ChangeNotifier {
       user = User.fromJson(meResponse.data);
       // Fire-and-forget : ne doit jamais bloquer/faire échouer le chargement
       // de l'utilisateur (couvre login, loginWithGoogle et l'auto-connexion
-      // au démarrage, qui passent tous par loadMe()).
-      unawaited(PushNotificationService.registerToken());
+      // au démarrage, qui passent tous par loadMe()). On respecte la
+      // préférence "Notifications" des Réglages : sans cette vérification,
+      // une désactivation manuelle serait silencieusement annulée à chaque
+      // reconnexion.
+      unawaited(NotificationPrefs.isEnabled().then((enabled) {
+        if (enabled) PushNotificationService.registerToken();
+      }));
     } on DioException catch (e) {
       debugPrint(
           '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
