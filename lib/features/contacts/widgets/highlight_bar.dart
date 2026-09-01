@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/highlight_provider.dart';
 import '../models/highlight_model.dart';
+import '../ui/event_highlight_detail_page.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -109,6 +110,23 @@ onLongPress: () {
       existing: highlight);
 },
 onTap: () async {
+  // Un highlight d'événement KART (créé automatiquement lors d'une
+  // inscription via le formulaire public) ouvre la fiche de l'événement
+  // avec ses autres participants — le toggle actif/inactif classique n'a
+  // pas de sens ici, ce n'est pas un highlight qu'on gère soi-même.
+  if (highlight.isCompanyEvent && highlight.eventId != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventHighlightDetailPage(
+          eventId: highlight.eventId!,
+          fallbackName: highlight.name,
+        ),
+      ),
+    );
+    return;
+  }
+
   final bool isCurrentlyActive = highlight.isActive;
 
   final confirm = await showDialog<bool>(

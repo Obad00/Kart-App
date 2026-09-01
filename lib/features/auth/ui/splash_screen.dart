@@ -170,12 +170,12 @@ class _SplashScreenState extends State<SplashScreen>
                   Positioned(
                     top: -80,
                     left: -60,
-                    child: _blurBlob(_electricBlue, 0.25 * _glowAnimation.value, 260),
+                    child: _blurBlob(_electricBlue, 0.14 * _glowAnimation.value, 260),
                   ),
                   Positioned(
                     bottom: -100,
                     right: -70,
-                    child: _blurBlob(_violet, 0.2 * _glowAnimation.value, 280),
+                    child: _blurBlob(_violet, 0.11 * _glowAnimation.value, 280),
                   ),
                 ],
               ),
@@ -209,10 +209,9 @@ class _SplashScreenState extends State<SplashScreen>
                           boxShadow: [
                             BoxShadow(
                               color: _electricBlue
-                                  .withValues(alpha: 0.32 * _glowAnimation.value),
-                              blurRadius: 46,
-                              spreadRadius: 2,
-                              offset: const Offset(0, 14),
+                                  .withValues(alpha: 0.14 * _glowAnimation.value),
+                              blurRadius: 28,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -224,17 +223,24 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 40),
 
-                  // Wordmark
+                  // Wordmark — incliné vers l'avant et resserré pour évoquer
+                  // l'esprit du logo (anguleux, dynamique), en gardant du
+                  // vrai texte net à toutes les tailles (le fichier du logo
+                  // n'existe qu'en basse résolution, illisible en grand).
                   FadeTransition(
                     opacity: _fadeAnimation,
-                    child: Text(
-                      'KART',
-                      style: TextStyle(
-                        fontFamily: 'Syne',
-                        fontSize: 44,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
-                        color: foreground,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()..setEntry(0, 1, -0.18),
+                      child: Text(
+                        'KART',
+                        style: TextStyle(
+                          fontFamily: 'Syne',
+                          fontSize: 46,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1,
+                          color: foreground,
+                        ),
                       ),
                     ),
                   ),

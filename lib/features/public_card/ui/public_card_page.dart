@@ -9,6 +9,7 @@ import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
 import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/widgets/expandable_text.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -1021,13 +1022,14 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
         ),
         const SizedBox(height: 14),
-        Text(
+        ExpandableText(
           bio,
           style: TextStyle(
             fontSize: 14,
             height: 1.7,
             color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280),
           ),
+          accentColor: _accentColor,
         ),
       ],
     );
@@ -1197,13 +1199,15 @@ class _PublicCardPageState extends State<PublicCardPage>
                           ),
                           if (description.isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            Text(
+                            ExpandableText(
                               description,
+                              maxLines: 3,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: textColor,
                                 height: 1.6,
                               ),
+                              accentColor: iconColor,
                             ),
                           ],
                         ],

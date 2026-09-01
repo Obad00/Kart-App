@@ -145,21 +145,21 @@ class _CompanyQrCardState extends State<CompanyQrCard>
             // Glow coloré animé
             BoxShadow(
               color: widget.primaryColor
-                  .withValues(alpha: _glowAnimation.value * 0.35),
-              blurRadius: 40 + (_glowAnimation.value * 20),
+                  .withValues(alpha: _glowAnimation.value * 0.16),
+              blurRadius: 30 + (_glowAnimation.value * 14),
               spreadRadius: -8,
             ),
             // Ombre principale
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
             // Ombre secondaire
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

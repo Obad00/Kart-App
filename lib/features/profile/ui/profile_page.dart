@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -134,13 +135,37 @@ class _ProfilePageState extends State<ProfilePage>
       backgroundColor: colors.surface,
       body: CustomScrollView(
         slivers: [
-          // App Bar avec effet de blur
+          // App Bar avec effet de blur — verre dépoli façon Apple : le
+          // contenu défile réellement derrière (pinned + floating), le
+          // BackdropFilter a donc quelque chose à flouter au scroll.
           SliverAppBar(
             expandedHeight: 0,
             floating: true,
             pinned: true,
-            backgroundColor: colors.surface.withValues(alpha: 0.9),
+            backgroundColor: Colors.transparent,
             surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            flexibleSpace: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colors.surface.withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.55
+                          : 0.65,
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: colors.onSurface.withValues(alpha: 0.06),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             title: Text(
               'Mon profil',
               style: TextStyle(
@@ -1089,7 +1114,8 @@ class _ProfilePageState extends State<ProfilePage>
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationSettingsPage()),
                   );
                 },
               ),
@@ -1729,7 +1755,8 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ),
               ListTile(
-                leading: Icon(Icons.photo_library_outlined, color: colors.onSurface),
+                leading:
+                    Icon(Icons.photo_library_outlined, color: colors.onSurface),
                 title: const Text('Changer la photo'),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -1738,8 +1765,10 @@ class _ProfilePageState extends State<ProfilePage>
               ),
               if (hasAvatar)
                 ListTile(
-                  leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                  title: const Text('Supprimer la photo', style: TextStyle(color: Colors.red)),
+                  leading: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.red),
+                  title: const Text('Supprimer la photo',
+                      style: TextStyle(color: Colors.red)),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _confirmDeleteAvatar();
@@ -1757,7 +1786,8 @@ class _ProfilePageState extends State<ProfilePage>
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Supprimer la photo ?'),
-        content: const Text('Votre photo de profil sera retirée de votre carte.'),
+        content:
+            const Text('Votre photo de profil sera retirée de votre carte.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
