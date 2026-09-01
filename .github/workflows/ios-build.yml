@@ -394,6 +394,14 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          # CODE_SIGNING_ALLOWED doit être YES pendant l'archive : c'est à ce
+          # moment-là que Xcode lit CODE_SIGN_ENTITLEMENTS (Runner.entitlements)
+          # et enregistre les entitlements custom (aps-environment,
+          # keychain-access-groups, etc.) dans l'archive. Si la signature est
+          # désactivée ici, ces entitlements ne sont jamais capturés, et
+          # -exportArchive (même en signingStyle=automatic) ne peut pas les
+          # "retrouver" plus tard — il ne fait que re-signer avec le strict
+          # minimum (application-identifier, get-task-allow, team-identifier).
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -402,12 +410,8 @@ jobs:
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            PROVISIONING_PROFILE_SPECIFIER_APP_="$PROFILE_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER_Runner="$PROFILE_UUID" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_ALLOWED_APP_=YES \
-            CODE_SIGNING_ALLOWED_Runner=YES \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            CODE_SIGNING_ALLOWED=YES \
             archive 2>&1 | tee /tmp/xcodebuild.log; \
           EXIT_CODE=${PIPESTATUS[0]}; \
           if [ $EXIT_CODE -ne 0 ]; then
@@ -427,11 +431,9 @@ jobs:
 
       - name: Vérifier l'entitlement aps-environment (notifications push)
         run: |
-          # L'archive brute (build/ios/archive/Runner.xcarchive) est produite
-          # avec CODE_SIGNING_ALLOWED=NO — elle n'est PAS signée à ce stade.
-          # C'est seulement -exportArchive (juste avant, dans l'étape
-          # précédente) qui signe réellement pour produire le .ipa final :
-          # c'est donc CE binaire-là qu'il faut inspecter, pas l'archive brute.
+          # C'est le .ipa produit par -exportArchive (étape précédente) qui
+          # contient la signature et les entitlements finaux — c'est donc lui
+          # qu'il faut inspecter, pas l'archive .xcarchive intermédiaire.
           IPA_PATH=$(find build/ios/ipa -maxdepth 1 -name "*.ipa" | head -1)
           if [ -z "$IPA_PATH" ]; then
             echo "::error::Aucun .ipa trouvé dans build/ios/ipa — impossible de vérifier l'entitlement."
