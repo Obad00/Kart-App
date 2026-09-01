@@ -268,6 +268,7 @@ class _KartAppState extends State<KartApp> {
                     initialIndex: args?['tab'] ?? 0,
                     forceTourReplay: args?['replayTour'] ?? false,
                     openDashboardTab: args?['openDashboardTab'] as int?,
+                    openExploreTab: args?['openExploreTab'] as int?,
                   );
                 },
               },

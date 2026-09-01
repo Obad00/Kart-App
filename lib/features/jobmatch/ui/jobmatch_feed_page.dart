@@ -10,6 +10,7 @@ import '../model/job_feed_item.dart';
 import '../providers/jobmatch_provider.dart';
 import '../widgets/job_swipe_card.dart';
 import 'jobmatch_matches_page.dart';
+import '../../../shared/widgets/glass_app_bar.dart';
 
 const _accentBlue = Color(0xFF3B82F6);
 
@@ -68,15 +69,11 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
-        backgroundColor: colors.surface.withValues(alpha: 0.9),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
+      appBar: GlassAppBar(
         title: const Text(
           'Offres pour vous',
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
         ),
-        centerTitle: true,
         actions: [
           Showcase(
             key: _dashboardTourKey,

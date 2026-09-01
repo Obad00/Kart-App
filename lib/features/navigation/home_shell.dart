@@ -35,11 +35,18 @@ class HomeShell extends StatefulWidget {
   /// JobMatch sur cet onglet au premier frame affiché. `null` = pas de
   /// deep link, comportement normal (tour guidé éventuel...).
   final int? openDashboardTab;
+
+  /// Renseigné par le mail/la notification de demande de connexion
+  /// (`kart://explore/requests`) — sélectionne l'onglet "Mes demandes" à
+  /// l'intérieur d'Explorer. `null` = onglet "Découvrir" par défaut.
+  final int? openExploreTab;
+
   const HomeShell({
     super.key,
     this.initialIndex = 0,
     this.forceTourReplay = false,
     this.openDashboardTab,
+    this.openExploreTab,
   });
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -342,7 +349,7 @@ class _HomeShellState extends State<HomeShell>
       ),
       const ContactsPage(),
       if (showJobMatch) const JobMatchFeedPage(),
-      const ExplorePage(),
+      ExplorePage(initialTabIndex: widget.openExploreTab ?? 0),
       const ProfilePage(),
     ];
   }
@@ -387,11 +394,12 @@ class _HomeShellState extends State<HomeShell>
 
       return Scaffold(
         backgroundColor: colors.surface,
-        // extendBody : les pages défilent réellement sous la pilule de nav
-        // flottante — c'est ce qui donne au verre dépoli (BackdropFilter,
-        // voir _buildBottomNavigation) quelque chose à flouter au scroll,
-        // plutôt qu'une simple bande de couleur unie.
-        extendBody: true,
+        // extendBody retiré : chaque page de cet onglet a son propre
+        // Scaffold avec un fond plein (ContactsPage, JobMatchFeedPage...),
+        // qui remplissait alors toute la hauteur — y compris derrière la
+        // pilule de nav. Résultat : pas de vrai contenu flouté, juste un
+        // bloc de couleur unie visible derrière/autour de la pilule (le
+        // "fond" qui n'a pas sa place là).
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
@@ -415,9 +423,10 @@ class _HomeShellState extends State<HomeShell>
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Pas de couleur pleine sur le conteneur extérieur : avec
-    // extendBody:true, le contenu de la page défile en dessous, donc tout
-    // fond opaque ici masquerait ce qu'il y a à flouter.
+    // Sans extendBody, cette pilule flotte simplement au-dessus du fond
+    // plein du Scaffold (celui de la page active, ou le nôtre) — toujours
+    // un flou/tint verre dépoli, juste sans la couche de contenu qui
+    // défile derrière (retirée, voir plus haut).
     return SafeArea(
       top: false,
       child: Padding(
@@ -430,8 +439,10 @@ class _HomeShellState extends State<HomeShell>
               height: 56,
               decoration: BoxDecoration(
                 // Verre dépoli façon Apple : un tint semi-transparent de la
-                // couleur de surface plutôt qu'un fond plein.
-                color: colors.surface.withValues(alpha: isDark ? 0.55 : 0.7),
+                // couleur de surface plutôt qu'un fond plein — opacité basse
+                // pour que le flou (et ce qui défile dessous) reste visible,
+                // même en thème sombre.
+                color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.55),
                 borderRadius: BorderRadius.circular(16),
                 border:
                     Border.all(color: colors.onSurface.withValues(alpha: 0.06)),

@@ -70,7 +70,8 @@ class PushNotificationService {
     _onMessageOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen(
       (message) => _handleData(message.data),
     );
-    _onTokenRefreshSub = messaging.onTokenRefresh.listen((_) => registerToken());
+    _onTokenRefreshSub =
+        messaging.onTokenRefresh.listen((_) => registerToken());
 
     // Notification qui a servi à ouvrir l'app (cold start).
     final initialMessage = await messaging.getInitialMessage();
@@ -84,7 +85,8 @@ class PushNotificationService {
   }
 
   Future<void> _initLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     // Permissions déjà demandées explicitement via
     // FirebaseMessaging.requestPermission() — pas besoin de les redemander.
     const iosSettings = DarwinInitializationSettings(
@@ -193,7 +195,10 @@ class PushNotificationService {
           navigator.pushNamedAndRemoveUntil(
             '/home',
             (route) => false,
-            arguments: {'tab': showJobMatch ? 3 : 2}, // Explorer
+            arguments: {
+              'tab': showJobMatch ? 3 : 2, // Explorer
+              'openExploreTab': 1, // Mes demandes
+            },
           );
           break;
 

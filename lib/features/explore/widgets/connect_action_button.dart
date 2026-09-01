@@ -73,7 +73,9 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       final serverMessage = e.response?.data is Map
           ? (e.response?.data as Map)['message']?.toString()
           : null;
-      if (serverMessage != null && serverMessage.isNotEmpty) return serverMessage;
+      if (serverMessage != null && serverMessage.isNotEmpty) {
+        return serverMessage;
+      }
     }
     return 'Une erreur est survenue, réessayez.';
   }
@@ -141,13 +143,15 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
               foregroundColor: Colors.grey,
               side: const BorderSide(color: Colors.grey),
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             icon: _busy
                 ? const SizedBox(
                     width: 12,
                     height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.grey),
                   )
                 : const Icon(Icons.close_rounded, size: 14),
             label: const Text('Envoyée', style: TextStyle(fontSize: 12.5)),
@@ -208,7 +212,8 @@ class _SlideToConnectButton extends StatefulWidget {
   final bool busy;
   final VoidCallback onConfirm;
 
-  const _SlideToConnectButton({super.key, required this.busy, required this.onConfirm});
+  const _SlideToConnectButton(
+      {super.key, required this.busy, required this.onConfirm});
 
   @override
   State<_SlideToConnectButton> createState() => _SlideToConnectButtonState();
@@ -268,63 +273,88 @@ class _SlideToConnectButtonState extends State<_SlideToConnectButton>
   Widget build(BuildContext context) {
     final locked = _confirmed || widget.busy;
 
-    return SizedBox(
-      width: double.infinity,
-      height: _height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          _maxDrag = (constraints.maxWidth - _thumbSize - _padding * 2).clamp(0.0, double.infinity);
-          final progress = _maxDrag == 0 ? 0.0 : (_dragX / _maxDrag).clamp(0.0, 1.0);
+    // Piste volontairement plus étroite que la carte (pas toute la largeur)
+    // — un slider aussi large que le bouton "Voir la carte" d'avant donnait
+    // l'impression d'un gros bouton plein plutôt que d'un geste ponctuel.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: FractionallySizedBox(
+        widthFactor: 0.68,
+        child: SizedBox(
+          height: _height,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _maxDrag = (constraints.maxWidth - _thumbSize - _padding * 2)
+                  .clamp(0.0, double.infinity);
+              final progress =
+                  _maxDrag == 0 ? 0.0 : (_dragX / _maxDrag).clamp(0.0, 1.0);
 
-          return Container(
-            decoration: BoxDecoration(
-              color: Color.lerp(_themeBlue.withValues(alpha: 0.12), _themeBlue, progress),
-              borderRadius: BorderRadius.circular(_height / 2),
-              border: Border.all(color: _themeBlue.withValues(alpha: 0.3)),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Opacity(
-                  opacity: (1 - progress * 1.4).clamp(0.0, 1.0),
-                  child: const Text(
-                    'Glisser pour se connecter',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: _themeBlue,
-                    ),
-                  ),
+              return Container(
+                decoration: BoxDecoration(
+                  color: Color.lerp(
+                      _themeBlue.withValues(alpha: 0.12), _themeBlue, progress),
+                  borderRadius: BorderRadius.circular(_height / 2),
+                  border: Border.all(color: _themeBlue.withValues(alpha: 0.3)),
                 ),
-                AnimatedPositioned(
-                  duration: locked ? const Duration(milliseconds: 200) : Duration.zero,
-                  curve: Curves.easeOut,
-                  left: _padding + (locked ? _maxDrag : _dragX),
-                  top: _padding,
-                  child: GestureDetector(
-                    onHorizontalDragUpdate: _onDragUpdate,
-                    onHorizontalDragEnd: _onDragEnd,
-                    child: Container(
-                      width: _thumbSize,
-                      height: _thumbSize,
-                      decoration: const BoxDecoration(color: _themeBlue, shape: BoxShape.circle),
-                      child: widget.busy
-                          ? const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : Icon(
-                              _confirmed ? Icons.check_rounded : Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 18,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Opacity(
+                      opacity: (1 - progress * 1.4).clamp(0.0, 1.0),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: _thumbSize + _padding * 2),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Glisser pour se connecter',
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: _themeBlue,
                             ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    AnimatedPositioned(
+                      duration: locked
+                          ? const Duration(milliseconds: 200)
+                          : Duration.zero,
+                      curve: Curves.easeOut,
+                      left: _padding + (locked ? _maxDrag : _dragX),
+                      top: _padding,
+                      child: GestureDetector(
+                        onHorizontalDragUpdate: _onDragUpdate,
+                        onHorizontalDragEnd: _onDragEnd,
+                        child: Container(
+                          width: _thumbSize,
+                          height: _thumbSize,
+                          decoration: const BoxDecoration(
+                              color: _themeBlue, shape: BoxShape.circle),
+                          child: widget.busy
+                              ? const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : Icon(
+                                  _confirmed
+                                      ? Icons.check_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -346,7 +376,8 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        style:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
       ),
     );
   }
