@@ -184,36 +184,149 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
         );
 
       case ConnectionStatus.none:
-        return SizedBox(
-          height: 34,
-          child: ElevatedButton(
-            onPressed: _busy
-                ? null
-                : () {
-                    HapticFeedback.lightImpact();
-                    _send();
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _themeBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              disabledBackgroundColor: _themeBlue.withValues(alpha: 0.5),
-            ),
-            child: _busy
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text(
-                    'Se connecter',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                  ),
-          ),
+        // key: ValueKey(_busy) — si l'envoi échoue, _busy repasse à false
+        // alors que le statut reste `none` : le widget est alors reconstruit
+        // à neuf, ce qui remet naturellement le curseur à zéro sans code de
+        // reset dédié.
+        return _SlideToConnectButton(
+          key: ValueKey(_busy),
+          busy: _busy,
+          onConfirm: () {
+            HapticFeedback.mediumImpact();
+            _send();
+          },
         );
     }
+  }
+}
+
+/// Piste "glisser pour se connecter" façon iOS, à la place d'un simple
+/// bouton — sert uniquement pour l'action principale (aucune demande en
+/// cours) ; les autres états (envoyée/reçue) restent des contrôles compacts
+/// classiques, un geste de glissement n'y apportant rien.
+class _SlideToConnectButton extends StatefulWidget {
+  final bool busy;
+  final VoidCallback onConfirm;
+
+  const _SlideToConnectButton({super.key, required this.busy, required this.onConfirm});
+
+  @override
+  State<_SlideToConnectButton> createState() => _SlideToConnectButtonState();
+}
+
+class _SlideToConnectButtonState extends State<_SlideToConnectButton>
+    with SingleTickerProviderStateMixin {
+  static const double _height = 46;
+  static const double _thumbSize = 38;
+  static const double _padding = 4;
+
+  late final AnimationController _snapController;
+  double _dragX = 0;
+  double _maxDrag = 0;
+  bool _confirmed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    )..addListener(() {
+        setState(() => _dragX = _snapController.value);
+      });
+  }
+
+  @override
+  void dispose() {
+    _snapController.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (_confirmed || widget.busy) return;
+    setState(() {
+      _dragX = (_dragX + details.delta.dx).clamp(0.0, _maxDrag);
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    if (_confirmed || widget.busy) return;
+    final threshold = _maxDrag * 0.7;
+    if (_dragX >= threshold) {
+      setState(() {
+        _confirmed = true;
+        _dragX = _maxDrag;
+      });
+      widget.onConfirm();
+    } else {
+      _snapController.value = _dragX;
+      _snapController.animateBack(0, curve: Curves.easeOut);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = _confirmed || widget.busy;
+
+    return SizedBox(
+      width: double.infinity,
+      height: _height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _maxDrag = (constraints.maxWidth - _thumbSize - _padding * 2).clamp(0.0, double.infinity);
+          final progress = _maxDrag == 0 ? 0.0 : (_dragX / _maxDrag).clamp(0.0, 1.0);
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Color.lerp(_themeBlue.withValues(alpha: 0.12), _themeBlue, progress),
+              borderRadius: BorderRadius.circular(_height / 2),
+              border: Border.all(color: _themeBlue.withValues(alpha: 0.3)),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Opacity(
+                  opacity: (1 - progress * 1.4).clamp(0.0, 1.0),
+                  child: const Text(
+                    'Glisser pour se connecter',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: _themeBlue,
+                    ),
+                  ),
+                ),
+                AnimatedPositioned(
+                  duration: locked ? const Duration(milliseconds: 200) : Duration.zero,
+                  curve: Curves.easeOut,
+                  left: _padding + (locked ? _maxDrag : _dragX),
+                  top: _padding,
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: _onDragUpdate,
+                    onHorizontalDragEnd: _onDragEnd,
+                    child: Container(
+                      width: _thumbSize,
+                      height: _thumbSize,
+                      decoration: const BoxDecoration(color: _themeBlue, shape: BoxShape.circle),
+                      child: widget.busy
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : Icon(
+                              _confirmed ? Icons.check_rounded : Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

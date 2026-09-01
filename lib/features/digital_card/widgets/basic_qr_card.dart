@@ -69,9 +69,9 @@ class _BasicQrCardState extends State<BasicQrCard>
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),

@@ -56,6 +56,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   late final Animation<double> _qrScale;
 
   final GlobalKey _qrKey = GlobalKey();
+  // Capture la carte entière (fond, badge, nom, QR...) pour le téléchargement
+  // — avant, seul le QR code lui-même (_qrKey) était exporté.
+  final GlobalKey _fullCardKey = GlobalKey();
 
   // Repli si aucune clé externe n'est fournie (ex: mode minimal) — le
   // Showcase se comporte alors comme un simple wrapper transparent, sans
@@ -295,7 +298,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
                   void download() {
                     if (widget.minimal) return;
-                    _exportQr(state.qrSvg!);
+                    _exportFullCard();
                   }
 
 
@@ -333,44 +336,50 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     child: ScaleTransition(
                       scale: _scale,
                       child: Center(
-                        child: useBrandedCard
-                            // Carte brandée : entreprise ou personnalisation individuelle
-                            ? CompanyQrCard(
-                                qrCode: qrWidget,
-                                companyName: hasCompanyBranding
-                                    ? (state.company ?? user?.company?.name ?? 'Entreprise')
-                                    : fullName,
-                                companyLogo: hasCompanyBranding ? state.companyLogo : personalLogo,
-                                primaryColor: _parseColor(
-                                  hasCompanyBranding ? state.companyPrimaryColor : state.accentColor,
-                                  const Color(0xFF3B82F6),
-                                ),
-                                subtitle: state.jobTitle,
-                                badgeLabel: hasCompanyBranding ? 'PRO' : null,
-                               onShare: widget.minimal ? null : share,
-                               onDownload: widget.minimal ? null : download,
+                        // RepaintBoundary englobe toute la carte (fond, badge,
+                        // nom, QR...) pour que le téléchargement exporte son
+                        // vrai style complet, pas seulement le QR code.
+                        child: RepaintBoundary(
+                          key: _fullCardKey,
+                          child: useBrandedCard
+                              // Carte brandée : entreprise ou personnalisation individuelle
+                              ? CompanyQrCard(
+                                  qrCode: qrWidget,
+                                  companyName: hasCompanyBranding
+                                      ? (state.company ?? user?.company?.name ?? 'Entreprise')
+                                      : fullName,
+                                  companyLogo: hasCompanyBranding ? state.companyLogo : personalLogo,
+                                  primaryColor: _parseColor(
+                                    hasCompanyBranding ? state.companyPrimaryColor : state.accentColor,
+                                    const Color(0xFF3B82F6),
+                                  ),
+                                  subtitle: state.jobTitle,
+                                  badgeLabel: hasCompanyBranding ? 'PRO' : null,
+                                 onShare: widget.minimal ? null : share,
+                                 onDownload: widget.minimal ? null : download,
 
-                                onTapQr: () {
-                                  QrFullscreenView.show(
-                                    context,
-                                    _buildQrOnly(state.qrSvg!),
-                                  );
-                                },
-                              )
-                            // Carte Basique par défaut (aucun branding)
-                            : BasicQrCard(
-                                qrCode: qrWidget,
-                                userName: fullName,
-                                jobTitle: state.jobTitle,
-                                onShare: share,
-                                onDownload: download,
-                                onTapQr: () {
-                                  QrFullscreenView.show(
-                                    context,
-                                    _buildQrOnly(state.qrSvg!),
-                                  );
-                                },
-                              ),
+                                  onTapQr: () {
+                                    QrFullscreenView.show(
+                                      context,
+                                      _buildQrOnly(state.qrSvg!),
+                                    );
+                                  },
+                                )
+                              // Carte Basique par défaut (aucun branding)
+                              : BasicQrCard(
+                                  qrCode: qrWidget,
+                                  userName: fullName,
+                                  jobTitle: state.jobTitle,
+                                  onShare: share,
+                                  onDownload: download,
+                                  onTapQr: () {
+                                    QrFullscreenView.show(
+                                      context,
+                                      _buildQrOnly(state.qrSvg!),
+                                    );
+                                  },
+                                ),
+                        ),
                       ),
                     ),
                   );
@@ -497,17 +506,17 @@ Widget _buildQrOnly(String svg) {
     }
   }
 
-  Future<void> _exportQr(String _) async {
-    final boundary = _qrKey.currentContext!
+  /// Exporte la carte entière telle qu'affichée (fond, badge, nom, poste,
+  /// QR...) — avant, seul le QR code isolé était exporté.
+  Future<void> _exportFullCard() async {
+    final boundary = _fullCardKey.currentContext!
         .findRenderObject() as RenderRepaintBoundary;
 
-    final image =
-        await boundary.toImage(pixelRatio: 3);
-    final data =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    final image = await boundary.toImage(pixelRatio: 3);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
 
     final file = File(
-      '${(await getTemporaryDirectory()).path}/qr.png',
+      '${(await getTemporaryDirectory()).path}/carte-kart.png',
     )..writeAsBytesSync(
         data!.buffer.asUint8List(),
       );

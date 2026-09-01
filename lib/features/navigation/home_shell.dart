@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -43,7 +45,8 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeShellState extends State<HomeShell>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const _tourKey = 'tab_bar';
   // Rappel de complétion de profil : jusqu'à 3 fois par jour, avec au
   // moins 3h30 d'écart entre deux affichages (évite qu'il s'affiche
@@ -347,11 +350,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, Wi
   void _onTap(int idx) {
     if (_index == idx) return;
     HapticFeedback.lightImpact();
-    final showJobMatch = canAccessJobMatch(context.read<AuthProvider>().user?.plan);
-    final exploreIndex = showJobMatch ? 3 : 2;
-    if (idx == exploreIndex) {
-      context.read<ConnectionBadgeProvider>().clearBadge();
-    }
+    // Le badge n'est plus effacé ici : simplement ouvrir Explorer ne veut
+    // pas dire qu'on a vu les demandes en attente. Il ne s'efface qu'à
+    // l'ouverture réelle de l'onglet "Mes demandes" (voir explore_page.dart),
+    // qui affiche désormais le même badge pour ne rien perdre en route.
     setState(() => _index = idx);
   }
 
@@ -385,6 +387,11 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, Wi
 
       return Scaffold(
         backgroundColor: colors.surface,
+        // extendBody : les pages défilent réellement sous la pilule de nav
+        // flottante — c'est ce qui donne au verre dépoli (BackdropFilter,
+        // voir _buildBottomNavigation) quelque chose à flouter au scroll,
+        // plutôt qu'une simple bande de couleur unie.
+        extendBody: true,
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
@@ -404,75 +411,85 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, Wi
   }
 
   Widget _buildBottomNavigation(ColorScheme colors, bool showJobMatch) {
-    final badgeCount = context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+    final badgeCount =
+        context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: colors.onSurface.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: colors.onSurface.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(
-                  icon: Icons.credit_card_outlined,
-                  activeIcon: Icons.credit_card,
-                  label: 'Carte',
-                  index: 0,
-                  tourDescription:
-                      'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
-                ),
-                _buildNavItem(
-                  icon: Icons.people_outline,
-                  activeIcon: Icons.people,
-                  label: 'Contacts',
-                  index: 1,
-                  tourDescription:
-                      'Retrouvez tous les contacts collectés au même endroit.',
-                ),
-                if (showJobMatch)
-                  _buildNavItem(
-                    icon: Icons.favorite_outline,
-                    activeIcon: Icons.favorite,
-                    label: 'Offres',
-                    index: 2,
-                    tourDescription:
-                        "Découvrez les offres d'emploi qui correspondent à votre profil.",
+    // Pas de couleur pleine sur le conteneur extérieur : avec
+    // extendBody:true, le contenu de la page défile en dessous, donc tout
+    // fond opaque ici masquerait ce qu'il y a à flouter.
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                // Verre dépoli façon Apple : un tint semi-transparent de la
+                // couleur de surface plutôt qu'un fond plein.
+                color: colors.surface.withValues(alpha: isDark ? 0.55 : 0.7),
+                borderRadius: BorderRadius.circular(16),
+                border:
+                    Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
                   ),
-                _buildNavItem(
-                  icon: Icons.explore_outlined,
-                  activeIcon: Icons.explore,
-                  label: 'Explorer',
-                  index: showJobMatch ? 3 : 2,
-                  tourDescription:
-                      'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
-                  badgeCount: badgeCount,
-                ),
-                _buildNavItem(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  label: 'Profil',
-                  index: showJobMatch ? 4 : 3,
-                  tourDescription:
-                      'Gérez vos informations, votre carte et les réglages de l\'app.',
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(
+                    icon: Icons.credit_card_outlined,
+                    activeIcon: Icons.credit_card,
+                    label: 'Carte',
+                    index: 0,
+                    tourDescription:
+                        'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
+                  ),
+                  _buildNavItem(
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    label: 'Contacts',
+                    index: 1,
+                    tourDescription:
+                        'Retrouvez tous les contacts collectés au même endroit.',
+                  ),
+                  if (showJobMatch)
+                    _buildNavItem(
+                      icon: Icons.favorite_outline,
+                      activeIcon: Icons.favorite,
+                      label: 'Offres',
+                      index: 2,
+                      tourDescription:
+                          "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                    ),
+                  _buildNavItem(
+                    icon: Icons.explore_outlined,
+                    activeIcon: Icons.explore,
+                    label: 'Explorer',
+                    index: showJobMatch ? 3 : 2,
+                    tourDescription:
+                        'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                    badgeCount: badgeCount,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    label: 'Profil',
+                    index: showJobMatch ? 4 : 3,
+                    tourDescription:
+                        'Gérez vos informations, votre carte et les réglages de l\'app.',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -556,7 +573,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, Wi
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: primaryColor.withValues(alpha: 0.3),
+                                      color:
+                                          primaryColor.withValues(alpha: 0.3),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -582,7 +600,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin, Wi
                           right: -7,
                           child: Container(
                             padding: const EdgeInsets.all(3),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            constraints: const BoxConstraints(
+                                minWidth: 16, minHeight: 16),
                             decoration: const BoxDecoration(
                               color: Colors.red,
                               shape: BoxShape.circle,

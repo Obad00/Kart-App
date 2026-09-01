@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../network/api_endpoints.dart';
+
 /// Résultat d'une vérification de mise à jour disponible sur le store.
 class AppUpdateInfo {
   final String currentVersion;
@@ -44,8 +46,7 @@ class AppUpdateService {
     return null;
   }
 
-  static Future<AppUpdateInfo?> _checkAppStore(
-      PackageInfo packageInfo) async {
+  static Future<AppUpdateInfo?> _checkAppStore(PackageInfo packageInfo) async {
     // Sans paramètre 'country', l'API iTunes lookup interroge le store US
     // par défaut — où traînait une fiche périmée (version 1.0.3, jamais mise
     // à jour) alors que l'app est réellement publiée/à jour côté store
@@ -78,27 +79,22 @@ class AppUpdateService {
     return null;
   }
 
-  static Future<AppUpdateInfo?> _checkPlayStore(
-      PackageInfo packageInfo) async {
-    // Pas d'API officielle publique côté Play Store : on lit la version
-    // affichée sur la page publique de la fiche app. Best-effort — si le
-    // format de la page change, on échoue silencieusement (catch global
-    // dans checkForUpdate()).
-    final storeUrl =
-        'https://play.google.com/store/apps/details?id=${packageInfo.packageName}';
-    final response = await _dio.get(
-      storeUrl,
-      queryParameters: {'hl': 'fr'},
-      options: Options(responseType: ResponseType.plain),
-    );
+  static Future<AppUpdateInfo?> _checkPlayStore(PackageInfo packageInfo) async {
+    // Contrairement à iOS, Google ne fournit aucune API publique
+    // équivalente à itunes.apple.com/lookup. L'ancienne approche (scraper
+    // la page publique de la fiche app à la recherche du texte "Current
+    // Version") ne marchait plus : Google a retiré cette mention de la
+    // fiche il y a des années, et la page renvoie de toute façon une 404
+    // tant que l'app n'est pas publiée en production sur le Play Store.
+    // On passe donc par notre propre backend (voir AppVersionController /
+    // config/app_version.php), qu'on met à jour nous-mêmes à chaque
+    // publication — seule source fiable ici.
+    final response = await _dio.get('${ApiEndpoints.baseUrl}/app-version');
 
-    final html = response.data.toString();
-    final match =
-        RegExp(r'Current Version.*?>([\d.]+)<').firstMatch(html) ??
-            RegExp(r'"[\s]*([\d]+\.[\d]+(?:\.[\d]+)*)[\s]*"[\s]*,[\s]*"[\s]*Current Version')
-                .firstMatch(html);
-    final latestVersion = match?.group(1);
-    if (latestVersion == null) return null;
+    final android = response.data?['android'];
+    final latestVersion = android?['latest_version']?.toString();
+    final storeUrl = android?['store_url']?.toString();
+    if (latestVersion == null || storeUrl == null) return null;
 
     if (_isNewer(latestVersion, packageInfo.version)) {
       return AppUpdateInfo(

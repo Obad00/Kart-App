@@ -338,6 +338,28 @@ static Future<void> deactivateHighlight(int highlightId) async {
   }
 }
 
+  /// Récupère les infos d'un événement KART + les autres participants
+  /// inscrits, depuis un highlight d'événement (voir GET /events/{id}/attendees
+  /// côté backend). Retourne { event: {...}, attendees: [...] }.
+  static Future<Map<String, dynamic>> fetchEventAttendees(int eventId) async {
+    try {
+      final response = await ApiClient.dio.get('/events/$eventId/attendees');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        error: 'Format de réponse invalide pour les participants',
+        type: DioExceptionType.unknown,
+      );
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
   /// Enregistre un partage de carte avec le canal utilisé
   /// [channel] : whatsapp, email, sms, linkedin, copy, other
   /// [message] : Le message personnalisé envoyé (optionnel)

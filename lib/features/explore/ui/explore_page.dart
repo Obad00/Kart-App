@@ -8,10 +8,12 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
+import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
 import '../services/explore_service.dart';
 import '../widgets/connect_action_button.dart';
 import '../../public_card/ui/public_card_page.dart';
+import '../../../shared/widgets/glass_app_bar.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -28,7 +30,8 @@ class ExplorePage extends StatefulWidget {
   State<ExplorePage> createState() => _ExplorePageState();
 }
 
-class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStateMixin {
+class _ExplorePageState extends State<ExplorePage>
+    with SingleTickerProviderStateMixin {
   late final ExploreProvider _provider;
   late final TabController _tabController;
   final _searchController = TextEditingController();
@@ -42,8 +45,15 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
-      if (_tabController.index == 1 && _provider.myRequests.isEmpty) {
-        _provider.loadMyRequests();
+      if (_tabController.index == 1) {
+        if (_provider.myRequests.isEmpty) {
+          _provider.loadMyRequests();
+        }
+        // Le badge (même compteur que celui de la barre de nav) ne
+        // s'efface qu'ici, à l'ouverture réelle de "Mes demandes" — pas
+        // dès qu'on arrive sur Explorer, sinon il aurait déjà disparu
+        // avant même que cet onglet ait pu l'afficher à son tour.
+        context.read<ConnectionBadgeProvider>().clearBadge();
       }
     });
     _provider.loadUsers();
@@ -76,34 +86,57 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Même compteur que le badge de la barre de navigation (voir
+    // home_shell.dart) — affiché ici aussi, sur l'onglet "Mes demandes",
+    // pour signaler une demande non traitée avant même de l'avoir ouvert.
+    final pendingCount =
+        context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+
+    final glassAppBar = GlassAppBar(
+      title: const Text('Explorer'),
+      bottom: TabBar(
+        controller: _tabController,
+        labelColor: _themeBlue,
+        indicatorColor: _themeBlue,
+        tabs: [
+          const Tab(text: 'Découvrir'),
+          Tab(
+              child: _TabLabelWithBadge(
+                  label: 'Mes demandes', count: pendingCount)),
+        ],
+      ),
+    );
+
     return ChangeNotifierProvider.value(
       value: _provider,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Explorer'),
-          centerTitle: true,
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: _themeBlue,
-            indicatorColor: _themeBlue,
-            tabs: const [
-              Tab(text: 'Découvrir'),
-              Tab(text: 'Mes demandes'),
-            ],
-          ),
-        ),
-        body: SafeArea(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildDiscoverTab(),
-                _buildMyRequestsTab(),
-              ],
+        // extendBodyBehindAppBar : le contenu défile sous la barre verre
+        // dépoli (sinon le flou n'a rien à flouter) — le SizedBox ci-dessous
+        // compense pour que rien ne soit réellement caché derrière.
+        extendBodyBehindAppBar: true,
+        appBar: glassAppBar,
+        body: Column(
+          children: [
+            SizedBox(
+                height: glassAppBar.preferredSize.height +
+                    MediaQuery.of(context).padding.top),
+            Expanded(
+              child: SafeArea(
+                top: false,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildDiscoverTab(),
+                      _buildMyRequestsTab(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -167,7 +200,8 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
                               end: Alignment.bottomRight,
                             ),
                           ),
-                          child: const Icon(Icons.explore_outlined, size: 40, color: _themeBlue),
+                          child: const Icon(Icons.explore_outlined,
+                              size: 40, color: _themeBlue),
                         ),
                         const SizedBox(height: 20),
                         Text(
@@ -175,8 +209,10 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -188,7 +224,8 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
               return ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.only(bottom: 24),
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index >= provider.users.length) {
@@ -273,7 +310,10 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
                   child: Text(
                     'Aucune demande pour l\'instant',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5),
                     ),
                   ),
                 );
@@ -293,12 +333,52 @@ class _ExplorePageState extends State<ExplorePage> with SingleTickerProviderStat
   }
 }
 
+/// Libellé d'onglet + badge rond rouge — même principe visuel que le badge
+/// de "Explorer" dans la barre de navigation (voir home_shell.dart), pour
+/// signaler ici une demande de connexion reçue pas encore traitée.
+class _TabLabelWithBadge extends StatelessWidget {
+  final String label;
+  final int count;
+
+  const _TabLabelWithBadge({required this.label, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label),
+        if (count > 0) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.all(3),
+            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+            decoration:
+                const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            child: Text(
+              count > 9 ? '9+' : '$count',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                height: 1,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.active, required this.onTap});
+  const _FilterChip(
+      {required this.label, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +465,9 @@ class _MyRequestRow extends StatelessWidget {
   /// serveur sur Accepter/Refuser ne montrait strictement rien à
   /// l'utilisateur — d'où l'impression que "rien ne se passe".
   Future<void> _respond(BuildContext context, String action) async {
-    final error = await context.read<ExploreProvider>().respondFromMyRequests(item.id, action);
+    final error = await context
+        .read<ExploreProvider>()
+        .respondFromMyRequests(item.id, action);
     if (error != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: Colors.red),
@@ -398,7 +480,8 @@ class _MyRequestRow extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = item.otherUser;
-    final isPendingReceived = item.status == 'pending' && item.direction == RequestDirection.received;
+    final isPendingReceived =
+        item.status == 'pending' && item.direction == RequestDirection.received;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -410,9 +493,9 @@ class _MyRequestRow extends StatelessWidget {
           border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -427,23 +510,45 @@ class _MyRequestRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.name,
-                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: colors.onSurface),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ((user.jobTitle ?? user.company ?? '').isNotEmpty)
+              // La ligne entière ouvre la carte de la personne — pour une
+              // demande reçue, on veut pouvoir juger qui c'est avant
+              // d'accepter/refuser, pas seulement lire un nom.
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  final slug = user.cardSlug;
+                  if (slug == null || slug.isEmpty) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => PublicCardPage(slug: slug)),
+                  );
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      [user.jobTitle, user.company].where((v) => (v ?? '').isNotEmpty).join(' · '),
-                      style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.55)),
+                      user.name,
+                      style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                ],
+                    if ((user.jobTitle ?? user.company ?? '').isNotEmpty)
+                      Text(
+                        [user.jobTitle, user.company]
+                            .where((v) => (v ?? '').isNotEmpty)
+                            .join(' · '),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurface.withValues(alpha: 0.55)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
             if (isPendingReceived)
@@ -465,14 +570,18 @@ class _MyRequestRow extends StatelessWidget {
               )
             else
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: _statusColor().withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   _statusLabel(),
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor()),
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _statusColor()),
                 ),
               ),
           ],
@@ -490,13 +599,17 @@ class _ExploreUserRow extends StatelessWidget {
   String? get _avatarUrl {
     final avatar = user.avatar;
     if (avatar == null || avatar.isEmpty) return null;
-    return avatar.startsWith('http') ? avatar : '${ApiEndpoints.storageUrl}/$avatar';
+    return avatar.startsWith('http')
+        ? avatar
+        : '${ApiEndpoints.storageUrl}/$avatar';
   }
 
   String _initials(String name) {
     final parts = name.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    if (parts.isNotEmpty && parts[0].isNotEmpty) return parts[0][0].toUpperCase();
+    if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
     return '';
   }
 
@@ -516,20 +629,22 @@ class _ExploreUserRow extends StatelessWidget {
     final company = user.company ?? '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: () => _openCard(context),
           child: Container(
-            height: 300,
+            height: 188,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(24),
+              // Ombre discrète — juste de quoi détacher la carte du fond,
+              // sans l'effet "flottant" trop appuyé d'avant.
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -560,7 +675,7 @@ class _ExploreUserRow extends StatelessWidget {
                           _initials(user.name),
                           style: TextStyle(
                             fontFamily: 'Syne',
-                            fontSize: 120,
+                            fontSize: 72,
                             fontWeight: FontWeight.w800,
                             color: Colors.white.withValues(alpha: 0.14),
                           ),
@@ -582,7 +697,7 @@ class _ExploreUserRow extends StatelessWidget {
                         _initials(user.name),
                         style: TextStyle(
                           fontFamily: 'Syne',
-                          fontSize: 120,
+                          fontSize: 72,
                           fontWeight: FontWeight.w800,
                           color: Colors.white.withValues(alpha: 0.14),
                         ),
@@ -602,36 +717,29 @@ class _ExploreUserRow extends StatelessWidget {
                   ),
                 ),
 
-                // Contenu texte + actions
+                // Contenu texte + action — épuré : plus de bordures sur les
+                // badges, tailles réduites pour une carte plus compacte.
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (company.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        Text(
+                          company.toUpperCase(),
+                          style: const TextStyle(
+                            fontFamily: 'Syne',
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                            color: Colors.white70,
                           ),
-                          child: Text(
-                            company,
-                            style: const TextStyle(
-                              fontFamily: 'Syne',
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         )
                       else
                         const SizedBox.shrink(),
-
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -639,7 +747,7 @@ class _ExploreUserRow extends StatelessWidget {
                             user.name,
                             style: const TextStyle(
                               fontFamily: 'Syne',
-                              fontSize: 24,
+                              fontSize: 19,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
                               height: 1.1,
@@ -648,77 +756,28 @@ class _ExploreUserRow extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (jobTitle.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            const SizedBox(height: 3),
+                            Text(
+                              jobTitle,
+                              style: TextStyle(
+                                fontFamily: 'Syne',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.75),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.work_outline_rounded,
-                                      size: 13, color: Colors.white),
-                                  const SizedBox(width: 6),
-                                  // Flexible est indispensable ici : dans un Row,
-                                  // un Text sans Flexible/Expanded reçoit une
-                                  // largeur non bornée et ignore maxLines/
-                                  // overflow, d'où les "RenderFlex overflowed"
-                                  // avec un intitulé de poste un peu long.
-                                  Flexible(
-                                    child: Text(
-                                      jobTitle,
-                                      style: const TextStyle(
-                                        fontFamily: 'Syne',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
-                          const SizedBox(height: 16),
-
-                          // Barre "verre dépoli" pleine largeur — reprend le
-                          // traitement "Voir plus →" d'une carte de
-                          // découverte, avec le vrai bouton de connexion.
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Voir la carte',
-                                  style: TextStyle(
-                                    fontFamily: 'Syne',
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                ConnectActionButton(
-                                  userId: user.id,
-                                  userName: user.name,
-                                  initialStatus: user.connectionStatus,
-                                  initialRequestId: user.connectionRequestId,
-                                  onResolved: () =>
-                                      context.read<ExploreProvider>().removeUserLocally(user.id),
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: 12),
+                          ConnectActionButton(
+                            userId: user.id,
+                            userName: user.name,
+                            initialStatus: user.connectionStatus,
+                            initialRequestId: user.connectionRequestId,
+                            onResolved: () => context
+                                .read<ExploreProvider>()
+                                .removeUserLocally(user.id),
                           ),
                         ],
                       ),
