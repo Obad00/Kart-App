@@ -236,62 +236,57 @@ jobs:
                   print(f"::error::Détail: {body}")
                   raise
 
-          # 1. Réutilisation ou création du certificat de Distribution
-          # IMPORTANT: on cherche à la fois "DISTRIBUTION" (type unifié moderne
-          # "Apple Distribution", Xcode 11+, celui utilisé plus bas via
-          # CODE_SIGN_IDENTITY="Apple Distribution") ET "IOS_DISTRIBUTION"
-          # (ancien type "iOS Distribution"). Ce sont deux valeurs de
-          # certificateType distinctes côté API : un certificat créé/visible
-          # sous l'un des deux types n'apparaît pas si on ne filtre que sur
-          # l'autre, alors que les deux partagent le même quota Apple — d'où
-          # un 409 "Invalid Certificate" si on tente d'en créer un nouveau en
-          # pensant qu'aucun n'existe.
-          print("Recherche d'un certificat de Distribution existant (DISTRIBUTION ou IOS_DISTRIBUTION)...")
-          existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=DISTRIBUTION,IOS_DISTRIBUTION&limit=10")
+          # 1. Révocation des certificats de Distribution existants, puis création d'un nouveau.
+          # IMPORTANT : l'API App Store Connect ne renvoie JAMAIS la clé privée d'un
+          # certificat existant (raison de sécurité) — seul le certificat public. Un
+          # runner GitHub Actions est une machine neuve à chaque run : la clé privée
+          # d'un certificat créé lors d'un run précédent n'existe nulle part dessus.
+          # "Réutiliser" un certificat trouvé via l'API est donc inutilisable pour
+          # signer, sauf à sauvegarder sa clé privée ailleurs (ex: secret .p12), ce
+          # qu'on ne fait pas ici. On révoque donc systématiquement l'existant pour
+          # libérer le quota Apple (2-3 certificats Distribution actifs max par
+          # compte, partagé entre les types DISTRIBUTION et IOS_DISTRIBUTION) et on
+          # génère un nouveau certificat dont on possède la clé privée localement.
+          print("Recherche des certificats de Distribution existants (DISTRIBUTION ou IOS_DISTRIBUTION)...")
+          existing_certs = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=DISTRIBUTION,IOS_DISTRIBUTION&limit=20")
 
-          cert_id = None
-          cert_content = None
-          has_local_key = False
+          for cert in existing_certs.get("data", []):
+              old_cert_id = cert["id"]
+              old_name = cert["attributes"].get("name", old_cert_id)
+              print(f"Révocation du certificat existant (clé privée non récupérable): {old_name} ({old_cert_id})")
+              try:
+                  api_request(f"https://api.appstoreconnect.apple.com/v1/certificates/{old_cert_id}", method="DELETE")
+              except Exception as e:
+                  print(f"  -> Erreur lors de la révocation (ignorée): {e}")
 
-          if existing_certs.get("data") and len(existing_certs["data"]) > 0:
-              valid_certs = sorted(existing_certs["data"], key=lambda c: c["attributes"]["expirationDate"], reverse=True)
-              best_cert = valid_certs[0]
-              cert_id = best_cert["id"]
-              cert_content = best_cert["attributes"]["certificateContent"]
-              print(f"✅ Certificat de Distribution existant réutilisé : {cert_id}")
-          else:
-              print("⚠️ Aucun certificat trouvé. Création d'un nouveau...")
-              os.system("openssl genrsa -out /tmp/distribution.key 2048")
-              os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
+          print("Génération d'un nouveau certificat de Distribution avec clé privée locale...")
+          os.system("openssl genrsa -out /tmp/distribution.key 2048")
+          os.system('openssl req -new -key /tmp/distribution.key -out /tmp/distribution.csr -subj "/CN=Apple Distribution/O=KartApp/C=US"')
 
-              with open("/tmp/distribution.csr", "rb") as f:
-                  csr_content = base64.b64encode(f.read()).decode()
+          with open("/tmp/distribution.csr", "rb") as f:
+              csr_content = base64.b64encode(f.read()).decode()
 
-              cert_data = api_request(
-                  "https://api.appstoreconnect.apple.com/v1/certificates",
-                  data={
-                      "data": {
-                          "type": "certificates",
-                          "attributes": {
-                              # "DISTRIBUTION" = type unifié "Apple Distribution",
-                              # cohérent avec CODE_SIGN_IDENTITY="Apple Distribution"
-                              # utilisé dans l'étape d'archive plus bas.
-                              "certificateType": "DISTRIBUTION",
-                              "csrContent": csr_content
-                          }
+          cert_data = api_request(
+              "https://api.appstoreconnect.apple.com/v1/certificates",
+              data={
+                  "data": {
+                      "type": "certificates",
+                      "attributes": {
+                          # "DISTRIBUTION" = type unifié "Apple Distribution",
+                          # cohérent avec CODE_SIGN_IDENTITY="Apple Distribution"
+                          # utilisé dans l'étape d'archive plus bas.
+                          "certificateType": "DISTRIBUTION",
+                          "csrContent": csr_content
                       }
                   }
-              )
-              cert_content = cert_data["data"]["attributes"]["certificateContent"]
-              cert_id = cert_data["data"]["id"]
-              has_local_key = True
-              print(f"✅ Nouveau certificat créé : {cert_id}")
+              }
+          )
+          cert_content = cert_data["data"]["attributes"]["certificateContent"]
+          cert_id = cert_data["data"]["id"]
+          print(f"✅ Nouveau certificat créé : {cert_id}")
 
           with open("/tmp/distribution.cer", "wb") as f:
               f.write(base64.b64decode(cert_content))
-
-          with open("/tmp/has_local_key.txt", "w") as f:
-              f.write("true" if has_local_key else "false")
 
           # 2. Bundle ID Resource Lookup
           bundle_data = api_request(f"https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]={bundle_id}")
@@ -342,21 +337,19 @@ jobs:
           print(f"🚀 Profil créé - UUID: {profile_uuid}")
           PYEOF
 
-          # Import des clés si génération locale
-          HAS_LOCAL_KEY=$(cat /tmp/has_local_key.txt)
-          if [ "$HAS_LOCAL_KEY" = "true" ]; then
-            openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
-            openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123 -legacy 2>/dev/null || \
-            openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123
+          # Import du certificat + clé privée (toujours généré localement à cette étape,
+          # voir le commentaire dans le bloc Python ci-dessus)
+          openssl x509 -inform DER -in /tmp/distribution.cer -out /tmp/distribution.pem
+          openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123 -legacy 2>/dev/null || \
+          openssl pkcs12 -export -inkey /tmp/distribution.key -in /tmp/distribution.pem -out /tmp/distribution.p12 -passout pass:tempci123
 
-            KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-            security create-keychain -p "temppass" "$KEYCHAIN_PATH"
-            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-            security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
-            security import /tmp/distribution.p12 -k "$KEYCHAIN_PATH" -P "tempci123" -A -t cert -f pkcs12
-            security list-keychain -d user -s "$KEYCHAIN_PATH"
-            security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
-          fi
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "temppass" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
+          security import /tmp/distribution.p12 -k "$KEYCHAIN_PATH" -P "tempci123" -A -t cert -f pkcs12
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" "$KEYCHAIN_PATH"
 
           # Installer le profil sur le Mac virtuel
           PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
@@ -364,6 +357,25 @@ jobs:
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
+      - name: Scoper la signature au target Runner (via xcconfig)
+        run: |
+          # CODE_SIGN_STYLE / CODE_SIGN_IDENTITY / PROVISIONING_PROFILE_SPECIFIER
+          # ne doivent PAS être passés en override sur la ligne de commande
+          # xcodebuild : un override en ligne de commande s'applique à TOUS les
+          # targets du graphe de build (Runner + tous les pods CocoaPods + tous
+          # les packages Swift Package Manager comme Firebase, GoogleUtilities,
+          # etc.). Ces targets tiers sont des frameworks, pas des apps : ils ne
+          # supportent pas la signature manuelle avec provisioning profile, et
+          # l'archive échoue avec "XXX does not support provisioning profiles".
+          #
+          # Release.xcconfig, lui, n'est référencé QUE par la configuration
+          # Release du target Runner dans Runner.xcodeproj — ces réglages ne
+          # s'appliquent donc qu'à Runner, et les pods/packages tiers gardent
+          # leur signature automatique par défaut, intacte.
+          echo "CODE_SIGN_STYLE = Manual" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_IDENTITY = Apple Distribution" >> ios/Flutter/Release.xcconfig
+          echo "PROVISIONING_PROFILE_SPECIFIER = $PROFILE_UUID" >> ios/Flutter/Release.xcconfig
 
       - name: Créer le fichier ExportOptions
         run: |
@@ -390,27 +402,29 @@ jobs:
 
       - name: Archiver et Signer avec Xcodebuild
         env:
-          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # CODE_SIGNING_ALLOWED doit être YES pendant l'archive : c'est à ce
-          # moment-là que Xcode lit CODE_SIGN_ENTITLEMENTS (Runner.entitlements)
-          # et enregistre les entitlements custom (aps-environment,
-          # keychain-access-groups, etc.) dans l'archive. Si la signature est
-          # désactivée ici, ces entitlements ne sont jamais capturés, et
-          # -exportArchive (même en signingStyle=automatic) ne peut pas les
-          # "retrouver" plus tard — il ne fait que re-signer avec le strict
-          # minimum (application-identifier, get-task-allow, team-identifier).
+          # CODE_SIGNING_ALLOWED doit être YES (le défaut, on ne le désactive donc
+          # plus) pendant l'archive : c'est à ce moment-là que Xcode lit
+          # CODE_SIGN_ENTITLEMENTS (Runner.entitlements) et enregistre les
+          # entitlements custom (aps-environment, keychain-access-groups, etc.)
+          # dans l'archive. Si la signature est désactivée ici, ces entitlements
+          # ne sont jamais capturés, et -exportArchive (même en
+          # signingStyle=automatic) ne peut pas les "retrouver" plus tard — il ne
+          # fait que re-signer avec le strict minimum.
+          #
+          # Les réglages de signature (CODE_SIGN_STYLE, CODE_SIGN_IDENTITY,
+          # PROVISIONING_PROFILE_SPECIFIER, DEVELOPMENT_TEAM) ne sont PAS passés
+          # ici en overrides de ligne de commande : ils sont déjà dans
+          # ios/Flutter/Release.xcconfig, où ils ne s'appliquent qu'au target
+          # Runner (voir l'étape précédente) au lieu de s'appliquer globalement
+          # à tous les pods/packages tiers du build.
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             -destination "generic/platform=iOS" \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             CODE_SIGNING_ALLOWED=YES \
             archive 2>&1 | tee /tmp/xcodebuild.log; \
           EXIT_CODE=${PIPESTATUS[0]}; \
