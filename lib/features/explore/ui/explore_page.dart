@@ -179,6 +179,9 @@ class _ExplorePageState extends State<ExplorePage>
     );
   }
 
+  static const double _searchBarHeight = 58;
+  static const double _filterRowHeight = 44;
+
   Widget _buildDiscoverTab(double topPadding) {
     // top:false : le haut est déjà géré manuellement via topPadding (pour
     // laisser le contenu défiler sous la barre verre dépoli) — seul le bas
@@ -189,19 +192,39 @@ class _ExplorePageState extends State<ExplorePage>
         controller: _scrollController,
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 8),
-              child: AppSearchBar(
-                controller: _searchController,
-                hintText: 'Rechercher par nom, poste, entreprise...',
-                onChanged: _onSearchChanged,
-              ),
-            ),
-          ),
+          // SliverPersistentHeader(pinned:true) plutôt que SliverToBoxAdapter :
+          // recherche + filtres restent fixes en haut pendant qu'on scrolle la
+          // liste, au lieu de défiler avec elle.
           Consumer<ExploreProvider>(
-            builder: (context, provider, _) =>
-                SliverToBoxAdapter(child: _buildJobTitleFilterRow(provider)),
+            builder: (context, provider, _) {
+              final hasFilters = provider.jobTitles.isNotEmpty;
+              final height = topPadding +
+                  12 +
+                  _searchBarHeight +
+                  8 +
+                  (hasFilters ? _filterRowHeight : 0);
+
+              return SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickyHeaderDelegate(
+                  height: height,
+                  child: Column(
+                    children: [
+                      SizedBox(height: topPadding),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: AppSearchBar(
+                          controller: _searchController,
+                          hintText: 'Rechercher par nom, poste, entreprise...',
+                          onChanged: _onSearchChanged,
+                        ),
+                      ),
+                      if (hasFilters) _buildJobTitleFilterRow(provider),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           Consumer<ExploreProvider>(
             builder: (context, provider, _) {
@@ -333,26 +356,39 @@ class _ExplorePageState extends State<ExplorePage>
     );
   }
 
+  static const double _statusChipsRowHeight = 40;
+
   Widget _buildMyRequestsTab(double topPadding) {
     return SafeArea(
       top: false,
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 4),
-              child: Row(
+          // Même principe que l'onglet Découvrir : les filtres de statut
+          // restent fixes en haut pendant qu'on scrolle la liste.
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickyHeaderDelegate(
+              height: topPadding + 12 + _statusChipsRowHeight + 4,
+              child: Column(
                 children: [
-                  _StatusChip(
-                    label: 'Toutes',
-                    status: 'all',
+                  SizedBox(height: topPadding),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Row(
+                      children: [
+                        _StatusChip(
+                          label: 'Toutes',
+                          status: 'all',
+                        ),
+                        const SizedBox(width: 8),
+                        _StatusChip(label: 'En attente', status: 'pending'),
+                        const SizedBox(width: 8),
+                        _StatusChip(label: 'Acceptées', status: 'accepted'),
+                        const SizedBox(width: 8),
+                        _StatusChip(label: 'Refusées', status: 'declined'),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  _StatusChip(label: 'En attente', status: 'pending'),
-                  const SizedBox(width: 8),
-                  _StatusChip(label: 'Acceptées', status: 'accepted'),
-                  const SizedBox(width: 8),
-                  _StatusChip(label: 'Refusées', status: 'declined'),
                 ],
               ),
             ),
@@ -402,6 +438,37 @@ class _ExplorePageState extends State<ExplorePage>
 /// Libellé d'onglet + badge rond rouge — même principe visuel que le badge
 /// de "Explorer" dans la barre de navigation (voir home_shell.dart), pour
 /// signaler ici une demande de connexion reçue pas encore traitée.
+/// Rend fixe (pinned) un bloc de contenu au sommet d'un CustomScrollView —
+/// utilisé pour la recherche/les filtres (Découvrir) et les filtres de
+/// statut (Mes demandes), qui doivent rester visibles pendant le scroll de
+/// la liste plutôt que de défiler avec elle.
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+
+  _StickyHeaderDelegate({required this.height, required this.child});
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
+    return oldDelegate.height != height || oldDelegate.child != child;
+  }
+}
+
 class _TabLabelWithBadge extends StatelessWidget {
   final String label;
   final int count;
