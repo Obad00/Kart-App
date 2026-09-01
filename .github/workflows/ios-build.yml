@@ -229,11 +229,17 @@ jobs:
               )
               try:
                   with urllib.request.urlopen(req) as resp:
-                      return json.loads(resp.read())
+                      body = resp.read()
+                      # Un DELETE réussi renvoie souvent 204 No Content (corps
+                      # vide) — ce n'est pas une erreur, il ne faut juste pas
+                      # tenter de le parser en JSON.
+                      if not body:
+                          return None
+                      return json.loads(body)
               except urllib.error.HTTPError as e:
-                  body = e.read().decode()
+                  error_body = e.read().decode()
                   print(f"::error::Apple API a renvoyé {e.code} pour {method or ('POST' if data else 'GET')} {url}")
-                  print(f"::error::Détail: {body}")
+                  print(f"::error::Détail: {error_body}")
                   raise
 
           # 1. Révocation des certificats de Distribution existants, puis création d'un nouveau.
@@ -244,7 +250,7 @@ jobs:
           # "Réutiliser" un certificat trouvé via l'API est donc inutilisable pour
           # signer, sauf à sauvegarder sa clé privée ailleurs (ex: secret .p12), ce
           # qu'on ne fait pas ici. On révoque donc systématiquement l'existant pour
-          # libérer le quota Apple (2-3 certificats Distribution actifs max par
+          # libérer le quota Apple (2 certificats Distribution actifs max par
           # compte, partagé entre les types DISTRIBUTION et IOS_DISTRIBUTION) et on
           # génère un nouveau certificat dont on possède la clé privée localement.
           print("Recherche des certificats de Distribution existants (DISTRIBUTION ou IOS_DISTRIBUTION)...")
@@ -258,6 +264,22 @@ jobs:
                   api_request(f"https://api.appstoreconnect.apple.com/v1/certificates/{old_cert_id}", method="DELETE")
               except Exception as e:
                   print(f"  -> Erreur lors de la révocation (ignorée): {e}")
+
+          # La révocation côté Apple n'est pas toujours instantanée : le quota
+          # peut mettre quelques secondes à se libérer après un DELETE. On
+          # vérifie donc, avant de créer le nouveau certificat, qu'aucun
+          # certificat de Distribution n'est plus listé — avec quelques
+          # tentatives espacées plutôt que d'enchaîner immédiatement.
+          for attempt in range(6):
+              remaining = api_request("https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=DISTRIBUTION,IOS_DISTRIBUTION&limit=20")
+              count = len(remaining.get("data", []))
+              if count == 0:
+                  print("✅ Quota de certificats de Distribution libéré.")
+                  break
+              print(f"⏳ {count} certificat(s) encore listé(s) côté Apple, nouvelle vérification dans 5s (tentative {attempt + 1}/6)...")
+              time.sleep(5)
+          else:
+              print("⚠️ Le quota ne semble pas s'être libéré après 30s — on tente quand même la création.")
 
           print("Génération d'un nouveau certificat de Distribution avec clé privée locale...")
           os.system("openssl genrsa -out /tmp/distribution.key 2048")
