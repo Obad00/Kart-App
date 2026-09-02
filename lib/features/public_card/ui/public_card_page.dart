@@ -466,8 +466,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                 children: [
                   Text(
                     fullName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 34,
+                      fontSize: 26,
                       fontWeight: FontWeight.w900,
                       color: titleColor,
                       height: 1.05,
@@ -835,9 +837,12 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
         ),
         const SizedBox(height: 12),
+        // Icône/texte réduits + espacements resserrés : au format d'avant,
+        // seuls 2 réseaux tenaient sur la première ligne avant de passer à
+        // la ligne — 3 tiennent maintenant confortablement.
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 8,
+          runSpacing: 8,
           children: socialProfiles.map((profile) {
             return OutlinedButton.icon(
               onPressed: () => _openUrl(profile['value'] as String),
@@ -845,17 +850,17 @@ class _PublicCardPageState extends State<PublicCardPage>
                   ? Icon(
                       profile['icon'] as IconData,
                       color: profile['iconColor'] as Color,
-                      size: 16,
+                      size: 14,
                     )
                   : FaIcon(
                       profile['icon'],
                       color: profile['iconColor'] as Color,
-                      size: 16,
+                      size: 14,
                     ),
               label: Text(
                 profile['label'] as String,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: titleColor,
                 ),
@@ -864,9 +869,11 @@ class _PublicCardPageState extends State<PublicCardPage>
                 foregroundColor: titleColor,
                 side: BorderSide(color: borderColor),
                 padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                    const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             );
