@@ -10,7 +10,6 @@ import '../../navigation/home_shell.dart';
 import '../../plans/ui/plan_selection_page.dart';
 
 const _electricBlue = Color(0xFF3B82F6);
-const _violet = Color(0xFF7C3AED);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -26,6 +25,11 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _lineAnimation;
+
+  // Contrôleur séparé, en boucle : _animationController ne joue qu'une
+  // fois (0 → 1 puis s'arrête), donc passer directement sa valeur au
+  // loader figeait les 3 points au lieu de les faire tourner.
+  late final AnimationController _loaderController;
 
   @override
   void initState() {
@@ -69,6 +73,11 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0.5, 0.8, curve: Curves.easeInOut),
       ),
     );
+
+    _loaderController = AnimationController(
+      duration: const Duration(milliseconds: 1100),
+      vsync: this,
+    )..repeat();
 
     _animationController.forward();
 
@@ -117,6 +126,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _loaderController.dispose();
     super.dispose();
   }
 
@@ -160,28 +170,6 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: isDark ? const Color(0xFF07070A) : colors.surface,
       body: Stack(
         children: [
-          // Halos de couleur en fond — même langage visuel que la page
-          // publique d'inscription événement, pour une identité cohérente.
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _glowAnimation,
-              builder: (context, _) => Stack(
-                children: [
-                  Positioned(
-                    top: -80,
-                    left: -60,
-                    child: _blurBlob(_electricBlue, 0.14 * _glowAnimation.value, 260),
-                  ),
-                  Positioned(
-                    bottom: -100,
-                    right: -70,
-                    child: _blurBlob(_violet, 0.11 * _glowAnimation.value, 280),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
           SafeArea(
             child: Center(
               child: Column(
@@ -208,8 +196,8 @@ class _SplashScreenState extends State<SplashScreen>
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: _electricBlue
-                                  .withValues(alpha: 0.14 * _glowAnimation.value),
+                              color: _electricBlue.withValues(
+                                  alpha: 0.14 * _glowAnimation.value),
                               blurRadius: 28,
                               offset: const Offset(0, 8),
                             ),
@@ -253,7 +241,8 @@ class _SplashScreenState extends State<SplashScreen>
                     child: AnimatedBuilder(
                       animation: _lineAnimation,
                       builder: (context, _) => CustomPaint(
-                        painter: SquigglePainter(_lineAnimation.value, _electricBlue),
+                        painter: SquigglePainter(
+                            _lineAnimation.value, _electricBlue),
                         size: const Size(110, 14),
                       ),
                     ),
@@ -283,9 +272,12 @@ class _SplashScreenState extends State<SplashScreen>
                     child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CustomPaint(
-                        painter: PremiumLoaderPainter(
-                            _animationController.value, foreground),
+                      child: AnimatedBuilder(
+                        animation: _loaderController,
+                        builder: (context, _) => CustomPaint(
+                          painter: PremiumLoaderPainter(
+                              _loaderController.value, foreground),
+                        ),
                       ),
                     ),
                   ),
@@ -294,19 +286,6 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _blurBlob(Color color, double opacity, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withValues(alpha: opacity), color.withValues(alpha: 0)],
-        ),
       ),
     );
   }
@@ -386,7 +365,8 @@ class _SplashKartCardState extends State<_SplashKartCard>
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(color: Colors.white54, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                        color: Colors.white54, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 8),
                   const Text(
@@ -412,7 +392,10 @@ class _SplashKartCardState extends State<_SplashKartCard>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.white.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: -5),
+                  BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      spreadRadius: -5),
                 ],
               ),
               child: const Center(
