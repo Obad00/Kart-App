@@ -101,14 +101,22 @@ jobs:
         # (CFBundleShortVersionString) n'est pas strictement supérieure à la
         # dernière version APPROUVÉE — un simple build number croissant ne
         # suffit pas. Pour ne plus jamais avoir à bumper pubspec.yaml à la
-        # main avant chaque soumission, on garde MAJOR.MINOR défini dans
-        # pubspec.yaml (pour les vraies montées de version), mais le PATCH
-        # est toujours le run number du workflow — strictement croissant à
-        # chaque exécution, par construction GitHub Actions.
+        # main avant chaque soumission, on garde MAJOR défini dans
+        # pubspec.yaml (pour les vraies montées de version), et le run number
+        # du workflow (strictement croissant à chaque exécution, par
+        # construction GitHub Actions) alimente MINOR.PATCH — plafonné à 100
+        # comme côté Android (build_release.sh) : au lieu de laisser le run
+        # number grossir indéfiniment en un PATCH à 3+ chiffres (d'où le
+        # 1.0.142 constaté), chaque palier de 100 fait avancer MINOR et le
+        # PATCH repart de 0 (1.0.99 → 1.1.0 → … → 1.1.42 pour le run 142).
         run: |
           BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          MAJOR_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f1,2)
-          echo "BUILD_NAME=${MAJOR_MINOR}.${{ github.run_number }}" >> "$GITHUB_ENV"
+          BASE_MAJOR=$(echo "$BASE_VERSION" | cut -d'.' -f1)
+          BASE_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f2)
+          RUN_NUMBER=${{ github.run_number }}
+          MINOR=$((BASE_MINOR + RUN_NUMBER / 100))
+          PATCH=$((RUN_NUMBER % 100))
+          echo "BUILD_NAME=${BASE_MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_ENV"
 
       - name: Générer les fichiers iOS (plugins registrant)
         run: |
