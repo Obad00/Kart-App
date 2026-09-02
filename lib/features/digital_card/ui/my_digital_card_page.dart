@@ -506,20 +506,47 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   /// Exporte la carte entière telle qu'affichée (fond, badge, nom, poste,
   /// QR...) — avant, seul le QR code isolé était exporté.
   Future<void> _exportFullCard() async {
-    final boundary = _fullCardKey.currentContext!.findRenderObject()
-        as RenderRepaintBoundary;
+    try {
+      final boundary = _fullCardKey.currentContext!.findRenderObject()
+          as RenderRepaintBoundary;
 
-    final image = await boundary.toImage(pixelRatio: 3);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      final image = await boundary.toImage(pixelRatio: 3);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
 
-    final file = File(
-      '${(await getTemporaryDirectory()).path}/carte-kart.png',
-    )..writeAsBytesSync(
-        data!.buffer.asUint8List(),
+      final file = File(
+        '${(await getTemporaryDirectory()).path}/carte-kart.png',
+      )..writeAsBytesSync(
+          data!.buffer.asUint8List(),
+        );
+
+      final result = await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)]),
       );
 
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)]),
-    );
+      if (!mounted) return;
+
+      // Confirmation explicite plutôt que rien — sans ça, aucun retour ne
+      // permettait de savoir si le téléchargement/partage avait réellement
+      // abouti (ex: enregistré dans Photos) ou avait été fermé sans suite.
+      if (result.status == ShareResultStatus.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Carte téléchargée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ Erreur lors de l\'export de la carte: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Erreur lors du téléchargement: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red[700],
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 }
