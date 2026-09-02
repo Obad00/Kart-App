@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -394,14 +392,10 @@ class _HomeShellState extends State<HomeShell>
 
       return Scaffold(
         backgroundColor: colors.surface,
-        // extendBody : le contenu de chaque page défile réellement sous la
-        // pilule de nav (comme WhatsApp) — c'est ce qui donne au verre
-        // dépoli quelque chose à flouter. Chaque page utilise `colors.surface`
-        // pour son propre Scaffold, identique à celui-ci : pas de bloc de
-        // couleur différente qui se distinguerait derrière la pilule, juste
-        // le contenu (ou, en bas d'une liste courte, du fond uni — normal,
-        // WhatsApp fait pareil une fois la liste épuisée).
-        extendBody: true,
+        // extendBody retiré : la pilule est maintenant opaque (voir
+        // _buildBottomNavigation) — plus besoin que le contenu défile
+        // dessous, et ça évite de masquer les dernières lignes d'une liste
+        // sous un fond plein sans lien avec leur contenu.
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
@@ -425,20 +419,24 @@ class _HomeShellState extends State<HomeShell>
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // L'ombre est portée par CE Container extérieur, pas par celui à
-    // l'intérieur du ClipRRect : un box-shadow posé sur un widget cloné
-    // dans ses propres bornes est entièrement rogné par le clip qui
-    // l'entoure (mêmes bornes, même rayon) — invisible. Sans cette ombre,
-    // en thème clair, la pilule (blanche, semi-transparente) se fondait
-    // dans un fond de page tout aussi blanc et ressemblait à un bloc plat
-    // sans relief plutôt qu'à une carte flottante.
+    // Pilule opaque plutôt qu'en verre dépoli : le même flou rendait bien
+    // sur Profil (fond neutre derrière) mais délavait ou détonnait sur
+    // Explorer/Contacts (photos et cartes colorées derrière) — un rendu
+    // différent d'un onglet à l'autre pour un widget pourtant identique.
+    // Un fond plein est garanti visuellement identique partout, quel que
+    // soit le contenu de la page active.
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Container(
+          height: 56,
           decoration: BoxDecoration(
+            color: colors.surface,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.14),
@@ -447,78 +445,52 @@ class _HomeShellState extends State<HomeShell>
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  // Verre dépoli façon Apple : un tint semi-transparent de
-                  // la couleur de surface plutôt qu'un fond plein — opacité
-                  // volontairement basse. Un tint trop opaque délave toute
-                  // couleur vive flloutée derrière (ex: les cartes Explorer)
-                  // en un gris neutre plat façon bloc disparate, alors qu'il
-                  // passe presque inaperçu sur un fond neutre (Profil) : le
-                  // même code donnait donc une impression différente selon
-                  // l'onglet. La définition de la pilule vient maintenant
-                  // surtout de la bordure + l'ombre (ci-dessus), pas du tint.
-                  color: colors.surface.withValues(alpha: isDark ? 0.22 : 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: colors.onSurface
-                        .withValues(alpha: isDark ? 0.08 : 0.12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildNavItem(
-                      icon: Icons.credit_card_outlined,
-                      activeIcon: Icons.credit_card,
-                      label: 'Carte',
-                      index: 0,
-                      tourDescription:
-                          'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
-                    ),
-                    _buildNavItem(
-                      icon: Icons.people_outline,
-                      activeIcon: Icons.people,
-                      label: 'Contacts',
-                      index: 1,
-                      tourDescription:
-                          'Retrouvez tous les contacts collectés au même endroit.',
-                    ),
-                    if (showJobMatch)
-                      _buildNavItem(
-                        icon: Icons.favorite_outline,
-                        activeIcon: Icons.favorite,
-                        label: 'Offres',
-                        index: 2,
-                        tourDescription:
-                            "Découvrez les offres d'emploi qui correspondent à votre profil.",
-                      ),
-                    _buildNavItem(
-                      icon: Icons.explore_outlined,
-                      activeIcon: Icons.explore,
-                      label: 'Explorer',
-                      index: showJobMatch ? 3 : 2,
-                      tourDescription:
-                          'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
-                      badgeCount: badgeCount,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.person_outline,
-                      activeIcon: Icons.person,
-                      label: 'Profil',
-                      index: showJobMatch ? 4 : 3,
-                      tourDescription:
-                          'Gérez vos informations, votre carte et les réglages de l\'app.',
-                    ),
-                  ],
-                ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNavItem(
+                icon: Icons.credit_card_outlined,
+                activeIcon: Icons.credit_card,
+                label: 'Carte',
+                index: 0,
+                tourDescription:
+                    'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
               ),
-            ),
+              _buildNavItem(
+                icon: Icons.people_outline,
+                activeIcon: Icons.people,
+                label: 'Contacts',
+                index: 1,
+                tourDescription:
+                    'Retrouvez tous les contacts collectés au même endroit.',
+              ),
+              if (showJobMatch)
+                _buildNavItem(
+                  icon: Icons.favorite_outline,
+                  activeIcon: Icons.favorite,
+                  label: 'Offres',
+                  index: 2,
+                  tourDescription:
+                      "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                ),
+              _buildNavItem(
+                icon: Icons.explore_outlined,
+                activeIcon: Icons.explore,
+                label: 'Explorer',
+                index: showJobMatch ? 3 : 2,
+                tourDescription:
+                    'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                badgeCount: badgeCount,
+              ),
+              _buildNavItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                label: 'Profil',
+                index: showJobMatch ? 4 : 3,
+                tourDescription:
+                    'Gérez vos informations, votre carte et les réglages de l\'app.',
+              ),
+            ],
           ),
         ),
       ),
