@@ -306,11 +306,15 @@ class _SlideToConnectButtonState extends State<_SlideToConnectButton>
                             horizontal: _thumbSize + _padding * 2),
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
+                          // Texte volontairement raccourci : dans la piste
+                          // à 68% de largeur, "Glisser pour se connecter"
+                          // dépassait et se faisait réduire par le
+                          // FittedBox jusqu'à devenir illisible.
                           child: Text(
-                            'Glisser pour se connecter',
+                            'Glisser pour connecter',
                             maxLines: 1,
                             style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: _themeBlue,
                             ),

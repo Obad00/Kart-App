@@ -417,34 +417,15 @@ class _HomeShellState extends State<HomeShell>
   Widget _buildBottomNavigation(ColorScheme colors, bool showJobMatch) {
     final badgeCount =
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Pilule opaque plutôt qu'en verre dépoli : le même flou rendait bien
-    // sur Profil (fond neutre derrière) mais délavait ou détonnait sur
-    // Explorer/Contacts (photos et cartes colorées derrière) — un rendu
-    // différent d'un onglet à l'autre pour un widget pourtant identique.
-    // Un fond plein est garanti visuellement identique partout, quel que
-    // soit le contenu de la page active.
+    // Aucun fond, aucune bordure, aucune ombre : juste les icônes/libellés,
+    // sans aucun bloc visible derrière eux, sur aucune page.
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Container(
+        child: SizedBox(
           height: 56,
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.14),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
