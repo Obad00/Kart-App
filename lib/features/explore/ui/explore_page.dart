@@ -733,6 +733,32 @@ class _ExploreUserRow extends StatelessWidget {
     );
   }
 
+  /// Dégradé de marque + initiales géantes en filigrane — utilisé à la fois
+  /// pour un profil sans avatar, pendant le chargement de l'avatar, et en
+  /// cas d'échec (image cassée/corrompue) : un seul et même repli visuel.
+  Widget _avatarFallback() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          _initials(user.name),
+          style: TextStyle(
+            fontFamily: 'Syne',
+            fontSize: 72,
+            fontWeight: FontWeight.w800,
+            color: Colors.white.withValues(alpha: 0.14),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarUrl = _avatarUrl;
@@ -776,52 +802,21 @@ class _ExploreUserRow extends StatelessWidget {
                     // la photo) — aligner en haut garde la tête visible et
                     // rogne plutôt le bas (épaules/torse).
                     alignment: Alignment.topCenter,
-                    // Sans ça, une image cassée/corrompue (EncodingError)
-                    // laissait un carré vide et spammait la console — on
-                    // retombe proprement sur le même dégradé + initiales
-                    // que pour un profil sans avatar du tout.
-                    errorWidget: (context, url, error) => Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _initials(user.name),
-                          style: TextStyle(
-                            fontFamily: 'Syne',
-                            fontSize: 72,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white.withValues(alpha: 0.14),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // FilterQuality.low (le défaut) rendait les photos assez
+                    // agrandies (portrait → carte large plein cadre)
+                    // visiblement floues/pixelisées — high lisse ce
+                    // redimensionnement.
+                    filterQuality: FilterQuality.high,
+                    fadeInDuration: const Duration(milliseconds: 200),
+                    // Le même dégradé + initiales pendant le chargement,
+                    // plutôt qu'un vide qui laisse place à l'image d'un coup
+                    // — évite l'effet de "flash" et sert aussi de repli en
+                    // cas d'échec (errorWidget).
+                    placeholder: (context, url) => _avatarFallback(),
+                    errorWidget: (context, url, error) => _avatarFallback(),
                   )
                 else
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _initials(user.name),
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          fontSize: 72,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white.withValues(alpha: 0.14),
-                        ),
-                      ),
-                    ),
-                  ),
+                  _avatarFallback(),
 
                 // Voile dégradé pour la lisibilité du texte en bas de carte
                 const DecoratedBox(
