@@ -881,14 +881,48 @@ class _ExploreUserRow extends StatelessWidget {
                             ),
                           ],
                           const SizedBox(height: 12),
-                          ConnectActionButton(
-                            userId: user.id,
-                            userName: user.name,
-                            initialStatus: user.connectionStatus,
-                            initialRequestId: user.connectionRequestId,
-                            onResolved: () => context
-                                .read<ExploreProvider>()
-                                .removeUserLocally(user.id),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ConnectActionButton(
+                                  userId: user.id,
+                                  userName: user.name,
+                                  initialStatus: user.connectionStatus,
+                                  initialRequestId: user.connectionRequestId,
+                                  onResolved: () => context
+                                      .read<ExploreProvider>()
+                                      .removeUserLocally(user.id),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Le tap sur toute la ligne ouvre déjà la carte,
+                              // mais ce n'était pas découvrable — un libellé
+                              // explicite à côté du bouton de connexion.
+                              GestureDetector(
+                                onTap: () => _openCard(context),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Voir la carte',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.85),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 16,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.85),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
