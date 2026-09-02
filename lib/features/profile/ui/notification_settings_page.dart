@@ -11,7 +11,8 @@ class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
   @override
-  State<NotificationSettingsPage> createState() => _NotificationSettingsPageState();
+  State<NotificationSettingsPage> createState() =>
+      _NotificationSettingsPageState();
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
@@ -67,7 +68,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   decoration: BoxDecoration(
                     color: colors.onSurface.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: colors.onSurface.withValues(alpha: 0.08)),
+                    border: Border.all(
+                        color: colors.onSurface.withValues(alpha: 0.08)),
                   ),
                   child: Row(
                     children: [
@@ -111,7 +113,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   _enabled
                       ? 'Vous recevrez des notifications sur cet appareil.'
                       : 'Vous ne recevrez plus de notifications sur cet appareil.',
-                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.45)),
                 ),
               ],
             ),

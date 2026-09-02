@@ -9,10 +9,14 @@ import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
+import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
+import '../services/community_service.dart';
 import '../services/explore_service.dart';
+import '../widgets/community_card.dart';
 import '../widgets/connect_action_button.dart';
+import 'communities_page.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
@@ -39,6 +43,7 @@ class ExplorePage extends StatefulWidget {
 class _ExplorePageState extends State<ExplorePage>
     with SingleTickerProviderStateMixin {
   late final ExploreProvider _provider;
+  late final CommunityProvider _communityProvider;
   late final TabController _tabController;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
@@ -48,6 +53,8 @@ class _ExplorePageState extends State<ExplorePage>
   void initState() {
     super.initState();
     _provider = ExploreProvider(ExploreService());
+    _communityProvider = CommunityProvider(CommunityService());
+    _communityProvider.loadCommunities();
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -97,6 +104,7 @@ class _ExplorePageState extends State<ExplorePage>
     _scrollController.dispose();
     _tabController.dispose();
     _provider.dispose();
+    _communityProvider.dispose();
     super.dispose();
   }
 
@@ -167,8 +175,11 @@ class _ExplorePageState extends State<ExplorePage>
     // Scaffold) — posé par-dessus le contenu via Positioned pour reproduire
     // l'effet extendBodyBehindAppBar : le contenu défile réellement dessous,
     // chaque onglet réservant déjà la place nécessaire via topPadding.
-    return ChangeNotifierProvider.value(
-      value: _provider,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _provider),
+        ChangeNotifierProvider.value(value: _communityProvider),
+      ],
       child: Stack(
         children: [
           GestureDetector(
@@ -329,27 +340,36 @@ class _ExplorePageState extends State<ExplorePage>
                 );
               }
 
-              return SliverPadding(
-                // 24 de respiration + la pilule de nav flottante de
-                // HomeShell (extendBody : la safe area seule ne suffit
-                // plus à protéger le dernier élément).
-                padding: EdgeInsets.only(
-                  bottom: 24 + BottomNavMetrics.reservedHeight,
-                ),
-                sliver: SliverList.builder(
-                  itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index >= provider.users.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    return _ExploreUserRow(user: provider.users[index]);
-                  },
-                ),
+              return SliverList.builder(
+                itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= provider.users.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  return _ExploreUserRow(user: provider.users[index]);
+                },
               );
             },
+          ),
+          // "Réseaux populaires" — sous les profils à connecter (pas
+          // au-dessus), en dernier dans le scroll vertical de la page ;
+          // le carrousel lui-même reste un scroll horizontal indépendant
+          // (cf. _CommunitiesSection).
+          SliverToBoxAdapter(
+            child: Padding(
+              // 24 de respiration + la pilule de nav flottante de HomeShell
+              // (extendBody : la safe area seule ne suffit plus à protéger
+              // le dernier élément) — reportée ici depuis la liste de
+              // profils puisque cette section est maintenant le dernier
+              // élément du scroll.
+              padding: EdgeInsets.only(
+                bottom: 24 + BottomNavMetrics.reservedHeight,
+              ),
+              child: const _CommunitiesSection(),
+            ),
           ),
         ],
       ),
@@ -964,6 +984,97 @@ class _ExploreUserRow extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Réseaux populaires" — carrousel horizontal de communautés (cf. maquette),
+/// juste au-dessus de la liste des profils à découvrir. Superadmin only pour
+/// la gestion des communautés elles-mêmes (CRM web) ; ici on ne fait que
+/// lister/rejoindre.
+class _CommunitiesSection extends StatelessWidget {
+  const _CommunitiesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CommunityProvider>();
+    final colors = Theme.of(context).colorScheme;
+
+    // Rien à afficher tant qu'aucune communauté n'a été créée par le
+    // superadmin, ou en cas d'échec réseau — pas d'état d'erreur bruyant
+    // pour une section secondaire de la page.
+    if (!provider.isLoading && provider.communities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Réseaux populaires',
+                  style: TextStyle(
+                    fontFamily: 'Syne',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: colors.onSurface,
+                  ),
+                ),
+                if (provider.communities.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider.value(
+                                value: provider,
+                                child: const CommunitiesPage(),
+                              )),
+                    ),
+                    child: const Text(
+                      'Voir tout',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: _themeBlue,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (provider.isLoading)
+            const SizedBox(
+              height: 214,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            SizedBox(
+              height: 214,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: provider.communities.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final community = provider.communities[index];
+                  return SizedBox(
+                    width: 220,
+                    child: CommunityCard(
+                      community: community,
+                      onToggleJoin: () => provider.toggleJoin(community),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

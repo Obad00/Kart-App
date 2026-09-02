@@ -131,24 +131,28 @@ class CompletionBanner extends StatelessWidget {
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: result.missing.take(3).map((e) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: colors.onSurface.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Text(
-                    e,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: colors.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                )).toList(),
+                children: result.missing
+                    .take(3)
+                    .map((e) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: colors.onSurface.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: colors.onSurface.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: Text(
+                            e,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: colors.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ))
+                    .toList(),
               ),
             ],
           ],
@@ -157,196 +161,209 @@ class CompletionBanner extends StatelessWidget {
     );
   }
 
-  Widget _buildCompletedCard(
-      BuildContext context, ColorScheme colors, dynamic model, int skillsCount) {
+  Widget _buildCompletedCard(BuildContext context, ColorScheme colors,
+      dynamic model, int skillsCount) {
     const blueColor = Color(0xFF3B82F6);
 
     // Collecter les réseaux sociaux disponibles
     final socials = <_SocialItem>[];
     if (_hasValue(model.linkedin)) {
-      socials.add(_SocialItem('LinkedIn', FontAwesomeIcons.linkedin, const Color(0xFF0A66C2)));
+      socials.add(_SocialItem(
+          'LinkedIn', FontAwesomeIcons.linkedin, const Color(0xFF0A66C2)));
     }
     if (_hasValue(model.instagram)) {
-      socials.add(_SocialItem('Instagram', FontAwesomeIcons.instagram, const Color(0xFFE4405F)));
+      socials.add(_SocialItem(
+          'Instagram', FontAwesomeIcons.instagram, const Color(0xFFE4405F)));
     }
     if (_hasValue(model.github)) {
-      socials.add(_SocialItem('GitHub', FontAwesomeIcons.github, const Color(0xFF333333)));
+      socials.add(_SocialItem(
+          'GitHub', FontAwesomeIcons.github, const Color(0xFF333333)));
     }
     if (_hasValue(model.facebook)) {
-      socials.add(_SocialItem('Facebook', FontAwesomeIcons.facebook, const Color(0xFF1877F2)));
+      socials.add(_SocialItem(
+          'Facebook', FontAwesomeIcons.facebook, const Color(0xFF1877F2)));
     }
     if (_hasValue(model.website)) {
-      socials.add(_SocialItem('Site web', FontAwesomeIcons.globe, const Color(0xFF6366F1)));
+      socials.add(_SocialItem(
+          'Site web', FontAwesomeIcons.globe, const Color(0xFF6366F1)));
     }
 
     return Container(
-        margin: const EdgeInsets.only(top: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: colors.onSurface.withValues(alpha: 0.02),
-          border: Border.all(
-            color: colors.onSurface.withValues(alpha: 0.06),
-          ),
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: colors.onSurface.withValues(alpha: 0.02),
+        border: Border.all(
+          color: colors.onSurface.withValues(alpha: 0.06),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    size: 16,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Mon profil',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (_) => const CompletionFormPage(),
+                    );
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: blueColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: blueColor.withValues(alpha: 0.2)),
                     ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      size: 16,
-                      color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Mon profil',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        isScrollControlled: true,
-                        builder: (_) => const CompletionFormPage(),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: blueColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: blueColor.withValues(alpha: 0.2)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.edit_outlined, size: 14, color: blueColor),
-                          SizedBox(width: 4),
-                          Text(
-                            'Modifier',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: blueColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Infos principales
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  if (_hasValue(model.phone))
-                    _buildInfoLine(colors, Icons.phone_outlined, model.phone!),
-                  if (_hasValue(model.email))
-                    _buildInfoLine(colors, Icons.email_outlined, model.email!),
-                ],
-              ),
-            ),
-
-            // Réseaux sociaux
-            if (socials.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: socials.map((s) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: s.color.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: s.color.withValues(alpha: 0.15)),
-                    ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        s.icon is IconData ? Icon(s.icon, size: 14, color: s.color) : FaIcon(s.icon, size: 14, color: s.color),
-                        const SizedBox(width: 6),
+                        Icon(Icons.edit_outlined, size: 14, color: blueColor),
+                        SizedBox(width: 4),
                         Text(
-                          s.label,
+                          'Modifier',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: s.color,
+                            color: blueColor,
                           ),
                         ),
                       ],
                     ),
-                  )).toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
 
-            // Expériences, Formations & Compétences résumé
-            if (model.experiences.isNotEmpty ||
-                model.educations.isNotEmpty ||
-                skillsCount > 0) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (model.experiences.isNotEmpty)
-                      _buildBadge(
-                        colors,
-                        Icons.work_outline,
-                        '${model.experiences.length} exp.',
-                        blueColor,
-                      ),
-                    if (model.educations.isNotEmpty)
-                      _buildBadge(
-                        colors,
-                        Icons.school_outlined,
-                        '${model.educations.length} formation${model.educations.length > 1 ? 's' : ''}',
-                        const Color(0xFF8B5CF6),
-                      ),
-                    if (skillsCount > 0)
-                      _buildBadge(
-                        colors,
-                        Icons.psychology_outlined,
-                        '$skillsCount compétence${skillsCount > 1 ? 's' : ''}',
-                        Colors.green,
-                      ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
 
-            const SizedBox(height: 14),
+          // Infos principales
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                if (_hasValue(model.phone))
+                  _buildInfoLine(colors, Icons.phone_outlined, model.phone!),
+                if (_hasValue(model.email))
+                  _buildInfoLine(colors, Icons.email_outlined, model.email!),
+              ],
+            ),
+          ),
+
+          // Réseaux sociaux
+          if (socials.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: socials
+                    .map((s) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: s.color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: s.color.withValues(alpha: 0.15)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              s.icon is IconData
+                                  ? Icon(s.icon, size: 14, color: s.color)
+                                  : FaIcon(s.icon, size: 14, color: s.color),
+                              const SizedBox(width: 6),
+                              Text(
+                                s.label,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: s.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
           ],
-        ),
+
+          // Expériences, Formations & Compétences résumé
+          if (model.experiences.isNotEmpty ||
+              model.educations.isNotEmpty ||
+              skillsCount > 0) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (model.experiences.isNotEmpty)
+                    _buildBadge(
+                      colors,
+                      Icons.work_outline,
+                      '${model.experiences.length} exp.',
+                      blueColor,
+                    ),
+                  if (model.educations.isNotEmpty)
+                    _buildBadge(
+                      colors,
+                      Icons.school_outlined,
+                      '${model.educations.length} formation${model.educations.length > 1 ? 's' : ''}',
+                      const Color(0xFF8B5CF6),
+                    ),
+                  if (skillsCount > 0)
+                    _buildBadge(
+                      colors,
+                      Icons.psychology_outlined,
+                      '$skillsCount compétence${skillsCount > 1 ? 's' : ''}',
+                      Colors.green,
+                    ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 14),
+        ],
+      ),
     );
   }
 
@@ -374,7 +391,8 @@ class CompletionBanner extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge(ColorScheme colors, IconData icon, String label, Color color) {
+  Widget _buildBadge(
+      ColorScheme colors, IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(

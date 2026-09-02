@@ -329,9 +329,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
                   obscureText: true,
                   hint: 'Entrez un nouveau mot de passe',
                 ),
-
                 const SizedBox(height: 16),
-
                 AuthTextField(
                   label: 'Confirmer le mot de passe',
                   controller: _passwordConfirmCtrl,
@@ -339,7 +337,6 @@ class _EditProfileFormState extends State<EditProfileForm> {
                   obscureText: true,
                   hint: 'Confirmez le nouveau mot de passe',
                 ),
-
                 const SizedBox(height: 24),
               ],
 

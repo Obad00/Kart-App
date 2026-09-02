@@ -10,6 +10,7 @@ import '../../features/onboarding/providers/company_provider.dart';
 import '../../features/plans/providers/plan_provider.dart';
 import '../../features/profile_completion/providers/candidate_skills_provider.dart';
 import '../../features/profile_completion/providers/profile_completion_provider.dart';
+import '../../features/profile/providers/professional_document_provider.dart';
 
 /// Déconnecte l'utilisateur ET réinitialise tous les providers qui gardent
 /// des données propres à un compte en mémoire. Ces providers sont des
@@ -36,6 +37,7 @@ void resetSessionProviders(BuildContext context) {
   context.read<HighlightProvider>().reset();
   context.read<ProfileCompletionProvider>().reset();
   context.read<CandidateSkillsProvider>().reset();
+  context.read<ProfessionalDocumentProvider>().reset();
   context.read<JobMatchProvider>().reset();
   context.read<CompanyProvider>().reset();
   context.read<PlanProvider>().reset();
@@ -55,5 +57,6 @@ Future<void> loadSessionData(BuildContext context) async {
     context.read<HighlightProvider>().loadHighlights(),
     context.read<ProfileCompletionProvider>().load(),
     context.read<CandidateSkillsProvider>().load(),
+    context.read<ProfessionalDocumentProvider>().load(),
   ]);
 }

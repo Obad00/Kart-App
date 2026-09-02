@@ -24,7 +24,6 @@ class CompletionSections extends StatefulWidget {
 
 class _CompletionSectionsState extends State<CompletionSections> {
   bool _socialExpanded = false;
-  bool _experiencesExpanded = false;
   bool _educationsExpanded = false;
   bool _skillsExpanded = false;
 
@@ -54,24 +53,22 @@ class _CompletionSectionsState extends State<CompletionSections> {
           ],
         ),
         const SizedBox(height: 16),
-
         _buildExperiencesSection(context, colors, model),
         const SizedBox(height: 16),
-
         _buildEducationsSection(context, colors, model),
         const SizedBox(height: 16),
-
         _buildSkillsSection(context, colors, skills),
       ],
     );
   }
 
-  void _openForm(BuildContext context, {String? section}) {
+  void _openForm(BuildContext context,
+      {String? section, bool addOnly = false}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => CompletionFormPage(section: section),
+      builder: (_) => CompletionFormPage(section: section, addOnly: addOnly),
     );
   }
 
@@ -102,7 +99,10 @@ class _CompletionSectionsState extends State<CompletionSections> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface),
               ),
             ),
             GestureDetector(
@@ -114,12 +114,15 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.add_rounded, size: 18, color: Color(0xFF3B82F6)),
+                child: const Icon(Icons.add_rounded,
+                    size: 18, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(width: 8),
             Icon(
-              expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+              expanded
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
               size: 22,
               color: colors.onSurface.withValues(alpha: 0.4),
             ),
@@ -160,63 +163,75 @@ class _CompletionSectionsState extends State<CompletionSections> {
             ...items.asMap().entries.map((entry) {
               final i = entry.key;
               final item = entry.value;
-              final hasValue = item.value != null && item.value!.trim().isNotEmpty;
+              final hasValue =
+                  item.value != null && item.value!.trim().isNotEmpty;
               return Column(
                 children: [
                   if (i > 0)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.05)),
+                      child: Divider(
+                          height: 1,
+                          color: colors.onSurface.withValues(alpha: 0.05)),
                     ),
                   InkWell(
                     onTap: onAddTap,
                     child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        Icon(item.icon, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: colors.onSurface.withValues(alpha: 0.5),
-                                  fontWeight: FontWeight.w500,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(item.icon,
+                              size: 18,
+                              color: colors.onSurface.withValues(alpha: 0.4)),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.label,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color:
+                                        colors.onSurface.withValues(alpha: 0.5),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                hasValue ? item.value! : 'Non renseigné',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.3),
-                                  fontWeight: FontWeight.w500,
+                                const SizedBox(height: 2),
+                                Text(
+                                  hasValue ? item.value! : 'Non renseigné',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: hasValue
+                                        ? colors.onSurface
+                                        : colors.onSurface
+                                            .withValues(alpha: 0.3),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: hasValue
-                                ? Colors.green.withValues(alpha: 0.1)
-                                : Colors.orange.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: hasValue
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.orange.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              hasValue
+                                  ? Icons.check_rounded
+                                  : Icons.add_rounded,
+                              size: 16,
+                              color: hasValue ? Colors.green : Colors.orange,
+                            ),
                           ),
-                          child: Icon(
-                            hasValue ? Icons.check_rounded : Icons.add_rounded,
-                            size: 16,
-                            color: hasValue ? Colors.green : Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -229,8 +244,23 @@ class _CompletionSectionsState extends State<CompletionSections> {
     );
   }
 
-  Widget _buildExperiencesSection(BuildContext context, ColorScheme colors, dynamic model) {
-    final experiences = model.experiences as List;
+  /// Aperçu des 2 expériences les plus récentes en frise chronologique
+  /// (pastille + ligne verticale), plus "Voir tout" qui ouvre le formulaire
+  /// complet (édition/ajout/suppression) — cf. maquette fournie. Le détail
+  /// intégral n'a pas besoin d'un écran dédié : le formulaire d'édition en
+  /// tient déjà lieu.
+  Widget _buildExperiencesSection(
+      BuildContext context, ColorScheme colors, dynamic model) {
+    const accentColor = Color(0xFF3B82F6);
+    final allExperiences = model.experiences as List;
+
+    final sorted = [...allExperiences]..sort((a, b) {
+        final startA = DateTime.tryParse(a.startDate ?? '');
+        final startB = DateTime.tryParse(b.startDate ?? '');
+        if (startA == null || startB == null) return 0;
+        return startB.compareTo(startA);
+      });
+    final preview = sorted.take(2).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -241,133 +271,138 @@ class _CompletionSectionsState extends State<CompletionSections> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(
-            colors,
-            icon: Icons.history,
-            title: 'Expériences',
-            onAddTap: () => _openForm(context, section: 'experiences'),
-            expanded: _experiencesExpanded,
-            onToggle: () => setState(() => _experiencesExpanded = !_experiencesExpanded),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.work_outline_rounded,
+                      size: 16, color: accentColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Expériences',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface),
+                  ),
+                ),
+                if (allExperiences.isNotEmpty) ...[
+                  GestureDetector(
+                    onTap: () => _openForm(context,
+                        section: 'experiences', addOnly: true),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Icon(Icons.add_rounded,
+                          size: 16, color: accentColor),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _openForm(context, section: 'experiences'),
+                    child: const Text(
+                      'Voir tout',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: accentColor),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          if (_experiencesExpanded) ...[
-            if (experiences.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.history, size: 18, color: Colors.orange),
-                    const SizedBox(width: 12),
-                    Text(
+          if (allExperiences.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.work_outline_rounded,
+                      size: 18, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
                       'Aucune expérience ajoutée',
                       style: TextStyle(
                         fontSize: 14,
                         color: colors.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              ...experiences.asMap().entries.map((entry) {
-                final i = entry.key;
-                final exp = entry.value;
-                final title = exp.title ?? '';
-                final company = exp.company ?? '';
-                final startDate = exp.startDate ?? '';
-                final endDate = exp.endDate;
-                final description = exp.description ?? '';
-
-                return Column(
-                  children: [
-                    if (i > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.05)),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.work_outline, size: 18, color: Color(0xFF3B82F6)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  company,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: const Color(0xFF3B82F6),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  endDate != null
-                                      ? '$startDate → $endDate'
-                                      : '$startDate → Présent',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: colors.onSurface.withValues(alpha: 0.45),
-                                  ),
-                                ),
-                                if (description.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colors.onSurface.withValues(alpha: 0.55),
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.check_rounded, size: 16, color: Colors.green),
-                          ),
-                        ],
-                      ),
+                  ),
+                  TextButton(
+                    onPressed: () => _openForm(context,
+                        section: 'experiences', addOnly: true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: accentColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  ],
-                );
-              }),
-            const SizedBox(height: 8),
-          ],
+                    child: const Text('Ajouter',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: preview.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final exp = entry.value;
+                  return _ExperienceTimelineItem(
+                    title: exp.title ?? '',
+                    company: exp.company ?? '',
+                    period: _formatExperiencePeriod(exp.startDate, exp.endDate),
+                    description: exp.description ?? '',
+                    isLast: i == preview.length - 1,
+                    accentColor: accentColor,
+                    colors: colors,
+                    onTap: () => _openForm(context, section: 'experiences'),
+                  );
+                }).toList(),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildEducationsSection(BuildContext context, ColorScheme colors, dynamic model) {
-    final educations = model.educations as List;
+  /// "2023 – Aujourd'hui" / "2021 – 2023" — n'affiche que l'année (comme la
+  /// maquette), à partir des dates complètes stockées côté backend.
+  String _formatExperiencePeriod(String? start, String? end) {
+    final startYear = _experienceYear(start);
+    final endYear =
+        (end != null && end.isNotEmpty) ? _experienceYear(end) : null;
+    return '$startYear – ${endYear ?? "Aujourd'hui"}';
+  }
+
+  String _experienceYear(String? date) {
+    if (date == null || date.isEmpty) return '';
+    final parsed = DateTime.tryParse(date);
+    return parsed != null ? parsed.year.toString() : date;
+  }
+
+  Widget _buildEducationsSection(
+      BuildContext context, ColorScheme colors, dynamic model) {
+    // Plus récente en premier — même logique que les expériences.
+    final educations = [...model.educations as List]
+      ..sort((a, b) => (b.startYear ?? 0).compareTo(a.startYear ?? 0));
 
     return Container(
       decoration: BoxDecoration(
@@ -382,9 +417,11 @@ class _CompletionSectionsState extends State<CompletionSections> {
             colors,
             icon: Icons.school_outlined,
             title: 'Formation',
-            onAddTap: () => _openForm(context, section: 'educations'),
+            onAddTap: () =>
+                _openForm(context, section: 'educations', addOnly: true),
             expanded: _educationsExpanded,
-            onToggle: () => setState(() => _educationsExpanded = !_educationsExpanded),
+            onToggle: () =>
+                setState(() => _educationsExpanded = !_educationsExpanded),
           ),
           if (_educationsExpanded) ...[
             if (educations.isEmpty)
@@ -392,7 +429,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Row(
                   children: [
-                    const Icon(Icons.school_outlined, size: 18, color: Colors.orange),
+                    const Icon(Icons.school_outlined,
+                        size: 18, color: Colors.orange),
                     const SizedBox(width: 12),
                     Text(
                       'Aucune formation ajoutée',
@@ -419,86 +457,99 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     if (i > 0)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.05)),
+                        child: Divider(
+                            height: 1,
+                            color: colors.onSurface.withValues(alpha: 0.05)),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
+                    // Tap = ouvrir le formulaire complet pour modifier ou
+                    // supprimer cette formation (seul moyen d'y accéder :
+                    // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
+                    // cf. addOnly sur CompletionFormPage).
+                    InkWell(
+                      onTap: () => _openForm(context, section: 'educations'),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6)
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.school_outlined,
+                                  size: 18, color: Color(0xFF8B5CF6)),
                             ),
-                            child: const Icon(Icons.school_outlined, size: 18, color: Color(0xFF8B5CF6)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  degree,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.onSurface,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    degree,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: colors.onSurface,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  school,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF8B5CF6),
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    school,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF8B5CF6),
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    if (field.isNotEmpty)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          field,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF8B5CF6),
-                                            fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      if (field.isNotEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF8B5CF6)
+                                                .withValues(alpha: 0.08),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            field,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF8B5CF6),
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
+                                      if (field.isNotEmpty)
+                                        const SizedBox(width: 8),
+                                      Text(
+                                        '$startYear - $endYear',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.45),
+                                        ),
                                       ),
-                                    if (field.isNotEmpty) const SizedBox(width: 8),
-                                    Text(
-                                      '$startYear - $endYear',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: colors.onSurface.withValues(alpha: 0.45),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 20,
+                              color: colors.onSurface.withValues(alpha: 0.3),
                             ),
-                            child: const Icon(Icons.check_rounded, size: 16, color: Colors.green),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -539,7 +590,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Row(
                   children: [
-                    const Icon(Icons.psychology_outlined, size: 18, color: Colors.orange),
+                    const Icon(Icons.psychology_outlined,
+                        size: 18, color: Colors.orange),
                     const SizedBox(width: 12),
                     Text(
                       'Aucune compétence ajoutée',
@@ -558,7 +610,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   spacing: 8,
                   runSpacing: 8,
                   children: skills
-                      .map((s) => SkillChip(label: s.name, subtitle: levelLabel(s.level)))
+                      .map((s) => SkillChip(
+                          label: s.name, subtitle: levelLabel(s.level)))
                       .toList(),
                 ),
               ),
@@ -584,4 +637,128 @@ class _CheckItem {
   final String? value;
   final IconData icon;
   const _CheckItem(this.label, this.value, this.icon);
+}
+
+/// Une ligne de la frise "Expériences" — pastille + ligne verticale reliée
+/// à l'élément suivant (absente sur le dernier), titre/entreprise/période/
+/// description, chevron à droite. Tap = ouvrir le formulaire d'édition.
+class _ExperienceTimelineItem extends StatelessWidget {
+  final String title;
+  final String company;
+  final String period;
+  final String description;
+  final bool isLast;
+  final Color accentColor;
+  final ColorScheme colors;
+  final VoidCallback onTap;
+
+  const _ExperienceTimelineItem({
+    required this.title,
+    required this.company,
+    required this.period,
+    required this.description,
+    required this.isLast,
+    required this.accentColor,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Pastille + ligne verticale — la ligne s'étire (Expanded) sur
+            // toute la hauteur du contenu à droite, IntrinsicHeight lui
+            // donnant la mesure exacte (padding bas inclus) sans avoir à
+            // calculer une hauteur à la main.
+            Column(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(top: 5),
+                  decoration:
+                      BoxDecoration(shape: BoxShape.circle, color: accentColor),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: accentColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                          if (company.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              company,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: accentColor,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 3),
+                          Text(
+                            period,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: colors.onSurface.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          if (description.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                                color: colors.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: colors.onSurface.withValues(alpha: 0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

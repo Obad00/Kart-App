@@ -1,6 +1,7 @@
 class ProfileCompletionModel {
   String? jobTitle;
   String? company;
+  String? bio;
   String? phone;
   String? email;
 
@@ -22,6 +23,7 @@ class ProfileCompletionModel {
   ProfileCompletionModel({
     this.jobTitle,
     this.company,
+    this.bio,
     this.phone,
     this.email,
     this.linkedin,
@@ -44,6 +46,7 @@ class ProfileCompletionModel {
     return ProfileCompletionModel(
       jobTitle: json['job_title'],
       company: json['company'],
+      bio: json['bio'],
       phone: json['phone'],
       email: json['email'],
       linkedin: json['linkedin'],
@@ -54,20 +57,15 @@ class ProfileCompletionModel {
       theme: json['theme'],
       plan: json['plan'],
       branding: json['branding'],
-
-      activatedFields:
-          (json['activated_fields'] as List?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
-              [],
-
+      activatedFields: (json['activated_fields'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       isPublic: json['is_public'] as bool? ?? true,
-
       experiences: (json['experiences'] as List?)
               ?.map((e) => ExperienceModel.fromJson(e))
               .toList() ??
           [],
-
       educations: (json['educations'] as List?)
               ?.map((e) => EducationModel.fromJson(e))
               .toList() ??
@@ -79,6 +77,7 @@ class ProfileCompletionModel {
     return {
       "job_title": jobTitle,
       "company": company,
+      "bio": bio,
       "phone": phone,
       "email": email,
       "linkedin": linkedin,
