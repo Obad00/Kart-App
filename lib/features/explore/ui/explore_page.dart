@@ -913,18 +913,18 @@ class _ExploreUserRow extends StatelessWidget {
                                     Text(
                                       'Voir la carte',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13.5,
                                         fontWeight: FontWeight.w700,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.85),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
                                       ),
                                     ),
                                     const SizedBox(width: 2),
                                     Icon(
                                       Icons.chevron_right_rounded,
-                                      size: 16,
+                                      size: 18,
                                       color:
-                                          Colors.white.withValues(alpha: 0.85),
+                                          Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ],
                                 ),
