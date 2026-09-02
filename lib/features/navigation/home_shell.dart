@@ -455,12 +455,19 @@ class _HomeShellState extends State<HomeShell>
                 height: 56,
                 decoration: BoxDecoration(
                   // Verre dépoli façon Apple : un tint semi-transparent de
-                  // la couleur de surface plutôt qu'un fond plein.
-                  color: colors.surface.withValues(alpha: isDark ? 0.4 : 0.55),
+                  // la couleur de surface plutôt qu'un fond plein — opacité
+                  // volontairement basse. Un tint trop opaque délave toute
+                  // couleur vive flloutée derrière (ex: les cartes Explorer)
+                  // en un gris neutre plat façon bloc disparate, alors qu'il
+                  // passe presque inaperçu sur un fond neutre (Profil) : le
+                  // même code donnait donc une impression différente selon
+                  // l'onglet. La définition de la pilule vient maintenant
+                  // surtout de la bordure + l'ombre (ci-dessus), pas du tint.
+                  color: colors.surface.withValues(alpha: isDark ? 0.22 : 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color:
-                        colors.onSurface.withValues(alpha: isDark ? 0.06 : 0.1),
+                    color: colors.onSurface
+                        .withValues(alpha: isDark ? 0.08 : 0.12),
                   ),
                 ),
                 child: Row(
