@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../shared/widgets/app_search_bar.dart';
+import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
 import '../providers/contacts_provider.dart';
@@ -123,34 +124,34 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       ];
 
       // Prepare CSV rows
-      final rows = selectedContactsList.map((contact) => [
-            contact.fullname,
-            contact.email ?? '',
-            contact.phone ?? '',
-            contact.company ?? '',
-            contact.job ?? '',
-            contact.linkedin ?? '',
-            contact.twitter ?? '',
-            contact.facebook ?? '',
-            contact.instagram ?? '',
-            contact.website ?? '',
-            contact.highlightName ?? '',
-            contact.capturedAt != null
-                ? '${contact.capturedAt!.day.toString().padLeft(2, '0')}/'
-                    '${contact.capturedAt!.month.toString().padLeft(2, '0')}/'
-                    '${contact.capturedAt!.year}'
-                : '',
-            contact.isFavorite ? 'Oui' : 'Non',
-          ]).toList();
+      final rows = selectedContactsList
+          .map((contact) => [
+                contact.fullname,
+                contact.email ?? '',
+                contact.phone ?? '',
+                contact.company ?? '',
+                contact.job ?? '',
+                contact.linkedin ?? '',
+                contact.twitter ?? '',
+                contact.facebook ?? '',
+                contact.instagram ?? '',
+                contact.website ?? '',
+                contact.highlightName ?? '',
+                contact.capturedAt != null
+                    ? '${contact.capturedAt!.day.toString().padLeft(2, '0')}/'
+                        '${contact.capturedAt!.month.toString().padLeft(2, '0')}/'
+                        '${contact.capturedAt!.year}'
+                    : '',
+                contact.isFavorite ? 'Oui' : 'Non',
+              ])
+          .toList();
 
       // Generate CSV
-      final csvData =
-          const ListToCsvConverter().convert([headers, ...rows]);
+      final csvData = const ListToCsvConverter().convert([headers, ...rows]);
 
       // Save to file
       final directory = await getApplicationDocumentsDirectory();
-      final fileName =
-          'contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final fileName = 'contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
       final file = File('${directory.path}/$fileName');
 
       await file.writeAsString(csvData);
@@ -173,8 +174,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
       _showSnackBar(
         title: 'Succès',
-        subtitle:
-            '${selectedContactsList.length} contact(s) exporté(s) en CSV',
+        subtitle: '${selectedContactsList.length} contact(s) exporté(s) en CSV',
         icon: Icons.check_circle_rounded,
         iconColor: Colors.green,
       );
@@ -183,8 +183,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       debugPrint('❌ _exportContactsAsCSV Exception: $e');
       _showSnackBar(
         title: 'Erreur d\'export',
-        subtitle:
-            'Une erreur est survenue lors de l\'export : ${e.toString()}',
+        subtitle: 'Une erreur est survenue lors de l\'export : ${e.toString()}',
         icon: Icons.error_rounded,
         iconColor: Colors.red,
       );
@@ -292,9 +291,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
       _showSnackBar(
         title: 'Succès',
-        subtitle: count > 1
-            ? '$count contacts supprimés'
-            : 'Contact supprimé',
+        subtitle: count > 1 ? '$count contacts supprimés' : 'Contact supprimé',
         icon: Icons.check_circle_rounded,
         iconColor: Colors.green,
       );
@@ -366,6 +363,10 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     );
   }
 
+  static const double _titleRowHeight = 66;
+  static const double _searchBarBlockHeight = 82;
+  static const double _highlightFilterRowHeight = 40;
+
   @override
   Widget build(BuildContext context) {
     const companyColor = _themeBlue;
@@ -373,260 +374,280 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     return Consumer<ContactsProvider>(
       builder: (context, provider, _) {
         final colors = Theme.of(context).colorScheme;
+        final hasHighlights = provider.groups.any((g) => g.highlight.id != 0);
+        final headerHeight = _titleRowHeight +
+            _searchBarBlockHeight +
+            (hasHighlights ? _highlightFilterRowHeight : 0);
 
-        return Column(
-          children: [
-            // En-tête : titre + total de contacts / favoris + actions (+ / ...)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Contacts',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: colors.onSurface,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colors.onSurface.withValues(alpha: 0.55),
-                            ),
-                            children: [
-                              TextSpan(text: '${provider.allContacts.length} contacts · '),
-                              TextSpan(
-                                text:
-                                    '${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
-                                style: const TextStyle(
-                                  color: _themeBlue,
-                                  fontWeight: FontWeight.w600,
-                                ),
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            if (selectedContacts.isNotEmpty) {
+              clearSelection();
+              widget.onCancelSelection?.call();
+            }
+          },
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              // En-tête (titre + recherche + filtre highlight) fixe en verre
+              // dépoli pendant le scroll — même principe que la barre de
+              // recherche/filtres sur Explorer.
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: StickyHeaderDelegate(
+                  height: headerHeight,
+                  blurBackground: true,
+                  child: Column(
+                    children: [
+                      // En-tête : titre + total de contacts / favoris + actions (+ / ...)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Contacts',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.onSurface,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.55),
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                            text:
+                                                '${provider.allContacts.length} contacts · '),
+                                        TextSpan(
+                                          text:
+                                              '${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
+                                          style: const TextStyle(
+                                            color: _themeBlue,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
+                            _SquareIconButton(
+                              icon: Icons.person_add_alt_1_rounded,
+                              tooltip: 'Ajouter un contact',
+                              onTap: () => showAddContactSheet(context),
+                            ),
+                            const SizedBox(width: 8),
+                            _ContactsMenuButton(
+                              // Basé sur la sélection RÉELLE (selectedContacts), pas
+                              // sur le flag externe — sinon "Supprimer"/"Exporter" ne
+                              // faisaient rien la première fois qu'on les cliquait
+                              // quand la sélection avait démarré via le cercle d'une
+                              // ligne plutôt que via ce menu.
+                              selectionModeActive: selectedContacts.isNotEmpty,
+                              onSelect: () {
+                                if (selectedContacts.isNotEmpty) {
+                                  clearSelection();
+                                  widget.onCancelSelection?.call();
+                                } else {
+                                  widget.onEnterSelectionMode?.call();
+                                }
+                              },
+                              onExport: () {
+                                if (selectedContacts.isEmpty) {
+                                  widget.onEnterSelectionMode?.call();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Sélectionnez les contacts à exporter, puis validez en bas.'),
+                                    ),
+                                  );
+                                } else {
+                                  exportSelectedContacts();
+                                }
+                              },
+                              onDelete: () {
+                                if (selectedContacts.isEmpty) {
+                                  widget.onEnterSelectionMode?.call();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Sélectionnez les contacts à supprimer, puis validez en bas.'),
+                                    ),
+                                  );
+                                } else {
+                                  deleteSelectedContacts();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Barre de recherche
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: AppSearchBar(
+                          controller: _searchController,
+                          hintText: 'Rechercher un contact...',
+                          accentColor: companyColor,
+                          onChanged: (value) {
+                            provider.filterContacts(value);
+                            setState(() {});
+                          },
+                        ),
+                      ),
+
+                      // Filtre par highlight — plusieurs événements peuvent se
+                      // mélanger dans "Tous", pratique pour isoler par ex. seulement
+                      // les contacts du "Dakar Business Forum".
+                      _buildHighlightFilterRow(provider),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Favoris — accès rapide façon "à la une". Ouvre directement la
+              // carte publique du contact, comme un tap sur sa ligne dans la
+              // liste — le popup "Relancer le contact" (renvoyer sa carte)
+              // n'a pas sa place ici, il ne sert que pour relancer quelqu'un
+              // dont on avait déjà partagé sa carte.
+              SliverToBoxAdapter(
+                child: FavoritesStrip(
+                  favorites: provider.favoriteContacts,
+                  onTapFavorite: (contact) {
+                    HapticFeedback.lightImpact();
+                    final slug = contact.cardSlug;
+                    if (slug == null || slug.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Ce contact n\'a pas de carte associée.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PublicCardPage(slug: slug, contactId: contact.id),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Content
+              if (provider.isLoading)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(companyColor),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Chargement des contacts...',
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.6),
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  _SquareIconButton(
-                    icon: Icons.person_add_alt_1_rounded,
-                    tooltip: 'Ajouter un contact',
-                    onTap: () => showAddContactSheet(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _ContactsMenuButton(
-                    // Basé sur la sélection RÉELLE (selectedContacts), pas
-                    // sur le flag externe — sinon "Supprimer"/"Exporter" ne
-                    // faisaient rien la première fois qu'on les cliquait
-                    // quand la sélection avait démarré via le cercle d'une
-                    // ligne plutôt que via ce menu.
-                    selectionModeActive: selectedContacts.isNotEmpty,
-                    onSelect: () {
-                      if (selectedContacts.isNotEmpty) {
-                        clearSelection();
-                        widget.onCancelSelection?.call();
-                      } else {
-                        widget.onEnterSelectionMode?.call();
-                      }
-                    },
-                    onExport: () {
-                      if (selectedContacts.isEmpty) {
-                        widget.onEnterSelectionMode?.call();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Sélectionnez les contacts à exporter, puis validez en bas.'),
+                )
+              else if (provider.error != null)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          size: 64,
+                          color: Colors.red.shade300,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          provider.error!,
+                          style: TextStyle(
+                            color: Colors.red.shade600,
+                            fontSize: 15,
                           ),
-                        );
-                      } else {
-                        exportSelectedContacts();
-                      }
-                    },
-                    onDelete: () {
-                      if (selectedContacts.isEmpty) {
-                        widget.onEnterSelectionMode?.call();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Sélectionnez les contacts à supprimer, puis validez en bas.'),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => provider.fetchGroupedContacts(),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Réessayer'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: companyColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        );
-                      } else {
-                        deleteSelectedContacts();
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Barre de recherche
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: AppSearchBar(
-                controller: _searchController,
-                hintText: 'Rechercher un contact...',
-                accentColor: companyColor,
-                onChanged: (value) {
-                  provider.filterContacts(value);
-                  setState(() {});
-                },
-              ),
-            ),
-
-            // Filtre par highlight — plusieurs événements peuvent se
-            // mélanger dans "Tous", pratique pour isoler par ex. seulement
-            // les contacts du "Dakar Business Forum".
-            _buildHighlightFilterRow(provider),
-
-            // Favoris — accès rapide façon "à la une". Ouvre directement la
-            // carte publique du contact, comme un tap sur sa ligne dans la
-            // liste — le popup "Relancer le contact" (renvoyer sa carte)
-            // n'a pas sa place ici, il ne sert que pour relancer quelqu'un
-            // dont on avait déjà partagé sa carte.
-            FavoritesStrip(
-              favorites: provider.favoriteContacts,
-              onTapFavorite: (contact) {
-                HapticFeedback.lightImpact();
-                final slug = contact.cardSlug;
-                if (slug == null || slug.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ce contact n\'a pas de carte associée.'),
-                      backgroundColor: Colors.red,
+                        ),
+                      ],
                     ),
-                  );
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PublicCardPage(slug: slug, contactId: contact.id),
                   ),
-                );
-              },
-            ),
-
-            // Content
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  FocusScope.of(context).unfocus();
-                  if (selectedContacts.isNotEmpty) {
-                    clearSelection();
-                    widget.onCancelSelection?.call();
-                  }
-                },
-                child: Builder(
-                builder: (context) {
-                  if (provider.isLoading) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(companyColor),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Chargement des contacts...',
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (provider.error != null) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline_rounded,
-                            size: 64,
-                            color: Colors.red.shade300,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            provider.error!,
-                            style: TextStyle(
-                              color: Colors.red.shade600,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () => provider.fetchGroupedContacts(),
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Réessayer'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: companyColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (provider.groups.isEmpty) {
-                    return _emptyState(context, companyColor);
-                  }
-
-                  if (provider.noMatch) {
-                    return _noMatchState(context);
-                  }
-
-                  // Liste plate de lignes (avatar, nom, poste, badge
-                  // highlight + date), triée par date d'ajout la plus
-                  // récente — les sections par highlight ont été
-                  // abandonnées au profit de ce badge par ligne, plus
-                  // lisible, et filtrable via les chips au-dessus.
-                  final contacts = provider.allContacts
+                )
+              else if (provider.groups.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _emptyState(context, companyColor),
+                )
+              else if (provider.noMatch)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _noMatchState(context),
+                )
+              else
+                _buildFlatList(
+                  context,
+                  provider.allContacts
                       .where((c) => provider.matchesQuery(c))
                       .where((c) =>
                           _highlightFilterId == null ||
                           c.highlightId == _highlightFilterId)
                       .toList()
                     ..sort((a, b) {
-                      if (a.capturedAt == null && b.capturedAt == null) return 0;
+                      if (a.capturedAt == null && b.capturedAt == null) {
+                        return 0;
+                      }
                       if (a.capturedAt == null) return 1;
                       if (b.capturedAt == null) return -1;
                       return b.capturedAt!.compareTo(a.capturedAt!);
-                    });
-
-                  return _buildFlatList(context, contacts);
-                },
+                    }),
                 ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -636,22 +657,28 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   /// l'ancienne grille groupée par sections de highlight.
   Widget _buildFlatList(BuildContext context, List<ContactModel> contacts) {
     if (contacts.isEmpty) {
-      return Center(
-        child: Text(
-          'Aucun contact',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Text(
+            'Aucun contact',
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.5),
+            ),
           ),
         ),
       );
     }
 
-    return ListView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.only(top: 4, bottom: 24),
-      // Un simple scroll ferme aussi le clavier — en plus du tap.
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      itemCount: contacts.length,
-      itemBuilder: (context, index) => _buildContactRow(contacts[index]),
+      sliver: SliverList.builder(
+        itemCount: contacts.length,
+        itemBuilder: (context, index) => _buildContactRow(contacts[index]),
+      ),
     );
   }
 
@@ -670,7 +697,8 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
         });
         widget.onSelectionChanged?.call(selectedContacts.length);
       },
-      onToggleFavorite: () => context.read<ContactsProvider>().toggleFavorite(c.id),
+      onToggleFavorite: () =>
+          context.read<ContactsProvider>().toggleFavorite(c.id),
       onDelete: () => _deleteSingleContact(c),
     );
   }
@@ -704,7 +732,9 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               labelStyle: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+                color: active
+                    ? Colors.white
+                    : colors.onSurface.withValues(alpha: 0.7),
               ),
               selectedColor: _themeBlue,
               backgroundColor: colors.onSurface.withValues(alpha: 0.06),
@@ -717,12 +747,14 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
           return ChoiceChip(
             label: Text(highlight.name),
             selected: active,
-            onSelected: (_) => setState(() =>
-                _highlightFilterId = active ? null : highlight.id),
+            onSelected: (_) => setState(
+                () => _highlightFilterId = active ? null : highlight.id),
             labelStyle: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+              color: active
+                  ? Colors.white
+                  : colors.onSurface.withValues(alpha: 0.7),
             ),
             selectedColor: _themeBlue,
             backgroundColor: colors.onSurface.withValues(alpha: 0.06),
@@ -996,7 +1028,9 @@ class _ContactsMenuButton extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 12),
-              Text(selectionModeActive ? 'Terminer la sélection' : 'Sélectionner'),
+              Text(selectionModeActive
+                  ? 'Terminer la sélection'
+                  : 'Sélectionner'),
             ],
           ),
         ),
@@ -1034,4 +1068,3 @@ class _ContactsMenuButton extends StatelessWidget {
     );
   }
 }
-

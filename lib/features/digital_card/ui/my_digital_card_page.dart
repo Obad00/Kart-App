@@ -25,10 +25,7 @@ import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
 import '../../scan/ui/scan_page.dart';
 
-
-
 class MyDigitalCardPage extends StatefulWidget {
-
   final bool minimal;
   final GlobalKey? highlightBarKey;
   final GlobalKey? createCardKey;
@@ -43,7 +40,6 @@ class MyDigitalCardPage extends StatefulWidget {
   @override
   State<MyDigitalCardPage> createState() => _MyDigitalCardPageState();
 }
-
 
 class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     with TickerProviderStateMixin {
@@ -144,6 +140,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             : 'Membre';
 
     return Scaffold(
+      // Explicite plutôt que le défaut ThemeData.scaffoldBackgroundColor :
+      // ce dernier diffère de colorScheme.surface (utilisé par HomeShell et
+      // les autres pages), ce qui créait une couleur de fond visiblement
+      // différente derrière la pilule de nav (extendBody) selon l'onglet
+      // affiché — Carte contre Contacts/Profil/Offres, par ex.
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -163,19 +165,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
             // Highlights - remontes juste sous le header
             if (!widget.minimal)
-            Positioned(
-              top: 70,
-              left: 0,
-              right: 0,
-              child: Showcase(
-                key: _highlightBarKeyInternal,
-                title: 'Highlights',
-                description:
-                    "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
-                child: const HighlightBar(),
+              Positioned(
+                top: 70,
+                left: 0,
+                right: 0,
+                child: Showcase(
+                  key: _highlightBarKeyInternal,
+                  title: 'Highlights',
+                  description:
+                      "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
+                  child: const HighlightBar(),
+                ),
               ),
-            ),
-
 
             // QR Card centrée verticalement
             Positioned(
@@ -192,8 +193,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     );
                   }
 
-                  if (!state.isReady &&
-                      state.status != CardStatus.noCard) {
+                  if (!state.isReady && state.status != CardStatus.noCard) {
                     return const Center(
                       child: CircularProgressIndicator(),
                     );
@@ -207,72 +207,64 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                         description:
                             'Créez votre carte de visite digitale pour commencer à la partager.',
                         child: NoCardCta(
-                        onCreate: () async {
-                          final navigator = Navigator.of(context);
-                          final messenger =
-                              ScaffoldMessenger.of(context);
-                          final cardProvider =
-                              context.read<CardProvider>();
+                          onCreate: () async {
+                            final navigator = Navigator.of(context);
+                            final messenger = ScaffoldMessenger.of(context);
+                            final cardProvider = context.read<CardProvider>();
 
-                          final created = await navigator.push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const CreateCardPage(),
-                            ),
-                          );
-
-                          if (!mounted || created != true) return;
-
-                          await cardProvider.loadCardSummary();
-                          await cardProvider.loadMyCardQr();
-
-                          if (!mounted) return;
-
-                          messenger
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(
-                              SnackBar(
-                                behavior:
-                                    SnackBarBehavior.floating,
-                                backgroundColor:
-                                    const Color(0xFF0A0A0A),
-                                elevation: 0,
-                                duration:
-                                    const Duration(seconds: 3),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(12),
-                                  side: BorderSide(
-                                    color: Colors.white
-                                        .withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                content: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'Carte créée avec succès 🎉',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight:
-                                              FontWeight.w500,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            final created = await navigator.push(
+                              MaterialPageRoute(
+                                builder: (_) => const CreateCardPage(),
                               ),
                             );
-                        },
-                      ),
+
+                            if (!mounted || created != true) return;
+
+                            await cardProvider.loadCardSummary();
+                            await cardProvider.loadMyCardQr();
+
+                            if (!mounted) return;
+
+                            messenger
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: const Color(0xFF0A0A0A),
+                                  elevation: 0,
+                                  duration: const Duration(seconds: 3),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.2),
+                                    ),
+                                  ),
+                                  content: const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Carte créée avec succès 🎉',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                          },
+                        ),
                       ),
                     );
                   }
@@ -288,10 +280,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                   }
 
                   // QR Widget
-                  final Widget qrWidget =
-                      _buildQr(state.qrSvg!);
+                  final Widget qrWidget = _buildQr(state.qrSvg!);
 
-                void share() {
+                  void share() {
                     if (widget.minimal) return;
                     _shareLink();
                   }
@@ -301,35 +292,38 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     _exportFullCard();
                   }
 
-
                   // Vérifier si l'utilisateur a une entreprise
                   // On utilise les données du CardProvider (company_logo ou company_primary_color)
                   // car elles viennent de /me/card-summary qui est plus fiable
                   final bool hasCompanyBranding = user?.hasCompany == true ||
-                      (state.companyLogo != null && state.companyLogo!.isNotEmpty) ||
-                      (state.companyPrimaryColor != null && state.companyPrimaryColor!.isNotEmpty);
+                      (state.companyLogo != null &&
+                          state.companyLogo!.isNotEmpty) ||
+                      (state.companyPrimaryColor != null &&
+                          state.companyPrimaryColor!.isNotEmpty);
 
                   // Photo de profil en repli si aucun logo de carte n'a été
                   // choisi explicitement — évite de forcer un second upload
                   // pour la même chose (cf. discussion : unifier les deux
                   // par défaut, tout en gardant le logo dédié prioritaire
                   // pour qui veut vraiment un visuel différent).
-                  final String? avatarUrl = (user?.avatar != null && user!.avatar!.isNotEmpty)
-                      ? (user.avatar!.startsWith('http')
-                          ? user.avatar
-                          : '${ApiEndpoints.storageUrl}/${user.avatar}')
-                      : null;
+                  final String? avatarUrl =
+                      (user?.avatar != null && user!.avatar!.isNotEmpty)
+                          ? (user.avatar!.startsWith('http')
+                              ? user.avatar
+                              : '${ApiEndpoints.storageUrl}/${user.avatar}')
+                          : null;
                   final String? personalLogo =
                       (state.logo != null && state.logo!.isNotEmpty)
                           ? state.logo
                           : avatarUrl;
 
                   // Branding personnel (couleur d'accent + logo/photo), gratuit pour tous
-                  final bool hasPersonalBranding =
-                      (state.accentColor != null && state.accentColor!.isNotEmpty) ||
+                  final bool hasPersonalBranding = (state.accentColor != null &&
+                          state.accentColor!.isNotEmpty) ||
                       (personalLogo != null && personalLogo.isNotEmpty);
 
-                  final bool useBrandedCard = hasCompanyBranding || hasPersonalBranding;
+                  final bool useBrandedCard =
+                      hasCompanyBranding || hasPersonalBranding;
 
                   return FadeTransition(
                     opacity: _fade,
@@ -346,18 +340,23 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                               ? CompanyQrCard(
                                   qrCode: qrWidget,
                                   companyName: hasCompanyBranding
-                                      ? (state.company ?? user?.company?.name ?? 'Entreprise')
+                                      ? (state.company ??
+                                          user?.company?.name ??
+                                          'Entreprise')
                                       : fullName,
-                                  companyLogo: hasCompanyBranding ? state.companyLogo : personalLogo,
+                                  companyLogo: hasCompanyBranding
+                                      ? state.companyLogo
+                                      : personalLogo,
                                   primaryColor: _parseColor(
-                                    hasCompanyBranding ? state.companyPrimaryColor : state.accentColor,
+                                    hasCompanyBranding
+                                        ? state.companyPrimaryColor
+                                        : state.accentColor,
                                     const Color(0xFF3B82F6),
                                   ),
                                   subtitle: state.jobTitle,
                                   badgeLabel: hasCompanyBranding ? 'PRO' : null,
-                                 onShare: widget.minimal ? null : share,
-                                 onDownload: widget.minimal ? null : download,
-
+                                  onShare: widget.minimal ? null : share,
+                                  onDownload: widget.minimal ? null : download,
                                   onTapQr: () {
                                     QrFullscreenView.show(
                                       context,
@@ -392,9 +391,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     );
   }
 
-Widget _buildQrOnly(String svg) {
-  return svg_pkg.SvgPicture.string(svg);
-}
+  Widget _buildQrOnly(String svg) {
+    return svg_pkg.SvgPicture.string(svg);
+  }
 
   Color _parseColor(String? hexColor, Color fallback) {
     if (hexColor == null || hexColor.isEmpty) return fallback;
@@ -407,31 +406,27 @@ Widget _buildQrOnly(String svg) {
     }
   }
 
- Widget _buildQr(String svg) {
-  return GestureDetector(
-    onTap: () {
+  Widget _buildQr(String svg) {
+    return GestureDetector(
+      onTap: () {
+        _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
 
-      _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ScanPage(),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ScanPage(),
+          ),
+        );
+      },
+      child: ScaleTransition(
+        scale: _qrScale,
+        child: RepaintBoundary(
+          key: _qrKey,
+          child: svg_pkg.SvgPicture.string(svg),
         ),
-      );
-
-    },
-
-
-    child: ScaleTransition(
-      scale: _qrScale,
-      child: RepaintBoundary(
-        key: _qrKey,
-        child: svg_pkg.SvgPicture.string(svg),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _shareLink() async {
     final cardProvider = context.read<CardProvider>();
@@ -474,7 +469,8 @@ Widget _buildQrOnly(String svg) {
           : 'Utilisateur';
 
       if (url == null || url.isEmpty) {
-        throw Exception('Impossible de générer le lien de partage. Veuillez réessayer.');
+        throw Exception(
+            'Impossible de générer le lien de partage. Veuillez réessayer.');
       }
 
       debugPrint('✅ Opening native share sheet with URL: $url');
@@ -498,7 +494,8 @@ Widget _buildQrOnly(String svg) {
       debugPrint('❌ Erreur lors du partage : $e\n$stack');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors du partage: ${e.toString().replaceAll('Exception: ', '')}'),
+          content: Text(
+              'Erreur lors du partage: ${e.toString().replaceAll('Exception: ', '')}'),
           backgroundColor: Colors.red[700],
           duration: const Duration(seconds: 4),
         ),
@@ -509,8 +506,8 @@ Widget _buildQrOnly(String svg) {
   /// Exporte la carte entière telle qu'affichée (fond, badge, nom, poste,
   /// QR...) — avant, seul le QR code isolé était exporté.
   Future<void> _exportFullCard() async {
-    final boundary = _fullCardKey.currentContext!
-        .findRenderObject() as RenderRepaintBoundary;
+    final boundary = _fullCardKey.currentContext!.findRenderObject()
+        as RenderRepaintBoundary;
 
     final image = await boundary.toImage(pixelRatio: 3);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
