@@ -311,7 +311,7 @@ class _SlideToConnectButtonState extends State<_SlideToConnectButton>
                           // dépassait et se faisait réduire par le
                           // FittedBox jusqu'à devenir illisible.
                           child: Text(
-                            'Glisser pour se connecter',
+                            'Glisser pour connecter',
                             maxLines: 1,
                             style: TextStyle(
                               fontSize: 14,

@@ -22,7 +22,6 @@ final List<String> _schools = [
   'Stanford University',
 ];
 
-
 final List<String> _degrees = [
   'Baccalauréat',
   'DUT',
@@ -35,7 +34,6 @@ final List<String> _degrees = [
   'Doctorat (PhD)',
   'MBA',
 ];
-
 
 final List<String> _fields = [
   'Informatique',
@@ -52,7 +50,6 @@ final List<String> _fields = [
   'Entrepreneuriat',
   'Ressources Humaines',
 ];
-
 
 /// [section] restreint le formulaire à une seule partie : 'basic', 'social',
 /// 'experiences' ou 'educations'. `null` (par défaut) affiche tout.
@@ -357,7 +354,12 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           key: _formKey,
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+            // + viewInsets.bottom : sans cette marge qui grandit avec le
+            // clavier, la liste n'a pas assez d'espace pour faire défiler un
+            // champ (date, sélecteur...) au-dessus du clavier une fois
+            // ouvert — il restait masqué, inaccessible sans le refermer.
+            padding: EdgeInsets.fromLTRB(
+                20, 0, 20, 40 + MediaQuery.of(context).viewInsets.bottom),
             children: [
               Center(
                 child: Container(
@@ -552,8 +554,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ),
                 const SizedBox(height: 12),
                 if (_educations.isEmpty)
-                  _buildEmptyState(colors, 'Aucune formation',
-                      'Ajoutez votre première formation', Icons.school_outlined),
+                  _buildEmptyState(
+                      colors,
+                      'Aucune formation',
+                      'Ajoutez votre première formation',
+                      Icons.school_outlined),
                 ..._educations.asMap().entries.map((entry) {
                   return _buildEducationCard(colors, entry.key, entry.value);
                 }),
@@ -687,345 +692,347 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     );
   }
 
- Widget _buildEducationCard(
-  ColorScheme colors,
-  int index,
-  Map<String, TextEditingController> edu,
-) {
-  const accent = Color(0xFF8B5CF6);
+  Widget _buildEducationCard(
+    ColorScheme colors,
+    int index,
+    Map<String, TextEditingController> edu,
+  ) {
+    const accent = Color(0xFF8B5CF6);
 
-  Widget buildStyledAutocomplete({
-    required String label,
-    required IconData icon,
-    required List<String> options,
-    required TextEditingController controller,
-    String? hint,
-  }) {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue value) {
-        if (value.text.isEmpty) return options;
-        return options.where((option) =>
-            option.toLowerCase().contains(value.text.toLowerCase()));
-      },
-      onSelected: (value) {
-        controller.text = value;
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 8,
-            shadowColor: accent.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
-            color: colors.surface,
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 220, maxWidth: 340),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.15),
+    Widget buildStyledAutocomplete({
+      required String label,
+      required IconData icon,
+      required List<String> options,
+      required TextEditingController controller,
+      String? hint,
+    }) {
+      return Autocomplete<String>(
+        optionsBuilder: (TextEditingValue value) {
+          if (value.text.isEmpty) return options;
+          return options.where((option) =>
+              option.toLowerCase().contains(value.text.toLowerCase()));
+        },
+        onSelected: (value) {
+          controller.text = value;
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 8,
+              shadowColor: accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+              color: colors.surface,
+              child: Container(
+                constraints:
+                    const BoxConstraints(maxHeight: 220, maxWidth: 340),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.15),
+                  ),
                 ),
-              ),
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                shrinkWrap: true,
-                itemCount: options.length,
-                separatorBuilder: (_, __) => Divider(
-                  height: 1,
-                  color: colors.onSurface.withValues(alpha: 0.05),
-                ),
-                itemBuilder: (_, i) {
-                  final option = options.elementAt(i);
-                  return InkWell(
-                    onTap: () => onSelected(option),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      child: Row(
-                        children: [
-                          Icon(icon,
-                              size: 16,
-                              color: accent.withValues(alpha: 0.6)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              option,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: colors.onSurface,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: colors.onSurface.withValues(alpha: 0.05),
+                  ),
+                  itemBuilder: (_, i) {
+                    final option = options.elementAt(i);
+                    return InkWell(
+                      onTap: () => onSelected(option),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(icon,
+                                size: 16, color: accent.withValues(alpha: 0.6)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: colors.onSurface,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-      fieldViewBuilder: (context, textController, focusNode, onSubmit) {
-        // Sync initial value
-        if (textController.text != controller.text) {
-          textController.text = controller.text;
-        }
-        textController.addListener(() {
-          controller.text = textController.text;
-        });
-
-        return AnimatedBuilder(
-          animation: focusNode,
-          builder: (context, _) {
-            final focused = focusNode.hasFocus;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontSize: focused || textController.text.isNotEmpty ? 12 : 14,
-                    color: focused ? accent : colors.onSurface.withValues(alpha: 0.5),
-                    fontWeight: focused ? FontWeight.w600 : FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
-                  child: Text(label),
-                ),
-                const SizedBox(height: 8),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  decoration: BoxDecoration(
-                    color: focused
-                        ? accent.withValues(alpha: 0.06)
-                        : colors.onSurface.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: focused
-                          ? accent.withValues(alpha: 0.5)
-                          : textController.text.isNotEmpty
-                              ? colors.onSurface.withValues(alpha: 0.15)
-                              : colors.onSurface.withValues(alpha: 0.08),
-                      width: focused ? 1.5 : 1,
-                    ),
-                    boxShadow: focused
-                        ? [
-                            BoxShadow(
-                              color: accent.withValues(alpha: 0.08),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: TextField(
-                    controller: textController,
-                    focusNode: focusNode,
-                    onSubmitted: (_) => onSubmit(),
-                    style: TextStyle(
-                      color: colors.onSurface,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    cursorColor: accent,
-                    cursorWidth: 1.5,
-                    decoration: InputDecoration(
-                      hintText: hint ?? 'Sélectionner ou saisir',
-                      hintStyle: TextStyle(
-                        color: colors.onSurface.withValues(alpha: 0.35),
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      border: InputBorder.none,
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 14, right: 10),
-                        child: Icon(
-                          icon,
-                          size: 20,
-                          color: focused
-                              ? accent
-                              : colors.onSurface.withValues(alpha: 0.4),
+                          ],
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
-                      ),
-                      suffixIcon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: focused
-                            ? accent
-                            : colors.onSurface.withValues(alpha: 0.3),
-                        size: 22,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: accent.withValues(alpha: 0.03),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: accent.withValues(alpha: 0.12),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // HEADER
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    accent.withValues(alpha: 0.15),
-                    accent.withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.school_outlined,
-                  size: 18, color: accent),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+          );
+        },
+        fieldViewBuilder: (context, textController, focusNode, onSubmit) {
+          // Sync initial value
+          if (textController.text != controller.text) {
+            textController.text = controller.text;
+          }
+          textController.addListener(() {
+            controller.text = textController.text;
+          });
+
+          return AnimatedBuilder(
+            animation: focusNode,
+            builder: (context, _) {
+              final focused = focusNode.hasFocus;
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Formation ${index + 1}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                    ),
-                  ),
-                  Text(
-                    'Parcours académique',
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
                     style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurface.withValues(alpha: 0.4),
+                      fontSize:
+                          focused || textController.text.isNotEmpty ? 12 : 14,
+                      color: focused
+                          ? accent
+                          : colors.onSurface.withValues(alpha: 0.5),
+                      fontWeight: focused ? FontWeight.w600 : FontWeight.w500,
+                      letterSpacing: 0.5,
+                    ),
+                    child: Text(label),
+                  ),
+                  const SizedBox(height: 8),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      color: focused
+                          ? accent.withValues(alpha: 0.06)
+                          : colors.onSurface.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: focused
+                            ? accent.withValues(alpha: 0.5)
+                            : textController.text.isNotEmpty
+                                ? colors.onSurface.withValues(alpha: 0.15)
+                                : colors.onSurface.withValues(alpha: 0.08),
+                        width: focused ? 1.5 : 1,
+                      ),
+                      boxShadow: focused
+                          ? [
+                              BoxShadow(
+                                color: accent.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: TextField(
+                      controller: textController,
+                      focusNode: focusNode,
+                      onSubmitted: (_) => onSubmit(),
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      cursorColor: accent,
+                      cursorWidth: 1.5,
+                      decoration: InputDecoration(
+                        hintText: hint ?? 'Sélectionner ou saisir',
+                        hintStyle: TextStyle(
+                          color: colors.onSurface.withValues(alpha: 0.35),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        border: InputBorder.none,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 14, right: 10),
+                          child: Icon(
+                            icon,
+                            size: 20,
+                            color: focused
+                                ? accent
+                                : colors.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 44,
+                          minHeight: 44,
+                        ),
+                        suffixIcon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: focused
+                              ? accent
+                              : colors.onSurface.withValues(alpha: 0.3),
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () => _removeEducation(index),
-              child: Container(
+              );
+            },
+          );
+        },
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // HEADER
+          Row(
+            children: [
+              Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.08),
+                  gradient: LinearGradient(
+                    colors: [
+                      accent.withValues(alpha: 0.15),
+                      accent.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.15),
-                  ),
                 ),
-                child: const Icon(Icons.delete_outline,
-                    size: 16, color: Colors.red),
+                child:
+                    const Icon(Icons.school_outlined, size: 18, color: accent),
               ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 20),
-
-        // ÉCOLE / UNIVERSITÉ
-        buildStyledAutocomplete(
-          label: 'École / Université',
-          icon: Icons.school_outlined,
-          options: _schools,
-          controller: edu['school']!,
-          hint: 'Ex: UCAD, ESMT, Harvard...',
-        ),
-
-        const SizedBox(height: 16),
-
-        // DIPLOME
-        buildStyledAutocomplete(
-          label: 'Diplôme',
-          icon: Icons.workspace_premium_outlined,
-          options: _degrees,
-          controller: edu['degree']!,
-          hint: 'Ex: Master, Licence, MBA...',
-        ),
-
-        const SizedBox(height: 16),
-
-        // DOMAINE
-        buildStyledAutocomplete(
-          label: 'Domaine d\'études',
-          icon: Icons.category_outlined,
-          options: _fields,
-          controller: edu['field']!,
-          hint: 'Ex: Informatique, Finance...',
-        ),
-
-        const SizedBox(height: 16),
-
-        // ANNEES
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _pickYear(edu['start_year']!),
-                child: AbsorbPointer(
-                  child: AuthTextField(
-                    label: 'Année début',
-                    controller: edu['start_year']!,
-                    prefixIcon: Icons.calendar_today_outlined,
-                    hint: 'Ex: 2020',
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Formation ${index + 1}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
+                    ),
+                    Text(
+                      'Parcours académique',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(
-                Icons.arrow_forward_rounded,
-                size: 16,
-                color: colors.onSurface.withValues(alpha: 0.25),
+              GestureDetector(
+                onTap: () => _removeEducation(index),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: const Icon(Icons.delete_outline,
+                      size: 16, color: Colors.red),
+                ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _pickYear(edu['end_year']!),
-                child: AbsorbPointer(
-                  child: AuthTextField(
-                    label: 'Année fin',
-                    controller: edu['end_year']!,
-                    prefixIcon: Icons.calendar_today_outlined,
-                    hint: 'Ex: 2024',
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ÉCOLE / UNIVERSITÉ
+          buildStyledAutocomplete(
+            label: 'École / Université',
+            icon: Icons.school_outlined,
+            options: _schools,
+            controller: edu['school']!,
+            hint: 'Ex: UCAD, ESMT, Harvard...',
+          ),
+
+          const SizedBox(height: 16),
+
+          // DIPLOME
+          buildStyledAutocomplete(
+            label: 'Diplôme',
+            icon: Icons.workspace_premium_outlined,
+            options: _degrees,
+            controller: edu['degree']!,
+            hint: 'Ex: Master, Licence, MBA...',
+          ),
+
+          const SizedBox(height: 16),
+
+          // DOMAINE
+          buildStyledAutocomplete(
+            label: 'Domaine d\'études',
+            icon: Icons.category_outlined,
+            options: _fields,
+            controller: edu['field']!,
+            hint: 'Ex: Informatique, Finance...',
+          ),
+
+          const SizedBox(height: 16),
+
+          // ANNEES
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickYear(edu['start_year']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(
+                      label: 'Année début',
+                      controller: edu['start_year']!,
+                      prefixIcon: Icons.calendar_today_outlined,
+                      hint: 'Ex: 2020',
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 16,
+                  color: colors.onSurface.withValues(alpha: 0.25),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickYear(edu['end_year']!),
+                  child: AbsorbPointer(
+                    child: AuthTextField(
+                      label: 'Année fin',
+                      controller: edu['end_year']!,
+                      prefixIcon: Icons.calendar_today_outlined,
+                      hint: 'Ex: 2024',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSectionHeader(
     ColorScheme colors,
