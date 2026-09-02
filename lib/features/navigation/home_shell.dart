@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -392,10 +394,10 @@ class _HomeShellState extends State<HomeShell>
 
       return Scaffold(
         backgroundColor: colors.surface,
-        // extendBody retiré : la pilule est maintenant opaque (voir
-        // _buildBottomNavigation) — plus besoin que le contenu défile
-        // dessous, et ça évite de masquer les dernières lignes d'une liste
-        // sous un fond plein sans lien avec leur contenu.
+        // extendBody : le contenu défile réellement sous la pilule (comme
+        // WhatsApp) — indispensable pour que le flou verre dépoli ait
+        // quelque chose à flouter, au lieu d'un fond ajouté par-dessus.
+        extendBody: true,
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
@@ -418,60 +420,69 @@ class _HomeShellState extends State<HomeShell>
     final badgeCount =
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
 
-    // Aucun fond, aucune bordure, aucune ombre : juste les icônes/libellés,
-    // sans aucun bloc visible derrière eux, sur aucune page.
+    // Glassmorphisme façon WhatsApp : uniquement le flou (BackdropFilter)
+    // sur le contenu qui défile réellement dessous (extendBody) — aucune
+    // couleur ajoutée par-dessus. Ce qui se voit "derrière" la pilule,
+    // c'est la page elle-même, simplement floutée, jamais un bloc de
+    // couleur inventé.
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: SizedBox(
-          height: 56,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                icon: Icons.credit_card_outlined,
-                activeIcon: Icons.credit_card,
-                label: 'Carte',
-                index: 0,
-                tourDescription:
-                    'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(
+                    icon: Icons.credit_card_outlined,
+                    activeIcon: Icons.credit_card,
+                    label: 'Carte',
+                    index: 0,
+                    tourDescription:
+                        'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
+                  ),
+                  _buildNavItem(
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    label: 'Contacts',
+                    index: 1,
+                    tourDescription:
+                        'Retrouvez tous les contacts collectés au même endroit.',
+                  ),
+                  if (showJobMatch)
+                    _buildNavItem(
+                      icon: Icons.favorite_outline,
+                      activeIcon: Icons.favorite,
+                      label: 'Offres',
+                      index: 2,
+                      tourDescription:
+                          "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                    ),
+                  _buildNavItem(
+                    icon: Icons.explore_outlined,
+                    activeIcon: Icons.explore,
+                    label: 'Explorer',
+                    index: showJobMatch ? 3 : 2,
+                    tourDescription:
+                        'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                    badgeCount: badgeCount,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    label: 'Profil',
+                    index: showJobMatch ? 4 : 3,
+                    tourDescription:
+                        'Gérez vos informations, votre carte et les réglages de l\'app.',
+                  ),
+                ],
               ),
-              _buildNavItem(
-                icon: Icons.people_outline,
-                activeIcon: Icons.people,
-                label: 'Contacts',
-                index: 1,
-                tourDescription:
-                    'Retrouvez tous les contacts collectés au même endroit.',
-              ),
-              if (showJobMatch)
-                _buildNavItem(
-                  icon: Icons.favorite_outline,
-                  activeIcon: Icons.favorite,
-                  label: 'Offres',
-                  index: 2,
-                  tourDescription:
-                      "Découvrez les offres d'emploi qui correspondent à votre profil.",
-                ),
-              _buildNavItem(
-                icon: Icons.explore_outlined,
-                activeIcon: Icons.explore,
-                label: 'Explorer',
-                index: showJobMatch ? 3 : 2,
-                tourDescription:
-                    'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
-                badgeCount: badgeCount,
-              ),
-              _buildNavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profil',
-                index: showJobMatch ? 4 : 3,
-                tourDescription:
-                    'Gérez vos informations, votre carte et les réglages de l\'app.',
-              ),
-            ],
+            ),
           ),
         ),
       ),
