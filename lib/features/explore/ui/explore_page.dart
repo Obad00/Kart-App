@@ -769,6 +769,13 @@ class _ExploreUserRow extends StatelessWidget {
                   CachedNetworkImage(
                     imageUrl: avatarUrl,
                     fit: BoxFit.cover,
+                    // topCenter plutôt que le center par défaut : sur une
+                    // carte plus large que haute, un recadrage centré coupe
+                    // fréquemment le haut du visage sur une photo portrait
+                    // (le sujet est presque toujours dans le tiers haut de
+                    // la photo) — aligner en haut garde la tête visible et
+                    // rogne plutôt le bas (épaules/torse).
+                    alignment: Alignment.topCenter,
                     // Sans ça, une image cassée/corrompue (EncodingError)
                     // laissait un carré vide et spammait la console — on
                     // retombe proprement sur le même dégradé + initiales
