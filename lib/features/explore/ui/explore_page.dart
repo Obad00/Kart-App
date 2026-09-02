@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/app_search_bar.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
 import '../providers/connection_badge_provider.dart';
@@ -160,33 +161,53 @@ class _ExplorePageState extends State<ExplorePage>
     final topPadding =
         glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
 
+    // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
+    // navigation (fond colorScheme.surface unique, cf. AppTheme). GlassAppBar
+    // n'a besoin que d'un AppBar (widget autonome, pas de dépendance à
+    // Scaffold) — posé par-dessus le contenu via Positioned pour reproduire
+    // l'effet extendBodyBehindAppBar : le contenu défile réellement dessous,
+    // chaque onglet réservant déjà la place nécessaire via topPadding.
     return ChangeNotifierProvider.value(
       value: _provider,
-      child: Scaffold(
-        // Explicite plutôt que le défaut ThemeData.scaffoldBackgroundColor :
-        // ce dernier diffère de colorScheme.surface (utilisé par HomeShell
-        // et les autres pages), ce qui créait une couleur de fond visible-
-        // ment différente derrière la pilule de nav (extendBody côté
-        // HomeShell) selon l'onglet affiché.
-        backgroundColor: colors.surface,
-        extendBodyBehindAppBar: true,
-        appBar: glassAppBar,
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildDiscoverTab(topPadding),
-              _buildMyRequestsTab(topPadding),
-            ],
+      child: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDiscoverTab(topPadding),
+                _buildMyRequestsTab(topPadding),
+              ],
+            ),
           ),
-        ),
+          // SizedBox(height: topPadding) est indispensable : sans lui, ce
+          // Positioned (top/left/right seuls, pas de bottom) donne à
+          // GlassAppBar une hauteur non contrainte, et l'AppBar interne (qui
+          // empile toolbar + TabBar dans une Column avec Expanded) plante en
+          // layout — c'est exactement ce que fait Scaffold(appBar: ...) en
+          // interne pour n'importe quel AppBar, et qu'il faut donc refaire à
+          // la main ici. topPadding (pas juste preferredSize.height) car
+          // l'AppBar réserve lui-même la place de la status bar en plus de
+          // sa propre hauteur quand primary vaut true (par défaut).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(height: topPadding, child: glassAppBar),
+          ),
+        ],
       ),
     );
   }
 
-  static const double _searchBarHeight = 58;
+  // AppSearchBar n'a pas de hauteur fixe (elle dépend du TextField interne
+  // — icône de suffixe "effacer" quand une recherche est tapée, réglages
+  // d'accessibilité...) : 58 était trop juste et provoquait "A RenderFlex
+  // overflowed by 5.0 pixels" dans l'en-tête épinglé dès que le champ
+  // dépassait ne serait-ce que de quelques pixels. Marge de sécurité +6.
+  static const double _searchBarHeight = 64;
   static const double _filterRowHeight = 44;
 
   Widget _buildDiscoverTab(double topPadding) {
@@ -309,7 +330,12 @@ class _ExplorePageState extends State<ExplorePage>
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.only(bottom: 24),
+                // 24 de respiration + la pilule de nav flottante de
+                // HomeShell (extendBody : la safe area seule ne suffit
+                // plus à protéger le dernier élément).
+                padding: EdgeInsets.only(
+                  bottom: 24 + BottomNavMetrics.reservedHeight,
+                ),
                 sliver: SliverList.builder(
                   itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -429,7 +455,10 @@ class _ExplorePageState extends State<ExplorePage>
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.only(bottom: 24, top: 8),
+                padding: EdgeInsets.only(
+                  top: 8,
+                  bottom: 24 + BottomNavMetrics.reservedHeight,
+                ),
                 sliver: SliverList.builder(
                   itemCount: provider.myRequests.length,
                   itemBuilder: (context, index) =>

@@ -190,7 +190,8 @@ void _showComingSoonDialog() {
             ),
 
           /// MA CARTE
-          if (_mode == ScanMode.myCard) const MyDigitalCardPage(minimal: true),
+          if (_mode == ScanMode.myCard)
+            const MyDigitalCardPage(minimal: true, embedded: true),
 
           /// SCAN PHYSIQUE
           if (_mode == ScanMode.physical) const CardScannerScreen(),

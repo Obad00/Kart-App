@@ -19,6 +19,7 @@ import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -122,19 +123,19 @@ class _ProfilePageState extends State<ProfilePage>
 
     final user = auth.user;
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     final colors = Theme.of(context).colorScheme;
     final companyColor = context.companyColor;
     final fullName = '${user.firstname} ${user.lastname}'.trim();
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      body: CustomScrollView(
-        slivers: [
+    // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
+    // navigation (fond colorScheme.surface unique). Cette page n'utilise
+    // qu'un SliverAppBar (dans ce CustomScrollView), pas un vrai
+    // Scaffold.appBar — rien ne justifiait un Scaffold supplémentaire.
+    return CustomScrollView(
+      slivers: [
           // App Bar avec effet de blur — verre dépoli façon Apple : le
           // contenu défile réellement derrière (pinned + floating), le
           // BackdropFilter a donc quelque chose à flouter au scroll.
@@ -407,7 +408,11 @@ class _ProfilePageState extends State<ProfilePage>
                       // Actions
                       _buildActionButtons(colors, context),
 
-                      const SizedBox(height: 40),
+                      // 40 de respiration + la pilule de nav flottante de
+                      // HomeShell (extendBody : la safe area seule ne
+                      // suffit plus à protéger le dernier élément).
+                      const SizedBox(
+                          height: 40 + BottomNavMetrics.reservedHeight),
                     ],
                   ),
                 ),
@@ -415,8 +420,7 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildProfileHeader(

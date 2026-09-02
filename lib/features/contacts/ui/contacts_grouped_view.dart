@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../shared/widgets/app_search_bar.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
@@ -364,7 +365,9 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   }
 
   static const double _titleRowHeight = 66;
-  static const double _searchBarBlockHeight = 82;
+  // +6 de marge de sécurité (même AppSearchBar qu'Explorer, qui a montré un
+  // "RenderFlex overflowed by 5.0 pixels" avec la même hauteur supposée).
+  static const double _searchBarBlockHeight = 88;
   static const double _highlightFilterRowHeight = 40;
 
   @override
@@ -674,7 +677,15 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.only(top: 4, bottom: 24),
+      // bottom : 24 de respiration + la pilule de nav flottante de
+      // HomeShell (hauteur + marges, cf. BottomNavMetrics) — sans ça, le
+      // dernier contact de la liste passe sous la pilule et reste
+      // inatteignable (HomeShell utilise extendBody: le padding de safe
+      // area transmis ici ne compte déjà plus la pilule elle-même).
+      padding: EdgeInsets.only(
+        top: 4,
+        bottom: 24 + BottomNavMetrics.reservedHeight,
+      ),
       sliver: SliverList.builder(
         itemCount: contacts.length,
         itemBuilder: (context, index) => _buildContactRow(contacts[index]),
