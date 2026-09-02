@@ -394,12 +394,14 @@ class _HomeShellState extends State<HomeShell>
 
       return Scaffold(
         backgroundColor: colors.surface,
-        // extendBody retiré : chaque page de cet onglet a son propre
-        // Scaffold avec un fond plein (ContactsPage, JobMatchFeedPage...),
-        // qui remplissait alors toute la hauteur — y compris derrière la
-        // pilule de nav. Résultat : pas de vrai contenu flouté, juste un
-        // bloc de couleur unie visible derrière/autour de la pilule (le
-        // "fond" qui n'a pas sa place là).
+        // extendBody : le contenu de chaque page défile réellement sous la
+        // pilule de nav (comme WhatsApp) — c'est ce qui donne au verre
+        // dépoli quelque chose à flouter. Chaque page utilise `colors.surface`
+        // pour son propre Scaffold, identique à celui-ci : pas de bloc de
+        // couleur différente qui se distinguerait derrière la pilule, juste
+        // le contenu (ou, en bas d'une liste courte, du fond uni — normal,
+        // WhatsApp fait pareil une fois la liste épuisée).
+        extendBody: true,
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
@@ -423,11 +425,6 @@ class _HomeShellState extends State<HomeShell>
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Sans extendBody, cette pilule flotte simplement au-dessus du fond
-    // plein du Scaffold (celui de la page active, ou le nôtre) — toujours
-    // un flou/tint verre dépoli, juste sans la couche de contenu qui
-    // défile derrière (retirée, voir plus haut).
-    //
     // L'ombre est portée par CE Container extérieur, pas par celui à
     // l'intérieur du ClipRRect : un box-shadow posé sur un widget cloné
     // dans ses propres bornes est entièrement rogné par le clip qui
@@ -459,7 +456,7 @@ class _HomeShellState extends State<HomeShell>
                 decoration: BoxDecoration(
                   // Verre dépoli façon Apple : un tint semi-transparent de
                   // la couleur de surface plutôt qu'un fond plein.
-                  color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.68),
+                  color: colors.surface.withValues(alpha: isDark ? 0.4 : 0.55),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color:

@@ -14,6 +14,7 @@ import '../services/explore_service.dart';
 import '../widgets/connect_action_button.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../../../shared/widgets/sticky_header_delegate.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -162,6 +163,12 @@ class _ExplorePageState extends State<ExplorePage>
     return ChangeNotifierProvider.value(
       value: _provider,
       child: Scaffold(
+        // Explicite plutôt que le défaut ThemeData.scaffoldBackgroundColor :
+        // ce dernier diffère de colorScheme.surface (utilisé par HomeShell
+        // et les autres pages), ce qui créait une couleur de fond visible-
+        // ment différente derrière la pilule de nav (extendBody côté
+        // HomeShell) selon l'onglet affiché.
+        backgroundColor: colors.surface,
         extendBodyBehindAppBar: true,
         appBar: glassAppBar,
         body: GestureDetector(
@@ -206,8 +213,9 @@ class _ExplorePageState extends State<ExplorePage>
 
               return SliverPersistentHeader(
                 pinned: true,
-                delegate: _StickyHeaderDelegate(
+                delegate: StickyHeaderDelegate(
                   height: height,
+                  blurBackground: true,
                   child: Column(
                     children: [
                       SizedBox(height: topPadding),
@@ -367,8 +375,9 @@ class _ExplorePageState extends State<ExplorePage>
           // restent fixes en haut pendant qu'on scrolle la liste.
           SliverPersistentHeader(
             pinned: true,
-            delegate: _StickyHeaderDelegate(
+            delegate: StickyHeaderDelegate(
               height: topPadding + 12 + _statusChipsRowHeight + 4,
+              blurBackground: true,
               child: Column(
                 children: [
                   SizedBox(height: topPadding),
@@ -438,37 +447,6 @@ class _ExplorePageState extends State<ExplorePage>
 /// Libellé d'onglet + badge rond rouge — même principe visuel que le badge
 /// de "Explorer" dans la barre de navigation (voir home_shell.dart), pour
 /// signaler ici une demande de connexion reçue pas encore traitée.
-/// Rend fixe (pinned) un bloc de contenu au sommet d'un CustomScrollView —
-/// utilisé pour la recherche/les filtres (Découvrir) et les filtres de
-/// statut (Mes demandes), qui doivent rester visibles pendant le scroll de
-/// la liste plutôt que de défiler avec elle.
-class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final double height;
-  final Widget child;
-
-  _StickyHeaderDelegate({required this.height, required this.child});
-
-  @override
-  double get minExtent => height;
-
-  @override
-  double get maxExtent => height;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
-      child: child,
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
-    return oldDelegate.height != height || oldDelegate.child != child;
-  }
-}
-
 class _TabLabelWithBadge extends StatelessWidget {
   final String label;
   final int count;
