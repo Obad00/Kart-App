@@ -398,18 +398,17 @@ class _HomeShellState extends State<HomeShell>
         // WhatsApp) — indispensable pour que le flou verre dépoli ait
         // quelque chose à flouter, au lieu d'un fond ajouté par-dessus.
         extendBody: true,
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey<int>(safeIndex),
-            child: pages[safeIndex],
-          ),
+        // IndexedStack plutôt qu'AnimatedSwitcher+FadeTransition : Opacity
+        // (ce que FadeTransition utilise en interne) force sa propre couche
+        // de composition, et BackdropFilter ne voit pas à travers une
+        // couche séparée — c'est ce qui empêchait tout flou de s'afficher
+        // derrière la pilule de nav (confirmé sur appareil réel : contenu
+        // parfaitement net, flou totalement absent). Bénéfice en prime :
+        // chaque onglet garde son état (scroll, données déjà chargées) au
+        // lieu d'être détruit/recréé à chaque changement d'onglet.
+        body: IndexedStack(
+          index: safeIndex,
+          children: pages,
         ),
         bottomNavigationBar: _buildBottomNavigation(colors, showJobMatch),
       );
