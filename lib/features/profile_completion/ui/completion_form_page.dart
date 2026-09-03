@@ -341,6 +341,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       website: _websiteCtrl.text,
       experiences: experiences,
       educations: educations,
+      // Ce formulaire n'édite jamais les centres d'intérêt (cf.
+      // InterestsEditorSheet) — on reprend tel quel ce qui était chargé,
+      // sinon chaque sauvegarde ici les effacerait silencieusement.
+      interests: p.model.interests,
       activatedFields: _activeFields.entries
           .where((e) => e.value)
           .map((e) => e.key)

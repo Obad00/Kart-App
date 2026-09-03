@@ -6,6 +6,9 @@ import '../providers/profile_completion_provider.dart';
 import '../providers/candidate_skills_provider.dart';
 import '../ui/completion_form_page.dart';
 import '../ui/skill_editor_sheet.dart';
+import '../ui/interests_editor_sheet.dart';
+
+const _interestsAccentColor = Color(0xFFEC4899);
 
 /// Réseaux sociaux, Expériences, Formation et Compétences — embarqué
 /// directement dans l'onglet Profil. "Informations de base" (Poste,
@@ -26,6 +29,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
   bool _socialExpanded = false;
   bool _educationsExpanded = false;
   bool _skillsExpanded = false;
+  bool _interestsExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +62,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
         _buildEducationsSection(context, colors, model),
         const SizedBox(height: 16),
         _buildSkillsSection(context, colors, skills),
+        const SizedBox(height: 16),
+        _buildInterestsSection(context, colors, model.interests),
       ],
     );
   }
@@ -628,6 +634,81 @@ class _CompletionSectionsState extends State<CompletionSections> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => const SkillEditorSheet(),
+    );
+  }
+
+  /// "Centre d'intérêt" — mots-clés libres (loisirs, passions...). Même
+  /// widget [SkillChip] que "Compétences" (couleur distincte pour les
+  /// différencier), affiché aussi en lecture seule (sans onDelete) sur la
+  /// carte publique consultée depuis Explorer — cf. PublicCardPage.
+  Widget _buildInterestsSection(
+    BuildContext context,
+    ColorScheme colors,
+    List<String> interests,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.onSurface.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            colors,
+            icon: Icons.interests_outlined,
+            title: "Centre d'intérêt",
+            onAddTap: () => _openInterestsEditor(context),
+            expanded: _interestsExpanded,
+            onToggle: () =>
+                setState(() => _interestsExpanded = !_interestsExpanded),
+          ),
+          if (_interestsExpanded) ...[
+            if (interests.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.interests_outlined,
+                        size: 18, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    Text(
+                      "Aucun centre d'intérêt ajouté",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: interests
+                      .map((interest) => SkillChip(
+                          label: interest, color: _interestsAccentColor))
+                      .toList(),
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _openInterestsEditor(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) =>
+          const InterestsEditorSheet(companyColor: _interestsAccentColor),
     );
   }
 }

@@ -19,6 +19,7 @@ class ProfileCompletionModel {
   bool isPublic;
   List<ExperienceModel> experiences;
   List<EducationModel> educations;
+  List<String> interests;
 
   ProfileCompletionModel({
     this.jobTitle,
@@ -38,9 +39,11 @@ class ProfileCompletionModel {
     this.isPublic = true,
     List<ExperienceModel>? experiences,
     List<EducationModel>? educations,
+    List<String>? interests,
   })  : activatedFields = activatedFields ?? [],
         experiences = experiences ?? [],
-        educations = educations ?? [];
+        educations = educations ?? [],
+        interests = interests ?? [];
 
   factory ProfileCompletionModel.fromJson(Map<String, dynamic> json) {
     return ProfileCompletionModel(
@@ -70,6 +73,8 @@ class ProfileCompletionModel {
               ?.map((e) => EducationModel.fromJson(e))
               .toList() ??
           [],
+      interests:
+          (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -89,6 +94,7 @@ class ProfileCompletionModel {
       "is_public": isPublic,
       "experiences": experiences.map((e) => e.toJson()).toList(),
       "educations": educations.map((e) => e.toJson()).toList(),
+      "interests": interests,
     };
   }
 }

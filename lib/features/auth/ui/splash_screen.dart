@@ -414,7 +414,7 @@ class _SplashKartCardState extends State<_SplashKartCard>
             const SizedBox(height: 20),
 
             const Text(
-              'Votre carte de visite',
+              'Votre identité professionnelle digitale',
               style: TextStyle(
                 fontFamily: 'Syne',
                 color: Colors.white,

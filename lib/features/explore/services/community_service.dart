@@ -10,16 +10,13 @@ class CommunityService {
   }
 
   Future<int> join(int communityId) async {
-    final response =
-        await ApiClient.dio.post('/communities/$communityId/join');
-    return int.tryParse(response.data?['membersCount']?.toString() ?? '') ??
-        0;
+    final response = await ApiClient.dio.post('/communities/$communityId/join');
+    return int.tryParse(response.data?['membersCount']?.toString() ?? '') ?? 0;
   }
 
   Future<int> leave(int communityId) async {
     final response =
         await ApiClient.dio.delete('/communities/$communityId/leave');
-    return int.tryParse(response.data?['membersCount']?.toString() ?? '') ??
-        0;
+    return int.tryParse(response.data?['membersCount']?.toString() ?? '') ?? 0;
   }
 }

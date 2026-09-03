@@ -20,12 +20,15 @@ class ConnectionRequestItem {
   factory ConnectionRequestItem.fromJson(Map<String, dynamic> json) {
     return ConnectionRequestItem(
       id: int.tryParse(json['id'].toString()) ?? 0,
-      direction:
-          json['direction'] == 'sent' ? RequestDirection.sent : RequestDirection.received,
+      direction: json['direction'] == 'sent'
+          ? RequestDirection.sent
+          : RequestDirection.received,
       status: json['status'] ?? 'pending',
-      createdAt:
-          json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
-      otherUser: ExploreUser.fromJson(json['otherUser'] as Map<String, dynamic>),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
+      otherUser:
+          ExploreUser.fromJson(json['otherUser'] as Map<String, dynamic>),
     );
   }
 }

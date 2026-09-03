@@ -6,8 +6,7 @@ import '../models/community.dart';
 
 /// Carte d'une communauté dans le carrousel "Réseaux populaires" — icône
 /// colorée, nom, nombre de membres, pile d'avatars des derniers membres et
-/// bouton rejoindre/quitter. Cf. maquette fournie (cartes larges en scroll
-/// horizontal, une couleur d'accent par communauté).
+/// bouton rejoindre/quitter pleine largeur. Cf. maquette fournie.
 class CommunityCard extends StatelessWidget {
   final Community community;
   final VoidCallback onToggleJoin;
@@ -27,9 +26,8 @@ class CommunityCard extends StatelessWidget {
   String _membersLabel(int count) {
     if (count >= 1000) {
       final k = count / 1000;
-      final formatted = k == k.roundToDouble()
-          ? k.toStringAsFixed(0)
-          : k.toStringAsFixed(1);
+      final formatted =
+          k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1);
       return '$formatted k membres';
     }
     return '$count ${count > 1 ? 'membres' : 'membre'}';
@@ -41,10 +39,10 @@ class CommunityCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
@@ -58,20 +56,20 @@ class CommunityCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: community.color.withValues(alpha: 0.16),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.groups_rounded, color: community.color, size: 22),
+            child: Icon(Icons.groups_rounded, color: community.color, size: 20),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             community.name,
             style: TextStyle(
               fontFamily: 'Syne',
-              fontSize: 15,
+              fontSize: 14.5,
               fontWeight: FontWeight.w800,
               color: colors.onSurface,
               height: 1.15,
@@ -79,21 +77,23 @@ class CommunityCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             _membersLabel(community.membersCount),
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: colors.onSurface.withValues(alpha: 0.55),
             ),
           ),
-          const SizedBox(height: 12),
-          if (community.previewAvatars.isNotEmpty) _AvatarStack(
-            avatarUrls: community.previewAvatars.map(_avatarUrl).toList(),
-            borderColor: colors.surface,
-          ),
-          if (community.previewAvatars.isNotEmpty) const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          if (community.previewAvatars.isNotEmpty) ...[
+            _AvatarStack(
+              avatarUrls: community.previewAvatars.map(_avatarUrl).toList(),
+              borderColor: colors.surface,
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -105,17 +105,19 @@ class CommunityCard extends StatelessWidget {
                 backgroundColor: community.isJoined
                     ? colors.onSurface.withValues(alpha: 0.06)
                     : community.color.withValues(alpha: 0.16),
-                foregroundColor:
-                    community.isJoined ? colors.onSurface.withValues(alpha: 0.7) : community.color,
+                foregroundColor: community.isJoined
+                    ? colors.onSurface.withValues(alpha: 0.7)
+                    : community.color,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 9),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               child: Text(
                 community.isJoined ? 'Membre' : 'Rejoindre',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    fontSize: 12.5, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -131,7 +133,7 @@ class _AvatarStack extends StatelessWidget {
 
   const _AvatarStack({required this.avatarUrls, required this.borderColor});
 
-  static const double _size = 26;
+  static const double _size = 24;
   static const double _overlap = 8;
 
   @override

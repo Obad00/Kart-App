@@ -11,6 +11,10 @@ class ExploreUser {
   // Présent seulement quand connectionStatus != none — permet d'accepter/
   // refuser directement dans l'app (pas seulement depuis le mail).
   final int? connectionRequestId;
+  // 0-100, même calcul que le Kart Score du profil (cf. CompletionHelper)
+  // — le backend trie déjà l'annuaire par score décroissant ; ce champ ne
+  // sert ici qu'à afficher le badge "Profil complet" (>= 90).
+  final int completionScore;
 
   ExploreUser({
     required this.id,
@@ -21,7 +25,10 @@ class ExploreUser {
     this.cardSlug,
     this.connectionStatus = ConnectionStatus.none,
     this.connectionRequestId,
+    this.completionScore = 0,
   });
+
+  bool get hasCompleteProfile => completionScore >= 90;
 
   factory ExploreUser.fromJson(Map<String, dynamic> json) {
     return ExploreUser(
@@ -35,6 +42,8 @@ class ExploreUser {
       connectionRequestId: json['connectionRequestId'] != null
           ? int.tryParse(json['connectionRequestId'].toString())
           : null,
+      completionScore:
+          int.tryParse(json['completionScore']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -62,6 +71,7 @@ class ExploreUser {
       cardSlug: cardSlug,
       connectionStatus: connectionStatus ?? this.connectionStatus,
       connectionRequestId: connectionRequestId ?? this.connectionRequestId,
+      completionScore: completionScore,
     );
   }
 
@@ -78,6 +88,7 @@ class ExploreUser {
       cardSlug: cardSlug,
       connectionStatus: ConnectionStatus.none,
       connectionRequestId: null,
+      completionScore: completionScore,
     );
   }
 }

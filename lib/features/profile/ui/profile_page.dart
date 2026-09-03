@@ -621,22 +621,26 @@ class _ProfilePageState extends State<ProfilePage>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
+                    // Indenté, aligné avec le nom/poste/entreprise (pas
+                    // avec la photo) — cf. maquette fournie.
+                    if (hasCard &&
+                        card.bio != null &&
+                        card.bio!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        card.bio!,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: colors.onSurface.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-          if (hasCard && card.bio != null && card.bio!.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              card.bio!,
-              style: TextStyle(
-                fontSize: 13.5,
-                height: 1.5,
-                color: colors.onSurface.withValues(alpha: 0.75),
-              ),
-            ),
-          ],
           const SizedBox(height: 18),
           IntrinsicHeight(
             child: Row(

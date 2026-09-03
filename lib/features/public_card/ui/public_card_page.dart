@@ -265,6 +265,8 @@ class _PublicCardPageState extends State<PublicCardPage>
     final skills = _skillsList();
     final experiences = _getExperiences();
     final educations = _getEducations();
+    final interests = _getInterests();
+    final bio = card?['bio']?.toString().trim() ?? '';
     final socialProfiles = _socialProfiles();
     // Le backend renvoie 'avatar' (chemin relatif, ex. "avatars/foo.jpg"),
     // pas 'avatar_url' — il faut le préfixer avec le domaine de stockage,
@@ -372,7 +374,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                             const SizedBox(height: 18),
                             _buildSocialNetworks(socialProfiles),
                           ],
-                          if (_getFieldValue('bio').isNotEmpty) ...[
+                          if (bio.isNotEmpty) ...[
                             _buildSectionDivider(),
                             _buildAbout(isDark),
                           ],
@@ -384,6 +386,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                           _buildExperienceTimeline(isDark, experiences),
                           _buildSectionDivider(),
                           _buildEducation(isDark, educations),
+                          if (interests.isNotEmpty) ...[
+                            _buildSectionDivider(),
+                            _buildInterests(isDark, interests),
+                          ],
                           const SizedBox(height: 12),
                         ],
                       ),
@@ -1023,7 +1029,11 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Widget _buildAbout(bool isDark) {
-    final bio = _getFieldValue('bio');
+    // Contrairement aux réseaux sociaux (email/linkedin/...), le bio n'est
+    // pas soumis à 'activated_fields' — donc lu directement depuis la
+    // réponse (comme job_title/company), pas via _getFieldValue (qui ne
+    // lit que card['fields'], jamais renseigné pour 'bio').
+    final bio = card?['bio']?.toString().trim() ?? '';
     if (bio.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1081,6 +1091,47 @@ class _PublicCardPageState extends State<PublicCardPage>
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF047857),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // Même présentation que le profil (chips), en lecture seule : pas de
+  // bouton "+" ni de croix pour retirer — cf. CompletionSections côté
+  // profil pour la version éditable.
+  Widget _buildInterests(bool isDark, List<String> interests) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Centre d'intérêt",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: interests.map((interest) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEC4899).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                interest,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFDB2777),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1469,6 +1520,12 @@ class _PublicCardPageState extends State<PublicCardPage>
   List<dynamic> _getEducations() {
     final educations = card?['educations'];
     if (educations is List) return educations;
+    return [];
+  }
+
+  List<String> _getInterests() {
+    final interests = card?['interests'];
+    if (interests is List) return interests.map((e) => e.toString()).toList();
     return [];
   }
 }
