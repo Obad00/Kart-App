@@ -9,6 +9,13 @@ class BasicQrCard extends StatefulWidget {
   final VoidCallback onShare;
   final VoidCallback onDownload;
   final VoidCallback? onTapQr;
+  // true pendant la capture de l'export (RepaintBoundary.toImage) : le
+  // flottement perpétuel de la carte (Transform.translate jusqu'à 6px)
+  // décale son contenu hors des bornes fixes de l'image capturée dès que
+  // le décalage n'est pas nul à l'instant T — la carte exportée se
+  // retrouvait donc coupée selon le moment exact du tap sur "Télécharger".
+  // Neutralise l'offset le temps de la capture, sans arrêter l'animation.
+  final bool isExporting;
 
   const BasicQrCard({
     super.key,
@@ -18,6 +25,7 @@ class BasicQrCard extends StatefulWidget {
     required this.onShare,
     required this.onDownload,
     this.onTapQr,
+    this.isExporting = false,
   });
 
   @override
@@ -54,7 +62,9 @@ class _BasicQrCardState extends State<BasicQrCard>
       animation: _floatAnimation,
       builder: (context, child) {
         return Transform.translate(
-          offset: Offset(0, _floatAnimation.value),
+          offset: widget.isExporting
+              ? Offset.zero
+              : Offset(0, _floatAnimation.value),
           child: child,
         );
       },
@@ -179,7 +189,8 @@ class _BasicQrCardState extends State<BasicQrCard>
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  if (widget.jobTitle != null && widget.jobTitle!.isNotEmpty) ...[
+                  if (widget.jobTitle != null &&
+                      widget.jobTitle!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.jobTitle!,

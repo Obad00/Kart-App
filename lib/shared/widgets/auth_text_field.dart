@@ -16,6 +16,10 @@ class AuthTextField extends StatefulWidget {
   // reste à 1 par défaut pour ne rien changer aux champs existants.
   final int maxLines;
   final int minLines;
+  // Limite de caractères (ex: bio, alignée sur le max:500 du backend) —
+  // affiche un compteur "x/max" et bloque la saisie au-delà, pour ne plus
+  // découvrir le dépassement seulement après un 422 à l'enregistrement.
+  final int? maxLength;
 
   const AuthTextField({
     super.key,
@@ -31,6 +35,7 @@ class AuthTextField extends StatefulWidget {
     this.errorText,
     this.maxLines = 1,
     this.minLines = 1,
+    this.maxLength,
   });
 
   @override
@@ -160,6 +165,7 @@ class _AuthTextFieldState extends State<AuthTextField>
                 enabled: widget.enabled,
                 maxLines: widget.obscureText ? 1 : widget.maxLines,
                 minLines: widget.obscureText ? 1 : widget.minLines,
+                maxLength: widget.maxLength,
                 textCapitalization: widget.maxLines > 1
                     ? TextCapitalization.sentences
                     : TextCapitalization.none,
@@ -181,6 +187,7 @@ class _AuthTextFieldState extends State<AuthTextField>
                     color: hintColor,
                     fontWeight: FontWeight.w400,
                   ),
+                  counterStyle: TextStyle(color: hintColor, fontSize: 11),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 18,
                     vertical: 18,

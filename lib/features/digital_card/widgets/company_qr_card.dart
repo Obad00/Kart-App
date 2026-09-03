@@ -16,6 +16,13 @@ class CompanyQrCard extends StatefulWidget {
   final VoidCallback? onShare;
   final VoidCallback? onDownload;
   final VoidCallback? onTapQr;
+  // true pendant la capture de l'export (RepaintBoundary.toImage) : le
+  // flottement perpétuel de la carte (Transform.translate ±4px) décale son
+  // contenu hors des bornes fixes de l'image capturée dès que le décalage
+  // n'est pas nul à l'instant T — la carte exportée se retrouvait donc
+  // aléatoirement coupée en haut (ou en bas). Neutralise l'offset le temps
+  // de la capture, sans arrêter l'animation (reprend juste après).
+  final bool isExporting;
 
   const CompanyQrCard({
     super.key,
@@ -28,6 +35,7 @@ class CompanyQrCard extends StatefulWidget {
     this.onShare,
     this.onDownload,
     this.onTapQr,
+    this.isExporting = false,
   });
 
   @override
@@ -122,7 +130,9 @@ class _CompanyQrCardState extends State<CompanyQrCard>
       ]),
       builder: (context, child) {
         return Transform.translate(
-          offset: Offset(0, _floatAnimation.value),
+          offset: widget.isExporting
+              ? Offset.zero
+              : Offset(0, _floatAnimation.value),
           child: Transform.scale(
             scale: _scaleAnimation.value,
             child: _buildCard(),

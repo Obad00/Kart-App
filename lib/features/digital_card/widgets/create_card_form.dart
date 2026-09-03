@@ -22,18 +22,48 @@ class _CreateCardFormState extends State<CreateCardForm> {
   final _lastnameCtrl = TextEditingController();
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
-  final _companyAddressCtrl = TextEditingController();
-  final _companyPhoneCtrl = TextEditingController();
-  final _companyEmailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  final _linkedinCtrl = TextEditingController();
 
   final Map<String, bool> _activeFields = {
     'phone': false,
     'email': false,
-    'linkedin': false,
   };
+
+  // Suggestions "Poste" — statuts spéciaux en tête, puis intitulés courants.
+  // Tapées comme des puces sous le champ plutôt qu'un vrai menu déroulant :
+  // AuthTextField gère son propre FocusNode en interne, incompatible avec
+  // le fieldViewBuilder qu'exige Autocomplete/RawAutocomplete.
+  static const _jobSuggestions = [
+    'Étudiant',
+    'Entrepreneur',
+    'Développeur',
+    'Designer',
+    "Chef de projet",
+    'Consultant',
+    'Commercial',
+    'Marketing Manager',
+    'Comptable',
+    'Avocat',
+    'Médecin',
+    'Enseignant',
+    'Ingénieur',
+    'Ressources Humaines',
+  ];
+
+  // Suggestions "Entreprise" par défaut (pas de vraie entreprise) — en plus
+  // de celles-ci, propose "Étudiant"/"Auto-entrepreneur" quand le poste
+  // choisi est "Étudiant"/"Entrepreneur" (cf. _companySuggestions).
+  static const _noCompanySuggestions = ['Indépendant', 'Freelance', 'Aucune'];
+
+  List<String> get _companySuggestions {
+    final job = _jobCtrl.text.trim().toLowerCase();
+    if (job == 'étudiant') return const ['Étudiant', 'Aucune'];
+    if (job == 'entrepreneur') {
+      return const ['Auto-entrepreneur', 'Indépendant', 'Freelance'];
+    }
+    return _noCompanySuggestions;
+  }
 
   bool _isPublic = true;
   bool _isSubmitting = false;
@@ -104,9 +134,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
     if (locked && company != null) {
       _companyCtrl.text = company['name']?.toString() ?? '';
-      _companyAddressCtrl.text = company['address']?.toString() ?? '';
-      _companyPhoneCtrl.text = company['phone']?.toString() ?? '';
-      _companyEmailCtrl.text = company['email']?.toString() ?? '';
     }
   }
 
@@ -116,12 +143,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
     _lastnameCtrl.dispose();
     _jobCtrl.dispose();
     _companyCtrl.dispose();
-    _companyAddressCtrl.dispose();
-    _companyPhoneCtrl.dispose();
-    _companyEmailCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
-    _linkedinCtrl.dispose();
     super.dispose();
   }
 
@@ -140,14 +163,14 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
       // Si verrouillé, le champ est déjà prérempli et non modifiable ;
       // le backend impose de toute façon le nom d'entreprise côté serveur.
+      // Entreprise est désormais optionnelle (nullable côté backend) :
+      // envoyée seulement si renseignée, jamais une chaîne vide forcée.
       final data = {
         'jobTitle': _jobCtrl.text.trim(),
-        'company': _companyCtrl.text.trim(),
+        'company':
+            _companyCtrl.text.trim().isEmpty ? null : _companyCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-        'linkedin': _linkedinCtrl.text.trim().isEmpty
-            ? null
-            : _linkedinCtrl.text.trim(),
         'activatedFields': activatedFields,
         'isPublic': _isPublic,
       };
@@ -158,15 +181,11 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
       await CardService.createCard(
         jobTitle: data['jobTitle']! as String,
-        company: data['company']! as String,
+        company: data['company'] as String?,
         firstname: _firstnameCtrl.text.trim(),
         lastname: _lastnameCtrl.text.trim(),
         phone: data['phone'] as String?,
         email: data['email'] as String?,
-        linkedin: data['linkedin'] as String?,
-        companyAddress: _companyAddressCtrl.text.trim(),
-        companyPhone: _companyPhoneCtrl.text.trim(),
-        companyEmail: _companyEmailCtrl.text.trim(),
         activatedFields: activatedFields,
         isPublic: _isPublic,
       );
@@ -238,11 +257,12 @@ class _CreateCardFormState extends State<CreateCardForm> {
     return '${ApiEndpoints.storageUrl}/$logo';
   }
 
+  // Entreprise n'est plus requise — utile sans société propre (étudiant,
+  // entrepreneur individuel...), cf. suggestions de _companySuggestions.
   bool _isFormValid() {
     return _firstnameCtrl.text.isNotEmpty &&
         _lastnameCtrl.text.isNotEmpty &&
-        _jobCtrl.text.isNotEmpty &&
-        _companyCtrl.text.isNotEmpty;
+        _jobCtrl.text.isNotEmpty;
   }
 
   // ---------------- UI ----------------
@@ -365,8 +385,9 @@ class _CreateCardFormState extends State<CreateCardForm> {
                   controller: _jobCtrl,
                   onChanged: (_) => setState(() {}),
                   prefixIcon: Icons.work_outline,
-                  hint: 'Ex: Directeur Marketing, Developpeur...',
+                  hint: 'Ex: Étudiant, Entrepreneur, Développeur...',
                 ),
+                _buildSuggestionChips(_jobSuggestions, _jobCtrl),
 
                 const SizedBox(height: 32),
 
@@ -433,56 +454,19 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 const SizedBox(height: 16),
 
                 AuthTextField(
-                  label: 'Nom de l\'entreprise',
+                  // (optionnel) : pas de vraie entreprise ? laisse vide ou
+                  // choisis une suggestion ci-dessous (Indépendant, Étudiant...).
+                  label: 'Nom de l\'entreprise (optionnel)',
                   controller: _companyCtrl,
                   enabled: !isCompanyLinked,
                   onChanged: (_) => setState(() {}),
                   prefixIcon: isCompanyLinked
                       ? Icons.lock_outline_rounded
                       : Icons.business_outlined,
-                  hint: 'Ex: Kart Technologies, Ma Societe...',
+                  hint: 'Ex: Kart Technologies, Indépendant...',
                 ),
-
-                const SizedBox(height: 16),
-
-                AuthTextField(
-                  label: 'Adresse de l\'entreprise',
-                  controller: _companyAddressCtrl,
-                  enabled: !isCompanyLinked,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: isCompanyLinked
-                      ? Icons.lock_outline_rounded
-                      : Icons.location_on_outlined,
-                  hint: 'Ex: 123 Rue de la Paix, Dakar',
-                ),
-
-                const SizedBox(height: 16),
-
-                AuthTextField(
-                  label: 'Téléphone de l\'entreprise',
-                  controller: _companyPhoneCtrl,
-                  enabled: !isCompanyLinked,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: isCompanyLinked
-                      ? Icons.lock_outline_rounded
-                      : Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  hint: 'Ex: +221 33 123 45 67',
-                ),
-
-                const SizedBox(height: 16),
-
-                AuthTextField(
-                  label: 'Email de l\'entreprise',
-                  controller: _companyEmailCtrl,
-                  enabled: !isCompanyLinked,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: isCompanyLinked
-                      ? Icons.lock_outline_rounded
-                      : Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  hint: 'Ex: contact@entreprise.com',
-                ),
+                if (!isCompanyLinked)
+                  _buildSuggestionChips(_companySuggestions, _companyCtrl),
 
                 const SizedBox(height: 32),
 
@@ -538,9 +522,13 @@ class _CreateCardFormState extends State<CreateCardForm> {
 
                 const SizedBox(height: 32),
 
-                // Social & Visibility
+                // Visibilité — réseaux sociaux (LinkedIn, Instagram,
+                // GitHub, Facebook, site web) retirés de la création :
+                // à compléter plus tard depuis le profil (section
+                // "Réseaux sociaux"), pour ne pas surcharger cette
+                // première étape.
                 Text(
-                  'Reseaux sociaux et visibilite',
+                  'Visibilité',
                   style: TextStyle(
                     color: colors.onSurface.withValues(alpha: 0.7),
                     fontSize: 16,
@@ -549,26 +537,6 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 ),
 
                 const SizedBox(height: 16),
-
-                AuthTextField(
-                  label: 'Profil LinkedIn',
-                  controller: _linkedinCtrl,
-                  onChanged: (_) => setState(() {}),
-                  prefixIcon: Icons.link,
-                  hint: 'Ex: linkedin.com/in/votrenom',
-                ),
-
-                const SizedBox(height: 12),
-
-                _buildPremiumSwitch(
-                  title: 'Afficher LinkedIn sur ma carte',
-                  value: _activeFields['linkedin'] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _activeFields['linkedin'] = v),
-                  icon: Icons.visibility_outlined,
-                ),
-
-                const SizedBox(height: 20),
 
                 _buildPremiumSwitch(
                   title: 'Rendre ma carte publique',
@@ -596,6 +564,54 @@ class _CreateCardFormState extends State<CreateCardForm> {
   }
 
   // ---------------- HELPERS ----------------
+
+  /// Puces de suggestion sous un champ (Poste, Entreprise) — sert de "liste
+  /// déroulante" sans les problèmes d'intégration d'un vrai Autocomplete
+  /// (AuthTextField gère son propre FocusNode en interne). Un tap remplit
+  /// le champ ; retaper à la main reste toujours possible.
+  Widget _buildSuggestionChips(
+      List<String> suggestions, TextEditingController controller) {
+    final colors = Theme.of(context).colorScheme;
+    final current = controller.text.trim().toLowerCase();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: suggestions.map((s) {
+          final selected = current == s.toLowerCase();
+          return GestureDetector(
+            onTap: () => setState(() => controller.text = s),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                    : colors.onSurface.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: selected
+                      ? const Color(0xFF3B82F6).withValues(alpha: 0.4)
+                      : colors.onSurface.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Text(
+                s,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? const Color(0xFF3B82F6)
+                      : colors.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   Widget _buildPremiumSwitch({
     required String title,

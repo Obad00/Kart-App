@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,12 +11,16 @@ import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
 import '../../../shared/widgets/photo_viewer.dart';
-import '../../../shared/widgets/expandable_text.dart';
+import '../../../shared/widgets/skill_chip.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
+import '../../../shared/widgets/expandable_text.dart';
+
+const _interestsAccentColor = Color(0xFFEC4899);
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -61,55 +67,42 @@ class _PublicCardPageState extends State<PublicCardPage>
     return null;
   }
 
-  late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
-  late AnimationController _appearController;
+  // Même animation d'entrée (fondu + léger glissement) que ProfilePage —
+  // remplace l'ancien fondu+zoom avec flottement perpétuel, propre à
+  // l'ancien design "carte de visite" de cette page.
+  late AnimationController _animController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
-  final List<String> exampleMessages = [
-    "Ravi de vous rencontrer ! 🤝",
-    "Merci pour cet échange enrichissant",
-    "Restons en contact 📲",
-    "Au plaisir de collaborer ensemble",
-  ];
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _load();
 
-    // Animation flottante
-    _floatController = AnimationController(
+    _animController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat(reverse: true);
-
-    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+      duration: const Duration(milliseconds: 600),
     );
 
-    // Animation d'apparition
-    _appearController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
+    _fadeAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOut,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _appearController, curve: Curves.easeOut),
-    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
-      CurvedAnimation(parent: _appearController, curve: Curves.easeOutBack),
-    );
-
-    _appearController.forward();
+    _animController.forward();
   }
 
   @override
   void dispose() {
-    _floatController.dispose();
-    _appearController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
@@ -253,7 +246,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = Theme.of(context).colorScheme.surface;
+    final colors = Theme.of(context).colorScheme;
+    final backgroundColor = colors.surface;
     final email = _getFieldValue('email');
     final phone = _getFieldValue('phone').isNotEmpty
         ? _getFieldValue('phone')
@@ -308,6 +302,19 @@ class _PublicCardPageState extends State<PublicCardPage>
       );
     }
 
+    final infoSection = _buildInfoSection(
+      colors,
+      email: email,
+      phone: phone,
+      location: location,
+    );
+
+    // Même chrome que ProfilePage (AppBar en verre dépoli + carte d'en-tête
+    // + sections en cartes arrondies) — plutôt que l'ancien design "carte
+    // de visite" propre à cette page, pour que le détail d'un profil
+    // consulté depuis Explorer ait le même en-tête et le même contenu que
+    // Mon profil. Pas de Scaffold.appBar : le SliverAppBar (flottant,
+    // épinglé) est géré directement dans ce CustomScrollView.
     return Scaffold(
       backgroundColor: backgroundColor,
       // Cette page est parfois ouverte via un PageRouteBuilder à transition
@@ -322,362 +329,330 @@ class _PublicCardPageState extends State<PublicCardPage>
             Navigator.of(context).pop();
           }
         },
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: AnimatedBuilder(
-                      animation: _floatAnimation,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _floatAnimation.value),
-                          child: child,
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildHero(
-                            isDark: isDark,
-                            fullName: fullName,
-                            jobTitle: jobTitle,
-                            company: company,
-                            location: location,
-                            email: email,
-                            phone: phone,
-                            avatarUrl: portraitUrl,
-                          ),
-                          _buildSectionDivider(),
-                          // Contacter/Partager directement depuis la carte
-                          // publique n'est proposé que si ce profil est
-                          // déjà un contact (scanné, ou demande de mise en
-                          // relation acceptée) — pas depuis une simple
-                          // consultation via Explorer, où le bon chemin est
-                          // "Se connecter" (avec l'accord de l'autre).
-                          if (_isConnected) ...[
-                            _buildCallToActions(
-                              email: email,
-                              firstName: firstName,
-                            ),
-                            const SizedBox(height: 18),
-                            _buildSecondaryActions(),
-                          ] else ...[
-                            _buildConnectSection(fullName),
-                          ],
-                          if (socialProfiles.isNotEmpty) ...[
-                            const SizedBox(height: 18),
-                            _buildSocialNetworks(socialProfiles),
-                          ],
-                          if (bio.isNotEmpty) ...[
-                            _buildSectionDivider(),
-                            _buildAbout(isDark),
-                          ],
-                          if (skills.isNotEmpty) ...[
-                            _buildSectionDivider(),
-                            _buildSkills(isDark, skills),
-                          ],
-                          _buildSectionDivider(),
-                          _buildExperienceTimeline(isDark, experiences),
-                          _buildSectionDivider(),
-                          _buildEducation(isDark, educations),
-                          if (interests.isNotEmpty) ...[
-                            _buildSectionDivider(),
-                            _buildInterests(isDark, interests),
-                          ],
-                          const SizedBox(height: 12),
-                        ],
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 0,
+              floating: true,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              flexibleSpace: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colors.surface.withValues(
+                        alpha: isDark ? 0.32 : 0.5,
+                      ),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: colors.onSurface.withValues(alpha: 0.06),
+                          width: 0.5,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+              title: Text(
+                fullName.isEmpty ? 'Profil' : fullName,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface,
+                ),
+              ),
+              centerTitle: true,
             ),
-          ),
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildHeaderCard(
+                          colors: colors,
+                          fullName: fullName,
+                          jobTitle: jobTitle,
+                          company: company,
+                          bio: bio,
+                          avatarUrl: portraitUrl,
+                          experiences: experiences,
+                          skills: skills,
+                          email: email,
+                          firstName: firstName,
+                        ),
+                        const SizedBox(height: 16),
+                        if (socialProfiles.isNotEmpty) ...[
+                          _buildSocialNetworks(colors, socialProfiles),
+                          const SizedBox(height: 16),
+                        ],
+                        if (infoSection != null) ...[
+                          infoSection,
+                          const SizedBox(height: 16),
+                        ],
+                        _buildExperiencesSection(colors, experiences),
+                        const SizedBox(height: 16),
+                        _buildEducationsSection(colors, educations),
+                        const SizedBox(height: 16),
+                        _buildSkillsSection(colors, skills),
+                        const SizedBox(height: 16),
+                        _buildInterestsSection(colors, interests),
+                        const SizedBox(
+                            height: 40 + BottomNavMetrics.reservedHeight),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHero({
-    required bool isDark,
+  // Carte d'en-tête — même structure que ProfilePage._buildProfileHeader
+  // (avatar, nom, poste/entreprise, bio, stats, actions), sans les
+  // affordances d'édition (pas de badge appareil photo, pas de bouton
+  // Modifier) puisqu'il ne s'agit jamais de son propre profil ici. Le
+  // "Kart score" n'a pas d'équivalent (calculé côté profil à partir de son
+  // propre modèle de complétion, non exposé publiquement) : la rangée de
+  // stats se limite donc à Expérience/Compétences.
+  Widget _buildHeaderCard({
+    required ColorScheme colors,
     required String fullName,
     required String jobTitle,
     required String company,
-    required String location,
-    required String email,
-    required String phone,
+    required String bio,
     required String avatarUrl,
+    required List<dynamic> experiences,
+    required List<String> skills,
+    required String email,
+    required String firstName,
   }) {
-    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-    final secondaryTextColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-    final chipBackground =
-        isDark ? const Color(0xFF111827) : const Color(0xFFF0FDF4);
-    final chipBorder =
-        isDark ? const Color(0xFF334155) : const Color(0xFFDCFCE7);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarBackground =
         isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
-    final avatarTextColor = isDark ? _accentColor : _accentColor;
+    final experienceYears = _computeExperienceYears(experiences);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                Icons.arrow_back_ios_new,
-                size: 18,
-                color: titleColor,
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            const Spacer(),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _accentColor.withValues(alpha: 0.12),
+            _accentColor.withValues(alpha: 0.04),
           ],
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: chipBackground,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: chipBorder),
-          ),
-          child: Text(
-            'OUVERT AUX OPPORTUNITÉS',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: isDark ? const Color(0xFF2563EB) : const Color(0xFF166534),
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    fullName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: titleColor,
-                      height: 1.05,
-                      letterSpacing: -0.5,
-                    ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [_accentColor, _accentColor.withValues(alpha: 0.7)],
                   ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ROLE',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                color: secondaryTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              jobTitle,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: titleColor,
-                              ),
-                            ),
-                          ],
-                        ),
+                ),
+                child: _buildAvatarCircle(
+                  avatarUrl: avatarUrl,
+                  radius: 32,
+                  backgroundColor: avatarBackground,
+                  child: avatarUrl.isEmpty
+                      ? Text(
+                          _getInitials(fullName),
+                          style: TextStyle(
+                            color: _accentColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fullName.isEmpty ? 'Utilisateur' : fullName,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'COMPANY',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                color: secondaryTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              company,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: titleColor,
-                              ),
-                            ),
-                          ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (jobTitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        jobTitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _accentColor,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                  ),
-                  if (location.isNotEmpty ||
-                      email.isNotEmpty ||
-                      phone.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    if (location.isNotEmpty)
-                      Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: _accentColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              location,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: secondaryTextColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                    if (company.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        company,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: colors.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    if (email.isNotEmpty || phone.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          // Envoyer un mail direct n'a de sens que si ce
-                          // profil est déjà un contact — sinon ça
-                          // court-circuiterait le principe de la demande de
-                          // mise en relation (Explorer), qui existe
-                          // justement pour ne pas échanger les coordonnées
-                          // sans consentement mutuel.
-                          if (email.isNotEmpty && _isConnected)
-                            _buildInlineContactChip(
-                              icon: Icons.email_outlined,
-                              label: email,
-                              onTap: () => _openEmail(email),
-                              titleColor: titleColor,
-                              borderColor: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE5E7EB),
-                            ),
-                          // Même principe que l'email : le téléphone ne
-                          // s'affiche que pour un contact déjà établi.
-                          if (phone.isNotEmpty && _isConnected)
-                            _buildInlineContactChip(
-                              icon: Icons.phone_outlined,
-                              label: phone,
-                              onTap: () => _openPhone(phone),
-                              titleColor: titleColor,
-                              borderColor: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE5E7EB),
-                            ),
-                        ],
+                    ],
+                    if (bio.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ExpandableText(
+                        bio,
+                        maxLines: 3,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: colors.onSurface.withValues(alpha: 0.75),
+                        ),
                       ),
                     ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 20),
-            _buildAvatarCircle(
-              avatarUrl: avatarUrl,
-              radius: 40,
-              backgroundColor: avatarBackground,
-              child: avatarUrl.isEmpty
-                  ? Text(
-                      _getInitials(fullName),
-                      style: TextStyle(
-                        color: avatarTextColor,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInlineContactChip({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required Color titleColor,
-    required Color borderColor,
-  }) {
-    // maxWidth : sans lui, une adresse mail longue étirait la puce au-delà
-    // de l'écran (le Wrap parent ne force pas de largeur max sur un enfant
-    // isolé) — avec, le texte s'arrête proprement en "..." à la place.
-    return ConstrainedBox(
-      constraints:
-          BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 72),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor),
-            ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          IntrinsicHeight(
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 16, color: _accentColor),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: titleColor,
-                    ),
+                Expanded(
+                  child: _buildProfileStat(
+                    colors,
+                    icon: Icons.work_outline_rounded,
+                    label: 'Expérience',
+                    value: experienceYears > 0
+                        ? '$experienceYears an${experienceYears > 1 ? 's' : ''}'
+                        : '—',
+                  ),
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 2,
+                  endIndent: 2,
+                  color: colors.onSurface.withValues(alpha: 0.08),
+                ),
+                Expanded(
+                  child: _buildProfileStat(
+                    colors,
+                    icon: Icons.star_outline_rounded,
+                    label: 'Compétences',
+                    // Juste le nombre — même choix que ProfilePage.
+                    value: skills.isNotEmpty ? '${skills.length}' : '—',
                   ),
                 ),
               ],
             ),
           ),
-        ),
+          const SizedBox(height: 18),
+          // Contacter/Partager directement depuis la carte publique n'est
+          // proposé que si ce profil est déjà un contact (scanné, ou
+          // demande de mise en relation acceptée) — pas depuis une simple
+          // consultation via Explorer, où le bon chemin est "Se connecter"
+          // (avec l'accord de l'autre).
+          if (_isConnected) ...[
+            _buildCallToActions(email: email, firstName: firstName),
+            const SizedBox(height: 18),
+            _buildSecondaryActions(),
+          ] else ...[
+            _buildConnectSection(fullName),
+          ],
+        ],
       ),
     );
+  }
+
+  Widget _buildProfileStat(
+    ColorScheme colors, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    // Padding horizontal : sans lui, le texte (aligné à gauche) touchait
+    // directement la ligne verticale de séparation — même fix que
+    // ProfilePage._buildProfileStat.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: _accentColor),
+          const SizedBox(height: 8),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: colors.onSurface.withValues(alpha: 0.45),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: colors.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Somme les durées des expériences (start_date → end_date, ou
+  /// aujourd'hui si toujours en cours), arrondie à l'année — même calcul
+  /// que ProfilePage._computeExperienceYears, appliqué ici aux expériences
+  /// de la carte consultée plutôt qu'aux siennes.
+  int _computeExperienceYears(List<dynamic> experiences) {
+    double totalDays = 0;
+    for (final exp in experiences) {
+      if (exp is! Map) continue;
+      final start = DateTime.tryParse(exp['start_date']?.toString() ?? '');
+      if (start == null) continue;
+      final end = DateTime.tryParse(exp['end_date']?.toString() ?? '') ??
+          DateTime.now();
+      if (end.isAfter(start)) {
+        totalDays += end.difference(start).inDays;
+      }
+    }
+    return (totalDays / 365).round();
   }
 
   Widget _buildCallToActions({
@@ -836,65 +811,67 @@ class _PublicCardPageState extends State<PublicCardPage>
     return 'Highlight';
   }
 
-  Widget _buildSocialNetworks(List<Map<String, dynamic>> socialProfiles) {
+  // Contrairement à la version "checklist" de ProfilePage (LinkedIn/
+  // Instagram/... rempli ou non, cf. CompletionSections), ce profil n'est
+  // pas le sien : le contenu utile ici est une liste de liens cliquables,
+  // pas un statut de complétion — seul le chrome de carte (icône + titre)
+  // reprend celui de Profil.
+  Widget _buildSocialNetworks(
+      ColorScheme colors, List<Map<String, dynamic>> socialProfiles) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF111827);
     final borderColor =
         isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildSection(
+      colors: colors,
+      icon: Icons.share_outlined,
+      title: 'Réseaux sociaux',
       children: [
-        Text(
-          'Réseaux sociaux',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: titleColor,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          // Icône/texte réduits + espacements resserrés : au format
+          // d'avant, seuls 2 réseaux tenaient sur la première ligne avant
+          // de passer à la ligne — 3 tiennent maintenant confortablement.
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: socialProfiles.map((profile) {
+              return OutlinedButton.icon(
+                onPressed: () => _openUrl(profile['value'] as String),
+                icon: profile['icon'] is IconData
+                    ? Icon(
+                        profile['icon'] as IconData,
+                        color: profile['iconColor'] as Color,
+                        size: 14,
+                      )
+                    : FaIcon(
+                        profile['icon'],
+                        color: profile['iconColor'] as Color,
+                        size: 14,
+                      ),
+                label: Text(
+                  profile['label'] as String,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: titleColor,
+                  side: BorderSide(color: borderColor),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-        ),
-        const SizedBox(height: 12),
-        // Icône/texte réduits + espacements resserrés : au format d'avant,
-        // seuls 2 réseaux tenaient sur la première ligne avant de passer à
-        // la ligne — 3 tiennent maintenant confortablement.
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: socialProfiles.map((profile) {
-            return OutlinedButton.icon(
-              onPressed: () => _openUrl(profile['value'] as String),
-              icon: profile['icon'] is IconData
-                  ? Icon(
-                      profile['icon'] as IconData,
-                      color: profile['iconColor'] as Color,
-                      size: 14,
-                    )
-                  : FaIcon(
-                      profile['icon'],
-                      color: profile['iconColor'] as Color,
-                      size: 14,
-                    ),
-              label: Text(
-                profile['label'] as String,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: titleColor,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: titleColor,
-                side: BorderSide(color: borderColor),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
-          }).toList(),
         ),
       ],
     );
@@ -1028,398 +1005,553 @@ class _PublicCardPageState extends State<PublicCardPage>
     }
   }
 
-  Widget _buildAbout(bool isDark) {
-    // Contrairement aux réseaux sociaux (email/linkedin/...), le bio n'est
-    // pas soumis à 'activated_fields' — donc lu directement depuis la
-    // réponse (comme job_title/company), pas via _getFieldValue (qui ne
-    // lit que card['fields'], jamais renseigné pour 'bio').
-    final bio = card?['bio']?.toString().trim() ?? '';
-    if (bio.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  // --- Chrome de carte partagé (même style que ProfilePage._buildSection/
+  // _buildInfoRow), dupliqué localement plutôt qu'importé : ProfilePage ne
+  // les expose pas, et CompletionSections a déjà sa propre copie du même
+  // motif — cohérent avec le reste du code base.
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'A propos',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 14),
-        ExpandableText(
-          bio,
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.7,
-            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280),
-          ),
-          accentColor: _accentColor,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSkills(bool isDark, List<String> skills) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Compétences',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: skills.map((skill) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                skill,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF047857),
-                  fontWeight: FontWeight.w600,
+  Widget _buildSection({
+    required ColorScheme colors,
+    required IconData icon,
+    required String title,
+    Widget? trailing,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.onSurface.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 16, color: _accentColor),
                 ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  // Même présentation que le profil (chips), en lecture seule : pas de
-  // bouton "+" ni de croix pour retirer — cf. CompletionSections côté
-  // profil pour la version éditable.
-  Widget _buildInterests(bool isDark, List<String> interests) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Centre d'intérêt",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: interests.map((interest) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEC4899).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                interest,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFFDB2777),
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+                if (trailing != null) trailing,
+              ],
+            ),
+          ),
+          ...children,
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 
-  Widget _buildExperienceTimeline(bool isDark, List<dynamic> experiences) {
-    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-    final textColor =
-        isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
-    final surfaceColor =
-        isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
-    final iconColor = isDark ? _accentColor : _accentColor;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.work_outline, size: 18, color: iconColor),
-            const SizedBox(width: 8),
-            Text(
-              'Experience',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: titleColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (experiences.isEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              'Aucune expérience',
-              style: TextStyle(
-                fontSize: 14,
-                color: textColor,
-              ),
-            ),
-          ),
-        ] else ...[
-          Column(
-            children: experiences.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value as Map? ?? {};
-              final title = item['title']?.toString() ?? '';
-              final company = item['company']?.toString() ?? '';
-              final startDate = item['start_date']?.toString() ?? '';
-              final endDate = item['end_date']?.toString() ?? '';
-              final description = item['description']?.toString() ?? '';
-              final isLast = index == experiences.length - 1;
-
-              return Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 28),
-                child: Row(
+  Widget _buildInfoRow(
+    ColorScheme colors, {
+    required IconData icon,
+    required String label,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon,
+                  size: 20, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: 28,
-                      child: Column(
-                        children: [
-                          if (index != 0)
-                            Container(
-                              width: 1,
-                              height: 18,
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFF3F4F6),
-                            ),
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: iconColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          if (!isLast)
-                            Container(
-                              width: 1,
-                              height: 60,
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFF3F4F6),
-                            ),
-                        ],
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: titleColor,
-                            ),
-                          ),
-                          if (company.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              company,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: iconColor,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Text(
-                            endDate.isNotEmpty
-                                ? '$startDate — $endDate'
-                                : '$startDate — Present',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textColor,
-                            ),
-                          ),
-                          if (description.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            ExpandableText(
-                              description,
-                              maxLines: 3,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textColor,
-                                height: 1.6,
-                              ),
-                              accentColor: iconColor,
-                            ),
-                          ],
-                        ],
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-              );
-            }).toList(),
+              ),
+              if (onTap != null)
+                Icon(Icons.chevron_right,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.3)),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider(ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child:
+          Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06)),
+    );
+  }
+
+  /// "Informations personnelles" en lecture seule — email/téléphone restent
+  /// masqués tant que ce profil n'est pas un contact établi (même règle de
+  /// confidentialité que le reste de la page) ; `null` si rien à montrer,
+  /// pour que l'appelant puisse sauter la section (et son espacement)
+  /// entièrement plutôt que d'afficher une carte vide.
+  Widget? _buildInfoSection(
+    ColorScheme colors, {
+    required String email,
+    required String phone,
+    required String location,
+  }) {
+    final rows = <Widget>[];
+    void addRow(IconData icon, String label, String value,
+        {VoidCallback? onTap}) {
+      if (rows.isNotEmpty) rows.add(_buildDivider(colors));
+      rows.add(_buildInfoRow(colors,
+          icon: icon, label: label, value: value, onTap: onTap));
+    }
+
+    if (location.isNotEmpty) {
+      addRow(Icons.location_on_outlined, 'Localisation', location);
+    }
+    if (email.isNotEmpty && _isConnected) {
+      addRow(Icons.email_outlined, 'Adresse email', email,
+          onTap: () => _openEmail(email));
+    }
+    if (phone.isNotEmpty && _isConnected) {
+      addRow(Icons.phone_outlined, 'Téléphone', phone,
+          onTap: () => _openPhone(phone));
+    }
+
+    if (rows.isEmpty) return null;
+    return _buildSection(
+      colors: colors,
+      icon: Icons.person_outline,
+      title: 'Mes coordonnées',
+      children: rows,
+    );
+  }
+
+  // Même widget [SkillChip] que "Compétences" dans le profil (cf.
+  // CompletionSections), affiché en lecture seule (sans onDelete).
+  Widget _buildSkillsSection(ColorScheme colors, List<String> skills) {
+    return _buildSection(
+      colors: colors,
+      icon: Icons.psychology_outlined,
+      title: 'Compétences',
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: skills.isEmpty
+              ? Text(
+                  'Aucune compétence ajoutée',
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: skills
+                      .map((s) =>
+                          SkillChip(label: s, color: const Color(0xFF10B981)))
+                      .toList(),
+                ),
+        ),
       ],
     );
   }
 
-  Widget _buildEducation(bool isDark, List<dynamic> educations) {
-    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-    final textColor =
-        isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
-    final surfaceColor =
-        isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
-    final accentColor = isDark ? _accentColor : _accentColor;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // Même widget [SkillChip] que "Centre d'intérêt" dans le profil, lecture
+  // seule — cf. _buildSkillsSection.
+  Widget _buildInterestsSection(ColorScheme colors, List<String> interests) {
+    return _buildSection(
+      colors: colors,
+      icon: Icons.interests_outlined,
+      title: "Centre d'intérêt",
       children: [
-        Row(
-          children: [
-            Icon(Icons.school_outlined, size: 18, color: accentColor),
-            const SizedBox(width: 8),
-            Text(
-              'Education',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: titleColor,
-              ),
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: interests.isEmpty
+              ? Text(
+                  "Aucun centre d'intérêt ajouté",
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: interests
+                      .map((i) =>
+                          SkillChip(label: i, color: _interestsAccentColor))
+                      .toList(),
+                ),
         ),
-        const SizedBox(height: 16),
-        if (educations.isEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              'Aucune éducation',
-              style: TextStyle(
-                fontSize: 14,
-                color: textColor,
+      ],
+    );
+  }
+
+  /// "Expériences" — même présentation que la section Profil
+  /// (CompletionSections._buildExperiencesSection) : aperçu des 2 plus
+  /// récentes en frise, plus "Voir tout" qui ouvre la liste complète en
+  /// lecture seule (pas de formulaire d'édition ici, ce n'est pas son
+  /// propre profil).
+  Widget _buildExperiencesSection(
+      ColorScheme colors, List<dynamic> experiences) {
+    final sorted = [...experiences]..sort((a, b) {
+        final ma = a as Map? ?? {};
+        final mb = b as Map? ?? {};
+        final startA = DateTime.tryParse(ma['start_date']?.toString() ?? '');
+        final startB = DateTime.tryParse(mb['start_date']?.toString() ?? '');
+        if (startA == null || startB == null) return 0;
+        return startB.compareTo(startA);
+      });
+    final preview = sorted.take(2).toList();
+
+    return _buildSection(
+      colors: colors,
+      icon: Icons.work_outline_rounded,
+      title: 'Expériences',
+      trailing: sorted.isEmpty
+          ? null
+          : GestureDetector(
+              onTap: () => _showAllExperiences(colors, sorted),
+              child: Text(
+                'Voir tout',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _accentColor),
               ),
+            ),
+      children: [
+        if (sorted.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(
+              'Aucune expérience',
+              style: TextStyle(
+                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              children: preview.asMap().entries.map((entry) {
+                final i = entry.key;
+                final item = entry.value as Map? ?? {};
+                return _PublicTimelineItem(
+                  title: item['title']?.toString() ?? '',
+                  company: item['company']?.toString() ?? '',
+                  period: _formatExperiencePeriod(
+                      item['start_date']?.toString(),
+                      item['end_date']?.toString()),
+                  description: item['description']?.toString() ?? '',
+                  isLast: i == preview.length - 1,
+                  accentColor: _accentColor,
+                  colors: colors,
+                );
+              }).toList(),
             ),
           ),
-        ] else ...[
-          Column(
-            children: educations.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value as Map? ?? {};
-              final degree = item['degree']?.toString() ?? '';
-              final school = item['school']?.toString() ?? '';
-              final field = item['field']?.toString() ?? '';
-              final startYear = item['start_year']?.toString() ?? '';
-              final endYear = item['end_year']?.toString() ?? '';
-              final isLast = index == educations.length - 1;
+      ],
+    );
+  }
 
-              return Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
+  /// Bottom sheet listant toutes les expériences en lecture seule — même
+  /// présentation (poignée, titre, fond `colorScheme.surface`, coins
+  /// arrondis, `DraggableScrollableSheet`) que
+  /// CompletionSections._showAllExperiences côté profil.
+  void _showAllExperiences(ColorScheme colors, List<dynamic> sorted) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Expériences',
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) {
+                final i = entry.key;
+                final item = entry.value as Map? ?? {};
+                return _PublicTimelineItem(
+                  title: item['title']?.toString() ?? '',
+                  company: item['company']?.toString() ?? '',
+                  period: _formatExperiencePeriod(
+                      item['start_date']?.toString(),
+                      item['end_date']?.toString()),
+                  description: item['description']?.toString() ?? '',
+                  isLast: i == sorted.length - 1,
+                  accentColor: _accentColor,
+                  colors: colors,
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// "2023 – Aujourd'hui" / "2021 – 2023" — même format que
+  /// CompletionSections._formatExperiencePeriod côté profil.
+  String _formatExperiencePeriod(String? start, String? end) {
+    final startYear = _experienceYear(start);
+    final endYear =
+        (end != null && end.isNotEmpty) ? _experienceYear(end) : null;
+    return '$startYear – ${endYear ?? "Aujourd'hui"}';
+  }
+
+  String _experienceYear(String? date) {
+    if (date == null || date.isEmpty) return '';
+    final parsed = DateTime.tryParse(date);
+    return parsed != null ? parsed.year.toString() : date;
+  }
+
+  /// "Formation" — même présentation que la section Profil
+  /// (CompletionSections._buildEducationsSection) : aperçu des 3 plus
+  /// récentes, puis "Voir tout" (lecture seule) au-delà — même principe que
+  /// "Expériences" ci-dessus.
+  Widget _buildEducationsSection(ColorScheme colors, List<dynamic> educations) {
+    final sorted = [...educations]..sort((a, b) {
+        final ma = a as Map? ?? {};
+        final mb = b as Map? ?? {};
+        final ya = int.tryParse(ma['start_year']?.toString() ?? '') ?? 0;
+        final yb = int.tryParse(mb['start_year']?.toString() ?? '') ?? 0;
+        return yb.compareTo(ya);
+      });
+    final preview = sorted.take(3).toList();
+
+    return _buildSection(
+      colors: colors,
+      icon: Icons.school_outlined,
+      title: 'Formation',
+      trailing: sorted.length <= 3
+          ? null
+          : GestureDetector(
+              onTap: () => _showAllEducations(colors, sorted),
+              child: Text(
+                'Voir tout',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _accentColor),
+              ),
+            ),
+      children: [
+        if (sorted.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(
+              'Aucune formation ajoutée',
+              style: TextStyle(
+                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+            ),
+          )
+        else
+          ...preview.asMap().entries.map((entry) =>
+              _buildEducationRow(colors, entry.value, entry.key > 0)),
+      ],
+    );
+  }
+
+  /// Une ligne "Formation" — extrait pour être réutilisé à la fois dans
+  /// l'aperçu et dans le "Voir tout" (_showAllEducations).
+  Widget _buildEducationRow(
+      ColorScheme colors, dynamic entry, bool showDivider) {
+    final item = entry as Map? ?? {};
+    final degree = item['degree']?.toString() ?? '';
+    final school = item['school']?.toString() ?? '';
+    final field = item['field']?.toString() ?? '';
+    final startYear = item['start_year']?.toString() ?? '';
+    final endYear = item['end_year']?.toString() ?? '';
+
+    return Column(
+      children: [
+        if (showDivider) _buildDivider(colors),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.school_outlined,
+                    size: 18, color: Color(0xFF8B5CF6)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       degree,
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                      ),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       school,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8B5CF6),
+                          fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         if (field.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF1E293B)
-                                  : const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(999),
+                              color: const Color(0xFF8B5CF6)
+                                  .withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               field,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textColor,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF8B5CF6),
+                                  fontWeight: FontWeight.w500),
                             ),
                           ),
-                        if (field.isNotEmpty) const SizedBox(width: 10),
+                        if (field.isNotEmpty) const SizedBox(width: 8),
                         Text(
-                          '$startYear — $endYear',
+                          '$startYear - $endYear',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: textColor,
-                          ),
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.45)),
                         ),
                       ],
                     ),
                   ],
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
-        ],
+        ),
       ],
     );
   }
 
-  Widget _buildSectionDivider() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+  /// Bottom sheet listant toutes les formations en lecture seule — même
+  /// présentation que _showAllExperiences.
+  void _showAllEducations(ColorScheme colors, List<dynamic> sorted) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Formation',
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) =>
+                  _buildEducationRow(colors, entry.value, entry.key > 0)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1527,5 +1659,104 @@ class _PublicCardPageState extends State<PublicCardPage>
     final interests = card?['interests'];
     if (interests is List) return interests.map((e) => e.toString()).toList();
     return [];
+  }
+}
+
+/// Une ligne de la frise "Expériences", en lecture seule — même visuel que
+/// CompletionSections._ExperienceTimelineItem côté profil (pastille + ligne
+/// verticale, titre/entreprise/période/description), sans le chevron/tap
+/// puisqu'il n'y a rien à éditer sur un profil consulté.
+class _PublicTimelineItem extends StatelessWidget {
+  final String title;
+  final String company;
+  final String period;
+  final String description;
+  final bool isLast;
+  final Color accentColor;
+  final ColorScheme colors;
+
+  const _PublicTimelineItem({
+    required this.title,
+    required this.company,
+    required this.period,
+    required this.description,
+    required this.isLast,
+    required this.accentColor,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 5),
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: accentColor),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    color: accentColor.withValues(alpha: 0.2),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface),
+                  ),
+                  if (company.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      company,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor),
+                    ),
+                  ],
+                  const SizedBox(height: 3),
+                  Text(
+                    period,
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: colors.onSurface.withValues(alpha: 0.45)),
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: colors.onSurface.withValues(alpha: 0.6)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

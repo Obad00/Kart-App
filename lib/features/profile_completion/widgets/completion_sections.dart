@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../model/skill_model.dart';
@@ -8,6 +9,9 @@ import '../ui/completion_form_page.dart';
 import '../ui/skill_editor_sheet.dart';
 import '../ui/interests_editor_sheet.dart';
 
+// Rose partout dans "Centres d'intérêt" — bouton "+", puces de l'éditeur ET
+// puces en lecture seule — même structure de puce (SkillChip) que
+// "Compétences", mais couleur propre pour se différencier visuellement.
 const _interestsAccentColor = Color(0xFFEC4899);
 
 /// Réseaux sociaux, Expériences, Formation et Compétences — embarqué
@@ -40,6 +44,13 @@ class _CompletionSectionsState extends State<CompletionSections> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildExperiencesSection(context, colors, model),
+        const SizedBox(height: 16),
+        _buildEducationsSection(context, colors, model),
+        const SizedBox(height: 16),
+        _buildSkillsSection(context, colors, skills),
+        const SizedBox(height: 16),
+        // Après Compétences plutôt qu'en premier — ordre demandé.
         _buildSection(
           context,
           colors: colors,
@@ -57,24 +68,22 @@ class _CompletionSectionsState extends State<CompletionSections> {
           ],
         ),
         const SizedBox(height: 16),
-        _buildExperiencesSection(context, colors, model),
-        const SizedBox(height: 16),
-        _buildEducationsSection(context, colors, model),
-        const SizedBox(height: 16),
-        _buildSkillsSection(context, colors, skills),
-        const SizedBox(height: 16),
         _buildInterestsSection(context, colors, model.interests),
       ],
     );
   }
 
   void _openForm(BuildContext context,
-      {String? section, bool addOnly = false}) {
+      {String? section, bool addOnly = false, int? editIndex}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => CompletionFormPage(section: section, addOnly: addOnly),
+      builder: (_) => CompletionFormPage(
+        section: section,
+        addOnly: addOnly,
+        editIndex: editIndex,
+      ),
     );
   }
 
@@ -317,7 +326,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () => _openForm(context, section: 'experiences'),
+                    onTap: () => _showAllExperiences(
+                        context, colors, sorted, allExperiences),
                     child: const Text(
                       'Voir tout',
                       style: TextStyle(
@@ -379,12 +389,91 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     isLast: i == preview.length - 1,
                     accentColor: accentColor,
                     colors: colors,
-                    onTap: () => _openForm(context, section: 'experiences'),
+                    // editIndex : modifier/supprimer CETTE expérience
+                    // précise, pas la liste complète (cf. doc de
+                    // CompletionFormPage.editIndex).
+                    onTap: () => _openForm(
+                      context,
+                      section: 'experiences',
+                      editIndex: allExperiences.indexOf(exp),
+                    ),
                   );
                 }).toList(),
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// Liste complète des expériences en lecture seule (frise chronologique),
+  /// ouverte via "Voir tout" — même présentation (bandeau tiré vers le
+  /// haut, poignée, titre) que "Paramètres" dans ProfilePage, plutôt que le
+  /// formulaire d'édition : consulter tout l'historique ne doit pas forcer
+  /// à passer par un écran d'édition. Un tap sur une entrée ouvre quand
+  /// même le formulaire, pour modifier/supprimer celle-ci.
+  void _showAllExperiences(BuildContext context, ColorScheme colors,
+      List<dynamic> sorted, List<dynamic> allExperiences) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Expériences',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) {
+                final i = entry.key;
+                final exp = entry.value;
+                return _ExperienceTimelineItem(
+                  title: exp.title ?? '',
+                  company: exp.company ?? '',
+                  period: _formatExperiencePeriod(exp.startDate, exp.endDate),
+                  description: exp.description ?? '',
+                  isLast: i == sorted.length - 1,
+                  accentColor: const Color(0xFF3B82F6),
+                  colors: colors,
+                  onTap: () => _openForm(
+                    context,
+                    section: 'experiences',
+                    editIndex: allExperiences.indexOf(exp),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -406,8 +495,9 @@ class _CompletionSectionsState extends State<CompletionSections> {
 
   Widget _buildEducationsSection(
       BuildContext context, ColorScheme colors, dynamic model) {
+    final allEducations = model.educations as List;
     // Plus récente en premier — même logique que les expériences.
-    final educations = [...model.educations as List]
+    final educations = [...allEducations]
       ..sort((a, b) => (b.startYear ?? 0).compareTo(a.startYear ?? 0));
 
     return Container(
@@ -472,7 +562,11 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
                     // cf. addOnly sur CompletionFormPage).
                     InkWell(
-                      onTap: () => _openForm(context, section: 'educations'),
+                      onTap: () => _openForm(
+                        context,
+                        section: 'educations',
+                        editIndex: allEducations.indexOf(edu),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),

@@ -223,11 +223,18 @@ class _ExplorePageState extends State<ExplorePage>
   static const double _filterRowHeight = 44;
 
   Widget _buildDiscoverTab(double topPadding) {
-    // top:false : le haut est déjà géré manuellement via topPadding (pour
-    // laisser le contenu défiler sous la barre verre dépoli) — seul le bas
-    // (zone de geste/home indicator) doit encore être protégé ici.
+    // top:false ET bottom:false — même principe que ContactsPage : le bas
+    // est géré à la main (BottomNavMetrics), pas via SafeArea(bottom:true).
+    // Avec bottom:true, cette page seule perdait ~34px de hauteur réelle en
+    // bas de son Stack (consommés par la SafeArea) : sur cette bande, plus
+    // rien de la liste ne défilait derrière la pilule flottante de
+    // HomeShell (extendBody), qui n'y trouvait donc que le fond uni du
+    // Scaffold à flouter — d'où une pilule visiblement moins "verre dépoli"
+    // ici que sur les autres onglets (Profil, Contacts...), qui laissent
+    // leur contenu défiler jusqu'au vrai bord de l'écran.
     return SafeArea(
       top: false,
+      bottom: false,
       // Stack (pas Column) : la liste occupe toute la hauteur et défile
       // réellement DERRIÈRE "Réseaux populaires", pour que le
       // BackdropFilter de ce dernier ait quelque chose à flouter au
@@ -429,9 +436,15 @@ class _ExplorePageState extends State<ExplorePage>
                 communityProvider.communities.isNotEmpty;
             return SliverToBoxAdapter(
               child: SizedBox(
+                // bottomInset (pas juste reservedHeight) : la SafeArea du
+                // haut de _buildDiscoverTab ne consomme plus le bas
+                // (bottom:false), donc la vraie safe area matérielle n'est
+                // plus déjà comptée par ailleurs — il faut l'ajouter ici.
                 height: showFooter
                     ? _communitiesFooterHeight
-                    : 16 + BottomNavMetrics.reservedHeight,
+                    : 16 +
+                        BottomNavMetrics.bottomInset(
+                            MediaQuery.of(context).padding.bottom),
               ),
             );
           },
@@ -477,8 +490,13 @@ class _ExplorePageState extends State<ExplorePage>
   static const double _statusChipsRowHeight = 40;
 
   Widget _buildMyRequestsTab(double topPadding) {
+    // bottom:false — même correctif que _buildDiscoverTab (cf. son
+    // commentaire) : sinon cet onglet perd, lui aussi, ~34px de hauteur
+    // réelle en bas, et la pilule flottante n'y trouve qu'un fond uni à
+    // flouter au lieu du contenu qui défile.
     return SafeArea(
       top: false,
+      bottom: false,
       child: CustomScrollView(
         slivers: [
           // Même principe que l'onglet Découvrir : les filtres de statut
@@ -541,7 +559,12 @@ class _ExplorePageState extends State<ExplorePage>
               return SliverPadding(
                 padding: EdgeInsets.only(
                   top: 8,
-                  bottom: 24 + BottomNavMetrics.reservedHeight,
+                  // bottomInset : la vraie safe area n'est plus consommée
+                  // par la SafeArea du dessus (bottom:false) — cf. plus
+                  // haut.
+                  bottom: 24 +
+                      BottomNavMetrics.bottomInset(
+                          MediaQuery.of(context).padding.bottom),
                 ),
                 sliver: SliverList.builder(
                   itemCount: provider.myRequests.length,

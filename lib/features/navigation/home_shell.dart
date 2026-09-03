@@ -459,14 +459,11 @@ class _HomeShellState extends State<HomeShell>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Glassmorphisme façon WhatsApp : flou (BackdropFilter) + léger tint de
-    // surface — même recette que GlassAppBar/StickyHeaderDelegate/GlassSheet
-    // (alpha 0.75 sombre / 0.85 clair). Un flou pur sans aucun tint
-    // paraissait correct sur les pages à contenu neutre (Contacts, Profil)
-    // mais laissait les cartes très colorées d'Explorer (dégradés bleu/
-    // violet) transparaître nettement derrière la pilule dès que le flou
-    // n'est pas parfaitement supporté par le moteur de rendu (web) — le
-    // tint garantit une séparation visuelle constante quel que soit le
-    // contenu qui défile dessous.
+    // surface — même alpha que GlassAppBar (0.32 sombre / 0.5 clair),
+    // pas celui, plus opaque, de StickyHeaderDelegate (0.75/0.85) : la
+    // pilule doit rester lisible même sur un contenu très coloré, mais
+    // sans perdre l'effet de verre (trop opaque, elle finit par ressembler
+    // à un bandeau uni plutôt qu'à du verre dépoli).
     return SafeArea(
       top: false,
       child: Padding(
@@ -480,7 +477,7 @@ class _HomeShellState extends State<HomeShell>
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+                color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.5),
                 borderRadius: BorderRadius.circular(AppTheme.cardRadius),
                 // Bordure du même token que les cartes (colorScheme.outline).
                 // Largeur 1.2 plutôt que le défaut 1.0 : fine mais qui se
