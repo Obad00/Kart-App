@@ -669,9 +669,10 @@ class _ProfilePageState extends State<ProfilePage>
                     companyColor,
                     icon: Icons.star_outline_rounded,
                     label: 'Compétences',
-                    value: skillsCount > 0
-                        ? '$skillsCount compétence${skillsCount > 1 ? 's' : ''}'
-                        : '—',
+                    // Juste le nombre — le libellé "Compétences" au-dessus
+                    // dit déjà de quoi il s'agit, pas besoin de le répéter
+                    // dans la valeur (cf. "23" plutôt que "23 compétences").
+                    value: skillsCount > 0 ? '$skillsCount' : '—',
                   ),
                 ),
                 VerticalDivider(

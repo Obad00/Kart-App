@@ -102,147 +102,153 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+    // Même carcasse que SkillEditorSheet (Compétences) — hauteur fixe à
+    // 85% de l'écran, coins arrondis en haut, poignée + titre/croix de
+    // fermeture, champ de saisie fixe et bouton "Enregistrer" épinglé en
+    // bas pendant que le reste défile — plutôt qu'un simple Padding qui
+    // grandissait avec le contenu et perdait le fond/les coins arrondis.
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
+      child: SafeArea(
+        top: false,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.onSurface.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: widget.companyColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Centres d'intérêt",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.interests_outlined,
-                    color: widget.companyColor,
-                    size: 20,
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Text(
-                    "Centres d'intérêt",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Loisirs, passions... affichés sur votre profil et votre carte publique.',
-              style: TextStyle(
-                fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.6),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _inputCtrl,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: _addInterest,
+                      decoration: InputDecoration(
+                        hintText: 'Ex: Voyage, Photographie...',
+                        filled: true,
+                        fillColor: colors.onSurface.withValues(alpha: 0.05),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton.filled(
+                    onPressed: () => _addInterest(),
+                    style: IconButton.styleFrom(
+                      backgroundColor: widget.companyColor,
+                      minimumSize: const Size(48, 48),
+                    ),
+                    icon: const Icon(Icons.add_rounded, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_error != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: Colors.red.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Colors.red, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_interests.isEmpty)
+                      Text(
+                        "Aucun centre d'intérêt ajouté pour le moment.",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colors.onSurface.withValues(alpha: 0.4),
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _interests
+                            .map((interest) => SkillChip(
+                                  label: interest,
+                                  color: widget.companyColor,
+                                  onDelete: () => _removeInterest(interest),
+                                ))
+                            .toList(),
+                      ),
                   ],
                 ),
               ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _inputCtrl,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: _addInterest,
-                    decoration: InputDecoration(
-                      hintText: 'Ex: Voyage, Photographie...',
-                      filled: true,
-                      fillColor: colors.onSurface.withValues(alpha: 0.05),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                IconButton.filled(
-                  onPressed: () => _addInterest(),
-                  style: IconButton.styleFrom(
-                    backgroundColor: widget.companyColor,
-                    minimumSize: const Size(48, 48),
-                  ),
-                  icon: const Icon(Icons.add_rounded, color: Colors.white),
-                ),
-              ],
             ),
-            const SizedBox(height: 16),
-            if (_interests.isEmpty)
-              Text(
-                "Aucun centre d'intérêt ajouté pour le moment.",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colors.onSurface.withValues(alpha: 0.4),
-                ),
-              )
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _interests
-                    .map((interest) => SkillChip(
-                          label: interest,
-                          color: widget.companyColor,
-                          onDelete: () => _removeInterest(interest),
-                        ))
-                    .toList(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: AuthPrimaryButton(
+                label: 'Enregistrer',
+                loading: _saving,
+                onTap: _save,
+                icon: Icons.check_rounded,
               ),
-            const SizedBox(height: 24),
-            AuthPrimaryButton(
-              label: 'Enregistrer',
-              loading: _saving,
-              onTap: _save,
-              icon: Icons.check_rounded,
             ),
           ],
         ),

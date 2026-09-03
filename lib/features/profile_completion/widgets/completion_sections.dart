@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../model/skill_model.dart';
@@ -317,7 +318,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () => _openForm(context, section: 'experiences'),
+                    onTap: () =>
+                        _showAllExperiences(context, colors, sorted),
                     child: const Text(
                       'Voir tout',
                       style: TextStyle(
@@ -385,6 +387,74 @@ class _CompletionSectionsState extends State<CompletionSections> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// Liste complète des expériences en lecture seule (frise chronologique),
+  /// ouverte via "Voir tout" — même présentation (bandeau tiré vers le
+  /// haut, poignée, titre) que "Paramètres" dans ProfilePage, plutôt que le
+  /// formulaire d'édition : consulter tout l'historique ne doit pas forcer
+  /// à passer par un écran d'édition. Un tap sur une entrée ouvre quand
+  /// même le formulaire, pour modifier/supprimer celle-ci.
+  void _showAllExperiences(
+      BuildContext context, ColorScheme colors, List<dynamic> sorted) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Expériences',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) {
+                final i = entry.key;
+                final exp = entry.value;
+                return _ExperienceTimelineItem(
+                  title: exp.title ?? '',
+                  company: exp.company ?? '',
+                  period: _formatExperiencePeriod(exp.startDate, exp.endDate),
+                  description: exp.description ?? '',
+                  isLast: i == sorted.length - 1,
+                  accentColor: const Color(0xFF3B82F6),
+                  colors: colors,
+                  onTap: () => _openForm(context, section: 'experiences'),
+                );
+              }),
+            ],
+          ),
+        ),
       ),
     );
   }
