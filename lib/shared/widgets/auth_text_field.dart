@@ -11,6 +11,11 @@ class AuthTextField extends StatefulWidget {
   final bool enabled;
   final IconData? prefixIcon;
   final String? errorText;
+  // >1 pour un champ multi-lignes (ex: bio) — le champ garde alors sa
+  // hauteur au premier rendu plutôt que de grandir avec le texte, minLines
+  // reste à 1 par défaut pour ne rien changer aux champs existants.
+  final int maxLines;
+  final int minLines;
 
   const AuthTextField({
     super.key,
@@ -24,6 +29,8 @@ class AuthTextField extends StatefulWidget {
     this.enabled = true,
     this.prefixIcon,
     this.errorText,
+    this.maxLines = 1,
+    this.minLines = 1,
   });
 
   @override
@@ -151,6 +158,11 @@ class _AuthTextFieldState extends State<AuthTextField>
                 obscureText: _obscure,
                 keyboardType: widget.keyboardType,
                 enabled: widget.enabled,
+                maxLines: widget.obscureText ? 1 : widget.maxLines,
+                minLines: widget.obscureText ? 1 : widget.minLines,
+                textCapitalization: widget.maxLines > 1
+                    ? TextCapitalization.sentences
+                    : TextCapitalization.none,
                 onChanged: (v) {
                   setState(() {});
                   widget.onChanged?.call(v);

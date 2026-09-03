@@ -15,8 +15,9 @@ class ConnectionBadgeProvider extends ChangeNotifier {
   Future<void> refresh() async {
     try {
       final requests = await _service.fetchMyRequests(status: 'pending');
-      final count =
-          requests.where((r) => r.direction == RequestDirection.received).length;
+      final count = requests
+          .where((r) => r.direction == RequestDirection.received)
+          .length;
       if (count != _pendingReceivedCount) {
         _pendingReceivedCount = count;
         notifyListeners();

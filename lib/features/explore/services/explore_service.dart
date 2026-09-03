@@ -3,7 +3,8 @@ import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
 
 class ExploreService {
-  Future<({List<ExploreUser> users, bool hasMore, List<String> jobTitles})> fetchUsers({
+  Future<({List<ExploreUser> users, bool hasMore, List<String> jobTitles})>
+      fetchUsers({
     required int page,
     String search = '',
     String jobTitle = '',
@@ -21,16 +22,16 @@ class ExploreService {
 
     final currentPage = data['current_page'] as int? ?? page;
     final lastPage = data['last_page'] as int? ?? page;
-    final jobTitles = (data['jobTitles'] as List? ?? [])
-        .map((e) => e.toString())
-        .toList();
+    final jobTitles =
+        (data['jobTitles'] as List? ?? []).map((e) => e.toString()).toList();
 
     return (users: list, hasMore: currentPage < lastPage, jobTitles: jobTitles);
   }
 
   /// Onglet "Mes demandes" — [status] : null/'all', 'pending', 'accepted' ou 'declined'.
   Future<List<ConnectionRequestItem>> fetchMyRequests({String? status}) async {
-    final response = await ApiClient.dio.get('/connection-requests', queryParameters: {
+    final response =
+        await ApiClient.dio.get('/connection-requests', queryParameters: {
       if (status != null && status != 'all') 'status': status,
     });
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
 import '../model/job_feed_item.dart';
@@ -67,50 +68,83 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     final provider = context.watch<JobMatchProvider>();
     final colors = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: GlassAppBar(
-        title: const Text(
-          'Offres pour vous',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
-        ),
-        actions: [
-          Showcase(
-            key: _dashboardTourKey,
-            title: 'Votre tableau de bord',
-            description:
-                'Retrouvez ici vos matchs, les offres aimées et celles passées.',
-            targetShapeBorder: const CircleBorder(),
-            child: IconButton(
-              icon: const Icon(Icons.favorite_outline_rounded),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const JobMatchMatchesPage()),
-              ),
+    final glassAppBar = GlassAppBar(
+      title: const Text(
+        'Offres pour vous',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+      ),
+      actions: [
+        Showcase(
+          key: _dashboardTourKey,
+          title: 'Votre tableau de bord',
+          description:
+              'Retrouvez ici vos matchs, les offres aimées et celles passées.',
+          targetShapeBorder: const CircleBorder(),
+          child: IconButton(
+            icon: const Icon(Icons.favorite_outline_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const JobMatchMatchesPage()),
             ),
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          if (provider.loading)
-            const Center(child: CircularProgressIndicator())
-          else if (provider.feed.isEmpty)
-            _buildEmptyState(context, colors)
-          else
-            _buildCardStack(context, provider),
-          if (provider.lastMatch != null) _buildMatchOverlay(context, provider),
-          // AnimatedSwitcher : fondu à l'apparition ET à la disparition,
-          // au lieu d'un "pop"/disparition brutale quand _celebrating
-          // repasse à null.
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _celebrating != null
-                ? _buildLikedCelebration(_celebrating!)
-                : const SizedBox.shrink(key: ValueKey('no-celebration')),
+        ),
+      ],
+    );
+
+    // GlassAppBar est autonome (pas besoin d'un Scaffold.appBar) : hauteur
+    // totale (statut + toolbar) réservée manuellement en haut du contenu,
+    // comme sur Explorer.
+    final topPadding =
+        glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
+
+    // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
+    // navigation (fond colorScheme.surface unique). GlassAppBar est posé
+    // par-dessus via Positioned.
+    return Stack(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: topPadding),
+          // top:false : déjà réservé ci-dessus. bottom:false : la pilule de
+          // nav flottante de HomeShell (+ safe area) est protégée dans
+          // _buildCardStack, sinon les boutons Aimer/Rejeter finissent
+          // dessous.
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Stack(
+              children: [
+                if (provider.loading)
+                  const Center(child: CircularProgressIndicator())
+                else if (provider.feed.isEmpty)
+                  _buildEmptyState(context, colors)
+                else
+                  _buildCardStack(context, provider),
+                if (provider.lastMatch != null)
+                  _buildMatchOverlay(context, provider),
+                // AnimatedSwitcher : fondu à l'apparition ET à la
+                // disparition, au lieu d'un "pop"/disparition brutale quand
+                // _celebrating repasse à null.
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _celebrating != null
+                      ? _buildLikedCelebration(_celebrating!)
+                      : const SizedBox.shrink(key: ValueKey('no-celebration')),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+        // SizedBox(height: topPadding) est indispensable : sans lui, ce
+        // Positioned (top/left/right seuls, pas de bottom) donne à
+        // GlassAppBar une hauteur non contrainte et son AppBar interne
+        // plante en layout — cf. la même note dans explore_page.dart.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SizedBox(height: topPadding, child: glassAppBar),
+        ),
+      ],
     );
   }
 
@@ -119,7 +153,12 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     final topJob = feed.first;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        24 + BottomNavMetrics.reservedHeight,
+      ),
       child: Column(
         children: [
           Expanded(child: _buildStack(provider, feed)),

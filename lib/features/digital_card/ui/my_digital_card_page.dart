@@ -30,11 +30,19 @@ class MyDigitalCardPage extends StatefulWidget {
   final GlobalKey? highlightBarKey;
   final GlobalKey? createCardKey;
 
+  /// true quand la page est déjà montée sous le Scaffold d'un parent
+  /// (HomeShell, ScanPage) : elle ne pose alors pas son propre Scaffold,
+  /// pour qu'il n'y ait qu'un seul fond/Material sur tout l'écran. false
+  /// (par défaut) pour l'usage en route à part entière (MyDigitalCardGuard,
+  /// route '/my-card'), qui a besoin de son propre Scaffold.
+  final bool embedded;
+
   const MyDigitalCardPage({
     super.key,
     this.minimal = false,
     this.highlightBarKey,
     this.createCardKey,
+    this.embedded = false,
   });
 
   @override
@@ -120,6 +128,19 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
+  /// Pose un Scaffold uniquement quand cette page n'est pas déjà montée
+  /// sous celui d'un parent (cf. MyDigitalCardPage.embedded) — évite un
+  /// second fond potentiellement différent (Scaffold.backgroundColor par
+  /// défaut vs colorScheme.surface utilisé partout ailleurs) derrière la
+  /// pilule de nav flottante de HomeShell.
+  Widget _wrapScaffold(BuildContext context, Widget body) {
+    if (widget.embedded) return body;
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: body,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -139,14 +160,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             ? card.jobTitle!
             : 'Membre';
 
-    return Scaffold(
-      // Explicite plutôt que le défaut ThemeData.scaffoldBackgroundColor :
-      // ce dernier diffère de colorScheme.surface (utilisé par HomeShell et
-      // les autres pages), ce qui créait une couleur de fond visiblement
-      // différente derrière la pilule de nav (extendBody) selon l'onglet
-      // affiché — Carte contre Contacts/Profil/Offres, par ex.
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
+    return _wrapScaffold(
+      context,
+      SafeArea(
         child: Stack(
           children: [
             // Header avec menu hamburger et profil

@@ -53,10 +53,18 @@ final List<String> _fields = [
 
 /// [section] restreint le formulaire à une seule partie : 'basic', 'social',
 /// 'experiences' ou 'educations'. `null` (par défaut) affiche tout.
+///
+/// [addOnly] — seulement pour 'experiences'/'educations' : n'affiche pas
+/// les entrées déjà existantes, juste une carte vierge à remplir (la
+/// sauvegarde les ajoute aux entrées existantes sans y toucher). Utilisé
+/// par le bouton "+" de la page Profil, qui doit permettre d'ajouter une
+/// expérience/formation sans se retrouver face à la liste complète —
+/// réservée à "Voir tout"/"Modifier" (gestion complète, avec suppression).
 class CompletionFormPage extends StatefulWidget {
   final String? section;
+  final bool addOnly;
 
-  const CompletionFormPage({super.key, this.section});
+  const CompletionFormPage({super.key, this.section, this.addOnly = false});
 
   @override
   State<CompletionFormPage> createState() => _CompletionFormPageState();
@@ -67,6 +75,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _linkedinCtrl = TextEditingController();
@@ -109,6 +118,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       final m = p.model;
       _jobCtrl.text = m.jobTitle ?? '';
       _companyCtrl.text = m.company ?? '';
+      _bioCtrl.text = m.bio ?? '';
       _phoneCtrl.text = m.phone ?? '';
       _emailCtrl.text = m.email ?? '';
       _linkedinCtrl.text = m.linkedin ?? '';
@@ -124,24 +134,36 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       }
       _isPublic = m.isPublic;
 
-      for (final exp in m.experiences) {
-        _experiences.add({
-          'title': TextEditingController(text: exp.title),
-          'company': TextEditingController(text: exp.company),
-          'start_date': TextEditingController(text: exp.startDate),
-          'end_date': TextEditingController(text: exp.endDate ?? ''),
-          'description': TextEditingController(text: exp.description),
-        });
+      // addOnly : on ne recharge PAS les entrées déjà existantes de la
+      // section concernée — seulement une carte vierge, pour que "+"
+      // n'affiche jamais "les autres" (cf. doc de [CompletionFormPage]).
+      // Elles restent bien sûr préservées à la sauvegarde (cf. _save).
+      if (widget.addOnly && widget.section == 'experiences') {
+        _experiences.add(_blankExperienceControllers());
+      } else {
+        for (final exp in m.experiences) {
+          _experiences.add({
+            'title': TextEditingController(text: exp.title),
+            'company': TextEditingController(text: exp.company),
+            'start_date': TextEditingController(text: exp.startDate),
+            'end_date': TextEditingController(text: exp.endDate ?? ''),
+            'description': TextEditingController(text: exp.description),
+          });
+        }
       }
 
-      for (final edu in m.educations) {
-        _educations.add({
-          'school': TextEditingController(text: edu.school),
-          'degree': TextEditingController(text: edu.degree),
-          'field': TextEditingController(text: edu.field),
-          'start_year': TextEditingController(text: edu.startYear.toString()),
-          'end_year': TextEditingController(text: edu.endYear.toString()),
-        });
+      if (widget.addOnly && widget.section == 'educations') {
+        _educations.add(_blankEducationControllers());
+      } else {
+        for (final edu in m.educations) {
+          _educations.add({
+            'school': TextEditingController(text: edu.school),
+            'degree': TextEditingController(text: edu.degree),
+            'field': TextEditingController(text: edu.field),
+            'start_year': TextEditingController(text: edu.startYear.toString()),
+            'end_year': TextEditingController(text: edu.endYear.toString()),
+          });
+        }
       }
 
       setState(() {});
@@ -152,6 +174,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   void dispose() {
     _jobCtrl.dispose();
     _companyCtrl.dispose();
+    _bioCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _linkedinCtrl.dispose();
@@ -172,15 +195,25 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     super.dispose();
   }
 
-  void _addExperience() {
-    setState(() {
-      _experiences.add({
+  Map<String, TextEditingController> _blankExperienceControllers() => {
         'title': TextEditingController(),
         'company': TextEditingController(),
         'start_date': TextEditingController(),
         'end_date': TextEditingController(),
         'description': TextEditingController(),
-      });
+      };
+
+  Map<String, TextEditingController> _blankEducationControllers() => {
+        'school': TextEditingController(),
+        'degree': TextEditingController(),
+        'field': TextEditingController(),
+        'start_year': TextEditingController(),
+        'end_year': TextEditingController(),
+      };
+
+  void _addExperience() {
+    setState(() {
+      _experiences.add(_blankExperienceControllers());
     });
   }
 
@@ -195,13 +228,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   void _addEducation() {
     setState(() {
-      _educations.add({
-        'school': TextEditingController(),
-        'degree': TextEditingController(),
-        'field': TextEditingController(),
-        'start_year': TextEditingController(),
-        'end_year': TextEditingController(),
-      });
+      _educations.add(_blankEducationControllers());
     });
   }
 
@@ -270,7 +297,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
     final p = context.read<ProfileCompletionProvider>();
 
-    final experiences = _experiences.map((exp) {
+    final draftedExperiences = _experiences.map((exp) {
       return ExperienceModel(
         title: exp['title']!.text,
         company: exp['company']!.text,
@@ -280,7 +307,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       );
     }).toList();
 
-    final educations = _educations.map((edu) {
+    final draftedEducations = _educations.map((edu) {
       return EducationModel(
         school: edu['school']!.text,
         degree: edu['degree']!.text,
@@ -290,9 +317,21 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       );
     }).toList();
 
+    // addOnly : _experiences/_educations ne contiennent que les nouvelles
+    // entrées en cours de saisie (cf. initState) — on les ajoute à celles
+    // déjà existantes (chargées mais jamais affichées ici) au lieu de les
+    // remplacer, sinon la sauvegarde effacerait tout le reste.
+    final experiences = (widget.addOnly && widget.section == 'experiences')
+        ? [...p.model.experiences, ...draftedExperiences]
+        : draftedExperiences;
+    final educations = (widget.addOnly && widget.section == 'educations')
+        ? [...p.model.educations, ...draftedEducations]
+        : draftedEducations;
+
     final updated = ProfileCompletionModel(
       jobTitle: _jobCtrl.text,
       company: _companyCtrl.text,
+      bio: _bioCtrl.text,
       phone: _phoneCtrl.text,
       email: _emailCtrl.text,
       linkedin: _linkedinCtrl.text,
@@ -302,6 +341,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       website: _websiteCtrl.text,
       experiences: experiences,
       educations: educations,
+      // Ce formulaire n'édite jamais les centres d'intérêt (cf.
+      // InterestsEditorSheet) — on reprend tel quel ce qui était chargé,
+      // sinon chaque sauvegarde ici les effacerait silencieusement.
+      interests: p.model.interests,
       activatedFields: _activeFields.entries
           .where((e) => e.value)
           .map((e) => e.key)
@@ -423,6 +466,15 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     controller: _companyCtrl,
                     prefixIcon: Icons.business_outlined,
                     hint: 'Nom de votre entreprise'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Bio',
+                    controller: _bioCtrl,
+                    prefixIcon: Icons.notes_outlined,
+                    maxLines: 4,
+                    minLines: 3,
+                    hint:
+                        'Quelques phrases pour vous présenter, affichées en tête de votre profil'),
                 const SizedBox(height: 12),
                 AuthTextField(
                     label: 'Téléphone',

@@ -91,6 +91,10 @@ dependencies:
   # Détection de l'état de la connexion, pour afficher un bandeau "Hors ligne".
   connectivity_plus: ^6.1.0
 
+  # Sélection de fichiers (PDF/image) pour l'upload des documents
+  # professionnels (diplômes, attestations, certificats) sur le profil.
+  file_picker: ^8.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

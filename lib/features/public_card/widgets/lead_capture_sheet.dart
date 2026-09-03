@@ -148,8 +148,7 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -189,7 +188,6 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
             ),
           ),
           const SizedBox(height: 20),
-
           Text(
             'Restons en contact',
             style: TextStyle(
@@ -198,9 +196,7 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
               fontWeight: FontWeight.w700,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             'Partagez vos coordonnées avec ${widget.ownerName}',
             style: TextStyle(
@@ -208,17 +204,13 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
               fontSize: 14,
             ),
           ),
-
           const SizedBox(height: 24),
-
           _buildField(_nameController, 'Nom complet', Icons.person, textColor),
           const SizedBox(height: 12),
           _buildField(_emailController, 'Email', Icons.email, textColor),
           const SizedBox(height: 12),
           _buildField(_phoneController, 'Téléphone', Icons.phone, textColor),
-
           const SizedBox(height: 24),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -295,17 +287,12 @@ class _SuccessDialog extends StatelessWidget {
                 ),
               ],
             ),
-
             Icon(
               isDuplicate ? Icons.info_outline : Icons.check_circle,
-              color: isDuplicate
-                  ? Colors.orange
-                  : const Color(0xFF2563EB),
+              color: isDuplicate ? Colors.orange : const Color(0xFF2563EB),
               size: 60,
             ),
-
             const SizedBox(height: 12),
-
             Text(
               isDuplicate ? 'Déjà envoyé' : 'Merci !',
               style: const TextStyle(
@@ -313,9 +300,7 @@ class _SuccessDialog extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               isDuplicate
                   ? 'Vous avez déjà partagé vos coordonnées avec $ownerName'

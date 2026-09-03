@@ -96,7 +96,8 @@ class ExploreProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      myRequests = await _service.fetchMyRequests(status: myRequestsStatusFilter);
+      myRequests =
+          await _service.fetchMyRequests(status: myRequestsStatusFilter);
     } catch (e) {
       debugPrint('❌ Erreur loadMyRequests (explore): $e');
     }
@@ -119,7 +120,9 @@ class ExploreProvider extends ChangeNotifier {
       await _service.respond(requestId, action);
     } catch (e) {
       return e is DioException
-          ? ((e.response?.data is Map ? (e.response?.data as Map)['message']?.toString() : null) ??
+          ? ((e.response?.data is Map
+                  ? (e.response?.data as Map)['message']?.toString()
+                  : null) ??
               'Une erreur est survenue, réessayez.')
           : 'Une erreur est survenue, réessayez.';
     }

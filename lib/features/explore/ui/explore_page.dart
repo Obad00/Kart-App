@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -6,12 +7,17 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/app_search_bar.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
+import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
+import '../services/community_service.dart';
 import '../services/explore_service.dart';
+import '../widgets/community_card.dart';
 import '../widgets/connect_action_button.dart';
+import 'communities_page.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
@@ -38,6 +44,7 @@ class ExplorePage extends StatefulWidget {
 class _ExplorePageState extends State<ExplorePage>
     with SingleTickerProviderStateMixin {
   late final ExploreProvider _provider;
+  late final CommunityProvider _communityProvider;
   late final TabController _tabController;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
@@ -47,6 +54,8 @@ class _ExplorePageState extends State<ExplorePage>
   void initState() {
     super.initState();
     _provider = ExploreProvider(ExploreService());
+    _communityProvider = CommunityProvider(CommunityService());
+    _communityProvider.loadCommunities();
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -96,6 +105,7 @@ class _ExplorePageState extends State<ExplorePage>
     _scrollController.dispose();
     _tabController.dispose();
     _provider.dispose();
+    _communityProvider.dispose();
     super.dispose();
   }
 
@@ -160,33 +170,56 @@ class _ExplorePageState extends State<ExplorePage>
     final topPadding =
         glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
 
-    return ChangeNotifierProvider.value(
-      value: _provider,
-      child: Scaffold(
-        // Explicite plutôt que le défaut ThemeData.scaffoldBackgroundColor :
-        // ce dernier diffère de colorScheme.surface (utilisé par HomeShell
-        // et les autres pages), ce qui créait une couleur de fond visible-
-        // ment différente derrière la pilule de nav (extendBody côté
-        // HomeShell) selon l'onglet affiché.
-        backgroundColor: colors.surface,
-        extendBodyBehindAppBar: true,
-        appBar: glassAppBar,
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildDiscoverTab(topPadding),
-              _buildMyRequestsTab(topPadding),
-            ],
+    // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
+    // navigation (fond colorScheme.surface unique, cf. AppTheme). GlassAppBar
+    // n'a besoin que d'un AppBar (widget autonome, pas de dépendance à
+    // Scaffold) — posé par-dessus le contenu via Positioned pour reproduire
+    // l'effet extendBodyBehindAppBar : le contenu défile réellement dessous,
+    // chaque onglet réservant déjà la place nécessaire via topPadding.
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _provider),
+        ChangeNotifierProvider.value(value: _communityProvider),
+      ],
+      child: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDiscoverTab(topPadding),
+                _buildMyRequestsTab(topPadding),
+              ],
+            ),
           ),
-        ),
+          // SizedBox(height: topPadding) est indispensable : sans lui, ce
+          // Positioned (top/left/right seuls, pas de bottom) donne à
+          // GlassAppBar une hauteur non contrainte, et l'AppBar interne (qui
+          // empile toolbar + TabBar dans une Column avec Expanded) plante en
+          // layout — c'est exactement ce que fait Scaffold(appBar: ...) en
+          // interne pour n'importe quel AppBar, et qu'il faut donc refaire à
+          // la main ici. topPadding (pas juste preferredSize.height) car
+          // l'AppBar réserve lui-même la place de la status bar en plus de
+          // sa propre hauteur quand primary vaut true (par défaut).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(height: topPadding, child: glassAppBar),
+          ),
+        ],
       ),
     );
   }
 
-  static const double _searchBarHeight = 58;
+  // AppSearchBar n'a pas de hauteur fixe (elle dépend du TextField interne
+  // — icône de suffixe "effacer" quand une recherche est tapée, réglages
+  // d'accessibilité...) : 58 était trop juste et provoquait "A RenderFlex
+  // overflowed by 5.0 pixels" dans l'en-tête épinglé dès que le champ
+  // dépassait ne serait-ce que de quelques pixels. Marge de sécurité +6.
+  static const double _searchBarHeight = 64;
   static const double _filterRowHeight = 44;
 
   Widget _buildDiscoverTab(double topPadding) {
@@ -195,138 +228,215 @@ class _ExplorePageState extends State<ExplorePage>
     // (zone de geste/home indicator) doit encore être protégé ici.
     return SafeArea(
       top: false,
-      child: CustomScrollView(
-        controller: _scrollController,
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-          // SliverPersistentHeader(pinned:true) plutôt que SliverToBoxAdapter :
-          // recherche + filtres restent fixes en haut pendant qu'on scrolle la
-          // liste, au lieu de défiler avec elle.
-          Consumer<ExploreProvider>(
-            builder: (context, provider, _) {
-              final hasFilters = provider.jobTitles.isNotEmpty;
-              final height = topPadding +
-                  12 +
-                  _searchBarHeight +
-                  8 +
-                  (hasFilters ? _filterRowHeight : 0);
+      // Stack (pas Column) : la liste occupe toute la hauteur et défile
+      // réellement DERRIÈRE "Réseaux populaires", pour que le
+      // BackdropFilter de ce dernier ait quelque chose à flouter au
+      // scroll (effet verre dépoli, comme GlassAppBar en haut) — un
+      // Column séparé n'aurait rien laissé passer derrière le bloc fixe.
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildDiscoverScrollable(topPadding),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildCommunitiesFooter(),
+          ),
+        ],
+      ),
+    );
+  }
 
-              return SliverPersistentHeader(
-                pinned: true,
-                delegate: StickyHeaderDelegate(
-                  height: height,
-                  blurBackground: true,
-                  child: Column(
-                    children: [
-                      SizedBox(height: topPadding),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: AppSearchBar(
-                          controller: _searchController,
-                          hintText: 'Rechercher par nom, poste, entreprise...',
-                          onChanged: _onSearchChanged,
-                        ),
+  // Espace réservé en bas de la liste pour que son dernier profil puisse
+  // défiler entièrement au-dessus du bloc "Réseaux populaires" (sinon il
+  // resterait en partie caché derrière, glass ou pas) — variable selon que
+  // ce bloc est affiché ou non (cf. _buildCommunitiesFooter).
+  static const double _communitiesFooterHeight = 236;
+
+  Widget _buildCommunitiesFooter() {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Consumer<CommunityProvider>(
+      builder: (context, provider, _) {
+        // Rien à afficher (pas même la bordure) tant qu'aucune communauté
+        // n'a été créée par le superadmin, ou en cas d'échec réseau.
+        if (!provider.isLoading && provider.communities.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+                border: Border(
+                  top: BorderSide(
+                    color: colors.onSurface.withValues(alpha: 0.06),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              // 0 en bas, à la demande explicite — la pilule de nav
+              // flottante de HomeShell (extendBody) vient donc recouvrir
+              // le bas de la dernière carte (bouton Rejoindre/Membre y
+              // compris) plutôt que de laisser un espace au-dessus d'elle.
+              child: const _CommunitiesSection(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDiscoverScrollable(double topPadding) {
+    return CustomScrollView(
+      controller: _scrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        // SliverPersistentHeader(pinned:true) plutôt que SliverToBoxAdapter :
+        // recherche + filtres restent fixes en haut pendant qu'on scrolle la
+        // liste, au lieu de défiler avec elle.
+        Consumer<ExploreProvider>(
+          builder: (context, provider, _) {
+            final hasFilters = provider.jobTitles.isNotEmpty;
+            final height = topPadding +
+                12 +
+                _searchBarHeight +
+                8 +
+                (hasFilters ? _filterRowHeight : 0);
+
+            return SliverPersistentHeader(
+              pinned: true,
+              delegate: StickyHeaderDelegate(
+                height: height,
+                blurBackground: true,
+                child: Column(
+                  children: [
+                    SizedBox(height: topPadding),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: AppSearchBar(
+                        controller: _searchController,
+                        hintText: 'Rechercher par nom, poste, entreprise...',
+                        onChanged: _onSearchChanged,
                       ),
-                      if (hasFilters) _buildJobTitleFilterRow(provider),
+                    ),
+                    if (hasFilters) _buildJobTitleFilterRow(provider),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        Consumer<ExploreProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading) {
+              return const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (provider.error != null) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(provider.error!),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () => provider.loadUsers(),
+                        child: const Text('Réessayer'),
+                      ),
                     ],
                   ),
                 ),
               );
-            },
-          ),
-          Consumer<ExploreProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoading) {
-                return const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+            }
 
-              if (provider.error != null) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
+            if (provider.users.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(provider.error!),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () => provider.loadUsers(),
-                          child: const Text('Réessayer'),
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                _themeBlue.withValues(alpha: 0.12),
+                                const Color(0xFF6D28D9).withValues(alpha: 0.12),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.explore_outlined,
+                              size: 40, color: _themeBlue),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Aucun profil à découvrir pour le moment',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                );
-              }
-
-              if (provider.users.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  _themeBlue.withValues(alpha: 0.12),
-                                  const Color(0xFF6D28D9)
-                                      .withValues(alpha: 0.12),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: const Icon(Icons.explore_outlined,
-                                size: 40, color: _themeBlue),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Aucun profil à découvrir pour le moment',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              return SliverPadding(
-                padding: const EdgeInsets.only(bottom: 24),
-                sliver: SliverList.builder(
-                  itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index >= provider.users.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    return _ExploreUserRow(user: provider.users[index]);
-                  },
                 ),
               );
-            },
-          ),
-        ],
-      ),
+            }
+
+            return SliverList.builder(
+              itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= provider.users.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return _ExploreUserRow(user: provider.users[index]);
+              },
+            );
+          },
+        ),
+        // Place réservée pour que le dernier profil puisse défiler
+        // entièrement au-dessus du bloc fixe "Réseaux populaires" — qui,
+        // lui, n'est plus dans ce scrollable mais posé par-dessus en
+        // Positioned (cf. _buildDiscoverTab), d'où la nécessité de cette
+        // marge (sans elle, le dernier profil resterait caché dessous).
+        Consumer<CommunityProvider>(
+          builder: (context, communityProvider, _) {
+            final showFooter = communityProvider.isLoading ||
+                communityProvider.communities.isNotEmpty;
+            return SliverToBoxAdapter(
+              child: SizedBox(
+                height: showFooter
+                    ? _communitiesFooterHeight
+                    : 16 + BottomNavMetrics.reservedHeight,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -429,7 +539,10 @@ class _ExplorePageState extends State<ExplorePage>
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.only(bottom: 24, top: 8),
+                padding: EdgeInsets.only(
+                  top: 8,
+                  bottom: 24 + BottomNavMetrics.reservedHeight,
+                ),
                 sliver: SliverList.builder(
                   itemCount: provider.myRequests.length,
                   itemBuilder: (context, index) =>
@@ -830,6 +943,42 @@ class _ExploreUserRow extends StatelessWidget {
                   ),
                 ),
 
+                // "Profil complet" — met en avant les profils les plus
+                // soignés (le backend trie déjà l'annuaire dans cet ordre,
+                // ce badge le rend visible sur la carte elle-même).
+                if (user.hasCompleteProfile)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.verified_rounded,
+                              size: 13, color: Color(0xFF34D399)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Profil complet',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 // Contenu texte + action — épuré : plus de bordures sur les
                 // badges, tailles réduites pour une carte plus compacte.
                 Padding(
@@ -935,6 +1084,97 @@ class _ExploreUserRow extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Réseaux populaires" — carrousel horizontal de communautés (cf. maquette),
+/// juste au-dessus de la liste des profils à découvrir. Superadmin only pour
+/// la gestion des communautés elles-mêmes (CRM web) ; ici on ne fait que
+/// lister/rejoindre.
+class _CommunitiesSection extends StatelessWidget {
+  const _CommunitiesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CommunityProvider>();
+    final colors = Theme.of(context).colorScheme;
+
+    // Rien à afficher tant qu'aucune communauté n'a été créée par le
+    // superadmin, ou en cas d'échec réseau — pas d'état d'erreur bruyant
+    // pour une section secondaire de la page.
+    if (!provider.isLoading && provider.communities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Réseaux populaires',
+                  style: TextStyle(
+                    fontFamily: 'Syne',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: colors.onSurface,
+                  ),
+                ),
+                if (provider.communities.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider.value(
+                                value: provider,
+                                child: const CommunitiesPage(),
+                              )),
+                    ),
+                    child: const Text(
+                      'Voir tout',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: _themeBlue,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (provider.isLoading)
+            const SizedBox(
+              height: 196,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            SizedBox(
+              height: 196,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: provider.communities.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final community = provider.communities[index];
+                  return SizedBox(
+                    width: 220,
+                    child: CommunityCard(
+                      community: community,
+                      onToggleJoin: () => provider.toggleJoin(community),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

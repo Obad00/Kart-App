@@ -63,6 +63,8 @@ import 'features/profile_completion/providers/profile_completion_provider.dart';
 import 'features/profile_completion/services/profile_completion_service.dart';
 import 'features/profile_completion/providers/candidate_skills_provider.dart';
 import 'features/profile_completion/services/candidate_skills_service.dart';
+import 'features/profile/providers/professional_document_provider.dart';
+import 'features/profile/services/professional_document_service.dart';
 import 'features/jobmatch/providers/jobmatch_provider.dart';
 import 'features/jobmatch/services/jobmatch_service.dart';
 import 'features/explore/providers/connection_badge_provider.dart';
@@ -136,6 +138,11 @@ class _KartAppState extends State<KartApp> {
         ChangeNotifierProvider(
           create: (_) => CandidateSkillsProvider(
             CandidateSkillsService(),
+          )..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProfessionalDocumentProvider(
+            ProfessionalDocumentService(),
           )..load(),
         ),
         ChangeNotifierProvider(

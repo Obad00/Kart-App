@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_endpoints.dart';
@@ -19,16 +20,20 @@ import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../widgets/edit_profile_form.dart';
+import '../providers/professional_document_provider.dart';
+import '../widgets/document_row.dart';
+import '../widgets/document_upload_sheet.dart';
+import '../../profile_completion/helpers/completion_helper.dart';
 import '../../profile_completion/widgets/completion_banner.dart';
 import '../../profile_completion/widgets/completion_sections.dart';
 import '../../profile_completion/ui/completion_form_page.dart';
 import '../../profile_completion/providers/profile_completion_provider.dart';
 import '../../profile_completion/providers/candidate_skills_provider.dart';
-import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -122,303 +127,320 @@ class _ProfilePageState extends State<ProfilePage>
 
     final user = auth.user;
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     final colors = Theme.of(context).colorScheme;
     final companyColor = context.companyColor;
     final fullName = '${user.firstname} ${user.lastname}'.trim();
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      body: CustomScrollView(
-        slivers: [
-          // App Bar avec effet de blur — verre dépoli façon Apple : le
-          // contenu défile réellement derrière (pinned + floating), le
-          // BackdropFilter a donc quelque chose à flouter au scroll.
-          SliverAppBar(
-            expandedHeight: 0,
-            floating: true,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            flexibleSpace: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colors.surface.withValues(
-                      alpha: Theme.of(context).brightness == Brightness.dark
-                          ? 0.32
-                          : 0.5,
-                    ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: colors.onSurface.withValues(alpha: 0.06),
-                        width: 0.5,
-                      ),
+    // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
+    // navigation (fond colorScheme.surface unique). Cette page n'utilise
+    // qu'un SliverAppBar (dans ce CustomScrollView), pas un vrai
+    // Scaffold.appBar — rien ne justifiait un Scaffold supplémentaire.
+    return CustomScrollView(
+      slivers: [
+        // App Bar avec effet de blur — verre dépoli façon Apple : le
+        // contenu défile réellement derrière (pinned + floating), le
+        // BackdropFilter a donc quelque chose à flouter au scroll.
+        SliverAppBar(
+          expandedHeight: 0,
+          floating: true,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          flexibleSpace: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colors.surface.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.32
+                        : 0.5,
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colors.onSurface.withValues(alpha: 0.06),
+                      width: 0.5,
                     ),
                   ),
                 ),
               ),
             ),
-            title: Text(
-              'Mon profil',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface,
-              ),
-            ),
-            centerTitle: true,
-            actions: [
-              Showcase(
-                key: _settingsTourKey,
-                title: 'Réglages',
-                description:
-                    'Retrouvez vos préférences, le centre d\'aide et les guides ici.',
-                targetShapeBorder: const CircleBorder(),
-                child: IconButton(
-                  onPressed: () => _showSettings(context),
-                  icon: Icon(
-                    Icons.settings_outlined,
-                    color: colors.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-              ),
-            ],
           ),
+          title: Text(
+            'Mon profil',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface,
+            ),
+          ),
+          centerTitle: true,
+          actions: [
+            Showcase(
+              key: _settingsTourKey,
+              title: 'Réglages',
+              description:
+                  'Retrouvez vos préférences, le centre d\'aide et les guides ici.',
+              targetShapeBorder: const CircleBorder(),
+              child: IconButton(
+                onPressed: () => _showSettings(context),
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+          ],
+        ),
 
-          // Contenu
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 8),
+        // Contenu
+        SliverToBoxAdapter(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
 
-                      // Header profil
-                      _buildProfileHeader(
-                          colors, companyColor, fullName, user.email),
+                    // Header profil
+                    _buildProfileHeader(
+                        colors, companyColor, fullName, user.email),
 
-                      const CompletionBanner(),
+                    const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
+                    // Documents professionnels — diplômes, attestations,
+                    // certificats ; juste après l'en-tête comme demandé.
+                    // Vérification réservée au superadmin (CRM web).
+                    _buildDocumentsSection(colors, companyColor),
 
-                      // Stats rapides
-                      _buildQuickStats(colors, companyColor, card),
+                    const CompletionBanner(),
 
-                      const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                      // Informations personnelles — fusionne identité (nom,
-                      // email) et infos de carte (poste, entreprise,
-                      // téléphone), pour ne plus répéter l'email entre deux
-                      // sections séparées.
-                      _buildSection(
-                        colors: colors,
-                        companyColor: companyColor,
-                        icon: Icons.person_outline,
-                        title: 'Informations personnelles',
-                        collapsible: true,
-                        expanded: _personalInfoExpanded,
-                        onToggle: () => setState(
-                          () => _personalInfoExpanded = !_personalInfoExpanded,
-                        ),
-                        trailing: Showcase(
-                          key: _editInfoTourKey,
-                          title: 'Modifier vos infos',
-                          description:
-                              'Mettez à jour votre nom, email, poste, entreprise et téléphone ici.',
-                          child: TextButton(
-                            onPressed: () =>
-                                _openForm(context, section: 'basic'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: companyColor,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              minimumSize: const Size(0, 0),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Modifier',
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
+                    // Informations personnelles — fusionne identité (nom,
+                    // email) et infos de carte (poste, entreprise,
+                    // téléphone), pour ne plus répéter l'email entre deux
+                    // sections séparées.
+                    _buildSection(
+                      colors: colors,
+                      companyColor: companyColor,
+                      icon: Icons.person_outline,
+                      title: 'Informations personnelles',
+                      collapsible: true,
+                      expanded: _personalInfoExpanded,
+                      onToggle: () => setState(
+                        () => _personalInfoExpanded = !_personalInfoExpanded,
+                      ),
+                      trailing: Showcase(
+                        key: _editInfoTourKey,
+                        title: 'Modifier vos infos',
+                        description:
+                            'Mettez à jour votre nom, email, poste, entreprise et téléphone ici.',
+                        child: TextButton(
+                          onPressed: () => _openForm(context, section: 'basic'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: companyColor,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Modifier',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
-                        children: [
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.badge_outlined,
-                            label: 'Nom complet',
-                            value: fullName.isEmpty ? '-' : fullName,
+                      ),
+                      children: [
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.badge_outlined,
+                          label: 'Nom complet',
+                          value: fullName.isEmpty ? '-' : fullName,
+                          // Nom, mot de passe : identité du compte, gérée
+                          // à part du contenu de la carte (poste, bio...)
+                          // édité lui via le bouton "Modifier" de l'en-tête.
+                          onTap: () => _openEditProfileForm(context),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: colors.onSurface.withValues(alpha: 0.3),
                           ),
-                          _buildDivider(colors),
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.email_outlined,
-                            label: 'Adresse email',
-                            value: user.email,
+                        ),
+                        _buildDivider(colors),
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.email_outlined,
+                          label: 'Adresse email',
+                          value: user.email,
+                        ),
+                        _buildDivider(colors),
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.work_outline,
+                          label: 'Poste',
+                          value: card.jobTitle ?? '-',
+                        ),
+                        _buildDivider(colors),
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.business_outlined,
+                          label: 'Entreprise',
+                          value: card.company ?? '-',
+                        ),
+                        _buildDivider(colors),
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.phone_outlined,
+                          label: 'Téléphone',
+                          value: card.phone ?? '-',
+                        ),
+                        _buildDivider(colors),
+                        _buildInfoRow(
+                          colors,
+                          icon: Icons.workspace_premium,
+                          label: 'Plan',
+                          value: resolveDisplayedPlan(
+                            cardPlan: card.plan,
+                            userPlan: user.plan,
+                            hasCompany: user.hasCompany,
                           ),
-                          _buildDivider(colors),
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.work_outline,
-                            label: 'Poste',
-                            value: card.jobTitle ?? '-',
-                          ),
-                          _buildDivider(colors),
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.business_outlined,
-                            label: 'Entreprise',
-                            value: card.company ?? '-',
-                          ),
-                          _buildDivider(colors),
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.phone_outlined,
-                            label: 'Téléphone',
-                            value: card.phone ?? '-',
-                          ),
-                          _buildDivider(colors),
-                          _buildInfoRow(
-                            colors,
-                            icon: Icons.workspace_premium,
-                            label: 'Plan',
-                            value: resolveDisplayedPlan(
-                              cardPlan: card.plan,
-                              userPlan: user.plan,
-                              hasCompany: user.hasCompany,
-                            ),
-                            onTap: _planChangeEnabled
-                                ? () => _openPlanSelection(context)
-                                : null,
-                            trailing: _planChangeEnabled
-                                ? TextButton(
-                                    onPressed: () =>
-                                        _openPlanSelection(context),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: companyColor,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      minimumSize: const Size(0, 0),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        side: BorderSide(
-                                          color: companyColor.withValues(
-                                              alpha: 0.25),
-                                        ),
+                          onTap: _planChangeEnabled
+                              ? () => _openPlanSelection(context)
+                              : null,
+                          trailing: _planChangeEnabled
+                              ? TextButton(
+                                  onPressed: () => _openPlanSelection(context),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: companyColor,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: companyColor.withValues(
+                                            alpha: 0.25),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Changer',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          if (_planChangeEnabled)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(50, 0, 16, 6),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Touchez Changer pour modifier votre plan.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color:
-                                        colors.onSurface.withValues(alpha: 0.5),
                                   ),
+                                  child: const Text(
+                                    'Changer',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        if (_planChangeEnabled)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(50, 0, 16, 6),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Touchez Changer pour modifier votre plan.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.5),
                                 ),
                               ),
                             ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Réseaux sociaux, Expériences, Formation, Compétences
+                    const CompletionSections(),
+
+                    const SizedBox(height: 16),
+
+                    // Entreprise (lecture seule)
+                    if (user.hasCompany) ...[
+                      _buildSection(
+                        colors: colors,
+                        companyColor: companyColor,
+                        icon: Icons.business_rounded,
+                        title: 'Entreprise',
+                        children: [
+                          _buildInfoRow(
+                            colors,
+                            icon: Icons.apartment_rounded,
+                            label: 'Mon entreprise',
+                            value: user.company?.name ?? '',
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/my-company'),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: colors.onSurface.withValues(alpha: 0.4),
+                            ),
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Réseaux sociaux, Expériences, Formation, Compétences
-                      const CompletionSections(),
-
-                      const SizedBox(height: 16),
-
-                      // Entreprise (lecture seule)
-                      if (user.hasCompany) ...[
-                        _buildSection(
-                          colors: colors,
-                          companyColor: companyColor,
-                          icon: Icons.business_rounded,
-                          title: 'Entreprise',
-                          children: [
-                            _buildInfoRow(
-                              colors,
-                              icon: Icons.apartment_rounded,
-                              label: 'Mon entreprise',
-                              value: user.company?.name ?? '',
-                              onTap: () =>
-                                  Navigator.pushNamed(context, '/my-company'),
-                              trailing: Icon(
-                                Icons.chevron_right_rounded,
-                                color: colors.onSurface.withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Apparence — masqué si l'entreprise impose déjà son
-                      // branding (celui-ci prime toujours sur la carte,
-                      // personnaliser sa propre couleur n'aurait aucun effet).
-                      if (card.status == CardStatus.hasCard &&
-                          !(user.hasCompany ||
-                              (card.companyLogo != null &&
-                                  card.companyLogo!.isNotEmpty) ||
-                              (card.companyPrimaryColor != null &&
-                                  card.companyPrimaryColor!.isNotEmpty))) ...[
-                        _buildSection(
-                          colors: colors,
-                          companyColor: companyColor,
-                          icon: Icons.palette_outlined,
-                          title: 'Apparence',
-                          children: [
-                            _buildBrandingRow(colors, companyColor, card),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Actions
-                      _buildActionButtons(colors, context),
-
-                      const SizedBox(height: 40),
                     ],
-                  ),
+
+                    // Apparence — masqué si l'entreprise impose déjà son
+                    // branding (celui-ci prime toujours sur la carte,
+                    // personnaliser sa propre couleur n'aurait aucun effet).
+                    if (card.status == CardStatus.hasCard &&
+                        !(user.hasCompany ||
+                            (card.companyLogo != null &&
+                                card.companyLogo!.isNotEmpty) ||
+                            (card.companyPrimaryColor != null &&
+                                card.companyPrimaryColor!.isNotEmpty))) ...[
+                      _buildSection(
+                        colors: colors,
+                        companyColor: companyColor,
+                        icon: Icons.palette_outlined,
+                        title: 'Apparence',
+                        children: [
+                          _buildBrandingRow(colors, companyColor, card),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Actions
+                    _buildActionButtons(colors, context),
+
+                    // 40 de respiration + la pilule de nav flottante de
+                    // HomeShell (extendBody : la safe area seule ne
+                    // suffit plus à protéger le dernier élément).
+                    const SizedBox(
+                        height: 40 + BottomNavMetrics.reservedHeight),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
+  // Carte d'en-tête du profil — reprend la maquette fournie (avatar, nom,
+  // bio, statistiques Expérience/Compétences/Kart Score, actions
+  // Partager/Modifier) avec les couleurs de l'app (companyColor) plutôt que
+  // le thème sombre/doré de la référence. Remplace l'ancien en-tête + la
+  // rangée "Stats rapides" (Scans/Contacts/Partages), désormais fusionnés
+  // en une seule section comme sur l'image.
   Widget _buildProfileHeader(
       ColorScheme colors, Color companyColor, String fullName, String? email) {
     final card = context.watch<CardProvider>();
@@ -429,6 +451,18 @@ class _ProfilePageState extends State<ProfilePage>
             ? avatarPath
             : '${ApiEndpoints.storageUrl}/$avatarPath')
         : null;
+
+    final completionModel = context.watch<ProfileCompletionProvider>().model;
+    final skillsCount = context.watch<CandidateSkillsProvider>().skills.length;
+    final kartScore = CompletionHelper.calculate(
+      completionModel,
+      hasSkills: skillsCount > 0,
+    ).percent.round().clamp(0, 100);
+    final experienceYears = _computeExperienceYears(card.experiences);
+    // Badge "vérifié" = profil 100% complet plutôt qu'une notion de
+    // vérification qui n'existe pas côté backend — évite d'afficher un
+    // statut qu'on ne peut pas garantir.
+    final isComplete = kartScore >= 100;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -447,8 +481,10 @@ class _ProfilePageState extends State<ProfilePage>
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar : tap = voir en grand (comme les applis modernes),
               // badge caméra séparé = changer la photo.
@@ -531,13 +567,29 @@ class _ProfilePageState extends State<ProfilePage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      fullName.isEmpty ? 'Utilisateur' : fullName,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            fullName.isEmpty ? 'Utilisateur' : fullName,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: colors.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isComplete) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.verified_rounded,
+                            size: 18,
+                            color: companyColor,
+                          ),
+                        ],
+                      ],
                     ),
                     if (hasCard &&
                         card.jobTitle != null &&
@@ -569,44 +621,121 @@ class _ProfilePageState extends State<ProfilePage>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.email_outlined,
-                          size: 14,
-                          color: colors.onSurface.withValues(alpha: 0.5),
+                    // Indenté, aligné avec le nom/poste/entreprise (pas
+                    // avec la photo) — cf. maquette fournie.
+                    if (hasCard &&
+                        card.bio != null &&
+                        card.bio!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        card.bio!,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: colors.onSurface.withValues(alpha: 0.75),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            email ?? '',
-                            style: TextStyle(
-                              color: colors.onSurface.withValues(alpha: 0.6),
-                              fontSize: 13,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-
-              // Bouton editer
-              IconButton(
-                onPressed: () => _openEditProfileForm(context),
-                style: IconButton.styleFrom(
-                  backgroundColor: colors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            ],
+          ),
+          const SizedBox(height: 18),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildProfileStat(
+                    colors,
+                    companyColor,
+                    icon: Icons.work_outline_rounded,
+                    label: 'Expérience',
+                    value: experienceYears > 0
+                        ? '$experienceYears an${experienceYears > 1 ? 's' : ''}'
+                        : '—',
                   ),
                 ),
-                icon: Icon(
-                  Icons.edit_outlined,
-                  size: 18,
-                  color: companyColor,
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 2,
+                  endIndent: 2,
+                  color: colors.onSurface.withValues(alpha: 0.08),
+                ),
+                Expanded(
+                  child: _buildProfileStat(
+                    colors,
+                    companyColor,
+                    icon: Icons.star_outline_rounded,
+                    label: 'Compétences',
+                    value: skillsCount > 0
+                        ? '$skillsCount compétence${skillsCount > 1 ? 's' : ''}'
+                        : '—',
+                  ),
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 2,
+                  endIndent: 2,
+                  color: colors.onSurface.withValues(alpha: 0.08),
+                ),
+                Expanded(
+                  child: _buildProfileStat(
+                    colors,
+                    companyColor,
+                    icon: Icons.shield_outlined,
+                    label: 'Kart score',
+                    value: '$kartScore/100',
+                    caption: _kartScoreCaption(kartScore),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: ElevatedButton.icon(
+                  onPressed: () => _shareProfile(context),
+                  icon: const Icon(Icons.ios_share_rounded, size: 17),
+                  label: const Text('Partager mon profil'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: companyColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(
+                        fontSize: 13.5, fontWeight: FontWeight.w700),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: OutlinedButton.icon(
+                  onPressed: () => _openForm(context, section: 'basic'),
+                  icon:
+                      Icon(Icons.edit_outlined, size: 17, color: companyColor),
+                  label: Text('Modifier',
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: companyColor)),
+                  style: OutlinedButton.styleFrom(
+                    side:
+                        BorderSide(color: companyColor.withValues(alpha: 0.3)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -616,92 +745,209 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildQuickStats(
-      ColorScheme colors, Color companyColor, CardProvider card) {
-    final contactsProvider = context.watch<ContactsProvider>();
-    final totalContacts = contactsProvider.groups.fold<int>(
-      0,
-      (sum, group) => sum + group.contacts.length,
-    );
-
-    return Row(
+  Widget _buildProfileStat(
+    ColorScheme colors,
+    Color companyColor, {
+    required IconData icon,
+    required String label,
+    required String value,
+    String? caption,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _buildStatCard(
-            colors,
-            companyColor,
-            icon: Icons.qr_code_scanner,
-            value: '${card.scanCount ?? 0}',
-            label: 'Scans',
+        Icon(icon, size: 17, color: companyColor),
+        const SizedBox(height: 8),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: colors.onSurface.withValues(alpha: 0.45),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            colors,
-            companyColor,
-            icon: Icons.people_outline,
-            value: '$totalContacts',
-            label: 'Contacts',
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w800,
+            color: colors.onSurface,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            colors,
-            companyColor,
-            icon: Icons.share_outlined,
-            value: '${card.shareCount ?? 0}',
-            label: 'Partages',
+        if (caption != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            caption,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: companyColor,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildStatCard(
-    ColorScheme colors,
-    Color companyColor, {
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colors.onSurface.withValues(alpha: 0.05),
+  /// Légende du Kart Score — mêmes seuils que la barre de progression du
+  /// [CompletionBanner] (100% = carte "complète").
+  String _kartScoreCaption(int score) {
+    if (score >= 90) return 'Profil très complet';
+    if (score >= 70) return 'Profil complet';
+    if (score >= 40) return 'Profil à compléter';
+    return 'Profil incomplet';
+  }
+
+  /// Somme les durées des expériences (start_date → end_date, ou
+  /// aujourd'hui si toujours en cours), arrondie à l'année — calculé à
+  /// partir des vraies dates saisies dans "Expériences", pas une valeur
+  /// arbitraire.
+  int _computeExperienceYears(List<dynamic> experiences) {
+    double totalDays = 0;
+    for (final exp in experiences) {
+      if (exp is! Map) continue;
+      final start = DateTime.tryParse(exp['start_date']?.toString() ?? '');
+      if (start == null) continue;
+      final end = DateTime.tryParse(exp['end_date']?.toString() ?? '') ??
+          DateTime.now();
+      if (end.isAfter(start)) {
+        totalDays += end.difference(start).inDays;
+      }
+    }
+    return (totalDays / 365).round();
+  }
+
+  /// Ouvre le partage natif avec le lien de la carte publique — même
+  /// logique que le bouton de partage de MyDigitalCardPage.
+  Future<void> _shareProfile(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final cardProvider = context.read<CardProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      if ((cardProvider.shareUrl == null || cardProvider.shareUrl!.isEmpty) &&
+          (cardProvider.slug == null || cardProvider.slug!.isEmpty)) {
+        await cardProvider.loadCardSummary();
+      }
+      if (!mounted) return;
+
+      String? url = cardProvider.shareUrl;
+      if ((url == null || url.isEmpty) &&
+          cardProvider.slug != null &&
+          cardProvider.slug!.isNotEmpty) {
+        url = 'https://kart.business/card/${cardProvider.slug}';
+      }
+      if (url == null || url.isEmpty) {
+        throw Exception('Créez votre carte pour pouvoir la partager.');
+      }
+
+      final user = authProvider.user;
+      final fullName = user != null
+          ? '${user.firstname} ${user.lastname}'.trim()
+          : 'Utilisateur';
+      final buffer = StringBuffer()
+        ..write('Bonjour ! Voici ma carte de visite digitale.');
+      if (cardProvider.jobTitle != null || cardProvider.company != null) {
+        buffer.write('\n\n$fullName');
+        if (cardProvider.jobTitle != null) {
+          buffer.write(' - ${cardProvider.jobTitle}');
+        }
+        if (cardProvider.company != null) {
+          buffer.write(' @ ${cardProvider.company}');
+        }
+      }
+      buffer.write('\n\n$url');
+
+      await SharePlus.instance.share(ShareParams(text: buffer.toString()));
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
+  }
+
+  /// "Documents professionnels" — diplômes, attestations, certificats.
+  /// Réutilise [_buildSection] pour garder le même chrome (icône + titre +
+  /// action "Ajouter") que les autres sections de la page. Le badge
+  /// "Vérifié" affiché par [DocumentRow] reflète uniquement l'action du
+  /// superadmin côté CRM web — jamais posé par l'utilisateur lui-même.
+  Widget _buildDocumentsSection(ColorScheme colors, Color companyColor) {
+    final provider = context.watch<ProfessionalDocumentProvider>();
+
+    return _buildSection(
+      colors: colors,
+      companyColor: companyColor,
+      icon: Icons.workspace_premium_outlined,
+      title: 'Documents professionnels',
+      trailing: TextButton(
+        onPressed: () => _openDocumentUploadSheet(context, companyColor),
+        style: TextButton.styleFrom(
+          foregroundColor: companyColor,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          minimumSize: const Size(0, 0),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: const Text(
+          'Ajouter',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: 22,
-            color: companyColor,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
+      children: [
+        if (provider.isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (provider.documents.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(
+              'Ajoutez vos diplômes, attestations ou certificats pour renforcer votre profil.',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: colors.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              children: provider.documents
+                  .map((doc) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: DocumentRow(
+                          document: doc,
+                          companyColor: companyColor,
+                          onDelete: () => provider.remove(doc.id),
+                        ),
+                      ))
+                  .toList(),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: colors.onSurface.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      ],
+    );
+  }
+
+  void _openDocumentUploadSheet(BuildContext context, Color companyColor) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (_) => DocumentUploadSheet(companyColor: companyColor),
     );
   }
 

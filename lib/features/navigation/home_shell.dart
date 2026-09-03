@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/app_update_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/utils/jobmatch_access.dart';
+import '../../shared/widgets/glass_sheet.dart';
 import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
 import '../digital_card/ui/my_digital_card_page.dart';
@@ -192,36 +194,71 @@ class _HomeShellState extends State<HomeShell>
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Mise à jour disponible'),
-        content: Text(
-          'Une nouvelle version de KART (${info.latestVersion}) est disponible. '
-          'Mets à jour pour profiter des dernières améliorations.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Plus tard'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final uri = Uri.parse(info.storeUrl);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+      builder: (dialogContext) => Dialog(
+        // Verre dépoli (même GlassSheet que les popups/formulaires de l'app)
+        // plutôt qu'un AlertDialog classique à fond plat.
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: GlassSheet(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mise à jour disponible',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(dialogContext).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Une nouvelle version de KART (${info.latestVersion}) est disponible. '
+                  'Mets à jour pour profiter des dernières améliorations.',
+                  style: TextStyle(
+                    color: Theme.of(dialogContext)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Plus tard'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext);
+                        final uri = Uri.parse(info.storeUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Mettre à jour'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            child: const Text('Mettre à jour'),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -346,6 +383,7 @@ class _HomeShellState extends State<HomeShell>
       MyDigitalCardPage(
         highlightBarKey: _highlightBarKey,
         createCardKey: _createCardKey,
+        embedded: true,
       ),
       const ContactsPage(),
       if (showJobMatch) const JobMatchFeedPage(),
@@ -371,9 +409,9 @@ class _HomeShellState extends State<HomeShell>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/login');
         });
-        return const Scaffold(
-          backgroundColor: Color(0xFF000000),
-          body: Center(child: CircularProgressIndicator()),
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
         );
       }
 
@@ -381,9 +419,9 @@ class _HomeShellState extends State<HomeShell>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/force-change-password');
         });
-        return const Scaffold(
-          backgroundColor: Color(0xFF000000),
-          body: Center(child: CircularProgressIndicator()),
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
         );
       }
 
@@ -418,22 +456,37 @@ class _HomeShellState extends State<HomeShell>
   Widget _buildBottomNavigation(ColorScheme colors, bool showJobMatch) {
     final badgeCount =
         context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Glassmorphisme façon WhatsApp : uniquement le flou (BackdropFilter)
-    // sur le contenu qui défile réellement dessous (extendBody) — aucune
-    // couleur ajoutée par-dessus. Ce qui se voit "derrière" la pilule,
-    // c'est la page elle-même, simplement floutée, jamais un bloc de
-    // couleur inventé.
+    // Glassmorphisme façon WhatsApp : flou (BackdropFilter) + léger tint de
+    // surface — même recette que GlassAppBar/StickyHeaderDelegate/GlassSheet
+    // (alpha 0.75 sombre / 0.85 clair). Un flou pur sans aucun tint
+    // paraissait correct sur les pages à contenu neutre (Contacts, Profil)
+    // mais laissait les cartes très colorées d'Explorer (dégradés bleu/
+    // violet) transparaître nettement derrière la pilule dès que le flou
+    // n'est pas parfaitement supporté par le moteur de rendu (web) — le
+    // tint garantit une séparation visuelle constante quel que soit le
+    // contenu qui défile dessous.
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          // Même rayon que les cartes du design system (AppTheme.cardRadius)
+          // — une seule source de vérité pour l'arrondi de toute l'UI.
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: SizedBox(
+            child: Container(
               height: 56,
+              decoration: BoxDecoration(
+                color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+                borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                // Bordure du même token que les cartes (colorScheme.outline).
+                // Largeur 1.2 plutôt que le défaut 1.0 : fine mais qui se
+                // voit clairement, y compris en thème sombre.
+                border: Border.all(color: colors.outline, width: 1.2),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -674,12 +727,11 @@ class _ProfileReminderDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      // Le boxShadow doit rester hors du ClipRRect de GlassSheet (celui-ci
+      // découpe tout ce qui dépasse), d'où ce Container englobant.
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: colors.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
@@ -688,124 +740,132 @@ class _ProfileReminderDialog extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    _accentColor.withValues(alpha: 0.18),
-                    _accentColor.withValues(alpha: 0.06),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.rocket_launch_rounded,
-                size: 26,
-                color: _accentColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Complétez votre profil',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: colors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                color: colors.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
+        child: GlassSheet(
+          borderRadius: BorderRadius.circular(24),
+          borderColor: _accentColor.withValues(alpha: 0.2),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 8,
-                      backgroundColor: colors.onSurface.withValues(alpha: 0.08),
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(_accentColor),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _accentColor.withValues(alpha: 0.18),
+                        _accentColor.withValues(alpha: 0.06),
+                      ],
                     ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '${percent.toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                  child: const Icon(
+                    Icons.rocket_launch_rounded,
+                    size: 26,
                     color: _accentColor,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'Plus tard',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
+                const SizedBox(height: 16),
+                Text(
+                  'Complétez votre profil',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: colors.onSurface,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        isScrollControlled: true,
-                        builder: (_) => const CompletionFormPage(),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 6),
+                Text(
+                  'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: colors.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor:
+                              colors.onSurface.withValues(alpha: 0.08),
+                          valueColor:
+                              const AlwaysStoppedAnimation<Color>(_accentColor),
+                        ),
                       ),
                     ),
-                    child: const Text(
-                      'Compléter',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${percent.toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: _accentColor,
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          'Plus tard',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (_) => const CompletionFormPage(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Compléter',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
