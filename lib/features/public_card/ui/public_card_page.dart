@@ -18,6 +18,7 @@ import '../../contacts/providers/highlight_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
+import '../../../shared/widgets/expandable_text.dart';
 
 const _interestsAccentColor = Color(0xFFEC4899);
 
@@ -528,8 +529,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                     ],
                     if (bio.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      Text(
+                      ExpandableText(
                         bio,
+                        maxLines: 3,
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.5,
@@ -599,32 +601,38 @@ class _PublicCardPageState extends State<PublicCardPage>
     required String label,
     required String value,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 17, color: _accentColor),
-        const SizedBox(height: 8),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: colors.onSurface.withValues(alpha: 0.45),
+    // Padding horizontal : sans lui, le texte (aligné à gauche) touchait
+    // directement la ligne verticale de séparation — même fix que
+    // ProfilePage._buildProfileStat.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: _accentColor),
+          const SizedBox(height: 8),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: colors.onSurface.withValues(alpha: 0.45),
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w800,
-            color: colors.onSurface,
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: colors.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1069,7 +1077,8 @@ class _PublicCardPageState extends State<PublicCardPage>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.4)),
+              Icon(icon,
+                  size: 20, color: colors.onSurface.withValues(alpha: 0.4)),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -1109,7 +1118,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   Widget _buildDivider(ColorScheme colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06)),
+      child:
+          Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06)),
     );
   }
 
@@ -1148,7 +1158,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     return _buildSection(
       colors: colors,
       icon: Icons.person_outline,
-      title: 'Informations personnelles',
+      title: 'Mes coordonnées',
       children: rows,
     );
   }
@@ -1167,13 +1177,15 @@ class _PublicCardPageState extends State<PublicCardPage>
               ? Text(
                   'Aucune compétence ajoutée',
                   style: TextStyle(
-                      fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
                 )
               : Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: skills
-                      .map((s) => SkillChip(label: s, color: const Color(0xFF10B981)))
+                      .map((s) =>
+                          SkillChip(label: s, color: const Color(0xFF10B981)))
                       .toList(),
                 ),
         ),
@@ -1195,13 +1207,15 @@ class _PublicCardPageState extends State<PublicCardPage>
               ? Text(
                   "Aucun centre d'intérêt ajouté",
                   style: TextStyle(
-                      fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
                 )
               : Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: interests
-                      .map((i) => SkillChip(label: i, color: _interestsAccentColor))
+                      .map((i) =>
+                          SkillChip(label: i, color: _interestsAccentColor))
                       .toList(),
                 ),
         ),
@@ -1214,7 +1228,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   /// récentes en frise, plus "Voir tout" qui ouvre la liste complète en
   /// lecture seule (pas de formulaire d'édition ici, ce n'est pas son
   /// propre profil).
-  Widget _buildExperiencesSection(ColorScheme colors, List<dynamic> experiences) {
+  Widget _buildExperiencesSection(
+      ColorScheme colors, List<dynamic> experiences) {
     final sorted = [...experiences]..sort((a, b) {
         final ma = a as Map? ?? {};
         final mb = b as Map? ?? {};
@@ -1236,7 +1251,9 @@ class _PublicCardPageState extends State<PublicCardPage>
               child: Text(
                 'Voir tout',
                 style: TextStyle(
-                    fontSize: 12.5, fontWeight: FontWeight.w700, color: _accentColor),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _accentColor),
               ),
             ),
       children: [
@@ -1245,7 +1262,8 @@ class _PublicCardPageState extends State<PublicCardPage>
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'Aucune expérience',
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              style: TextStyle(
+                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             ),
           )
         else
@@ -1259,7 +1277,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                   title: item['title']?.toString() ?? '',
                   company: item['company']?.toString() ?? '',
                   period: _formatExperiencePeriod(
-                      item['start_date']?.toString(), item['end_date']?.toString()),
+                      item['start_date']?.toString(),
+                      item['end_date']?.toString()),
                   description: item['description']?.toString() ?? '',
                   isLast: i == preview.length - 1,
                   accentColor: _accentColor,
@@ -1309,7 +1328,10 @@ class _PublicCardPageState extends State<PublicCardPage>
               ),
               Text(
                 'Expériences',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: colors.onSurface),
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface),
               ),
               const SizedBox(height: 20),
               ...sorted.asMap().entries.map((entry) {
@@ -1319,7 +1341,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                   title: item['title']?.toString() ?? '',
                   company: item['company']?.toString() ?? '',
                   period: _formatExperiencePeriod(
-                      item['start_date']?.toString(), item['end_date']?.toString()),
+                      item['start_date']?.toString(),
+                      item['end_date']?.toString()),
                   description: item['description']?.toString() ?? '',
                   isLast: i == sorted.length - 1,
                   accentColor: _accentColor,
@@ -1337,7 +1360,8 @@ class _PublicCardPageState extends State<PublicCardPage>
   /// CompletionSections._formatExperiencePeriod côté profil.
   String _formatExperiencePeriod(String? start, String? end) {
     final startYear = _experienceYear(start);
-    final endYear = (end != null && end.isNotEmpty) ? _experienceYear(end) : null;
+    final endYear =
+        (end != null && end.isNotEmpty) ? _experienceYear(end) : null;
     return '$startYear – ${endYear ?? "Aujourd'hui"}';
   }
 
@@ -1348,8 +1372,9 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   /// "Formation" — même présentation que la section Profil
-  /// (CompletionSections._buildEducationsSection) : toutes les entrées
-  /// affichées directement, pas de "voir tout" (déjà le cas côté profil).
+  /// (CompletionSections._buildEducationsSection) : aperçu des 3 plus
+  /// récentes, puis "Voir tout" (lecture seule) au-delà — même principe que
+  /// "Expériences" ci-dessus.
   Widget _buildEducationsSection(ColorScheme colors, List<dynamic> educations) {
     final sorted = [...educations]..sort((a, b) {
         final ma = a as Map? ?? {};
@@ -1358,98 +1383,176 @@ class _PublicCardPageState extends State<PublicCardPage>
         final yb = int.tryParse(mb['start_year']?.toString() ?? '') ?? 0;
         return yb.compareTo(ya);
       });
+    final preview = sorted.take(3).toList();
 
     return _buildSection(
       colors: colors,
       icon: Icons.school_outlined,
       title: 'Formation',
+      trailing: sorted.length <= 3
+          ? null
+          : GestureDetector(
+              onTap: () => _showAllEducations(colors, sorted),
+              child: Text(
+                'Voir tout',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _accentColor),
+              ),
+            ),
       children: [
         if (sorted.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'Aucune formation ajoutée',
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              style: TextStyle(
+                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             ),
           )
         else
-          ...sorted.asMap().entries.map((entry) {
-            final i = entry.key;
-            final item = entry.value as Map? ?? {};
-            final degree = item['degree']?.toString() ?? '';
-            final school = item['school']?.toString() ?? '';
-            final field = item['field']?.toString() ?? '';
-            final startYear = item['start_year']?.toString() ?? '';
-            final endYear = item['end_year']?.toString() ?? '';
+          ...preview.asMap().entries.map((entry) =>
+              _buildEducationRow(colors, entry.value, entry.key > 0)),
+      ],
+    );
+  }
 
-            return Column(
-              children: [
-                if (i > 0) _buildDivider(colors),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.school_outlined,
-                            size: 18, color: Color(0xFF8B5CF6)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              degree,
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+  /// Une ligne "Formation" — extrait pour être réutilisé à la fois dans
+  /// l'aperçu et dans le "Voir tout" (_showAllEducations).
+  Widget _buildEducationRow(
+      ColorScheme colors, dynamic entry, bool showDivider) {
+    final item = entry as Map? ?? {};
+    final degree = item['degree']?.toString() ?? '';
+    final school = item['school']?.toString() ?? '';
+    final field = item['field']?.toString() ?? '';
+    final startYear = item['start_year']?.toString() ?? '';
+    final endYear = item['end_year']?.toString() ?? '';
+
+    return Column(
+      children: [
+        if (showDivider) _buildDivider(colors),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.school_outlined,
+                    size: 18, color: Color(0xFF8B5CF6)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      degree,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      school,
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8B5CF6),
+                          fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (field.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6)
+                                  .withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              school,
+                            child: Text(
+                              field,
                               style: const TextStyle(
-                                  fontSize: 13, color: Color(0xFF8B5CF6), fontWeight: FontWeight.w500),
+                                  fontSize: 11,
+                                  color: Color(0xFF8B5CF6),
+                                  fontWeight: FontWeight.w500),
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                if (field.isNotEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      field,
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Color(0xFF8B5CF6), fontWeight: FontWeight.w500),
-                                    ),
-                                  ),
-                                if (field.isNotEmpty) const SizedBox(width: 8),
-                                Text(
-                                  '$startYear - $endYear',
-                                  style: TextStyle(
-                                      fontSize: 11, color: colors.onSurface.withValues(alpha: 0.45)),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
+                        if (field.isNotEmpty) const SizedBox(width: 8),
+                        Text(
+                          '$startYear - $endYear',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.45)),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Bottom sheet listant toutes les formations en lecture seule — même
+  /// présentation que _showAllExperiences.
+  void _showAllEducations(ColorScheme colors, List<dynamic> sorted) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ],
-            );
-          }),
-      ],
+              ),
+              Text(
+                'Formation',
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) =>
+                  _buildEducationRow(colors, entry.value, entry.key > 0)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1594,7 +1697,8 @@ class _PublicTimelineItem extends StatelessWidget {
                 width: 10,
                 height: 10,
                 margin: const EdgeInsets.only(top: 5),
-                decoration: BoxDecoration(shape: BoxShape.circle, color: accentColor),
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: accentColor),
               ),
               if (!isLast)
                 Expanded(
@@ -1615,25 +1719,36 @@ class _PublicTimelineItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: colors.onSurface),
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface),
                   ),
                   if (company.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       company,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: accentColor),
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor),
                     ),
                   ],
                   const SizedBox(height: 3),
                   Text(
                     period,
-                    style: TextStyle(fontSize: 11.5, color: colors.onSurface.withValues(alpha: 0.45)),
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: colors.onSurface.withValues(alpha: 0.45)),
                   ),
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       description,
-                      style: TextStyle(fontSize: 12, height: 1.4, color: colors.onSurface.withValues(alpha: 0.6)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: colors.onSurface.withValues(alpha: 0.6)),
                     ),
                   ],
                 ],

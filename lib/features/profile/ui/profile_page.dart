@@ -14,17 +14,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
-import '../../../shared/utils/plan_display_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
-import '../widgets/edit_profile_form.dart';
 import '../providers/professional_document_provider.dart';
 import '../widgets/document_row.dart';
 import '../widgets/document_upload_sheet.dart';
@@ -49,17 +48,9 @@ class _ProfilePageState extends State<ProfilePage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Masqué pour l'instant : un seul plan individuel existe (Pro), donc
-  // l'écran de changement de plan n'offre aucun vrai choix. À réactiver
-  // si un second plan individuel est réintroduit.
-  static const bool _planChangeEnabled = false;
-
-  bool _personalInfoExpanded = false;
-
   String _appVersion = '';
 
   final _avatarTourKey = GlobalKey();
-  final _editInfoTourKey = GlobalKey();
   final _settingsTourKey = GlobalKey();
 
   @override
@@ -104,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage>
     if (!mounted) return;
 
     ShowCaseWidget.of(context).startShowCase(
-      [_avatarTourKey, _editInfoTourKey, _settingsTourKey],
+      [_avatarTourKey, _settingsTourKey],
     );
   }
 
@@ -222,151 +213,14 @@ class _ProfilePageState extends State<ProfilePage>
 
                     const CompletionBanner(),
 
-                    const SizedBox(height: 24),
-
-                    // Informations personnelles — fusionne identité (nom,
-                    // email) et infos de carte (poste, entreprise,
-                    // téléphone), pour ne plus répéter l'email entre deux
-                    // sections séparées.
-                    _buildSection(
-                      colors: colors,
-                      companyColor: companyColor,
-                      icon: Icons.person_outline,
-                      title: 'Informations personnelles',
-                      collapsible: true,
-                      expanded: _personalInfoExpanded,
-                      onToggle: () => setState(
-                        () => _personalInfoExpanded = !_personalInfoExpanded,
-                      ),
-                      trailing: Showcase(
-                        key: _editInfoTourKey,
-                        title: 'Modifier vos infos',
-                        description:
-                            'Mettez à jour votre nom, email, poste, entreprise et téléphone ici.',
-                        child: TextButton(
-                          onPressed: () => _openForm(context, section: 'basic'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: companyColor,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            minimumSize: const Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Modifier',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                      children: [
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.badge_outlined,
-                          label: 'Nom complet',
-                          value: fullName.isEmpty ? '-' : fullName,
-                          // Nom, mot de passe : identité du compte, gérée
-                          // à part du contenu de la carte (poste, bio...)
-                          // édité lui via le bouton "Modifier" de l'en-tête.
-                          onTap: () => _openEditProfileForm(context),
-                          trailing: Icon(
-                            Icons.chevron_right,
-                            color: colors.onSurface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        _buildDivider(colors),
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.email_outlined,
-                          label: 'Adresse email',
-                          value: user.email,
-                        ),
-                        _buildDivider(colors),
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.work_outline,
-                          label: 'Poste',
-                          value: card.jobTitle ?? '-',
-                        ),
-                        _buildDivider(colors),
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.business_outlined,
-                          label: 'Entreprise',
-                          value: card.company ?? '-',
-                        ),
-                        _buildDivider(colors),
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.phone_outlined,
-                          label: 'Téléphone',
-                          value: card.phone ?? '-',
-                        ),
-                        _buildDivider(colors),
-                        _buildInfoRow(
-                          colors,
-                          icon: Icons.workspace_premium,
-                          label: 'Plan',
-                          value: resolveDisplayedPlan(
-                            cardPlan: card.plan,
-                            userPlan: user.plan,
-                            hasCompany: user.hasCompany,
-                          ),
-                          onTap: _planChangeEnabled
-                              ? () => _openPlanSelection(context)
-                              : null,
-                          trailing: _planChangeEnabled
-                              ? TextButton(
-                                  onPressed: () => _openPlanSelection(context),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: companyColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    minimumSize: const Size(0, 0),
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side: BorderSide(
-                                        color: companyColor.withValues(
-                                            alpha: 0.25),
-                                      ),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Changer',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                )
-                              : null,
-                        ),
-                        if (_planChangeEnabled)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(50, 0, 16, 6),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Touchez Changer pour modifier votre plan.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      colors.onSurface.withValues(alpha: 0.5),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-
                     const SizedBox(height: 16),
 
-                    // Réseaux sociaux, Expériences, Formation, Compétences
+                    // Expériences, Formation, Compétences, Centres
+                    // d'intérêt, Réseaux sociaux — "Informations
+                    // personnelles" (nom/email/poste/entreprise/téléphone)
+                    // supprimée : ces infos sont déjà toutes visibles dans
+                    // l'en-tête ci-dessus (bouton "Modifier"), les répéter
+                    // ici faisait doublon.
                     const CompletionSections(),
 
                     const SizedBox(height: 16),
@@ -627,8 +481,10 @@ class _ProfilePageState extends State<ProfilePage>
                         card.bio != null &&
                         card.bio!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      Text(
+                      ExpandableText(
                         card.bio!,
+                        maxLines: 3,
+                        accentColor: companyColor,
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.5,
@@ -754,43 +610,49 @@ class _ProfilePageState extends State<ProfilePage>
     required String value,
     String? caption,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 17, color: companyColor),
-        const SizedBox(height: 8),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: colors.onSurface.withValues(alpha: 0.45),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w800,
-            color: colors.onSurface,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (caption != null) ...[
-          const SizedBox(height: 2),
+    // Padding horizontal : sans lui, le texte de chaque stat (aligné à
+    // gauche) touchait directement la ligne verticale de séparation —
+    // pas normal, décalage nécessaire des deux côtés.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: companyColor),
+          const SizedBox(height: 8),
           Text(
-            caption,
+            label.toUpperCase(),
             style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: companyColor,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: colors.onSurface.withValues(alpha: 0.45),
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: colors.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (caption != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              caption,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: companyColor,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -1092,16 +954,6 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildDivider(ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(
-        height: 1,
-        color: colors.onSurface.withValues(alpha: 0.06),
-      ),
-    );
-  }
-
   Widget _buildBrandingRow(
       ColorScheme colors, Color companyColor, CardProvider card) {
     final accentColor = _parseHexColor(card.accentColor) ?? companyColor;
@@ -1229,27 +1081,6 @@ class _ProfilePageState extends State<ProfilePage>
         ),
       ],
     );
-  }
-
-  void _openEditProfileForm(BuildContext context) {
-    HapticFeedback.lightImpact();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: const EditProfileForm(),
-      ),
-    );
-  }
-
-  void _openPlanSelection(BuildContext context) {
-    HapticFeedback.lightImpact();
-    Navigator.of(context).pushNamed('/plans');
   }
 
   void _openForm(BuildContext context, {String? section}) {

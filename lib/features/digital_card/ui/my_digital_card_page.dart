@@ -63,6 +63,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   // Capture la carte entière (fond, badge, nom, QR...) pour le téléchargement
   // — avant, seul le QR code lui-même (_qrKey) était exporté.
   final GlobalKey _fullCardKey = GlobalKey();
+  // true le temps de la capture d'export — neutralise le flottement
+  // perpétuel de la carte (cf. CompanyQrCard/BasicQrCard.isExporting),
+  // sinon l'image téléchargée était coupée en haut/bas selon l'instant
+  // exact du tap sur "Télécharger" (le décalage de l'animation n'était
+  // presque jamais à zéro pile à ce moment-là).
+  bool _isExportingCard = false;
 
   // Repli si aucune clé externe n'est fournie (ex: mode minimal) — le
   // Showcase se comporte alors comme un simple wrapper transparent, sans
@@ -379,6 +385,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                                       _buildQrOnly(state.qrSvg!),
                                     );
                                   },
+                                  isExporting: _isExportingCard,
                                 )
                               // Carte Basique par défaut (aucun branding)
                               : BasicQrCard(
@@ -393,6 +400,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                                       _buildQrOnly(state.qrSvg!),
                                     );
                                   },
+                                  isExporting: _isExportingCard,
                                 ),
                         ),
                       ),
@@ -522,11 +530,25 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   /// Exporte la carte entière telle qu'affichée (fond, badge, nom, poste,
   /// QR...) — avant, seul le QR code isolé était exporté.
   Future<void> _exportFullCard() async {
+    // Neutralise le flottement perpétuel de la carte (cf.
+    // CompanyQrCard/BasicQrCard.isExporting) le temps de la capture —
+    // sinon l'image exportée est coupée en haut/bas selon la valeur de
+    // l'animation à l'instant exact du tap. Deux endOfFrame : le premier
+    // laisse ce setState peindre une frame, le second garantit qu'elle est
+    // bien affichée avant de lire le RenderRepaintBoundary.
+    setState(() => _isExportingCard = true);
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
+
     try {
       final boundary = _fullCardKey.currentContext!.findRenderObject()
           as RenderRepaintBoundary;
 
       final image = await boundary.toImage(pixelRatio: 3);
+      // La capture est faite : on peut laisser la carte flotter à nouveau
+      // pendant l'écriture du fichier/le partage, qui ne dépendent plus
+      // du rendu à l'écran.
+      if (mounted) setState(() => _isExportingCard = false);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
 
       final file = File(
@@ -554,6 +576,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       }
     } catch (e) {
       if (!mounted) return;
+      // Si l'erreur survient avant la capture (cf. try ci-dessus), le flag
+      // n'a pas encore été remis à false — sans ce filet, la carte resterait
+      // figée (sans flottement) après un export en échec.
+      if (_isExportingCard) setState(() => _isExportingCard = false);
       debugPrint('❌ Erreur lors de l\'export de la carte: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -1,13 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../../digital_card/providers/card_provider.dart';
+import '../model/interest_model.dart';
 import '../providers/profile_completion_provider.dart';
+import '../services/interest_service.dart';
 
 /// Bottom sheet "Centre d'intérêt" — mots-clés libres (loisirs, passions...)
 /// affichés en tête du profil et, en lecture seule, sur la carte publique
-/// (page de détail ouverte depuis Explorer).
+/// (page de détail ouverte depuis Explorer). Le champ reste du texte libre
+/// à l'enregistrement : le référentiel (InterestController) ne sert qu'à
+/// suggérer pendant la saisie, même principe que SkillEditorSheet.
 class InterestsEditorSheet extends StatefulWidget {
   final Color companyColor;
 
@@ -21,7 +27,11 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
   static const _maxInterests = 20;
 
   final _inputCtrl = TextEditingController();
+  final _service = InterestService();
   late List<String> _interests;
+  Timer? _debounce;
+  List<InterestSuggestion> _results = [];
+  bool _searching = false;
   bool _saving = false;
   String? _error;
 
@@ -31,12 +41,38 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
     _interests = List<String>.from(
       context.read<ProfileCompletionProvider>().model.interests,
     );
+    // Affiche les centres d'intérêt les plus utilisés dès l'ouverture,
+    // avant même de taper (le backend renvoie déjà un top par défaut).
+    _performSearch('');
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _inputCtrl.dispose();
     super.dispose();
+  }
+
+  void _onInputChanged(String value) {
+    setState(() {}); // pour le bouton "+" et le compteur
+    _debounce?.cancel();
+    _debounce =
+        Timer(const Duration(milliseconds: 300), () => _performSearch(value));
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() => _searching = true);
+    try {
+      final results = await _service.search(query.trim());
+      if (!mounted) return;
+      setState(() {
+        _results = results;
+        _searching = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _searching = false);
+    }
   }
 
   void _addInterest([String? raw]) {
@@ -59,10 +95,19 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
       _inputCtrl.clear();
       _error = null;
     });
+    // Réaffiche le top (comme à l'ouverture) pour continuer à en choisir
+    // d'autres, plutôt que de laisser les résultats de la recherche
+    // précédente affichés pour rien.
+    _performSearch('');
   }
 
   void _removeInterest(String value) {
     setState(() => _interests.remove(value));
+  }
+
+  bool _isSelected(InterestSuggestion suggestion) {
+    return _interests
+        .any((e) => e.toLowerCase() == suggestion.name.toLowerCase());
   }
 
   Future<void> _save() async {
@@ -157,6 +202,7 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
                     child: TextField(
                       controller: _inputCtrl,
                       textInputAction: TextInputAction.done,
+                      onChanged: _onInputChanged,
                       onSubmitted: _addInterest,
                       decoration: InputDecoration(
                         hintText: 'Ex: Voyage, Photographie...',
@@ -217,6 +263,24 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
                           ],
                         ),
                       ),
+                    if (_searching)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_results.isNotEmpty) ...[
+                      _buildResults(colors),
+                      const SizedBox(height: 8),
+                    ],
+                    Text(
+                      "Ajoutés (${_interests.length})",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     if (_interests.isEmpty)
                       Text(
                         "Aucun centre d'intérêt ajouté pour le moment.",
@@ -253,6 +317,54 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Suggestions du référentiel, groupées par catégorie — même présentation
+  /// que SkillEditorSheet._buildResults. Un tap ajoute directement (déjà
+  /// dédupliqué/plafonné par _addInterest).
+  Widget _buildResults(ColorScheme colors) {
+    final grouped = <String, List<InterestSuggestion>>{};
+    for (final result in _results) {
+      grouped.putIfAbsent(result.category ?? 'Autres', () => []).add(result);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.key,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: entry.value.map((suggestion) {
+                  final selected = _isSelected(suggestion);
+                  return GestureDetector(
+                    onTap:
+                        selected ? null : () => _addInterest(suggestion.name),
+                    child: SkillChip(
+                      label: suggestion.name,
+                      color: selected ? Colors.green : widget.companyColor,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

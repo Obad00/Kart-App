@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/api_error.dart';
 import '../providers/profile_completion_provider.dart';
+import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
@@ -60,11 +62,24 @@ final List<String> _fields = [
 /// par le bouton "+" de la page Profil, qui doit permettre d'ajouter une
 /// expérience/formation sans se retrouver face à la liste complète —
 /// réservée à "Voir tout"/"Modifier" (gestion complète, avec suppression).
+///
+/// [editIndex] — seulement pour 'experiences'/'educations' : n'affiche que
+/// l'entrée à cet index (dans la liste triée passée par l'appelant), pour
+/// modifier/supprimer UNE entrée précise sans faire apparaître toutes les
+/// autres. Utilisé quand on tape directement une expérience/formation dans
+/// l'aperçu ou "Voir tout" — jusqu'ici ça ouvrait par erreur la liste
+/// complète, indissociable d'une simple consultation.
 class CompletionFormPage extends StatefulWidget {
   final String? section;
   final bool addOnly;
+  final int? editIndex;
 
-  const CompletionFormPage({super.key, this.section, this.addOnly = false});
+  const CompletionFormPage({
+    super.key,
+    this.section,
+    this.addOnly = false,
+    this.editIndex,
+  });
 
   @override
   State<CompletionFormPage> createState() => _CompletionFormPageState();
@@ -138,7 +153,19 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       // section concernée — seulement une carte vierge, pour que "+"
       // n'affiche jamais "les autres" (cf. doc de [CompletionFormPage]).
       // Elles restent bien sûr préservées à la sauvegarde (cf. _save).
-      if (widget.addOnly && widget.section == 'experiences') {
+      // editIndex : une seule entrée précise (modifier/supprimer celle-ci
+      // sans faire apparaître les autres) — priorité sur addOnly, les deux
+      // ne sont jamais utilisés ensemble par les appelants.
+      if (widget.editIndex != null && widget.section == 'experiences') {
+        final exp = m.experiences[widget.editIndex!];
+        _experiences.add({
+          'title': TextEditingController(text: exp.title),
+          'company': TextEditingController(text: exp.company),
+          'start_date': TextEditingController(text: exp.startDate),
+          'end_date': TextEditingController(text: exp.endDate ?? ''),
+          'description': TextEditingController(text: exp.description),
+        });
+      } else if (widget.addOnly && widget.section == 'experiences') {
         _experiences.add(_blankExperienceControllers());
       } else {
         for (final exp in m.experiences) {
@@ -152,7 +179,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         }
       }
 
-      if (widget.addOnly && widget.section == 'educations') {
+      if (widget.editIndex != null && widget.section == 'educations') {
+        final edu = m.educations[widget.editIndex!];
+        _educations.add({
+          'school': TextEditingController(text: edu.school),
+          'degree': TextEditingController(text: edu.degree),
+          'field': TextEditingController(text: edu.field),
+          'start_year': TextEditingController(text: edu.startYear.toString()),
+          'end_year': TextEditingController(text: edu.endYear.toString()),
+        });
+      } else if (widget.addOnly && widget.section == 'educations') {
         _educations.add(_blankEducationControllers());
       } else {
         for (final edu in m.educations) {
@@ -321,12 +357,36 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     // entrées en cours de saisie (cf. initState) — on les ajoute à celles
     // déjà existantes (chargées mais jamais affichées ici) au lieu de les
     // remplacer, sinon la sauvegarde effacerait tout le reste.
-    final experiences = (widget.addOnly && widget.section == 'experiences')
-        ? [...p.model.experiences, ...draftedExperiences]
-        : draftedExperiences;
-    final educations = (widget.addOnly && widget.section == 'educations')
-        ? [...p.model.educations, ...draftedEducations]
-        : draftedEducations;
+    // editIndex : seule CETTE entrée a été chargée/éditée — on la remplace
+    // à sa place dans la liste complète (ou on la retire si elle a été
+    // supprimée, cf. _removeExperience/_removeEducation).
+    final List<ExperienceModel> experiences;
+    if (widget.editIndex != null && widget.section == 'experiences') {
+      experiences = List.of(p.model.experiences);
+      if (draftedExperiences.isEmpty) {
+        experiences.removeAt(widget.editIndex!);
+      } else {
+        experiences[widget.editIndex!] = draftedExperiences.first;
+      }
+    } else if (widget.addOnly && widget.section == 'experiences') {
+      experiences = [...p.model.experiences, ...draftedExperiences];
+    } else {
+      experiences = draftedExperiences;
+    }
+
+    final List<EducationModel> educations;
+    if (widget.editIndex != null && widget.section == 'educations') {
+      educations = List.of(p.model.educations);
+      if (draftedEducations.isEmpty) {
+        educations.removeAt(widget.editIndex!);
+      } else {
+        educations[widget.editIndex!] = draftedEducations.first;
+      }
+    } else if (widget.addOnly && widget.section == 'educations') {
+      educations = [...p.model.educations, ...draftedEducations];
+    } else {
+      educations = draftedEducations;
+    }
 
     final updated = ProfileCompletionModel(
       jobTitle: _jobCtrl.text,
@@ -357,8 +417,19 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
       if (!mounted) return;
 
-      if (ok) p.updateModel(updated);
+      if (ok) {
+        p.updateModel(updated);
+        // La carte du profil (en-tête de ProfilePage, PublicCardPage...) lit
+        // ses données depuis CardProvider, pas ProfileCompletionProvider —
+        // même principe que InterestsEditorSheet._save(). Sans ça, une bio/
+        // un poste/une entreprise modifiés ici ne se voyaient qu'après avoir
+        // quitté l'onglet Profil et y être revenu (ce qui recharge tout).
+        if (mounted) {
+          await context.read<CardProvider>().loadCardSummary();
+        }
+      }
 
+      if (!mounted) return;
       setState(() {
         loading = false;
         _successMessage = ok ? 'Profil mis à jour avec succès' : null;
@@ -373,7 +444,14 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        _errorMessage = 'Erreur serveur. Veuillez réessayer.';
+        // Avant : toujours "Erreur serveur", même pour un 422 de validation
+        // (ex: bio > 500 caractères) — l'utilisateur n'avait aucun moyen de
+        // savoir quel champ posait problème. getErrorMessage extrait le
+        // message précis renvoyé par Laravel quand il y en a un.
+        _errorMessage = getErrorMessage(
+          e,
+          fallback: 'Erreur serveur. Veuillez réessayer.',
+        );
       });
       debugPrint('Profile update error: $e');
     }
@@ -473,6 +551,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     prefixIcon: Icons.notes_outlined,
                     maxLines: 4,
                     minLines: 3,
+                    // Aligné sur bio => ['nullable','string','max:500'] côté
+                    // backend (DigitalCardController::updateSummary) — sans
+                    // ça, dépasser 500 caractères n'était découvert qu'au
+                    // 422 renvoyé par l'enregistrement.
+                    maxLength: 500,
                     hint:
                         'Quelques phrases pour vous présenter, affichées en tête de votre profil'),
                 const SizedBox(height: 12),
@@ -586,7 +669,12 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   colors,
                   Icons.history,
                   'Expériences',
-                  trailing: _buildAddButton(_addExperience),
+                  // editIndex : une seule entrée affichée, "+" n'a pas de
+                  // sens ici (ajouter en passerait par le bouton dédié de
+                  // la page Profil, pas ce mode d'édition ciblée).
+                  trailing: widget.editIndex != null
+                      ? null
+                      : _buildAddButton(_addExperience),
                 ),
                 const SizedBox(height: 12),
                 if (_experiences.isEmpty)
@@ -602,7 +690,9 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   colors,
                   Icons.school_outlined,
                   'Formation',
-                  trailing: _buildAddButton(_addEducation),
+                  trailing: widget.editIndex != null
+                      ? null
+                      : _buildAddButton(_addEducation),
                 ),
                 const SizedBox(height: 12),
                 if (_educations.isEmpty)
