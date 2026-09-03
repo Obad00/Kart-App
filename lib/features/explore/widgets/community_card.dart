@@ -39,7 +39,7 @@ class CommunityCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.only(top: 14, left: 14, right: 14),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -74,7 +74,11 @@ class CommunityCard extends StatelessWidget {
               color: colors.onSurface,
               height: 1.15,
             ),
-            maxLines: 2,
+            // 1 ligne (pas 2) : garde une hauteur de carte prévisible, sans
+            // quoi il faudrait réserver la place du pire cas (nom sur 2
+            // lignes) pour CHAQUE carte — d'où l'espace vide visible sous
+            // les noms courts.
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),

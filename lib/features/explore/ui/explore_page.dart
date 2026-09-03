@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -227,22 +228,35 @@ class _ExplorePageState extends State<ExplorePage>
     // (zone de geste/home indicator) doit encore être protégé ici.
     return SafeArea(
       top: false,
-      child: Column(
+      // Stack (pas Column) : la liste occupe toute la hauteur et défile
+      // réellement DERRIÈRE "Réseaux populaires", pour que le
+      // BackdropFilter de ce dernier ait quelque chose à flouter au
+      // scroll (effet verre dépoli, comme GlassAppBar en haut) — un
+      // Column séparé n'aurait rien laissé passer derrière le bloc fixe.
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(child: _buildDiscoverScrollable(topPadding)),
-          // "Réseaux populaires" — fixe en bas de la page (comme le TabBar
-          // en haut), visible dès l'arrivée sur Explorer ; les profils à
-          // connecter défilent en dessous de la recherche, au-dessus de ce
-          // bloc qui lui ne bouge pas. Le carrousel lui-même reste un
-          // scroll horizontal indépendant (cf. _CommunitiesSection).
-          _buildCommunitiesFooter(),
+          _buildDiscoverScrollable(topPadding),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildCommunitiesFooter(),
+          ),
         ],
       ),
     );
   }
 
+  // Espace réservé en bas de la liste pour que son dernier profil puisse
+  // défiler entièrement au-dessus du bloc "Réseaux populaires" (sinon il
+  // resterait en partie caché derrière, glass ou pas) — variable selon que
+  // ce bloc est affiché ou non (cf. _buildCommunitiesFooter).
+  static const double _communitiesFooterHeight = 236;
+
   Widget _buildCommunitiesFooter() {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Consumer<CommunityProvider>(
       builder: (context, provider, _) {
@@ -252,22 +266,25 @@ class _ExplorePageState extends State<ExplorePage>
           return const SizedBox.shrink();
         }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            border: Border(
-              top: BorderSide(color: colors.onSurface.withValues(alpha: 0.06)),
+        return ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+                border: Border(
+                  top: BorderSide(
+                    color: colors.onSurface.withValues(alpha: 0.06),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              // 0 en bas, à la demande explicite — la pilule de nav
+              // flottante de HomeShell (extendBody) vient donc recouvrir
+              // le bas de la dernière carte (bouton Rejoindre/Membre y
+              // compris) plutôt que de laisser un espace au-dessus d'elle.
+              child: const _CommunitiesSection(),
             ),
-          ),
-          child: Padding(
-            // Juste la place de la pilule de nav flottante de HomeShell
-            // (extendBody, sinon elle cacherait le bas du carrousel) — pas
-            // de marge supplémentaire au-delà, pour rester collé à elle.
-            padding: const EdgeInsets.only(
-              top: 4,
-              bottom: BottomNavMetrics.reservedHeight,
-            ),
-            child: const _CommunitiesSection(),
           ),
         );
       },
@@ -401,9 +418,24 @@ class _ExplorePageState extends State<ExplorePage>
             );
           },
         ),
-        // Simple respiration avant le bloc fixe "Réseaux populaires" —
-        // qui, lui, n'est plus dans ce scrollable (cf. _buildDiscoverTab).
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        // Place réservée pour que le dernier profil puisse défiler
+        // entièrement au-dessus du bloc fixe "Réseaux populaires" — qui,
+        // lui, n'est plus dans ce scrollable mais posé par-dessus en
+        // Positioned (cf. _buildDiscoverTab), d'où la nécessité de cette
+        // marge (sans elle, le dernier profil resterait caché dessous).
+        Consumer<CommunityProvider>(
+          builder: (context, communityProvider, _) {
+            final showFooter = communityProvider.isLoading ||
+                communityProvider.communities.isNotEmpty;
+            return SliverToBoxAdapter(
+              child: SizedBox(
+                height: showFooter
+                    ? _communitiesFooterHeight
+                    : 16 + BottomNavMetrics.reservedHeight,
+              ),
+            );
+          },
+        ),
       ],
     );
   }
@@ -1077,12 +1109,12 @@ class _CommunitiesSection extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      padding: const EdgeInsets.only(top: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1119,12 +1151,12 @@ class _CommunitiesSection extends StatelessWidget {
           ),
           if (provider.isLoading)
             const SizedBox(
-              height: 210,
+              height: 196,
               child: Center(child: CircularProgressIndicator()),
             )
           else
             SizedBox(
-              height: 210,
+              height: 196,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
