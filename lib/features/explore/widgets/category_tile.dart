@@ -22,7 +22,7 @@ class CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final visual = visualForCategory(category.icon);
+    final visual = visualForCategory(category);
 
     return Material(
       color: colors.surface,
