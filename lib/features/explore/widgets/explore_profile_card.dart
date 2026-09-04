@@ -20,16 +20,17 @@ class ExploreProfileCard extends StatelessWidget {
   final ExploreUser user;
   final ExploreProvider? removeFrom;
 
-  /// Remplace la ligne "poste" par la ville (utilisé par "Professionnels
-  /// près de vous", où la ville partagée est plus pertinente que le poste
-  /// déjà visible ailleurs).
-  final bool showCityInsteadOfJobTitle;
+  /// Remplace la ligne "entreprise" par la ville (avec une icône de
+  /// localisation) — utilisé par "Professionnels près de vous", où le
+  /// poste reste affiché normalement (2e ligne) mais la ville partagée
+  /// prend la place de l'entreprise (3e ligne), plus pertinente ici.
+  final bool showCityInsteadOfCompany;
 
   const ExploreProfileCard({
     super.key,
     required this.user,
     this.removeFrom,
-    this.showCityInsteadOfJobTitle = false,
+    this.showCityInsteadOfCompany = false,
   });
 
   String? get _avatarUrl {
@@ -86,9 +87,10 @@ class ExploreProfileCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarUrl = _avatarUrl;
-    final subtitle =
-        showCityInsteadOfJobTitle ? (user.city ?? '') : (user.jobTitle ?? '');
-    final company = user.company ?? '';
+    final subtitle = user.jobTitle ?? '';
+    final thirdLine = showCityInsteadOfCompany
+        ? (user.city ?? '')
+        : (user.company ?? '');
 
     return SizedBox(
       width: _cardWidth,
@@ -196,16 +198,29 @@ class ExploreProfileCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      if (company.isNotEmpty) ...[
+                      if (thirdLine.isNotEmpty) ...[
                         const SizedBox(height: 1),
-                        Text(
-                          company,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.55),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            if (showCityInsteadOfCompany) ...[
+                              Icon(Icons.location_on_rounded,
+                                  size: 11,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.4)),
+                              const SizedBox(width: 2),
+                            ],
+                            Flexible(
+                              child: Text(
+                                thirdLine,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.onSurface.withValues(alpha: 0.55),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: 8),

@@ -827,7 +827,7 @@ class _ExplorePageState extends State<ExplorePage> {
         title: 'Professionnels près de vous',
         subtitle: 'Découvrez les personnes de votre écosystème',
         users: provider.nearYou,
-        showCityInsteadOfJobTitle: true,
+        showCityInsteadOfCompany: true,
         onSeeAll: provider.nearYou.isEmpty
             ? null
             : () => _openSectionProfiles('near', 'Près de vous'),

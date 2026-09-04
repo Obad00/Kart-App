@@ -14,7 +14,7 @@ class ProfileCarousel extends StatelessWidget {
   final String subtitle;
   final List<ExploreUser> users;
   final VoidCallback? onSeeAll;
-  final bool showCityInsteadOfJobTitle;
+  final bool showCityInsteadOfCompany;
 
   const ProfileCarousel({
     super.key,
@@ -22,7 +22,7 @@ class ProfileCarousel extends StatelessWidget {
     required this.subtitle,
     required this.users,
     this.onSeeAll,
-    this.showCityInsteadOfJobTitle = false,
+    this.showCityInsteadOfCompany = false,
   });
 
   @override
@@ -40,7 +40,11 @@ class ProfileCarousel extends StatelessWidget {
             onSeeAll: onSeeAll,
           ),
           SizedBox(
-            height: 214,
+            // 236 plutôt que 214 : le contenu réel de la carte (photo +
+            // nom + poste + entreprise/ville + bouton) dépasse 214px avec
+            // les vraies métriques de police — provoquait un débordement
+            // ("RenderFlex overflowed") sur chaque carte.
+            height: 236,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
@@ -48,7 +52,7 @@ class ProfileCarousel extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, index) => ExploreProfileCard(
                 user: users[index],
-                showCityInsteadOfJobTitle: showCityInsteadOfJobTitle,
+                showCityInsteadOfCompany: showCityInsteadOfCompany,
               ),
             ),
           ),

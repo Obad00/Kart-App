@@ -264,6 +264,10 @@ class _ProfilePageState extends State<ProfilePage>
                         companyColor: companyColor,
                         icon: Icons.palette_outlined,
                         title: 'Apparence',
+                        // Seule section à garder son encart (fond + bordure)
+                        // — demandé explicitement, contrairement aux autres
+                        // sections de la page qui respirent sans carte.
+                        cardStyle: true,
                         children: [
                           _buildBrandingRow(colors, companyColor, card),
                         ],
@@ -846,12 +850,15 @@ class _ProfilePageState extends State<ProfilePage>
     bool expanded = true,
     VoidCallback? onToggle,
     Widget? trailing,
-  }) {
     // Plus de carte (fond + bordure) autour des sections : juste l'en-tête
     // (icône + titre) et le contenu, séparés par l'espacement entre
     // sections dans ProfilePage.build() — les informations "respirent"
-    // plutôt que d'être chacune enfermée dans un encart.
-    return Column(
+    // plutôt que d'être chacune enfermée dans un encart. Exception
+    // demandée explicitement : "Apparence" (cardStyle: true) garde son
+    // encart, contrairement aux autres sections de cette page.
+    bool cardStyle = false,
+  }) {
+    final content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header de section
@@ -859,7 +866,7 @@ class _ProfilePageState extends State<ProfilePage>
             onTap: collapsible ? onToggle : null,
             borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+              padding: EdgeInsets.fromLTRB(0, cardStyle ? 4 : 0, 0, 12),
               child: Row(
                 children: [
                   Container(
@@ -907,6 +914,18 @@ class _ProfilePageState extends State<ProfilePage>
           ],
         ],
       );
+
+    if (!cardStyle) return content;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.onSurface.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
+      ),
+      child: content,
+    );
   }
 
   Widget _buildInfoRow(

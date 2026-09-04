@@ -41,13 +41,54 @@ class _CompletionSectionsState extends State<CompletionSections> {
 
   @override
   Widget build(BuildContext context) {
-    final model = context.watch<ProfileCompletionProvider>().model;
+    final completionProvider = context.watch<ProfileCompletionProvider>();
+    final model = completionProvider.model;
     final skills = context.watch<CandidateSkillsProvider>().skills;
     final colors = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Échec du dernier chargement (réseau, backend...) : le rendait
+        // avant totalement silencieux — cette page semblait juste "vide"
+        // (aucune expérience, aucune formation...) sans qu'on sache que la
+        // récupération avait raté plutôt que refléter un profil vraiment
+        // incomplet.
+        if (completionProvider.error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.red, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      completionProvider.error!,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: completionProvider.load,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      minimumSize: const Size(0, 0),
+                    ),
+                    child: const Text('Réessayer',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+          ),
         _buildExperiencesSection(context, colors, model),
         const SizedBox(height: 16),
         _buildEducationsSection(context, colors, model),
