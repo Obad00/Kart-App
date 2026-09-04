@@ -565,8 +565,15 @@ class _ProfilePageState extends State<ProfilePage>
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    // fontFamily explicite : ElevatedButton.styleFrom(textStyle: ...)
+                    // remplace entièrement le DefaultTextStyle ambiant (celui du thème,
+                    // en Syne) au lieu de le compléter — sans ce fontFamily, ce label
+                    // retombait sur la police système et jurait avec le reste de la
+                    // page (nom, titres...), tous en Syne.
                     textStyle: const TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w700),
+                        fontFamily: 'Syne',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -628,6 +635,12 @@ class _ProfilePageState extends State<ProfilePage>
               letterSpacing: 0.4,
               color: colors.onSurface.withValues(alpha: 0.45),
             ),
+            // Sur les écrans étroits (iPhone mini/SE), 3 colonnes dans la
+            // largeur de carte ne laissent qu'une soixantaine de pixels par
+            // stat — sans limite, un libellé comme "COMPÉTENCES" pouvait
+            // passer à la ligne et désaligner la rangée entière.
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -649,6 +662,11 @@ class _ProfilePageState extends State<ProfilePage>
                 fontWeight: FontWeight.w600,
                 color: companyColor,
               ),
+              // "Profil très complet" est le plus long des libellés
+              // possibles (cf. _kartScoreCaption) — 2 lignes plutôt qu'un
+              // débordement non borné sur les colonnes étroites.
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
@@ -2022,11 +2040,15 @@ class _BrandingEditorState extends State<_BrandingEditor> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Text(
-                  'Personnaliser ma carte',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    'Personnaliser ma carte',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

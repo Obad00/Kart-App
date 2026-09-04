@@ -70,6 +70,12 @@ class AuthApi {
     );
   }
 
+  /// Écran "Vérifiez votre email" post-inscription — envoyé une fois à
+  /// l'ouverture de l'écran, puis à nouveau sur "Renvoyer l'email".
+  Future<Response> resendEmailVerification() {
+    return ApiClient.dio.post(ApiEndpoints.resendEmailVerification);
+  }
+
   Future<Response> forgotPassword(String email) {
     return ApiClient.dio.post(
       ApiEndpoints.forgotPassword,

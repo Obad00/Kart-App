@@ -14,6 +14,10 @@ class User {
   final bool mustChangePassword;
   final int? companyId;
   final Company? company;
+  // Utilisé par l'écran "Vérifiez votre email" post-inscription (cf.
+  // EmailVerificationPage) — absent des anciennes réponses /me en cache,
+  // d'où le défaut à true pour ne jamais bloquer un compte existant.
+  final bool emailVerified;
 
   User({
     required this.id,
@@ -28,6 +32,7 @@ class User {
     this.mustChangePassword = false,
     this.companyId,
     this.company,
+    this.emailVerified = true,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -70,6 +75,10 @@ class User {
       companyId:
           rawCompanyId != null ? int.tryParse(rawCompanyId.toString()) : null,
       company: parsedCompany,
+      // Absent dans une réponse plus ancienne (avant ce champ) : on
+      // considère alors l'email déjà vérifié plutôt que de bloquer un
+      // compte existant à tort.
+      emailVerified: json['email_verified'] ?? true,
     );
   }
 

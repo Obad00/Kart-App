@@ -20,6 +20,7 @@ class ApiEndpoints {
   static const deleteAccount = '/me';
   static const changePassword = '/auth/change-password';
   static const forgotPassword = '/auth/forgot-password';
+  static const resendEmailVerification = '/auth/email/resend';
 
   // Entreprise (lecture seule)
   static const companyMe = '/companies/me';

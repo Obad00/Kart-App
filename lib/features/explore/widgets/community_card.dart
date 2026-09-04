@@ -89,6 +89,8 @@ class CommunityCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: colors.onSurface.withValues(alpha: 0.55),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
           if (community.previewAvatars.isNotEmpty) ...[

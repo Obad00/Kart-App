@@ -1254,23 +1254,25 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         children: [
           Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface.withValues(alpha: 0.4)),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: colors.onSurface.withValues(alpha: 0.3)),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.3)),
+                ),
+              ],
+            ),
           ),
         ],
       ),

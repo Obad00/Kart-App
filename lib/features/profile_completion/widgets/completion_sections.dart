@@ -528,11 +528,17 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     const Icon(Icons.school_outlined,
                         size: 18, color: Colors.orange),
                     const SizedBox(width: 12),
-                    Text(
-                      'Aucune formation ajoutée',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colors.onSurface.withValues(alpha: 0.4),
+                    // Expanded : sans lui, un réglage d'accessibilité type
+                    // "Texte plus grand" (courant sur iPhone mini/SE, écran
+                    // étroit) peut faire déborder ce libellé au lieu de le
+                    // faire simplement passer à la ligne.
+                    Expanded(
+                      child: Text(
+                        'Aucune formation ajoutée',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.onSurface.withValues(alpha: 0.4),
+                        ),
                       ),
                     ),
                   ],
@@ -607,7 +613,17 @@ class _CompletionSectionsState extends State<CompletionSections> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Row(
+                                  // Wrap plutôt que Row : sur un écran étroit
+                                  // (iPhone mini/SE), une filière longue
+                                  // combinée aux années dépassait la largeur
+                                  // disponible et provoquait un débordement
+                                  // (texte tronqué/coupé) — ici la puce passe
+                                  // simplement à la ligne suivante.
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
                                     children: [
                                       if (field.isNotEmpty)
                                         Container(
@@ -626,10 +642,10 @@ class _CompletionSectionsState extends State<CompletionSections> {
                                               color: Color(0xFF8B5CF6),
                                               fontWeight: FontWeight.w500,
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                      if (field.isNotEmpty)
-                                        const SizedBox(width: 8),
                                       Text(
                                         '$startYear - $endYear',
                                         style: TextStyle(
@@ -693,11 +709,13 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     const Icon(Icons.psychology_outlined,
                         size: 18, color: Colors.orange),
                     const SizedBox(width: 12),
-                    Text(
-                      'Aucune compétence ajoutée',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colors.onSurface.withValues(alpha: 0.4),
+                    Expanded(
+                      child: Text(
+                        'Aucune compétence ajoutée',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.onSurface.withValues(alpha: 0.4),
+                        ),
                       ),
                     ),
                   ],
@@ -767,11 +785,13 @@ class _CompletionSectionsState extends State<CompletionSections> {
                     const Icon(Icons.interests_outlined,
                         size: 18, color: Colors.orange),
                     const SizedBox(width: 12),
-                    Text(
-                      "Aucun centre d'intérêt ajouté",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colors.onSurface.withValues(alpha: 0.4),
+                    Expanded(
+                      child: Text(
+                        "Aucun centre d'intérêt ajouté",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.onSurface.withValues(alpha: 0.4),
+                        ),
                       ),
                     ),
                   ],

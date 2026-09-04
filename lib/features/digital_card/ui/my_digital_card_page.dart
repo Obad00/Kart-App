@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_svg/flutter_svg.dart' as svg_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -10,10 +11,12 @@ import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/network/api_endpoints.dart';
+import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../contacts/widgets/highlight_bar.dart';
+import '../../profile_completion/ui/completion_form_page.dart';
 
 // widgets
 import '../widgets/card_header.dart';
@@ -92,8 +95,35 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       if (cardProvider.status == CardStatus.hasCard) {
         await cardProvider.loadMyCardQr();
         await highlightProvider.loadHighlights();
+        await _maybePromptJobCompany(cardProvider);
       }
     });
+  }
+
+  /// Popup "Complétez poste & entreprise" — affiché une seule fois, quelques
+  /// secondes après l'arrivée sur cet écran, seulement pour un compte dont
+  /// la carte vient d'être créée automatiquement à l'inscription (cf.
+  /// EmailVerificationPage) et qui n'a encore ni poste ni entreprise.
+  Future<void> _maybePromptJobCompany(CardProvider cardProvider) async {
+    final pending = await OnboardingPrefs.consumePendingJobCompanyPrompt();
+    if (!pending || !mounted) return;
+
+    final stillEmpty = (cardProvider.jobTitle == null ||
+            cardProvider.jobTitle!.isEmpty) &&
+        (cardProvider.company == null || cardProvider.company!.isEmpty);
+    if (!stillEmpty) return;
+
+    // Laisse le temps de voir la carte apparaître avant l'interruption.
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const CompletionFormPage(section: 'basic'),
+    );
   }
 
   void _initAnimations() {

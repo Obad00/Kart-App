@@ -433,16 +433,25 @@ class _ExplorePageState extends State<ExplorePage> {
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Profils suggérés pour vous',
-                      style: TextStyle(
-                        fontFamily: 'Syne',
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Theme.of(context).colorScheme.onSurface,
+                    // Expanded + ellipsis : Syne en w800 est un display font
+                    // large — sans ça, ce titre pouvait déborder sur la
+                    // largeur étroite d'un iPhone mini/SE une fois "Voir
+                    // tout" affiché à côté.
+                    Expanded(
+                      child: Text(
+                        'Profils suggérés pour vous',
+                        style: TextStyle(
+                          fontFamily: 'Syne',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (hasMoreThanPreview)
+                    if (hasMoreThanPreview) ...[
+                      const SizedBox(width: 8),
                       GestureDetector(
                         onTap: _openAllProfiles,
                         child: const Text(
@@ -454,6 +463,7 @@ class _ExplorePageState extends State<ExplorePage> {
                           ),
                         ),
                       ),
+                    ],
                   ],
                 );
               },
@@ -759,16 +769,21 @@ class _CommunitiesSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Réseaux populaires',
-                  style: TextStyle(
-                    fontFamily: 'Syne',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: colors.onSurface,
+                Expanded(
+                  child: Text(
+                    'Réseaux populaires',
+                    style: TextStyle(
+                      fontFamily: 'Syne',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: colors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (provider.communities.isNotEmpty)
+                if (provider.communities.isNotEmpty) ...[
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
@@ -787,6 +802,7 @@ class _CommunitiesSection extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
           ),

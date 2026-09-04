@@ -124,7 +124,16 @@ class CardProvider extends ChangeNotifier {
       final res = await ApiClient.dio.get('/me/card-summary');
       debugPrint('📦 Card Summary Response: \\${res.data}');
 
-      if (res.data['job_title'] == null && res.data['company'] == null) {
+      // 'has_card' est le champ faisant foi (présent depuis l'ajout de la
+      // création automatique de carte à l'inscription) : une carte peut
+      // exister avec poste/entreprise encore vides (juste après
+      // vérification d'email), ce que l'ancien test job_title==null &&
+      // company==null confondait à tort avec "aucune carte". Le fallback
+      // ne sert qu'en cas de réponse mise en cache par une ancienne build.
+      final hasCard = res.data['has_card'] as bool? ??
+          !(res.data['job_title'] == null && res.data['company'] == null);
+
+      if (!hasCard) {
         _status = CardStatus.noCard;
         jobTitle = null;
         company = null;
