@@ -322,23 +322,10 @@ class _ProfilePageState extends State<ProfilePage>
     // statut qu'on ne peut pas garantir.
     final isComplete = kartScore >= 100;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            companyColor.withValues(alpha: 0.12),
-            companyColor.withValues(alpha: 0.04),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: companyColor.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) autour de l'en-tête — même traitement
+    // que le reste de la page (cf. _buildSection) : avatar/nom/stats/
+    // actions respirent directement sur le fond de la page.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -566,7 +553,9 @@ class _ProfilePageState extends State<ProfilePage>
                   label: const Text('Partager mon profil'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: companyColor,
-                    foregroundColor: Colors.white,
+                    // Blanc en dur devenait illisible si l'accent
+                    // personnalisé était clair (ex: jaune pâle).
+                    foregroundColor: readableForegroundOn(companyColor),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     // fontFamily explicite : ElevatedButton.styleFrom(textStyle: ...)
@@ -609,8 +598,7 @@ class _ProfilePageState extends State<ProfilePage>
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildProfileStat(

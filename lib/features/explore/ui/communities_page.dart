@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/community_provider.dart';
 import '../widgets/community_card.dart';
+import 'community_members_page.dart';
 
 /// "Voir tout" — grille de toutes les communautés actives, ouverte depuis
 /// le carrousel "Réseaux populaires" de l'onglet Découvrir. Réutilise le
@@ -53,6 +54,15 @@ class CommunitiesPage extends StatelessWidget {
                   child: CommunityCard(
                     community: community,
                     onToggleJoin: () => provider.toggleJoin(community),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CommunityMembersPage(
+                          communityId: community.id,
+                          communityName: community.name,
+                        ),
+                      ),
+                    ),
                   ),
                 );
               },

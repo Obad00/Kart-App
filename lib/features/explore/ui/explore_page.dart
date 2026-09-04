@@ -24,6 +24,8 @@ import '../widgets/profile_carousel.dart';
 import 'all_profiles_page.dart';
 import 'communities_page.dart';
 import 'companies_discover_page.dart';
+import 'company_detail_page.dart';
+import 'community_members_page.dart';
 import 'my_requests_page.dart';
 import 'section_profiles_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
@@ -175,7 +177,16 @@ class _ExplorePageState extends State<ExplorePage> {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const JobMatchFeedPage()),
+      MaterialPageRoute(
+        // JobMatchFeedPage n'a volontairement pas son propre Scaffold
+        // (elle compte sur celui de HomeShell quand elle est un onglet) —
+        // ouverte seule ici, il lui en faut un pour avoir un fond thémé
+        // (sinon fond blanc par défaut, quel que soit le thème sombre/clair).
+        builder: (context) => Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const JobMatchFeedPage(),
+        ),
+      ),
     );
   }
 
@@ -532,24 +543,30 @@ class _ExplorePageState extends State<ExplorePage> {
           ),
         ),
 
-        // Profils recommandés pour vous
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-          sliver: SliverToBoxAdapter(
-            child: Consumer<ExploreProvider>(
-              builder: (context, provider, _) {
-                final hasMoreThanPreview =
-                    provider.users.length > 5 || provider.hasMore;
-                return ExploreSectionHeader(
-                  title: 'Profils recommandés pour vous',
-                  subtitle: 'Des professionnels sélectionnés selon vos intérêts',
-                  onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
-                );
-              },
+        // Profils recommandés pour vous — le titre était affiché quel que
+        // soit le filtre actif (seul le contenu en dessous était masqué),
+        // donnant l'impression que "Profils recommandés" s'affichait aussi
+        // sous "Entreprises"/"Réseaux". Header et contenu suivent
+        // maintenant le même filtre.
+        if (_showFor({'profils'})) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
+            sliver: SliverToBoxAdapter(
+              child: Consumer<ExploreProvider>(
+                builder: (context, provider, _) {
+                  final hasMoreThanPreview =
+                      provider.users.length > 5 || provider.hasMore;
+                  return ExploreSectionHeader(
+                    title: 'Profils recommandés pour vous',
+                    subtitle: 'Des professionnels sélectionnés selon vos intérêts',
+                    onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
+                  );
+                },
+              ),
             ),
           ),
-        ),
-        if (_showFor({'profils'})) _buildUsersSliver(),
+          _buildUsersSliver(),
+        ],
 
         if (_showFor({'reseaux'}))
           SliverToBoxAdapter(child: _buildCommunitiesSection()),
@@ -870,10 +887,13 @@ class _ExplorePageState extends State<ExplorePage> {
                       category: category,
                       onTap: () {
                         HapticFeedback.selectionClick();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${category.count} profil${category.count > 1 ? 's' : ''} en ${category.name}'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SectionProfilesPage(
+                              category: category.name,
+                              title: category.name,
+                            ),
                           ),
                         );
                       },
@@ -916,6 +936,15 @@ class _ExplorePageState extends State<ExplorePage> {
                       company: company,
                       onToggleFollow: () =>
                           provider.toggleFollowCompany(company),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompanyDetailPage(
+                            companyId: company.id,
+                            companyName: company.name,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -1096,6 +1125,15 @@ class _CommunitiesSection extends StatelessWidget {
                     child: CommunityCard(
                       community: community,
                       onToggleJoin: () => onToggleJoin(community),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CommunityMembersPage(
+                            communityId: community.id,
+                            communityName: community.name,
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 },

@@ -56,3 +56,11 @@ extension CompanyColorContext on BuildContext {
   /// Vérifie si une couleur d'entreprise existe
   bool get hasCompanyColor => CompanyColorHelper.hasCompanyColor(this);
 }
+
+/// Texte noir ou blanc selon la couleur de fond, pour rester lisible quel
+/// que soit l'accent choisi — sans ça, un texte "Colors.white" en dur
+/// devenait illisible dès qu'une couleur d'accent claire était
+/// personnalisée (ex: le bouton "Partager mon profil").
+Color readableForegroundOn(Color background) {
+  return background.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+}

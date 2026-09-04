@@ -773,7 +773,9 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Expérience ${index + 1}',
+                // "Expérience" tout court pour la première — le numéro ne
+                // sert qu'à distinguer les suivantes.
+                index == 0 ? 'Expérience' : 'Expérience ${index + 1}',
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1073,7 +1075,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Formation ${index + 1}',
+                      index == 0 ? 'Formation' : 'Formation ${index + 1}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

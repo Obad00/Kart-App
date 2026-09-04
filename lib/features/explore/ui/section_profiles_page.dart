@@ -15,11 +15,15 @@ import '../../../shared/widgets/bottom_nav_metrics.dart';
 class SectionProfilesPage extends StatefulWidget {
   final String section;
   final String title;
+  // Nom d'un secteur JobSectors ("Tech & Digital"...) — "Explorer par
+  // catégorie" (tap sur une case), indépendant de section.
+  final String category;
 
   const SectionProfilesPage({
     super.key,
-    required this.section,
+    this.section = 'recommended',
     required this.title,
+    this.category = '',
   });
 
   @override
@@ -33,7 +37,11 @@ class _SectionProfilesPageState extends State<SectionProfilesPage> {
   @override
   void initState() {
     super.initState();
-    _provider = ExploreProvider(ExploreService(), section: widget.section);
+    _provider = ExploreProvider(
+      ExploreService(),
+      section: widget.section,
+      category: widget.category,
+    );
     _provider.loadUsers();
     _scrollController.addListener(_onScroll);
   }

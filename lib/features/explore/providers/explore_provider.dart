@@ -8,12 +8,15 @@ class ExploreProvider extends ChangeNotifier {
   final ExploreService _service;
 
   // 'recommended' (défaut, classement par complétion) | 'certified' |
-  // 'new' | 'sector' | 'near' — cf. ExploreController::index() côté
-  // backend. Une instance par carrousel de la page Explorer (refonte) :
-  // même provider, juste une section différente.
+  // 'new' | 'sector' | 'near' | 'weekly' — cf. ExploreController::index()
+  // côté backend. Une instance par carrousel de la page Explorer
+  // (refonte) : même provider, juste une section différente.
   final String section;
+  // Nom d'un secteur JobSectors ("Tech & Digital"...) — "Explorer par
+  // catégorie", indépendant de section.
+  final String category;
 
-  ExploreProvider(this._service, {this.section = 'recommended'});
+  ExploreProvider(this._service, {this.section = 'recommended', this.category = ''});
 
   List<ExploreUser> users = [];
   List<String> jobTitles = [];
@@ -40,6 +43,7 @@ class ExploreProvider extends ChangeNotifier {
         search: _search,
         jobTitle: _jobTitleFilter,
         section: section,
+        category: category,
       );
       users = result.users;
       hasMore = result.hasMore;
@@ -72,6 +76,7 @@ class ExploreProvider extends ChangeNotifier {
         search: _search,
         jobTitle: _jobTitleFilter,
         section: section,
+        category: category,
       );
       users = [...users, ...result.users];
       hasMore = result.hasMore;

@@ -12,11 +12,13 @@ const _themeBlue = Color(0xFF3B82F6);
 class CompanyDiscoverCard extends StatelessWidget {
   final DiscoverableCompany company;
   final VoidCallback onToggleFollow;
+  final VoidCallback? onTap;
 
   const CompanyDiscoverCard({
     super.key,
     required this.company,
     required this.onToggleFollow,
+    this.onTap,
   });
 
   String get _logoUrl {
@@ -31,11 +33,16 @@ class CompanyDiscoverCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final logoUrl = _logoUrl;
 
-    return Container(
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
       width: 168,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
         boxShadow: [
@@ -132,6 +139,8 @@ class CompanyDiscoverCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../shared/utils/company_color_helper.dart' show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -694,7 +695,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentColor,
-            foregroundColor: Colors.white,
+            foregroundColor: readableForegroundOn(_accentColor),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),

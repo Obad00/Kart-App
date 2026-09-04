@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/explore_discovery_provider.dart';
 import '../widgets/company_discover_card.dart';
+import 'company_detail_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 
@@ -64,6 +65,15 @@ class CompaniesDiscoverPage extends StatelessWidget {
                       company: company,
                       onToggleFollow: () =>
                           provider.toggleFollowCompany(company),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompanyDetailPage(
+                            companyId: company.id,
+                            companyName: company.name,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 );
