@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../jobmatch/widgets/job_details_sheet.dart';
@@ -94,14 +93,6 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       );
     } finally {
       if (mounted) setState(() => _isTogglingFollow = false);
-    }
-  }
-
-  Future<void> _openUrl(String? url) async {
-    if (url == null || url.isEmpty) return;
-    final uri = Uri.tryParse(url.startsWith('http') ? url : 'https://$url');
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -243,10 +234,12 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
             ),
           ),
         ),
-        if (detail.address != null ||
-            detail.website != null ||
-            detail.email != null ||
-            detail.phone != null) ...[
+        // Seule l'adresse est affichée ici — email/téléphone/site sur
+        // Company sont pour l'instant souvent juste le contact d'un admin
+        // (pas une ligne dédiée "entreprise"), les montrer publiquement
+        // dans Explorer donnait l'impression erronée d'exposer une
+        // coordonnée personnelle.
+        if (detail.address != null) ...[
           const SizedBox(height: 24),
           Text(
             'Coordonnées',
@@ -258,15 +251,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
             ),
           ),
           const SizedBox(height: 10),
-          if (detail.address != null)
-            _buildInfoRow(colors, Icons.location_on_outlined, detail.address!),
-          if (detail.website != null)
-            _buildInfoRow(colors, Icons.language_rounded, detail.website!,
-                onTap: () => _openUrl(detail.website)),
-          if (detail.email != null)
-            _buildInfoRow(colors, Icons.email_outlined, detail.email!),
-          if (detail.phone != null)
-            _buildInfoRow(colors, Icons.phone_outlined, detail.phone!),
+          _buildInfoRow(colors, Icons.location_on_outlined, detail.address!),
         ],
         const SizedBox(height: 24),
         Text(
