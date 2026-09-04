@@ -20,7 +20,9 @@ import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../../shared/widgets/expandable_text.dart';
 
-const _interestsAccentColor = Color(0xFFEC4899);
+// Même bleu (indigo) que CompletionSections._interestsAccentColor côté
+// profil — cohérence entre l'affichage lecture seule ici et l'éditeur.
+const _interestsAccentColor = Color(0xFF6366F1);
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -498,7 +500,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                         fontWeight: FontWeight.w700,
                         color: colors.onSurface,
                       ),
-                      maxLines: 1,
+                      // 2 lignes plutôt que la troncature à 1 ligne — un nom
+                      // long passe à la ligne au lieu d'être coupé par "...".
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (jobTitle.isNotEmpty) ...[
@@ -614,11 +618,16 @@ class _PublicCardPageState extends State<PublicCardPage>
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              fontSize: 9.5,
+              // 8 plutôt que 9.5, letterSpacing resserré : "COMPÉTENCES"
+              // tient sur une ligne sans être tronqué — même correctif que
+              // ProfilePage._buildProfileStat.
+              fontSize: 8,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
+              letterSpacing: 0.2,
               color: colors.onSurface.withValues(alpha: 0.45),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -829,7 +838,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: 'Réseaux sociaux',
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           // Icône/texte réduits + espacements resserrés : au format
           // d'avant, seuls 2 réseaux tenaient sur la première ligne avant
           // de passer à la ligne — 3 tiennent maintenant confortablement.
@@ -1017,17 +1026,14 @@ class _PublicCardPageState extends State<PublicCardPage>
     Widget? trailing,
     required List<Widget> children,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : même traitement que ProfilePage —
+    // le détail d'un profil (Explorer, ou fiche contact) respire plutôt
+    // que d'empiler chaque section dans un encart.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
             child: Row(
               children: [
                 Container(
@@ -1057,8 +1063,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           ...children,
           const SizedBox(height: 8),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildInfoRow(
@@ -1074,7 +1079,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Icon(icon,
@@ -1116,11 +1121,7 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Widget _buildDivider(ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child:
-          Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06)),
-    );
+    return Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06));
   }
 
   /// "Informations personnelles" en lecture seule — email/téléphone restent
@@ -1172,7 +1173,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: 'Compétences',
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           child: skills.isEmpty
               ? Text(
                   'Aucune compétence ajoutée',
@@ -1202,7 +1203,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: "Centre d'intérêt",
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           child: interests.isEmpty
               ? Text(
                   "Aucun centre d'intérêt ajouté",
@@ -1259,7 +1260,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (sorted.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Aucune expérience',
               style: TextStyle(
@@ -1268,7 +1269,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           )
         else
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Column(
               children: preview.asMap().entries.map((entry) {
                 final i = entry.key;
@@ -1404,7 +1405,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (sorted.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Aucune formation ajoutée',
               style: TextStyle(
@@ -1433,7 +1434,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (showDivider) _buildDivider(colors),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1743,8 +1744,10 @@ class _PublicTimelineItem extends StatelessWidget {
                   ),
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(
+                    ExpandableText(
                       description,
+                      maxLines: 3,
+                      accentColor: accentColor,
                       style: TextStyle(
                           fontSize: 12,
                           height: 1.4,

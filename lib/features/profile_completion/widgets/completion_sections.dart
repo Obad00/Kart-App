@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../model/skill_model.dart';
 import '../providers/profile_completion_provider.dart';
@@ -9,10 +10,13 @@ import '../ui/completion_form_page.dart';
 import '../ui/skill_editor_sheet.dart';
 import '../ui/interests_editor_sheet.dart';
 
-// Rose partout dans "Centres d'intérêt" — bouton "+", puces de l'éditeur ET
-// puces en lecture seule — même structure de puce (SkillChip) que
-// "Compétences", mais couleur propre pour se différencier visuellement.
-const _interestsAccentColor = Color(0xFFEC4899);
+// Bleu (indigo) partout dans "Centres d'intérêt" — bouton "+", puces de
+// l'éditeur ET puces en lecture seule — même structure de puce (SkillChip)
+// que "Compétences", mais un bleu distinct de celui des compétences
+// (0xFF3B82F6, la couleur par défaut de SkillChip) pour que les deux
+// restent visuellement différenciables plutôt que d'utiliser exactement le
+// même accent que l'ancien rose remplaçait.
+const _interestsAccentColor = Color(0xFF6366F1);
 
 /// Réseaux sociaux, Expériences, Formation et Compétences — embarqué
 /// directement dans l'onglet Profil. "Informations de base" (Poste,
@@ -99,7 +103,12 @@ class _CompletionSectionsState extends State<CompletionSections> {
       onTap: onToggle,
       borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+        // horizontal: 0 — plus de carte autour de la section (cf.
+        // suppression du Container/decoration dans _buildSection et
+        // consorts ci-dessous), ce header s'aligne donc directement sur le
+        // bord de la page plutôt que de garder le retrait pensé pour
+        // l'ancien encart.
+        padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
         child: Row(
           children: [
             Container(
@@ -157,13 +166,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
     required bool expanded,
     required VoidCallback onToggle,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -183,17 +187,13 @@ class _CompletionSectionsState extends State<CompletionSections> {
               return Column(
                 children: [
                   if (i > 0)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Divider(
-                          height: 1,
-                          color: colors.onSurface.withValues(alpha: 0.05)),
-                    ),
+                    Divider(
+                        height: 1,
+                        color: colors.onSurface.withValues(alpha: 0.05)),
                   InkWell(
                     onTap: onAddTap,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Row(
                         children: [
                           Icon(item.icon,
@@ -255,8 +255,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             const SizedBox(height: 8),
           ],
         ],
-      ),
-    );
+      );
   }
 
   /// Aperçu des 2 expériences les plus récentes en frise chronologique
@@ -277,17 +276,12 @@ class _CompletionSectionsState extends State<CompletionSections> {
       });
     final preview = sorted.take(2).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
             child: Row(
               children: [
                 Container(
@@ -342,7 +336,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
           ),
           if (allExperiences.isEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
               child: Row(
                 children: [
                   const Icon(Icons.work_outline_rounded,
@@ -376,7 +370,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             )
           else
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
               child: Column(
                 children: preview.asMap().entries.map((entry) {
                   final i = entry.key;
@@ -402,8 +396,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
               ),
             ),
         ],
-      ),
-    );
+      );
   }
 
   /// Liste complète des expériences en lecture seule (frise chronologique),
@@ -500,13 +493,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
     final educations = [...allEducations]
       ..sort((a, b) => (b.startYear ?? 0).compareTo(a.startYear ?? 0));
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -522,7 +510,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
           if (_educationsExpanded) ...[
             if (educations.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Row(
                   children: [
                     const Icon(Icons.school_outlined,
@@ -557,12 +545,9 @@ class _CompletionSectionsState extends State<CompletionSections> {
                 return Column(
                   children: [
                     if (i > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(
-                            height: 1,
-                            color: colors.onSurface.withValues(alpha: 0.05)),
-                      ),
+                      Divider(
+                          height: 1,
+                          color: colors.onSurface.withValues(alpha: 0.05)),
                     // Tap = ouvrir le formulaire complet pour modifier ou
                     // supprimer cette formation (seul moyen d'y accéder :
                     // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
@@ -574,8 +559,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
                         editIndex: allEducations.indexOf(edu),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -674,8 +658,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             const SizedBox(height: 8),
           ],
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildSkillsSection(
@@ -683,13 +666,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
     ColorScheme colors,
     List<CandidateSkillModel> skills,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -703,7 +681,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
           if (_skillsExpanded) ...[
             if (skills.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Row(
                   children: [
                     const Icon(Icons.psychology_outlined,
@@ -723,7 +701,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
               )
             else
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -736,8 +714,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             const SizedBox(height: 8),
           ],
         ],
-      ),
-    );
+      );
   }
 
   void _openSkillEditor(BuildContext context) {
@@ -758,13 +735,8 @@ class _CompletionSectionsState extends State<CompletionSections> {
     ColorScheme colors,
     List<String> interests,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -779,7 +751,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
           if (_interestsExpanded) ...[
             if (interests.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Row(
                   children: [
                     const Icon(Icons.interests_outlined,
@@ -799,7 +771,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
               )
             else
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -812,8 +784,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             const SizedBox(height: 8),
           ],
         ],
-      ),
-    );
+      );
   }
 
   void _openInterestsEditor(BuildContext context) {
@@ -930,8 +901,10 @@ class _ExperienceTimelineItem extends StatelessWidget {
                           ),
                           if (description.isNotEmpty) ...[
                             const SizedBox(height: 6),
-                            Text(
+                            ExpandableText(
                               description,
+                              maxLines: 3,
+                              accentColor: accentColor,
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.4,

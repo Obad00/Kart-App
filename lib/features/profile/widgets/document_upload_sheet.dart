@@ -152,6 +152,11 @@ class _DocumentUploadSheetState extends State<DocumentUploadSheet> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).pop(),
+                  color: colors.onSurface.withValues(alpha: 0.5),
+                ),
               ],
             ),
             const SizedBox(height: 8),

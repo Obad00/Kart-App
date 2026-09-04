@@ -735,18 +735,19 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     int index,
     Map<String, TextEditingController> exp,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.15)),
-      ),
+    // Plus de carte (fond + bordure) : cf. commentaire de
+    // ProfilePage._buildSection. Un séparateur (au lieu du bloc suivant qui
+    // se contentait de l'espacement) garde les entrées distinctes quand il
+    // y en a plusieurs, puisque l'encart qui les délimitait a disparu.
+    return Padding(
+      padding: EdgeInsets.only(top: index > 0 ? 24 : 0, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (index > 0) ...[
+            Divider(color: colors.onSurface.withValues(alpha: 0.08)),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Container(
@@ -1024,19 +1025,17 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.12),
-        ),
-      ),
+    // Plus de carte (fond + bordure) : cf. commentaire de
+    // ProfilePage._buildSection / _buildExperienceCard ci-dessus.
+    return Padding(
+      padding: EdgeInsets.only(top: index > 0 ? 24 : 0, bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (index > 0) ...[
+            Divider(color: colors.onSurface.withValues(alpha: 0.08)),
+            const SizedBox(height: 12),
+          ],
           // HEADER
           Row(
             children: [

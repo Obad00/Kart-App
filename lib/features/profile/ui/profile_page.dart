@@ -630,9 +630,13 @@ class _ProfilePageState extends State<ProfilePage>
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              fontSize: 9.5,
+              // 8 plutôt que 9.5, letterSpacing resserré : "COMPÉTENCES"
+              // tient maintenant sur une ligne sans être tronqué, plutôt
+              // que de compter sur l'ellipsis (maxLines ci-dessous) qui
+              // coupait le mot sur les colonnes étroites.
+              fontSize: 8,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
+              letterSpacing: 0.2,
               color: colors.onSurface.withValues(alpha: 0.45),
             ),
             // Sur les écrans étroits (iPhone mini/SE), 3 colonnes dans la
@@ -790,7 +794,7 @@ class _ProfilePageState extends State<ProfilePage>
           )
         else if (provider.documents.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Ajoutez vos diplômes, attestations ou certificats pour renforcer votre profil.',
               style: TextStyle(
@@ -801,7 +805,7 @@ class _ProfilePageState extends State<ProfilePage>
           )
         else
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Column(
               children: provider.documents
                   .map((doc) => Padding(
@@ -843,15 +847,11 @@ class _ProfilePageState extends State<ProfilePage>
     VoidCallback? onToggle,
     Widget? trailing,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colors.onSurface.withValues(alpha: 0.05),
-        ),
-      ),
-      child: Column(
+    // Plus de carte (fond + bordure) autour des sections : juste l'en-tête
+    // (icône + titre) et le contenu, séparés par l'espacement entre
+    // sections dans ProfilePage.build() — les informations "respirent"
+    // plutôt que d'être chacune enfermée dans un encart.
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header de section
@@ -859,7 +859,7 @@ class _ProfilePageState extends State<ProfilePage>
             onTap: collapsible ? onToggle : null,
             borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
               child: Row(
                 children: [
                   Container(
@@ -906,8 +906,7 @@ class _ProfilePageState extends State<ProfilePage>
             const SizedBox(height: 8),
           ],
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildInfoRow(
@@ -924,7 +923,10 @@ class _ProfilePageState extends State<ProfilePage>
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          // horizontal: 0 — plus de carte autour de la section, ce contenu
+          // s'aligne maintenant avec l'icône de l'en-tête au lieu d'avoir
+          // son propre retrait pensé pour l'ancien encart.
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Icon(
@@ -977,7 +979,7 @@ class _ProfilePageState extends State<ProfilePage>
     final accentColor = _parseHexColor(card.accentColor) ?? companyColor;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
