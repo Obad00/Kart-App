@@ -256,7 +256,11 @@ class _PublicCardPageState extends State<PublicCardPage>
         : _getFieldValue('telephone').isNotEmpty
             ? _getFieldValue('telephone')
             : _getFieldValue('mobile');
-    final location = _getFieldValue('location');
+    // Ville (digital_cards.city) — champ à plat comme job_title/company,
+    // pas soumis à activated_fields (jamais géré via _getFieldValue, qui
+    // ne lit que 'fields', un objet construit uniquement à partir des
+    // réseaux sociaux/téléphone — 'location' n'y a jamais existé).
+    final location = card?['city']?.toString() ?? '';
     final firstName = _getFirstName();
     final skills = _skillsList();
     final experiences = _getExperiences();

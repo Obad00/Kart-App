@@ -5,29 +5,44 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../jobmatch/ui/jobmatch_feed_page.dart';
+import '../models/community.dart';
 import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
+import '../providers/explore_discovery_provider.dart';
 import '../providers/explore_provider.dart';
 import '../services/community_service.dart';
+import '../services/company_discovery_service.dart';
 import '../services/explore_service.dart';
+import '../widgets/category_tile.dart';
 import '../widgets/community_card.dart';
+import '../widgets/company_discover_card.dart';
+import '../widgets/explore_section_header.dart';
 import '../widgets/explore_user_row.dart';
+import '../widgets/profile_carousel.dart';
 import 'all_profiles_page.dart';
 import 'communities_page.dart';
+import 'companies_discover_page.dart';
 import 'my_requests_page.dart';
+import 'section_profiles_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 
-const _themeBlue = Color(0xFF3B82F6);
+const _themeBlue = exploreThemeBlue;
 
 /// "Explorer" — annuaire des utilisateurs KART avec une carte publique
 /// active. Envoyer une demande de mise en relation notifie l'autre
 /// personne par mail (avec des liens Accepter/Refuser, sans connexion
 /// requise) ; si elle accepte, un contact se crée automatiquement des deux
 /// côtés. "Mes demandes" (accepter/refuser directement dans l'app) est un
-/// écran séparé (cf. MyRequestsPage), ouvert depuis le bouton filtre — la
-/// maquette de cette page n'a plus de pilule d'onglets visible en
-/// permanence pour ça.
+/// écran séparé (cf. MyRequestsPage), ouvert depuis le bouton filtre.
+///
+/// Refonte (cf. maquette fournie) : la page enchaîne désormais plusieurs
+/// carrousels — profils recommandés, réseaux, profils certifiés, votre
+/// secteur, nouveaux profils, près de vous, catégories, entreprises — la
+/// puce active filtre lesquels sont affichés plutôt que de changer la
+/// liste "Profils recommandés" elle-même comme avant.
 class ExplorePage extends StatefulWidget {
   // 1 = ouvre directement "Mes demandes" — utilisé par le mail de demande
   // de connexion et par le tap sur la notification push correspondante.
@@ -42,25 +57,30 @@ class ExplorePage extends StatefulWidget {
 class _ExplorePageState extends State<ExplorePage> {
   late final ExploreProvider _provider;
   late final CommunityProvider _communityProvider;
+  late final ExploreDiscoveryProvider _discoveryProvider;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _searchDebounce;
 
-  // Puce de catégorie active dans la rangée sous la recherche — "Pour
-  // vous" et "Fonctions" changent réellement la liste (cf. leurs onTap
-  // dans _buildCategoryChips) ; "Compétences" et "Réseaux" restent pour
-  // l'instant purement visuelles : aucun filtre par compétence ou par
-  // réseau n'existe côté backend, elles ne font donc que se marquer
-  // sélectionnées, sans rien changer à la liste affichée.
-  String _activeChip = 'pour_vous';
+  // Puce active sous la recherche — filtre quels carrousels sont affichés
+  // ('tous' = tout). 'opportunites' ne filtre rien : elle navigue
+  // directement vers JobMatch (cf. _onOpportunitiesTap), Explorer n'ayant
+  // pas sa propre liste d'opportunités.
+  String _activeChip = 'tous';
+
+  bool _showFor(Set<String> chips) =>
+      _activeChip == 'tous' || chips.contains(_activeChip);
 
   @override
   void initState() {
     super.initState();
     _provider = ExploreProvider(ExploreService());
     _communityProvider = CommunityProvider(CommunityService());
+    _discoveryProvider =
+        ExploreDiscoveryProvider(ExploreService(), CompanyDiscoveryService());
     _communityProvider.loadCommunities();
     _provider.loadUsers();
+    _discoveryProvider.loadAll();
 
     if (widget.initialTabIndex == 1) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openMyRequests());
@@ -81,6 +101,7 @@ class _ExplorePageState extends State<ExplorePage> {
     _scrollController.dispose();
     _provider.dispose();
     _communityProvider.dispose();
+    _discoveryProvider.dispose();
     super.dispose();
   }
 
@@ -118,9 +139,48 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
+  void _openSectionProfiles(String section, String title) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SectionProfilesPage(section: section, title: title),
+      ),
+    );
+  }
+
+  void _openCompaniesDiscover() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _discoveryProvider,
+          child: const CompaniesDiscoverPage(),
+        ),
+      ),
+    );
+  }
+
+  /// Puce "Opportunités" — Explorer n'a pas sa propre liste d'offres,
+  /// JobMatch (onglet "Offres", réservé au plan Pro) en tient déjà lieu.
+  void _onOpportunitiesTap(BuildContext context) {
+    HapticFeedback.selectionClick();
+    if (!context.read<AuthProvider>().isPro) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Les opportunités JobMatch sont réservées au plan Pro.'),
+        ),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const JobMatchFeedPage()),
+    );
+  }
+
   /// Bottom sheet ouverte par le bouton rond à côté de la recherche —
-  /// donne accès à "Mes demandes", qui n'a plus de pilule d'onglets
-  /// visible en permanence dans ce design.
+  /// donne accès à "Mes demandes" et au filtre par poste.
   void _openFiltersSheet(BuildContext context) {
     HapticFeedback.lightImpact();
     final colors = Theme.of(context).colorScheme;
@@ -223,6 +283,60 @@ class _ExplorePageState extends State<ExplorePage> {
                   ),
                 ),
               ),
+              if (_provider.jobTitles.isNotEmpty) ...[
+                const Divider(height: 24),
+                InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _openJobTitleFilter(context);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _themeBlue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.work_outline_rounded,
+                              color: _themeBlue),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Filtrer par poste',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _provider.jobTitleFilter.isEmpty
+                                    ? 'Tous postes'
+                                    : _provider.jobTitleFilter,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: colors.onSurface.withValues(alpha: 0.55),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            color: colors.onSurface.withValues(alpha: 0.3)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -230,10 +344,8 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  /// Sélection de poste (chips) en bottom sheet — déclenchée par la puce
-  /// "Fonctions". Reprend le même contenu que l'ancienne rangée de chips
-  /// toujours visible, désormais dans une sheet pour laisser la place à
-  /// la nouvelle rangée de catégories.
+  /// Sélection de poste (chips) en bottom sheet — cf. "Filtrer par poste"
+  /// dans la sheet des filtres.
   void _openJobTitleFilter(BuildContext context) {
     if (_provider.jobTitles.isEmpty) return;
     HapticFeedback.lightImpact();
@@ -342,6 +454,7 @@ class _ExplorePageState extends State<ExplorePage> {
       providers: [
         ChangeNotifierProvider.value(value: _provider),
         ChangeNotifierProvider.value(value: _communityProvider),
+        ChangeNotifierProvider.value(value: _discoveryProvider),
       ],
       child: Stack(
         children: [
@@ -418,61 +531,51 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           ),
         ),
+
+        // Profils recommandés pour vous
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
           sliver: SliverToBoxAdapter(
             child: Consumer<ExploreProvider>(
               builder: (context, provider, _) {
-                // "Voir tout" seulement s'il y a effectivement plus que
-                // les 5 profils affichés en aperçu ici — soit déjà chargés
-                // au-delà de 5, soit d'autres pages disponibles côté
-                // serveur (hasMore).
                 final hasMoreThanPreview =
                     provider.users.length > 5 || provider.hasMore;
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Expanded + ellipsis : Syne en w800 est un display font
-                    // large — sans ça, ce titre pouvait déborder sur la
-                    // largeur étroite d'un iPhone mini/SE une fois "Voir
-                    // tout" affiché à côté.
-                    Expanded(
-                      child: Text(
-                        'Profils suggérés pour vous',
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (hasMoreThanPreview) ...[
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _openAllProfiles,
-                        child: const Text(
-                          'Voir tout',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: _themeBlue,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                return ExploreSectionHeader(
+                  title: 'Profils recommandés pour vous',
+                  subtitle: 'Des professionnels sélectionnés selon vos intérêts',
+                  onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
                 );
               },
             ),
           ),
         ),
-        _buildUsersSliver(),
-        SliverToBoxAdapter(child: _buildCommunitiesSection()),
-        const SliverToBoxAdapter(child: _CreateNetworkBanner()),
+        if (_showFor({'profils'})) _buildUsersSliver(),
+
+        if (_showFor({'reseaux'}))
+          SliverToBoxAdapter(child: _buildCommunitiesSection()),
+
+        if (_showFor({'profils'})) ...[
+          SliverToBoxAdapter(child: _buildCertifiedSection()),
+          SliverToBoxAdapter(child: _buildSectorSection()),
+          SliverToBoxAdapter(child: _buildWeeklySection()),
+        ],
+
+        if (_showFor({'reseaux'}))
+          SliverToBoxAdapter(child: _buildJoinableCommunitiesSection()),
+
+        if (_showFor({'profils'})) ...[
+          SliverToBoxAdapter(child: _buildNewProfilesSection()),
+          SliverToBoxAdapter(child: _buildNearYouSection()),
+        ],
+
+        if (_showFor({'entreprises'})) ...[
+          SliverToBoxAdapter(child: _buildCategoriesSection()),
+          SliverToBoxAdapter(child: _buildCompaniesSection()),
+        ],
+
+        if (_showFor({'reseaux'}))
+          const SliverToBoxAdapter(child: _CreateNetworkBanner()),
+
         SliverToBoxAdapter(
           child: SizedBox(
             height: 16 +
@@ -492,41 +595,38 @@ class _ExplorePageState extends State<ExplorePage> {
         scrollDirection: Axis.horizontal,
         children: [
           _CategoryChip(
-            label: 'Pour vous',
+            label: 'Tous',
             icon: Icons.auto_awesome_rounded,
-            active: _activeChip == 'pour_vous',
-            onTap: () {
-              setState(() => _activeChip = 'pour_vous');
-              if (_provider.jobTitleFilter.isNotEmpty) {
-                _provider.setJobTitleFilter('');
-              }
-            },
+            active: _activeChip == 'tous',
+            onTap: () => setState(() => _activeChip = 'tous'),
           ),
           const SizedBox(width: 8),
           _CategoryChip(
-            label: 'Fonctions',
-            icon: Icons.work_outline_rounded,
-            active: _activeChip == 'fonctions',
-            onTap: () {
-              setState(() => _activeChip = 'fonctions');
-              _openJobTitleFilter(context);
-            },
-          ),
-          const SizedBox(width: 8),
-          _CategoryChip(
-            label: 'Compétences',
-            icon: Icons.star_outline_rounded,
-            active: _activeChip == 'competences',
-            // Purement visuel pour l'instant — cf. commentaire sur
-            // _activeChip.
-            onTap: () => setState(() => _activeChip = 'competences'),
+            label: 'Profils',
+            icon: Icons.people_alt_outlined,
+            active: _activeChip == 'profils',
+            onTap: () => setState(() => _activeChip = 'profils'),
           ),
           const SizedBox(width: 8),
           _CategoryChip(
             label: 'Réseaux',
-            icon: Icons.people_outline_rounded,
+            icon: Icons.groups_outlined,
             active: _activeChip == 'reseaux',
             onTap: () => setState(() => _activeChip = 'reseaux'),
+          ),
+          const SizedBox(width: 8),
+          _CategoryChip(
+            label: 'Entreprises',
+            icon: Icons.apartment_outlined,
+            active: _activeChip == 'entreprises',
+            onTap: () => setState(() => _activeChip = 'entreprises'),
+          ),
+          const SizedBox(width: 8),
+          _CategoryChip(
+            label: 'Opportunités',
+            icon: Icons.work_outline_rounded,
+            active: false,
+            onTap: () => _onOpportunitiesTap(context),
           ),
         ],
       ),
@@ -612,9 +712,13 @@ class _ExplorePageState extends State<ExplorePage> {
         // (AllProfilesPage), pas ici : pas de défilement infini sur cette
         // page, donc pas d'indicateur de chargement de page suivante.
         final preview = provider.users.take(5).toList();
-        return SliverList.builder(
-          itemCount: preview.length,
-          itemBuilder: (context, index) => ExploreUserRow(user: preview[index]),
+        return SliverPadding(
+          padding: const EdgeInsets.only(bottom: 20),
+          sliver: SliverList.builder(
+            itemCount: preview.length,
+            itemBuilder: (context, index) =>
+                ExploreUserRow(user: preview[index]),
+          ),
         );
       },
     );
@@ -623,12 +727,202 @@ class _ExplorePageState extends State<ExplorePage> {
   Widget _buildCommunitiesSection() {
     return Consumer<CommunityProvider>(
       builder: (context, provider, _) {
-        // Rien à afficher tant qu'aucune communauté n'a été créée par le
-        // superadmin, ou en cas d'échec réseau.
         if (!provider.isLoading && provider.communities.isEmpty) {
           return const SizedBox.shrink();
         }
-        return const _CommunitiesSection();
+        return _CommunitiesSection(
+          title: 'Réseaux populaires',
+          subtitle:
+              'Les communautés professionnelles que la communauté KART rejoint le plus',
+          communities: provider.communities,
+          isLoading: provider.isLoading,
+          onToggleJoin: provider.toggleJoin,
+          onSeeAll: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => ChangeNotifierProvider.value(
+                      value: provider,
+                      child: const CommunitiesPage(),
+                    )),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildJoinableCommunitiesSection() {
+    return Consumer<CommunityProvider>(
+      builder: (context, provider, _) {
+        final joinable =
+            provider.communities.where((c) => !c.isJoined).toList();
+        if (!provider.isLoading && joinable.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return _CommunitiesSection(
+          title: 'Réseaux à rejoindre',
+          subtitle: 'Trouvez les communautés qui correspondent à vos ambitions',
+          communities: joinable,
+          isLoading: provider.isLoading,
+          onToggleJoin: provider.toggleJoin,
+        );
+      },
+    );
+  }
+
+  Widget _buildCertifiedSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) => ProfileCarousel(
+        title: 'Profils certifiés',
+        subtitle: 'Des profils vérifiés pour des connexions de confiance',
+        users: provider.certified,
+        onSeeAll: provider.certified.isEmpty
+            ? null
+            : () => _openSectionProfiles('certified', 'Profils certifiés'),
+      ),
+    );
+  }
+
+  Widget _buildSectorSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) => ProfileCarousel(
+        title: 'Les profils qui font votre secteur',
+        subtitle: 'Découvrez les professionnels de votre domaine',
+        users: provider.sector,
+        onSeeAll: provider.sector.isEmpty
+            ? null
+            : () => _openSectionProfiles('sector', 'Votre secteur'),
+      ),
+    );
+  }
+
+  Widget _buildWeeklySection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) => ProfileCarousel(
+        title: 'À découvrir cette semaine',
+        subtitle: 'Des profils sélectionnés par KART',
+        users: provider.weekly,
+        onSeeAll: provider.weekly.isEmpty
+            ? null
+            : () => _openSectionProfiles('weekly', 'À découvrir cette semaine'),
+      ),
+    );
+  }
+
+  Widget _buildNewProfilesSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) => ProfileCarousel(
+        title: 'Nouveaux profils sur KART',
+        subtitle: 'Les professionnels qui viennent de rejoindre la communauté',
+        users: provider.newProfiles,
+        onSeeAll: provider.newProfiles.isEmpty
+            ? null
+            : () => _openSectionProfiles('new', 'Nouveaux profils'),
+      ),
+    );
+  }
+
+  Widget _buildNearYouSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) => ProfileCarousel(
+        title: 'Professionnels près de vous',
+        subtitle: 'Découvrez les personnes de votre écosystème',
+        users: provider.nearYou,
+        showCityInsteadOfJobTitle: true,
+        onSeeAll: provider.nearYou.isEmpty
+            ? null
+            : () => _openSectionProfiles('near', 'Près de vous'),
+      ),
+    );
+  }
+
+  Widget _buildCategoriesSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) {
+        final categories =
+            provider.categories.where((c) => c.count > 0).toList();
+        if (categories.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ExploreSectionHeader(
+                title: 'Explorer par catégorie',
+                subtitle: "Trouvez ce qui vous intéresse",
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.6,
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    return CategoryTile(
+                      category: category,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '${category.count} profil${category.count > 1 ? 's' : ''} en ${category.name}'),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompaniesSection() {
+    return Consumer<ExploreDiscoveryProvider>(
+      builder: (context, provider, _) {
+        if (provider.companies.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ExploreSectionHeader(
+                title: 'Entreprises à découvrir',
+                subtitle: 'Des entreprises qui recrutent et collaborent',
+                onSeeAll: _openCompaniesDiscover,
+              ),
+              SizedBox(
+                height: 214,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: provider.companies.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final company = provider.companies[index];
+                    return CompanyDiscoverCard(
+                      company: company,
+                      onToggleFollow: () =>
+                          provider.toggleFollowCompany(company),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
@@ -748,84 +1042,60 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// "Réseaux populaires" — carrousel horizontal de communautés (cf.
-/// maquette). Superadmin only pour la gestion des communautés elles-mêmes
-/// (CRM web) ; ici on ne fait que lister/rejoindre.
+/// Carrousel horizontal de communautés — même widget pour "Réseaux
+/// populaires" (toutes) et "Réseaux à rejoindre" (celles non rejointes),
+/// cf. maquette fournie.
 class _CommunitiesSection extends StatelessWidget {
-  const _CommunitiesSection();
+  final String title;
+  final String subtitle;
+  final List<Community> communities;
+  final bool isLoading;
+  final ValueChanged<Community> onToggleJoin;
+  final VoidCallback? onSeeAll;
+
+  const _CommunitiesSection({
+    required this.title,
+    required this.subtitle,
+    required this.communities,
+    required this.isLoading,
+    required this.onToggleJoin,
+    this.onSeeAll,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<CommunityProvider>();
-    final colors = Theme.of(context).colorScheme;
-
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Réseaux populaires',
-                    style: TextStyle(
-                      fontFamily: 'Syne',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: colors.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (provider.communities.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ChangeNotifierProvider.value(
-                                value: provider,
-                                child: const CommunitiesPage(),
-                              )),
-                    ),
-                    child: const Text(
-                      'Voir tout',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: _themeBlue,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          ExploreSectionHeader(
+            title: title,
+            subtitle: subtitle,
+            onSeeAll: communities.isNotEmpty ? onSeeAll : null,
           ),
-          if (provider.isLoading)
+          if (isLoading)
             const SizedBox(
               height: 196,
               child: Center(child: CircularProgressIndicator()),
             )
+          else if (communities.isEmpty)
+            const SizedBox.shrink()
           else
             SizedBox(
               height: 196,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
-                itemCount: provider.communities.length,
+                itemCount: communities.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
-                  final community = provider.communities[index];
+                  final community = communities[index];
                   return SizedBox(
                     width: 220,
                     child: CommunityCard(
                       community: community,
-                      onToggleJoin: () => provider.toggleJoin(community),
+                      onToggleJoin: () => onToggleJoin(community),
                     ),
                   );
                 },
@@ -850,7 +1120,7 @@ class _CreateNetworkBanner extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
         color: colors.onSurface.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(18),

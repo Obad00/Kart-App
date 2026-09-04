@@ -90,6 +90,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -133,6 +134,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       final m = p.model;
       _jobCtrl.text = m.jobTitle ?? '';
       _companyCtrl.text = m.company ?? '';
+      _cityCtrl.text = m.city ?? '';
       _bioCtrl.text = m.bio ?? '';
       _phoneCtrl.text = m.phone ?? '';
       _emailCtrl.text = m.email ?? '';
@@ -210,6 +212,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   void dispose() {
     _jobCtrl.dispose();
     _companyCtrl.dispose();
+    _cityCtrl.dispose();
     _bioCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
@@ -391,6 +394,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     final updated = ProfileCompletionModel(
       jobTitle: _jobCtrl.text,
       company: _companyCtrl.text,
+      city: _cityCtrl.text,
       bio: _bioCtrl.text,
       phone: _phoneCtrl.text,
       email: _emailCtrl.text,
@@ -544,6 +548,14 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     controller: _companyCtrl,
                     prefixIcon: Icons.business_outlined,
                     hint: 'Nom de votre entreprise'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Ville',
+                    controller: _cityCtrl,
+                    prefixIcon: Icons.location_on_outlined,
+                    // Sert à "Professionnels près de vous" dans Explorer —
+                    // rapprochement par ville, pas de géolocalisation GPS.
+                    hint: 'Ex: Dakar'),
                 const SizedBox(height: 12),
                 AuthTextField(
                     label: 'Bio',

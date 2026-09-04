@@ -7,7 +7,13 @@ import '../services/explore_service.dart';
 class ExploreProvider extends ChangeNotifier {
   final ExploreService _service;
 
-  ExploreProvider(this._service);
+  // 'recommended' (défaut, classement par complétion) | 'certified' |
+  // 'new' | 'sector' | 'near' — cf. ExploreController::index() côté
+  // backend. Une instance par carrousel de la page Explorer (refonte) :
+  // même provider, juste une section différente.
+  final String section;
+
+  ExploreProvider(this._service, {this.section = 'recommended'});
 
   List<ExploreUser> users = [];
   List<String> jobTitles = [];
@@ -33,6 +39,7 @@ class ExploreProvider extends ChangeNotifier {
         page: _page,
         search: _search,
         jobTitle: _jobTitleFilter,
+        section: section,
       );
       users = result.users;
       hasMore = result.hasMore;
@@ -64,6 +71,7 @@ class ExploreProvider extends ChangeNotifier {
         page: _page + 1,
         search: _search,
         jobTitle: _jobTitleFilter,
+        section: section,
       );
       users = [...users, ...result.users];
       hasMore = result.hasMore;

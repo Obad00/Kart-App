@@ -1,18 +1,31 @@
 import '../../../core/network/api_client.dart';
 import '../models/connection_request_item.dart';
+import '../models/explore_category.dart';
 import '../models/explore_user.dart';
 
 class ExploreService {
+  /// "Explorer par catégorie" — cf. ExploreController::categories().
+  Future<List<ExploreCategory>> fetchCategories() async {
+    final response = await ApiClient.dio.get('/explore/categories');
+    return (response.data['data'] as List)
+        .map((e) => ExploreCategory.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<({List<ExploreUser> users, bool hasMore, List<String> jobTitles})>
       fetchUsers({
     required int page,
     String search = '',
     String jobTitle = '',
+    // 'recommended' | 'certified' | 'new' | 'sector' | 'near' — cf.
+    // ExploreController::index().
+    String section = 'recommended',
   }) async {
     final response = await ApiClient.dio.get('/explore', queryParameters: {
       'page': page,
       if (search.isNotEmpty) 'search': search,
       if (jobTitle.isNotEmpty) 'job_title': jobTitle,
+      if (section != 'recommended') 'section': section,
     });
 
     final data = response.data;

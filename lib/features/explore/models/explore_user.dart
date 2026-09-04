@@ -5,6 +5,7 @@ class ExploreUser {
   final String name;
   final String? jobTitle;
   final String? company;
+  final String? city;
   final String? avatar;
   final String? cardSlug;
   final ConnectionStatus connectionStatus;
@@ -15,17 +16,22 @@ class ExploreUser {
   // — le backend trie déjà l'annuaire par score décroissant ; ce champ ne
   // sert ici qu'à afficher le badge "Profil complet" (>= 90).
   final int completionScore;
+  // Inscrit il y a 14 jours ou moins (cf. ExploreController::index) —
+  // badge "Nouveau" sur "Nouveaux profils sur KART".
+  final bool isNew;
 
   ExploreUser({
     required this.id,
     required this.name,
     this.jobTitle,
     this.company,
+    this.city,
     this.avatar,
     this.cardSlug,
     this.connectionStatus = ConnectionStatus.none,
     this.connectionRequestId,
     this.completionScore = 0,
+    this.isNew = false,
   });
 
   bool get hasCompleteProfile => completionScore >= 90;
@@ -36,6 +42,7 @@ class ExploreUser {
       name: json['name'] ?? '',
       jobTitle: json['jobTitle'],
       company: json['company'],
+      city: json['city'],
       avatar: json['avatar'],
       cardSlug: json['cardSlug'],
       connectionStatus: _statusFromJson(json['connectionStatus']),
@@ -44,6 +51,7 @@ class ExploreUser {
           : null,
       completionScore:
           int.tryParse(json['completionScore']?.toString() ?? '') ?? 0,
+      isNew: json['isNew'] == true,
     );
   }
 
@@ -67,11 +75,13 @@ class ExploreUser {
       name: name,
       jobTitle: jobTitle,
       company: company,
+      city: city,
       avatar: avatar,
       cardSlug: cardSlug,
       connectionStatus: connectionStatus ?? this.connectionStatus,
       connectionRequestId: connectionRequestId ?? this.connectionRequestId,
       completionScore: completionScore,
+      isNew: isNew,
     );
   }
 
@@ -84,11 +94,13 @@ class ExploreUser {
       name: name,
       jobTitle: jobTitle,
       company: company,
+      city: city,
       avatar: avatar,
       cardSlug: cardSlug,
       connectionStatus: ConnectionStatus.none,
       connectionRequestId: null,
       completionScore: completionScore,
+      isNew: isNew,
     );
   }
 }

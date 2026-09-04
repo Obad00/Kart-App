@@ -1,6 +1,7 @@
 class ProfileCompletionModel {
   String? jobTitle;
   String? company;
+  String? city;
   String? bio;
   String? phone;
   String? email;
@@ -24,6 +25,7 @@ class ProfileCompletionModel {
   ProfileCompletionModel({
     this.jobTitle,
     this.company,
+    this.city,
     this.bio,
     this.phone,
     this.email,
@@ -49,6 +51,7 @@ class ProfileCompletionModel {
     return ProfileCompletionModel(
       jobTitle: json['job_title'],
       company: json['company'],
+      city: json['city'],
       bio: json['bio'],
       phone: json['phone'],
       email: json['email'],
@@ -82,6 +85,7 @@ class ProfileCompletionModel {
     return {
       "job_title": jobTitle,
       "company": company,
+      "city": city,
       "bio": bio,
       "phone": phone,
       "email": email,
