@@ -67,6 +67,16 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Écran de recadrage natif (image_cropper — package
+             com.yalantis:ucrop) : cette activité n'est PAS auto-déclarée
+             par le plugin (contrairement à la plupart), il faut l'ajouter
+             manuellement ici sans quoi l'app crashe à l'ouverture du
+             recadrage (avatar, logo entreprise). -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Ucrop.CropTheme"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

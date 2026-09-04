@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
+import '../../../shared/utils/crop_image.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
@@ -1938,11 +1940,21 @@ class _ProfilePageState extends State<ProfilePage>
     );
     if (picked == null || !mounted) return;
 
+    // Recadrage (cercle, comme l'avatar affiché) avant upload — sans ça,
+    // l'image était recadrée par le centre automatiquement, coupant parfois
+    // mal (front/menton) sans que l'utilisateur puisse choisir la zone.
+    final cropped = await cropPickedImage(
+      context,
+      picked.path,
+      cropStyle: CropStyle.circle,
+    );
+    if (cropped == null || !mounted) return;
+
     final authProvider = context.read<AuthProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      final bytes = await picked.readAsBytes();
+      final bytes = await cropped.readAsBytes();
       await authProvider.updateAvatar(bytes, picked.name);
     } catch (e) {
       if (!mounted) return;

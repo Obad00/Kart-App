@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../utils/crop_image.dart';
 
 class LogoPickerField extends StatefulWidget {
   final String label;
@@ -53,7 +54,10 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -143,19 +147,24 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
         maxHeight: 512,
         imageQuality: 85,
       );
+      if (pickedFile == null || !mounted) return;
 
-      if (pickedFile != null) {
-        final file = File(pickedFile.path);
-        if (await file.exists()) {
-          setState(() {
-            _selectedImage = file;
-            _imageUrl = null;
-          });
-          widget.onLogoChanged(pickedFile.path);
-          HapticFeedback.mediumImpact();
-        } else {
-          throw Exception('Fichier introuvable');
-        }
+      // Recadrage carré avant de garder l'image — sans lui, le logo
+      // partait recadré automatiquement par le centre (cf. avatar profil,
+      // même correctif), sans que l'utilisateur puisse choisir la zone.
+      final cropped = await cropPickedImage(context, pickedFile.path);
+      if (cropped == null || !mounted) return;
+
+      final file = File(cropped.path);
+      if (await file.exists()) {
+        setState(() {
+          _selectedImage = file;
+          _imageUrl = null;
+        });
+        widget.onLogoChanged(cropped.path);
+        HapticFeedback.mediumImpact();
+      } else {
+        throw Exception('Fichier introuvable');
       }
     } catch (e) {
       debugPrint('Erreur image picker: $e');
