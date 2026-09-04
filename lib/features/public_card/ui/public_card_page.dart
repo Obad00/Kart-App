@@ -4,7 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../shared/utils/company_color_helper.dart' show readableForegroundOn;
+import '../../../shared/utils/company_color_helper.dart'
+    show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -110,14 +111,27 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Future<void> _load() async {
-    final data = await _service.fetchCard(widget.slug);
-    setState(() {
-      card = data;
-      isLoading = false;
-    });
+    try {
+      final data = await _service.fetchCard(widget.slug);
+      if (!mounted) return;
+      setState(() {
+        card = data;
+        isLoading = false;
+      });
 
-    // Enregistrer automatiquement la vue
-    _registerView();
+      // Enregistrer automatiquement la vue
+      _registerView();
+    } catch (e) {
+      // Carte introuvable (404 — profil sans carte publique valide) ou
+      // erreur réseau : sans ce catch, l'exception n'était jamais
+      // rattrapée (isLoading restait bloqué à true — écran quasi noir en
+      // thème sombre, juste un spinner) et si l'utilisateur revenait en
+      // arrière avant la résolution de la requête, le setState arrivait
+      // après dispose() et plantait. On bascule sur l'état "Carte non
+      // trouvée" déjà géré par build() (card == null).
+      if (!mounted) return;
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _registerView() async {
@@ -285,6 +299,14 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (isLoading) {
       return Scaffold(
         backgroundColor: backgroundColor,
+        // Sans AppBar/bouton retour ici, un chargement bloqué (ou une
+        // carte introuvable ci-dessous) laissait l'utilisateur bloqué sur
+        // le web, sans geste natif "retour" comme sur mobile.
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation(
@@ -298,6 +320,11 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (card == null) {
       return Scaffold(
         backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         body: Center(
           child: Text(
             'Carte non trouvée',
@@ -1035,40 +1062,40 @@ class _PublicCardPageState extends State<PublicCardPage>
     // le détail d'un profil (Explorer, ou fiche contact) respire plutôt
     // que d'empiler chaque section dans un encart.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 16, color: _accentColor),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface,
-                      letterSpacing: 0.2,
-                    ),
+                child: Icon(icon, size: 16, color: _accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                if (trailing != null) trailing,
-              ],
-            ),
+              ),
+              if (trailing != null) trailing,
+            ],
           ),
-          ...children,
-          const SizedBox(height: 8),
-        ],
-      );
+        ),
+        ...children,
+        const SizedBox(height: 8),
+      ],
+    );
   }
 
   Widget _buildInfoRow(
