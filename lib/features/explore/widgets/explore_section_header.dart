@@ -33,18 +33,23 @@ class ExploreSectionHeader extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontFamily: 'Syne',
-                    fontSize: 17,
+                    // 17 tronquait les titres les plus longs ("Les profils
+                    // qui font votre secteur"...) sur les petits écrans,
+                    // surtout à côté de "Voir tout". Réduit + autorisé sur
+                    // 2 lignes plutôt qu'ellipsé sur 1 seule.
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                     color: colors.onSurface,
+                    height: 1.15,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 11.5,
                     color: colors.onSurface.withValues(alpha: 0.55),
                   ),
                   maxLines: 1,

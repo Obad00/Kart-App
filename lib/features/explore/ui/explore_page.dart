@@ -18,8 +18,8 @@ import '../services/explore_service.dart';
 import '../widgets/category_tile.dart';
 import '../widgets/community_card.dart';
 import '../widgets/company_discover_card.dart';
+import '../widgets/explore_profile_card.dart';
 import '../widgets/explore_section_header.dart';
-import '../widgets/explore_user_row.dart';
 import '../widgets/profile_carousel.dart';
 import 'all_profiles_page.dart';
 import 'communities_page.dart';
@@ -178,8 +178,8 @@ class _ExplorePageState extends State<ExplorePage> {
     if (!context.read<AuthProvider>().isPro) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Les opportunités JobMatch sont réservées au plan Pro.'),
+          content:
+              Text('Les opportunités JobMatch sont réservées au plan Pro.'),
         ),
       );
       return;
@@ -344,7 +344,8 @@ class _ExplorePageState extends State<ExplorePage> {
                                     : _provider.jobTitleFilter,
                                 style: TextStyle(
                                   fontSize: 12.5,
-                                  color: colors.onSurface.withValues(alpha: 0.55),
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.55),
                                 ),
                               ),
                             ],
@@ -557,25 +558,11 @@ class _ExplorePageState extends State<ExplorePage> {
         // donnant l'impression que "Profils recommandés" s'affichait aussi
         // sous "Entreprises"/"Réseaux". Header et contenu suivent
         // maintenant le même filtre.
-        if (_showFor({'profils'})) ...[
+        if (_showFor({'profils'}))
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-            sliver: SliverToBoxAdapter(
-              child: Consumer<ExploreProvider>(
-                builder: (context, provider, _) {
-                  final hasMoreThanPreview =
-                      provider.users.length > 5 || provider.hasMore;
-                  return ExploreSectionHeader(
-                    title: 'Profils recommandés pour vous',
-                    subtitle: 'Des professionnels sélectionnés selon vos intérêts',
-                    onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
-                  );
-                },
-              ),
-            ),
+            padding: const EdgeInsets.only(top: 12),
+            sliver: SliverToBoxAdapter(child: _buildRecommendedSection()),
           ),
-          _buildUsersSliver(),
-        ],
 
         if (_showFor({'reseaux'}))
           SliverToBoxAdapter(child: _buildCommunitiesSection()),
@@ -659,76 +646,76 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _buildUsersSliver() {
+  /// "Profils recommandés pour vous" — même disposition que les autres
+  /// carrousels de la page (ProfileCarousel : en-tête + cartes horizontales),
+  /// plutôt que l'ancienne liste verticale de lignes (ExploreUserRow,
+  /// toujours utilisée elle sur "Voir tout"/AllProfilesPage). Garde ses
+  /// propres états chargement/erreur/vide car — contrairement aux
+  /// carrousels "annexes" — cette section reste toujours affichée.
+  Widget _buildRecommendedSection() {
     return Consumer<ExploreProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading) {
-          return const SliverPadding(
-            padding: EdgeInsets.only(top: 40),
-            sliver: SliverToBoxAdapter(
-              child: Center(child: CircularProgressIndicator()),
-            ),
+          return const Padding(
+            padding: EdgeInsets.only(top: 40, bottom: 20),
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (provider.error != null) {
-          return SliverPadding(
-            padding: const EdgeInsets.only(top: 40),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: Column(
-                  children: [
-                    Text(provider.error!),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => provider.loadUsers(),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
+          return Padding(
+            padding: const EdgeInsets.only(top: 40, bottom: 20),
+            child: Center(
+              child: Column(
+                children: [
+                  Text(provider.error!),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => provider.loadUsers(),
+                    child: const Text('Réessayer'),
+                  ),
+                ],
               ),
             ),
           );
         }
 
         if (provider.users.isEmpty) {
-          return SliverPadding(
+          return Padding(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            _themeBlue.withValues(alpha: 0.12),
-                            const Color(0xFF6D28D9).withValues(alpha: 0.12),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Icon(Icons.explore_outlined,
-                          size: 40, color: _themeBlue),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Aucun profil à découvrir pour le moment',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          _themeBlue.withValues(alpha: 0.12),
+                          const Color(0xFF6D28D9).withValues(alpha: 0.12),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
-                  ],
-                ),
+                    child: const Icon(Icons.explore_outlined,
+                        size: 40, color: _themeBlue),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Aucun profil à découvrir pour le moment',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -738,12 +725,31 @@ class _ExplorePageState extends State<ExplorePage> {
         // (AllProfilesPage), pas ici : pas de défilement infini sur cette
         // page, donc pas d'indicateur de chargement de page suivante.
         final preview = provider.users.take(5).toList();
-        return SliverPadding(
+        final hasMoreThanPreview =
+            provider.users.length > 5 || provider.hasMore;
+
+        return Padding(
           padding: const EdgeInsets.only(bottom: 20),
-          sliver: SliverList.builder(
-            itemCount: preview.length,
-            itemBuilder: (context, index) =>
-                ExploreUserRow(user: preview[index]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ExploreSectionHeader(
+                title: 'Profils recommandés pour vous',
+                subtitle: 'Des professionnels sélectionnés selon vos intérêts',
+                onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
+              ),
+              SizedBox(
+                height: 236,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: preview.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) =>
+                      ExploreProfileCard(user: preview[index]),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -882,8 +888,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
