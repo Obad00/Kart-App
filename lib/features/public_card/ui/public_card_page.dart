@@ -668,23 +668,25 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  /// Somme les durées des expériences (start_date → end_date, ou
-  /// aujourd'hui si toujours en cours), arrondie à l'année — même calcul
-  /// que ProfilePage._computeExperienceYears, appliqué ici aux expériences
-  /// de la carte consultée plutôt qu'aux siennes.
+  /// Ancienneté depuis le début de la première expérience (start_date la
+  /// plus ancienne → aujourd'hui), arrondie à l'année — même calcul que
+  /// ProfilePage._computeExperienceYears, appliqué ici aux expériences de
+  /// la carte consultée plutôt qu'aux siennes. Pas la somme des durées de
+  /// chaque expérience : deux postes qui se chevauchent comptaient sinon
+  /// chacun leur durée, doublant artificiellement le total.
   int _computeExperienceYears(List<dynamic> experiences) {
-    double totalDays = 0;
+    DateTime? earliestStart;
     for (final exp in experiences) {
       if (exp is! Map) continue;
       final start = DateTime.tryParse(exp['start_date']?.toString() ?? '');
       if (start == null) continue;
-      final end = DateTime.tryParse(exp['end_date']?.toString() ?? '') ??
-          DateTime.now();
-      if (end.isAfter(start)) {
-        totalDays += end.difference(start).inDays;
+      if (earliestStart == null || start.isBefore(earliestStart)) {
+        earliestStart = start;
       }
     }
-    return (totalDays / 365).round();
+    if (earliestStart == null) return 0;
+    final days = DateTime.now().difference(earliestStart).inDays;
+    return days <= 0 ? 0 : (days / 365).round();
   }
 
   Widget _buildCallToActions({
