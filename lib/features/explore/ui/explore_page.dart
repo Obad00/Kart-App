@@ -80,13 +80,22 @@ class _ExplorePageState extends State<ExplorePage> {
     _communityProvider = CommunityProvider(CommunityService());
     _discoveryProvider =
         ExploreDiscoveryProvider(ExploreService(), CompanyDiscoveryService());
-    _communityProvider.loadCommunities();
-    _provider.loadUsers();
-    _discoveryProvider.loadAll();
 
-    if (widget.initialTabIndex == 1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openMyRequests());
-    }
+    // addPostFrameCallback : ces load() notifient leurs providers
+    // (notifyListeners() dès leur première ligne, avant le moindre await)
+    // — appelés à cru ici, ça arrivait en plein passage de build de
+    // HomeShell (ExplorePage est l'un des 5 onglets de l'IndexedStack,
+    // monté dès l'arrivée sur /home), provoquant "setState() or
+    // markNeedsBuild() called during build" et corrompant le rendu de
+    // l'écran suivant.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _communityProvider.loadCommunities();
+      _provider.loadUsers();
+      _discoveryProvider.loadAll();
+
+      if (widget.initialTabIndex == 1) _openMyRequests();
+    });
   }
 
   void _onSearchChanged(String value) {

@@ -3,6 +3,7 @@
 class CompanyJob {
   final int id;
   final String title;
+  final String? description;
   final String? location;
   final bool isRemote;
   final String? contractType;
@@ -10,6 +11,7 @@ class CompanyJob {
   CompanyJob({
     required this.id,
     required this.title,
+    this.description,
     this.location,
     this.isRemote = false,
     this.contractType,
@@ -19,6 +21,7 @@ class CompanyJob {
     return CompanyJob(
       id: int.tryParse(json['id'].toString()) ?? 0,
       title: json['title'] ?? '',
+      description: json['description'],
       location: json['location'],
       isRemote: json['isRemote'] == true,
       contractType: json['contractType'],

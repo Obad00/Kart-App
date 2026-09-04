@@ -67,11 +67,7 @@ class DeepLinkService {
   }
 
   void _openExploreRequests() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final navigator = _navigatorKey.currentState;
-      final context = _navigatorKey.currentContext;
-      if (navigator == null || context == null) return;
-
+    _navigateWhenReady((context, navigator) {
       final showJobMatch = canAccessJobMatch(
         context.read<AuthProvider>().user?.plan,
       );
@@ -89,11 +85,7 @@ class DeepLinkService {
   /// [tabIndex] : onglet du tableau de bord JobMatch à ouvrir (0 = Matchs,
   /// 1 = Aimées, 2 = Passées).
   void _openDashboard({required int tabIndex}) {
-    // Attend que le premier frame soit posé (cas cold start, où l'app vient
-    // tout juste de démarrer) avant de naviguer.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final navigator = _navigatorKey.currentState;
-      if (navigator == null) return;
+    _navigateWhenReady((context, navigator) {
       navigator.pushNamedAndRemoveUntil(
         '/home',
         (route) => false,
@@ -105,14 +97,46 @@ class DeepLinkService {
   }
 
   void _openFeedTab() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final navigator = _navigatorKey.currentState;
-      if (navigator == null) return;
+    _navigateWhenReady((context, navigator) {
       navigator.pushNamedAndRemoveUntil(
         '/home',
         (route) => false,
         arguments: {'tab': 2}, // Offres
       );
+    });
+  }
+
+  /// Attend le premier frame (cas cold start) PUIS la fin de l'init de
+  /// [AuthProvider] avant d'exécuter [action] — sur un lien reçu au tout
+  /// lancement de l'app, ce handler s'exécutait plus vite que
+  /// AuthProvider._init() (qui va chercher /me en réseau) : on poussait déjà
+  /// '/home' avec AuthProvider.user encore à null, et HomeShell (qui se fie
+  /// à auth.isAuthenticated) renvoyait aussitôt vers /login — alors que la
+  /// session était en fait valide, juste pas encore chargée. D'où le "il me
+  /// demande de me reconnecter" alors que l'utilisateur était bien connecté.
+  /// Si la session s'avère réellement absente une fois l'init terminée, on
+  /// laisse simplement le flux normal (SplashScreen → /login) suivre son
+  /// cours plutôt que de forcer '/home'.
+  void _navigateWhenReady(
+    void Function(BuildContext context, NavigatorState navigator) action,
+  ) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = _navigatorKey.currentContext;
+      if (context == null) return;
+
+      await context.read<AuthProvider>().waitForInit();
+
+      // Ré-obtenus après l'await : ce ne sont pas les mêmes objets qu'avant
+      // le gap async (le lint ne peut pas le savoir faute de `mounted`,
+      // indisponible hors d'un State).
+      final navigator = _navigatorKey.currentState;
+      final readyContext = _navigatorKey.currentContext;
+      if (navigator == null || readyContext == null) return;
+      // ignore: use_build_context_synchronously
+      if (!readyContext.read<AuthProvider>().isAuthenticated) return;
+
+      // ignore: use_build_context_synchronously
+      action(readyContext, navigator);
     });
   }
 }

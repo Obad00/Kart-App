@@ -82,8 +82,21 @@ class _ProfilePageState extends State<ProfilePage>
     // seuls après une modification faite ailleurs (ex: formulaire
     // "Informations personnelles"), donnant l'impression que la
     // complétion "met du temps à se mettre à jour".
-    context.read<ProfileCompletionProvider>().load();
-    context.read<CandidateSkillsProvider>().load();
+    //
+    // addPostFrameCallback : appeler .load() directement ici notifiait
+    // ProfileCompletionProvider (notifyListeners() dès la première ligne
+    // de load(), avant le moindre await) EN PLEIN initState() — donc en
+    // plein passage de build de HomeShell (ProfilePage est l'un des 5
+    // onglets de l'IndexedStack, monté dès l'arrivée sur /home). Ça
+    // provoquait "setState() or markNeedsBuild() called during build",
+    // qui corrompait le layout de la frame en cours et faisait
+    // planter/dériver l'écran suivant (ex: ouvrir un profil depuis
+    // Explorer juste après).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ProfileCompletionProvider>().load();
+      context.read<CandidateSkillsProvider>().load();
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
   }

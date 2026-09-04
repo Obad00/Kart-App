@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../../jobmatch/widgets/job_details_sheet.dart';
 import '../models/company_job.dart';
 import '../services/company_discovery_service.dart';
 
@@ -98,8 +99,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
 
   Future<void> _openUrl(String? url) async {
     if (url == null || url.isEmpty) return;
-    final uri = Uri.tryParse(
-        url.startsWith('http') ? url : 'https://$url');
+    final uri = Uri.tryParse(url.startsWith('http') ? url : 'https://$url');
     if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -154,7 +154,8 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(_error ?? 'Entreprise introuvable',
-                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+                  style: TextStyle(
+                      color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
               ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
             ],
@@ -227,8 +228,9 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
             ),
             label: Text(detail.isFollowing ? 'Suivi' : 'Suivre'),
             style: OutlinedButton.styleFrom(
-              foregroundColor:
-                  detail.isFollowing ? colors.onSurface.withValues(alpha: 0.6) : _themeBlue,
+              foregroundColor: detail.isFollowing
+                  ? colors.onSurface.withValues(alpha: 0.6)
+                  : _themeBlue,
               side: BorderSide(
                 color: detail.isFollowing
                     ? colors.onSurface.withValues(alpha: 0.15)
@@ -279,7 +281,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
           ),
         ),
         const SizedBox(height: 10),
-        ...detail.jobs.map((job) => _buildJobRow(colors, job)),
+        ...detail.jobs.map((job) => _buildJobRow(colors, job, detail.name)),
       ],
     );
   }
@@ -287,7 +289,9 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
   Widget _logoFallback() {
     return Center(
       child: Text(
-        widget.companyName.isNotEmpty ? widget.companyName[0].toUpperCase() : '?',
+        widget.companyName.isNotEmpty
+            ? widget.companyName[0].toUpperCase()
+            : '?',
         style: const TextStyle(
           fontFamily: 'Syne',
           fontWeight: FontWeight.w800,
@@ -307,7 +311,8 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
         borderRadius: BorderRadius.circular(10),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+            Icon(icon,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -324,58 +329,71 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
     );
   }
 
-  Widget _buildJobRow(ColorScheme colors, CompanyJob job) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
+  Widget _buildJobRow(ColorScheme colors, CompanyJob job, String companyName) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: _themeBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.work_outline_rounded,
-                size: 16, color: _themeBlue),
+        onTap: () => showJobDetailsSheet(
+          context,
+          title: job.title,
+          companyName: companyName,
+          location: job.isRemote ? 'À distance' : job.location,
+          description: job.description,
+        ),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colors.onSurface.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  job.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: colors.onSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: _themeBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  [
-                    if (job.isRemote) 'À distance' else job.location,
-                    job.contractType,
-                  ].where((e) => e != null && e.isNotEmpty).join(' · '),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.onSurface.withValues(alpha: 0.55),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: const Icon(Icons.work_outline_rounded,
+                    size: 16, color: _themeBlue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (job.isRemote) 'À distance' else job.location,
+                        job.contractType,
+                      ].where((e) => e != null && e.isNotEmpty).join(' · '),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.55),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
