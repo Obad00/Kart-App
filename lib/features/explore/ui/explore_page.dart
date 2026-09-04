@@ -1,24 +1,20 @@
 import 'dart:async';
-import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
-import '../models/connection_request_item.dart';
-import '../models/explore_user.dart';
 import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
 import '../services/community_service.dart';
 import '../services/explore_service.dart';
 import '../widgets/community_card.dart';
-import '../widgets/connect_action_button.dart';
+import '../widgets/explore_user_row.dart';
+import 'all_profiles_page.dart';
 import 'communities_page.dart';
-import '../../public_card/ui/public_card_page.dart';
+import 'my_requests_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 
@@ -28,8 +24,10 @@ const _themeBlue = Color(0xFF3B82F6);
 /// active. Envoyer une demande de mise en relation notifie l'autre
 /// personne par mail (avec des liens Accepter/Refuser, sans connexion
 /// requise) ; si elle accepte, un contact se crée automatiquement des deux
-/// côtés. L'onglet "Mes demandes" permet aussi de répondre directement
-/// dans l'app.
+/// côtés. "Mes demandes" (accepter/refuser directement dans l'app) est un
+/// écran séparé (cf. MyRequestsPage), ouvert depuis le bouton filtre — la
+/// maquette de cette page n'a plus de pilule d'onglets visible en
+/// permanence pour ça.
 class ExplorePage extends StatefulWidget {
   // 1 = ouvre directement "Mes demandes" — utilisé par le mail de demande
   // de connexion et par le tap sur la notification push correspondante.
@@ -41,14 +39,20 @@ class ExplorePage extends StatefulWidget {
   State<ExplorePage> createState() => _ExplorePageState();
 }
 
-class _ExplorePageState extends State<ExplorePage>
-    with SingleTickerProviderStateMixin {
+class _ExplorePageState extends State<ExplorePage> {
   late final ExploreProvider _provider;
   late final CommunityProvider _communityProvider;
-  late final TabController _tabController;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _searchDebounce;
+
+  // Puce de catégorie active dans la rangée sous la recherche — "Pour
+  // vous" et "Fonctions" changent réellement la liste (cf. leurs onTap
+  // dans _buildCategoryChips) ; "Compétences" et "Réseaux" restent pour
+  // l'instant purement visuelles : aucun filtre par compétence ou par
+  // réseau n'existe côté backend, elles ne font donc que se marquer
+  // sélectionnées, sans rien changer à la liste affichée.
+  String _activeChip = 'pour_vous';
 
   @override
   void initState() {
@@ -56,38 +60,10 @@ class _ExplorePageState extends State<ExplorePage>
     _provider = ExploreProvider(ExploreService());
     _communityProvider = CommunityProvider(CommunityService());
     _communityProvider.loadCommunities();
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: widget.initialTabIndex,
-    );
-    if (widget.initialTabIndex == 1) {
-      _provider.loadMyRequests();
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => context.read<ConnectionBadgeProvider>().clearBadge(),
-      );
-    }
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
-      if (_tabController.index == 1) {
-        if (_provider.myRequests.isEmpty) {
-          _provider.loadMyRequests();
-        }
-        // Le badge (même compteur que celui de la barre de nav) ne
-        // s'efface qu'ici, à l'ouverture réelle de "Mes demandes" — pas
-        // dès qu'on arrive sur Explorer, sinon il aurait déjà disparu
-        // avant même que cet onglet ait pu l'afficher à son tour.
-        context.read<ConnectionBadgeProvider>().clearBadge();
-      }
-    });
     _provider.loadUsers();
-    _scrollController.addListener(_onScroll);
-  }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >
-        _scrollController.position.maxScrollExtent - 200) {
-      _provider.loadMore();
+    if (widget.initialTabIndex == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openMyRequests());
     }
   }
 
@@ -103,79 +79,265 @@ class _ExplorePageState extends State<ExplorePage>
     _searchDebounce?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
-    _tabController.dispose();
     _provider.dispose();
     _communityProvider.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Même compteur que le badge de la barre de navigation (voir
-    // home_shell.dart) — affiché ici aussi, sur l'onglet "Mes demandes",
-    // pour signaler une demande non traitée avant même de l'avoir ouvert.
-    final pendingCount =
-        context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+  /// Ouvre "Mes demandes" — même instance d'[ExploreProvider] (état des
+  /// demandes, filtre de statut déjà chargé) partagée avec cet écran via
+  /// `ChangeNotifierProvider.value`, plutôt qu'un onglet interne. Le badge
+  /// (même compteur que la barre de nav) ne s'efface qu'ici, à l'ouverture
+  /// réelle — pas dès l'arrivée sur Explorer, sinon il aurait déjà disparu
+  /// avant même d'avoir pu s'afficher.
+  void _openMyRequests() {
+    context.read<ConnectionBadgeProvider>().clearBadge();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _provider,
+          child: const MyRequestsPage(),
+        ),
+      ),
+    );
+  }
 
+  /// Ouvre la liste complète des profils ("Voir tout" de "Profils suggérés
+  /// pour vous", qui n'en montre que les 5 premiers) — même instance
+  /// d'[ExploreProvider] partagée, déjà chargée.
+  void _openAllProfiles() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _provider,
+          child: const AllProfilesPage(),
+        ),
+      ),
+    );
+  }
+
+  /// Bottom sheet ouverte par le bouton rond à côté de la recherche —
+  /// donne accès à "Mes demandes", qui n'a plus de pilule d'onglets
+  /// visible en permanence dans ce design.
+  void _openFiltersSheet(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final colors = Theme.of(context).colorScheme;
+    final badgeCount =
+        context.read<ConnectionBadgeProvider>().pendingReceivedCount;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openMyRequests();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _themeBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child:
+                            const Icon(Icons.inbox_outlined, color: _themeBlue),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mes demandes',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Accepter ou refuser une mise en relation',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: colors.onSurface.withValues(alpha: 0.55),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (badgeCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7),
+                          constraints:
+                              const BoxConstraints(minWidth: 22, minHeight: 22),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              badgeCount > 9 ? '9+' : '$badgeCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Icon(Icons.chevron_right_rounded,
+                            color: colors.onSurface.withValues(alpha: 0.3)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Sélection de poste (chips) en bottom sheet — déclenchée par la puce
+  /// "Fonctions". Reprend le même contenu que l'ancienne rangée de chips
+  /// toujours visible, désormais dans une sheet pour laisser la place à
+  /// la nouvelle rangée de catégories.
+  void _openJobTitleFilter(BuildContext context) {
+    if (_provider.jobTitles.isEmpty) return;
+    HapticFeedback.lightImpact();
     final colors = Theme.of(context).colorScheme;
 
-    final glassAppBar = GlassAppBar(
-      title: const Text('Explorer'),
-      // Pilule "segmented control" (fintech/travel) plutôt que le simple
-      // soulignement Material par défaut — plus proche des captures de
-      // référence pour cette page.
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(58),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-          child: Container(
-            height: 40,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: colors.onSurface.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                color: _themeBlue,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              splashBorderRadius: BorderRadius.circular(999),
-              labelColor: Colors.white,
-              unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
-              labelStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-              unselectedLabelStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              tabs: [
-                const Tab(text: 'Découvrir'),
-                Tab(
-                    child: _TabLabelWithBadge(
-                        label: 'Mes demandes', count: pendingCount)),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => ChangeNotifierProvider.value(
+        value: _provider,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Filtrer par poste',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurface),
+                ),
+                const SizedBox(height: 16),
+                Consumer<ExploreProvider>(
+                  builder: (context, p, _) => Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: 'Tous postes',
+                        active: p.jobTitleFilter.isEmpty,
+                        onTap: () {
+                          p.setJobTitleFilter('');
+                          Navigator.of(sheetContext).pop();
+                        },
+                      ),
+                      ...p.jobTitles.map((jobTitle) {
+                        final active = p.jobTitleFilter == jobTitle;
+                        return _FilterChip(
+                          label: jobTitle,
+                          active: active,
+                          onTap: () {
+                            p.setJobTitleFilter(active ? '' : jobTitle);
+                            Navigator.of(sheetContext).pop();
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
 
-    // Hauteur totale de la barre (statut + toolbar + TabBar) : passée aux
-    // onglets pour qu'ils réservent la place en haut de LEUR scrollable —
-    // pas via un spacer externe, sinon rien ne défile jamais derrière la
-    // barre et le flou n'a rien à flouter (elle paraît alors juste comme un
-    // fond uni classique, cf. capture d'écran).
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    final glassAppBar = GlassAppBar(
+      centerTitle: false,
+      title: Text(
+        'Explorer',
+        style: TextStyle(
+          fontFamily: 'Syne',
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+          color: colors.onSurface,
+        ),
+      ),
+    );
+
+    // Hauteur totale de la barre (statut + toolbar) — passée à la liste
+    // pour qu'elle réserve la place en haut de SON scrollable, pas via un
+    // spacer externe, sinon rien ne défile jamais derrière la barre et le
+    // flou n'a rien à flouter.
     final topPadding =
         glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
 
     // Pas de Scaffold ici : HomeShell en possède déjà un pour toute la
-    // navigation (fond colorScheme.surface unique, cf. AppTheme). GlassAppBar
-    // n'a besoin que d'un AppBar (widget autonome, pas de dépendance à
-    // Scaffold) — posé par-dessus le contenu via Positioned pour reproduire
-    // l'effet extendBodyBehindAppBar : le contenu défile réellement dessous,
-    // chaque onglet réservant déjà la place nécessaire via topPadding.
+    // navigation. GlassAppBar posé par-dessus le contenu via Positioned
+    // pour reproduire l'effet extendBodyBehindAppBar (le contenu défile
+    // réellement dessous).
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _provider),
@@ -186,23 +348,19 @@ class _ExplorePageState extends State<ExplorePage>
           GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () => FocusScope.of(context).unfocus(),
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildDiscoverTab(topPadding),
-                _buildMyRequestsTab(topPadding),
-              ],
+            // top:false ET bottom:false — le bas est géré à la main
+            // (BottomNavMetrics dans le spacer de fin de liste), pas via
+            // SafeArea(bottom:true) : sinon cette page perd ~34px de
+            // hauteur réelle en bas, sur lesquels plus rien ne défile
+            // derrière la pilule flottante de HomeShell (extendBody), qui
+            // n'y trouve alors qu'un fond uni à flouter au lieu du contenu
+            // — contrairement aux autres pages (Profil, Contacts...).
+            child: SafeArea(
+              top: false,
+              bottom: false,
+              child: _buildScrollable(topPadding),
             ),
           ),
-          // SizedBox(height: topPadding) est indispensable : sans lui, ce
-          // Positioned (top/left/right seuls, pas de bottom) donne à
-          // GlassAppBar une hauteur non contrainte, et l'AppBar interne (qui
-          // empile toolbar + TabBar dans une Column avec Expanded) plante en
-          // layout — c'est exactement ce que fait Scaffold(appBar: ...) en
-          // interne pour n'importe quel AppBar, et qu'il faut donc refaire à
-          // la main ici. topPadding (pas juste preferredSize.height) car
-          // l'AppBar réserve lui-même la place de la status bar en plus de
-          // sa propre hauteur quand primary vaut true (par défaut).
           Positioned(
             top: 0,
             left: 0,
@@ -214,407 +372,337 @@ class _ExplorePageState extends State<ExplorePage>
     );
   }
 
-  // AppSearchBar n'a pas de hauteur fixe (elle dépend du TextField interne
-  // — icône de suffixe "effacer" quand une recherche est tapée, réglages
-  // d'accessibilité...) : 58 était trop juste et provoquait "A RenderFlex
-  // overflowed by 5.0 pixels" dans l'en-tête épinglé dès que le champ
-  // dépassait ne serait-ce que de quelques pixels. Marge de sécurité +6.
+  // AppSearchBar n'a pas de hauteur fixe (elle dépend du TextField interne)
+  // : 58 était trop juste et provoquait un débordement dans l'en-tête
+  // épinglé dès que le champ dépassait de quelques pixels. Marge +6.
   static const double _searchBarHeight = 64;
-  static const double _filterRowHeight = 44;
+  static const double _chipsRowHeight = 44;
 
-  Widget _buildDiscoverTab(double topPadding) {
-    // top:false ET bottom:false — même principe que ContactsPage : le bas
-    // est géré à la main (BottomNavMetrics), pas via SafeArea(bottom:true).
-    // Avec bottom:true, cette page seule perdait ~34px de hauteur réelle en
-    // bas de son Stack (consommés par la SafeArea) : sur cette bande, plus
-    // rien de la liste ne défilait derrière la pilule flottante de
-    // HomeShell (extendBody), qui n'y trouvait donc que le fond uni du
-    // Scaffold à flouter — d'où une pilule visiblement moins "verre dépoli"
-    // ici que sur les autres onglets (Profil, Contacts...), qui laissent
-    // leur contenu défiler jusqu'au vrai bord de l'écran.
-    return SafeArea(
-      top: false,
-      bottom: false,
-      // Stack (pas Column) : la liste occupe toute la hauteur et défile
-      // réellement DERRIÈRE "Réseaux populaires", pour que le
-      // BackdropFilter de ce dernier ait quelque chose à flouter au
-      // scroll (effet verre dépoli, comme GlassAppBar en haut) — un
-      // Column séparé n'aurait rien laissé passer derrière le bloc fixe.
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildDiscoverScrollable(topPadding),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildCommunitiesFooter(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Espace réservé en bas de la liste pour que son dernier profil puisse
-  // défiler entièrement au-dessus du bloc "Réseaux populaires" (sinon il
-  // resterait en partie caché derrière, glass ou pas) — variable selon que
-  // ce bloc est affiché ou non (cf. _buildCommunitiesFooter).
-  static const double _communitiesFooterHeight = 236;
-
-  Widget _buildCommunitiesFooter() {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Consumer<CommunityProvider>(
-      builder: (context, provider, _) {
-        // Rien à afficher (pas même la bordure) tant qu'aucune communauté
-        // n'a été créée par le superadmin, ou en cas d'échec réseau.
-        if (!provider.isLoading && provider.communities.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              decoration: BoxDecoration(
-                color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
-                border: Border(
-                  top: BorderSide(
-                    color: colors.onSurface.withValues(alpha: 0.06),
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              // 0 en bas, à la demande explicite — la pilule de nav
-              // flottante de HomeShell (extendBody) vient donc recouvrir
-              // le bas de la dernière carte (bouton Rejoindre/Membre y
-              // compris) plutôt que de laisser un espace au-dessus d'elle.
-              child: const _CommunitiesSection(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDiscoverScrollable(double topPadding) {
+  Widget _buildScrollable(double topPadding) {
     return CustomScrollView(
       controller: _scrollController,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         // SliverPersistentHeader(pinned:true) plutôt que SliverToBoxAdapter :
-        // recherche + filtres restent fixes en haut pendant qu'on scrolle la
-        // liste, au lieu de défiler avec elle.
-        Consumer<ExploreProvider>(
-          builder: (context, provider, _) {
-            final hasFilters = provider.jobTitles.isNotEmpty;
-            final height = topPadding +
-                12 +
-                _searchBarHeight +
-                8 +
-                (hasFilters ? _filterRowHeight : 0);
-
-            return SliverPersistentHeader(
-              pinned: true,
-              delegate: StickyHeaderDelegate(
-                height: height,
-                blurBackground: true,
-                child: Column(
-                  children: [
-                    SizedBox(height: topPadding),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                      child: AppSearchBar(
-                        controller: _searchController,
-                        hintText: 'Rechercher par nom, poste, entreprise...',
-                        onChanged: _onSearchChanged,
-                      ),
-                    ),
-                    if (hasFilters) _buildJobTitleFilterRow(provider),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        Consumer<ExploreProvider>(
-          builder: (context, provider, _) {
-            if (provider.isLoading) {
-              return const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            if (provider.error != null) {
-              return SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        // recherche + catégories restent fixes en haut pendant qu'on
+        // scrolle la liste, au lieu de défiler avec elle.
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: StickyHeaderDelegate(
+            height: topPadding + 12 + _searchBarHeight + 8 + _chipsRowHeight,
+            blurBackground: true,
+            child: Column(
+              children: [
+                SizedBox(height: topPadding),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Row(
                     children: [
-                      Text(provider.error!),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => provider.loadUsers(),
-                        child: const Text('Réessayer'),
+                      Expanded(
+                        child: AppSearchBar(
+                          controller: _searchController,
+                          hintText:
+                              'Rechercher un profil, compétence, entreprise...',
+                          onChanged: _onSearchChanged,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _FilterIconButton(
+                        onTap: () => _openFiltersSheet(context),
                       ),
                     ],
                   ),
                 ),
-              );
-            }
-
-            if (provider.users.isEmpty) {
-              return SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                _themeBlue.withValues(alpha: 0.12),
-                                const Color(0xFF6D28D9).withValues(alpha: 0.12),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Icon(Icons.explore_outlined,
-                              size: 40, color: _themeBlue),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Aucun profil à découvrir pour le moment',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            return SliverList.builder(
-              itemCount: provider.users.length + (provider.hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= provider.users.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return _ExploreUserRow(user: provider.users[index]);
-              },
-            );
-          },
+                _buildCategoryChips(),
+              ],
+            ),
+          ),
         ),
-        // Place réservée pour que le dernier profil puisse défiler
-        // entièrement au-dessus du bloc fixe "Réseaux populaires" — qui,
-        // lui, n'est plus dans ce scrollable mais posé par-dessus en
-        // Positioned (cf. _buildDiscoverTab), d'où la nécessité de cette
-        // marge (sans elle, le dernier profil resterait caché dessous).
-        Consumer<CommunityProvider>(
-          builder: (context, communityProvider, _) {
-            final showFooter = communityProvider.isLoading ||
-                communityProvider.communities.isNotEmpty;
-            return SliverToBoxAdapter(
-              child: SizedBox(
-                // bottomInset (pas juste reservedHeight) : la SafeArea du
-                // haut de _buildDiscoverTab ne consomme plus le bas
-                // (bottom:false), donc la vraie safe area matérielle n'est
-                // plus déjà comptée par ailleurs — il faut l'ajouter ici.
-                height: showFooter
-                    ? _communitiesFooterHeight
-                    : 16 +
-                        BottomNavMetrics.bottomInset(
-                            MediaQuery.of(context).padding.bottom),
-              ),
-            );
-          },
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          sliver: SliverToBoxAdapter(
+            child: Consumer<ExploreProvider>(
+              builder: (context, provider, _) {
+                // "Voir tout" seulement s'il y a effectivement plus que
+                // les 5 profils affichés en aperçu ici — soit déjà chargés
+                // au-delà de 5, soit d'autres pages disponibles côté
+                // serveur (hasMore).
+                final hasMoreThanPreview =
+                    provider.users.length > 5 || provider.hasMore;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Profils suggérés pour vous',
+                      style: TextStyle(
+                        fontFamily: 'Syne',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (hasMoreThanPreview)
+                      GestureDetector(
+                        onTap: _openAllProfiles,
+                        child: const Text(
+                          'Voir tout',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: _themeBlue,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        _buildUsersSliver(),
+        SliverToBoxAdapter(child: _buildCommunitiesSection()),
+        const SliverToBoxAdapter(child: _CreateNetworkBanner()),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 16 +
+                BottomNavMetrics.bottomInset(
+                    MediaQuery.of(context).padding.bottom),
+          ),
         ),
       ],
     );
   }
 
-  /// Chips de filtre par poste — même design que le filtre par highlight
-  /// dans Contacts, pour repérer plus vite un profil précis.
-  Widget _buildJobTitleFilterRow(ExploreProvider provider) {
-    if (provider.jobTitles.isEmpty) return const SizedBox.shrink();
-
+  Widget _buildCategoryChips() {
     return SizedBox(
-      height: 44,
-      child: ListView.separated(
+      height: _chipsRowHeight,
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         scrollDirection: Axis.horizontal,
-        itemCount: provider.jobTitles.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            final active = provider.jobTitleFilter.isEmpty;
-            return _FilterChip(
-              label: 'Tous postes',
-              active: active,
-              onTap: () => provider.setJobTitleFilter(''),
-            );
-          }
-
-          final jobTitle = provider.jobTitles[index - 1];
-          final active = provider.jobTitleFilter == jobTitle;
-          return _FilterChip(
-            label: jobTitle,
-            active: active,
-            onTap: () => provider.setJobTitleFilter(active ? '' : jobTitle),
-          );
-        },
+        children: [
+          _CategoryChip(
+            label: 'Pour vous',
+            icon: Icons.auto_awesome_rounded,
+            active: _activeChip == 'pour_vous',
+            onTap: () {
+              setState(() => _activeChip = 'pour_vous');
+              if (_provider.jobTitleFilter.isNotEmpty) {
+                _provider.setJobTitleFilter('');
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          _CategoryChip(
+            label: 'Fonctions',
+            icon: Icons.work_outline_rounded,
+            active: _activeChip == 'fonctions',
+            onTap: () {
+              setState(() => _activeChip = 'fonctions');
+              _openJobTitleFilter(context);
+            },
+          ),
+          const SizedBox(width: 8),
+          _CategoryChip(
+            label: 'Compétences',
+            icon: Icons.star_outline_rounded,
+            active: _activeChip == 'competences',
+            // Purement visuel pour l'instant — cf. commentaire sur
+            // _activeChip.
+            onTap: () => setState(() => _activeChip = 'competences'),
+          ),
+          const SizedBox(width: 8),
+          _CategoryChip(
+            label: 'Réseaux',
+            icon: Icons.people_outline_rounded,
+            active: _activeChip == 'reseaux',
+            onTap: () => setState(() => _activeChip = 'reseaux'),
+          ),
+        ],
       ),
     );
   }
 
-  static const double _statusChipsRowHeight = 40;
+  Widget _buildUsersSliver() {
+    return Consumer<ExploreProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const SliverPadding(
+            padding: EdgeInsets.only(top: 40),
+            sliver: SliverToBoxAdapter(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
 
-  Widget _buildMyRequestsTab(double topPadding) {
-    // bottom:false — même correctif que _buildDiscoverTab (cf. son
-    // commentaire) : sinon cet onglet perd, lui aussi, ~34px de hauteur
-    // réelle en bas, et la pilule flottante n'y trouve qu'un fond uni à
-    // flouter au lieu du contenu qui défile.
-    return SafeArea(
-      top: false,
-      bottom: false,
-      child: CustomScrollView(
-        slivers: [
-          // Même principe que l'onglet Découvrir : les filtres de statut
-          // restent fixes en haut pendant qu'on scrolle la liste.
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: StickyHeaderDelegate(
-              height: topPadding + 12 + _statusChipsRowHeight + 4,
-              blurBackground: true,
-              child: Column(
-                children: [
-                  SizedBox(height: topPadding),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Row(
-                      children: [
-                        _StatusChip(
-                          label: 'Toutes',
-                          status: 'all',
-                        ),
-                        const SizedBox(width: 8),
-                        _StatusChip(label: 'En attente', status: 'pending'),
-                        const SizedBox(width: 8),
-                        _StatusChip(label: 'Acceptées', status: 'accepted'),
-                        const SizedBox(width: 8),
-                        _StatusChip(label: 'Refusées', status: 'declined'),
-                      ],
+        if (provider.error != null) {
+          return SliverPadding(
+            padding: const EdgeInsets.only(top: 40),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: Column(
+                  children: [
+                    Text(provider.error!),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => provider.loadUsers(),
+                      child: const Text('Réessayer'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          Consumer<ExploreProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoadingMyRequests) {
-                return const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+          );
+        }
 
-              if (provider.myRequests.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Text(
-                      'Aucune demande pour l\'instant',
+        if (provider.users.isEmpty) {
+          return SliverPadding(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            _themeBlue.withValues(alpha: 0.12),
+                            const Color(0xFF6D28D9).withValues(alpha: 0.12),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Icon(Icons.explore_outlined,
+                          size: 40, color: _themeBlue),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Aucun profil à découvrir pour le moment',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
+                        fontWeight: FontWeight.w600,
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withValues(alpha: 0.5),
+                            .withValues(alpha: 0.6),
                       ),
                     ),
-                  ),
-                );
-              }
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
 
-              return SliverPadding(
-                padding: EdgeInsets.only(
-                  top: 8,
-                  // bottomInset : la vraie safe area n'est plus consommée
-                  // par la SafeArea du dessus (bottom:false) — cf. plus
-                  // haut.
-                  bottom: 24 +
-                      BottomNavMetrics.bottomInset(
-                          MediaQuery.of(context).padding.bottom),
-                ),
-                sliver: SliverList.builder(
-                  itemCount: provider.myRequests.length,
-                  itemBuilder: (context, index) =>
-                      _MyRequestRow(item: provider.myRequests[index]),
-                ),
-              );
-            },
-          ),
-        ],
+        // Aperçu limité à 5 — la liste complète est derrière "Voir tout"
+        // (AllProfilesPage), pas ici : pas de défilement infini sur cette
+        // page, donc pas d'indicateur de chargement de page suivante.
+        final preview = provider.users.take(5).toList();
+        return SliverList.builder(
+          itemCount: preview.length,
+          itemBuilder: (context, index) => ExploreUserRow(user: preview[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildCommunitiesSection() {
+    return Consumer<CommunityProvider>(
+      builder: (context, provider, _) {
+        // Rien à afficher tant qu'aucune communauté n'a été créée par le
+        // superadmin, ou en cas d'échec réseau.
+        if (!provider.isLoading && provider.communities.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return const _CommunitiesSection();
+      },
+    );
+  }
+}
+
+class _FilterIconButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _FilterIconButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.onSurface.withValues(alpha: 0.06),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(Icons.tune_rounded,
+              color: colors.onSurface.withValues(alpha: 0.7), size: 20),
+        ),
       ),
     );
   }
 }
 
-/// Libellé d'onglet + badge rond rouge — même principe visuel que le badge
-/// de "Explorer" dans la barre de navigation (voir home_shell.dart), pour
-/// signaler ici une demande de connexion reçue pas encore traitée.
-class _TabLabelWithBadge extends StatelessWidget {
+class _CategoryChip extends StatelessWidget {
   final String label;
-  final int count;
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
 
-  const _TabLabelWithBadge({required this.label, required this.count});
+  const _CategoryChip({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label),
-        if (count > 0) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.all(3),
-            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-            decoration:
-                const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-            child: Text(
-              count > 9 ? '9+' : '$count',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                height: 1,
+    final colors = Theme.of(context).colorScheme;
+
+    return Material(
+      color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 16,
+                  color: active
+                      ? Colors.white
+                      : colors.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: active
+                      ? Colors.white
+                      : colors.onSurface.withValues(alpha: 0.7),
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
+            ],
           ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
@@ -650,472 +738,9 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final String status;
-
-  const _StatusChip({required this.label, required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<ExploreProvider>();
-    final active = provider.myRequestsStatusFilter == status;
-    final colors = Theme.of(context).colorScheme;
-
-    return ChoiceChip(
-      label: Text(label),
-      selected: active,
-      onSelected: (_) {
-        HapticFeedback.selectionClick();
-        context.read<ExploreProvider>().loadMyRequests(status: status);
-      },
-      labelStyle: TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w600,
-        color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
-      ),
-      selectedColor: _themeBlue,
-      backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-      side: BorderSide.none,
-    );
-  }
-}
-
-class _MyRequestRow extends StatelessWidget {
-  final ConnectionRequestItem item;
-
-  const _MyRequestRow({required this.item});
-
-  Color _statusColor() {
-    switch (item.status) {
-      case 'accepted':
-        return Colors.green;
-      case 'declined':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _statusLabel() {
-    switch (item.status) {
-      case 'accepted':
-        return 'Acceptée';
-      case 'declined':
-        return 'Refusée';
-      default:
-        return 'En attente';
-    }
-  }
-
-  /// Sans afficher l'erreur retournée par le provider, un échec réseau/
-  /// serveur sur Accepter/Refuser ne montrait strictement rien à
-  /// l'utilisateur — d'où l'impression que "rien ne se passe".
-  Future<void> _respond(BuildContext context, String action) async {
-    final error = await context
-        .read<ExploreProvider>()
-        .respondFromMyRequests(item.id, action);
-    if (error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final user = item.otherUser;
-    final isPendingReceived =
-        item.status == 'pending' && item.direction == RequestDirection.received;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(
-              item.direction == RequestDirection.sent
-                  ? Icons.north_east_rounded
-                  : Icons.south_west_rounded,
-              size: 16,
-              color: colors.onSurface.withValues(alpha: 0.35),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              // La ligne entière ouvre la carte de la personne — pour une
-              // demande reçue, on veut pouvoir juger qui c'est avant
-              // d'accepter/refuser, pas seulement lire un nom.
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  final slug = user.cardSlug;
-                  if (slug == null || slug.isEmpty) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => PublicCardPage(slug: slug)),
-                  );
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name,
-                      style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: colors.onSurface),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if ((user.jobTitle ?? user.company ?? '').isNotEmpty)
-                      Text(
-                        [user.jobTitle, user.company]
-                            .where((v) => (v ?? '').isNotEmpty)
-                            .join(' · '),
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: colors.onSurface.withValues(alpha: 0.55)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (isPendingReceived)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _CircleActionButton(
-                    icon: Icons.close_rounded,
-                    color: Colors.red,
-                    onTap: () => _respond(context, 'decline'),
-                  ),
-                  const SizedBox(width: 8),
-                  _CircleActionButton(
-                    icon: Icons.check_rounded,
-                    color: Colors.green,
-                    onTap: () => _respond(context, 'accept'),
-                  ),
-                ],
-              )
-            else
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _statusColor().withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  _statusLabel(),
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _statusColor()),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ExploreUserRow extends StatelessWidget {
-  final ExploreUser user;
-
-  const _ExploreUserRow({required this.user});
-
-  String? get _avatarUrl {
-    final avatar = user.avatar;
-    if (avatar == null || avatar.isEmpty) return null;
-    return avatar.startsWith('http')
-        ? avatar
-        : '${ApiEndpoints.storageUrl}/$avatar';
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
-  }
-
-  void _openCard(BuildContext context) {
-    final slug = user.cardSlug;
-    if (slug == null || slug.isEmpty) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PublicCardPage(slug: slug)),
-    );
-  }
-
-  /// Dégradé de marque + initiales géantes en filigrane — utilisé à la fois
-  /// pour un profil sans avatar, pendant le chargement de l'avatar, et en
-  /// cas d'échec (image cassée/corrompue) : un seul et même repli visuel.
-  Widget _avatarFallback() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          _initials(user.name),
-          style: TextStyle(
-            fontFamily: 'Syne',
-            fontSize: 72,
-            fontWeight: FontWeight.w800,
-            color: Colors.white.withValues(alpha: 0.14),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final avatarUrl = _avatarUrl;
-    final jobTitle = user.jobTitle ?? '';
-    final company = user.company ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: InkWell(
-          onTap: () => _openCard(context),
-          child: Container(
-            height: 188,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              // Ombre discrète — juste de quoi détacher la carte du fond,
-              // sans l'effet "flottant" trop appuyé d'avant.
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Photo de profil en fond — ou, à défaut, un dégradé de
-                // marque avec les initiales géantes en filigrane, pour
-                // garder le même effet "carte photo" plein cadre.
-                if (avatarUrl != null)
-                  CachedNetworkImage(
-                    imageUrl: avatarUrl,
-                    fit: BoxFit.cover,
-                    // topCenter plutôt que le center par défaut : sur une
-                    // carte plus large que haute, un recadrage centré coupe
-                    // fréquemment le haut du visage sur une photo portrait
-                    // (le sujet est presque toujours dans le tiers haut de
-                    // la photo) — aligner en haut garde la tête visible et
-                    // rogne plutôt le bas (épaules/torse).
-                    alignment: Alignment.topCenter,
-                    // FilterQuality.low (le défaut) rendait les photos assez
-                    // agrandies (portrait → carte large plein cadre)
-                    // visiblement floues/pixelisées — high lisse ce
-                    // redimensionnement.
-                    filterQuality: FilterQuality.high,
-                    fadeInDuration: const Duration(milliseconds: 200),
-                    // Le même dégradé + initiales pendant le chargement,
-                    // plutôt qu'un vide qui laisse place à l'image d'un coup
-                    // — évite l'effet de "flash" et sert aussi de repli en
-                    // cas d'échec (errorWidget).
-                    placeholder: (context, url) => _avatarFallback(),
-                    errorWidget: (context, url, error) => _avatarFallback(),
-                  )
-                else
-                  _avatarFallback(),
-
-                // Voile dégradé pour la lisibilité du texte en bas de carte
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: [0.4, 1.0],
-                      colors: [Colors.transparent, Colors.black87],
-                    ),
-                  ),
-                ),
-
-                // "Profil complet" — met en avant les profils les plus
-                // soignés (le backend trie déjà l'annuaire dans cet ordre,
-                // ce badge le rend visible sur la carte elle-même).
-                if (user.hasCompleteProfile)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_rounded,
-                              size: 13, color: Color(0xFF34D399)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Profil complet',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Contenu texte + action — épuré : plus de bordures sur les
-                // badges, tailles réduites pour une carte plus compacte.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (company.isNotEmpty)
-                        Text(
-                          company.toUpperCase(),
-                          style: const TextStyle(
-                            fontFamily: 'Syne',
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.6,
-                            color: Colors.white70,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      else
-                        const SizedBox.shrink(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.name,
-                            style: const TextStyle(
-                              fontFamily: 'Syne',
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.1,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (jobTitle.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              jobTitle,
-                              style: TextStyle(
-                                fontFamily: 'Syne',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.75),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ConnectActionButton(
-                                  userId: user.id,
-                                  userName: user.name,
-                                  initialStatus: user.connectionStatus,
-                                  initialRequestId: user.connectionRequestId,
-                                  onResolved: () => context
-                                      .read<ExploreProvider>()
-                                      .removeUserLocally(user.id),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              // Le tap sur toute la ligne ouvre déjà la carte,
-                              // mais ce n'était pas découvrable — un libellé
-                              // explicite à côté du bouton de connexion.
-                              GestureDetector(
-                                onTap: () => _openCard(context),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Voir la carte',
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color:
-                                            Colors.white.withValues(alpha: 0.9),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 18,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.9),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Réseaux populaires" — carrousel horizontal de communautés (cf. maquette),
-/// juste au-dessus de la liste des profils à découvrir. Superadmin only pour
-/// la gestion des communautés elles-mêmes (CRM web) ; ici on ne fait que
-/// lister/rejoindre.
+/// "Réseaux populaires" — carrousel horizontal de communautés (cf.
+/// maquette). Superadmin only pour la gestion des communautés elles-mêmes
+/// (CRM web) ; ici on ne fait que lister/rejoindre.
 class _CommunitiesSection extends StatelessWidget {
   const _CommunitiesSection();
 
@@ -1124,15 +749,8 @@ class _CommunitiesSection extends StatelessWidget {
     final provider = context.watch<CommunityProvider>();
     final colors = Theme.of(context).colorScheme;
 
-    // Rien à afficher tant qu'aucune communauté n'a été créée par le
-    // superadmin, ou en cas d'échec réseau — pas d'état d'erreur bruyant
-    // pour une section secondaire de la page.
-    if (!provider.isLoading && provider.communities.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1203,32 +821,73 @@ class _CommunitiesSection extends StatelessWidget {
   }
 }
 
-/// Petit bouton rond (✓/✕) pour accepter/refuser une demande reçue
-/// directement dans la liste, sans passer par le mail.
-class _CircleActionButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _CircleActionButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+/// Bandeau promotionnel (cf. maquette) — la création d'un réseau par un
+/// utilisateur lui-même n'existe pas encore côté backend (aujourd'hui,
+/// seul le superadmin crée des communautés depuis le CRM web) : le tap
+/// affiche donc un message plutôt qu'une navigation vers une fonctionnalité
+/// qui n'existe pas.
+class _CreateNetworkBanner extends StatelessWidget {
+  const _CreateNetworkBanner();
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
+    final colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: colors.onSurface.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bientôt disponible')),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _themeBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.groups_outlined, color: _themeBlue),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Créez votre propre réseau',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Rassemblez votre communauté autour de vos centres d'intérêt",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: colors.onSurface.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
+              ],
+            ),
+          ),
         ),
-        child: Icon(icon, color: color, size: 18),
       ),
     );
   }
