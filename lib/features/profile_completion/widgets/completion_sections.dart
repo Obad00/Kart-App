@@ -209,94 +209,91 @@ class _CompletionSectionsState extends State<CompletionSections> {
   }) {
     // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            colors,
-            icon: icon,
-            title: title,
-            onAddTap: onAddTap,
-            expanded: expanded,
-            onToggle: onToggle,
-          ),
-          if (expanded) ...[
-            ...items.asMap().entries.map((entry) {
-              final i = entry.key;
-              final item = entry.value;
-              final hasValue =
-                  item.value != null && item.value!.trim().isNotEmpty;
-              return Column(
-                children: [
-                  if (i > 0)
-                    Divider(
-                        height: 1,
-                        color: colors.onSurface.withValues(alpha: 0.05)),
-                  InkWell(
-                    onTap: onAddTap,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        children: [
-                          Icon(item.icon,
-                              size: 18,
-                              color: colors.onSurface.withValues(alpha: 0.4)),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.label,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color:
-                                        colors.onSurface.withValues(alpha: 0.5),
-                                    fontWeight: FontWeight.w500,
-                                  ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          colors,
+          icon: icon,
+          title: title,
+          onAddTap: onAddTap,
+          expanded: expanded,
+          onToggle: onToggle,
+        ),
+        if (expanded) ...[
+          ...items.asMap().entries.map((entry) {
+            final i = entry.key;
+            final item = entry.value;
+            final hasValue =
+                item.value != null && item.value!.trim().isNotEmpty;
+            return Column(
+              children: [
+                if (i > 0)
+                  Divider(
+                      height: 1,
+                      color: colors.onSurface.withValues(alpha: 0.05)),
+                InkWell(
+                  onTap: onAddTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(item.icon,
+                            size: 18,
+                            color: colors.onSurface.withValues(alpha: 0.4)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.label,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  hasValue ? item.value! : 'Non renseigné',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: hasValue
-                                        ? colors.onSurface
-                                        : colors.onSurface
-                                            .withValues(alpha: 0.3),
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                hasValue ? item.value! : 'Non renseigné',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: hasValue
+                                      ? colors.onSurface
+                                      : colors.onSurface.withValues(alpha: 0.3),
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: hasValue
-                                  ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.orange.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              hasValue
-                                  ? Icons.check_rounded
-                                  : Icons.add_rounded,
-                              size: 16,
-                              color: hasValue ? Colors.green : Colors.orange,
-                            ),
+                        ),
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: hasValue
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.orange.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
                           ),
-                        ],
-                      ),
+                          child: Icon(
+                            hasValue ? Icons.check_rounded : Icons.add_rounded,
+                            size: 16,
+                            color: hasValue ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
+                ),
+              ],
+            );
+          }),
+          const SizedBox(height: 8),
         ],
-      );
+      ],
+    );
   }
 
   /// Aperçu des 2 expériences les plus récentes en frise chronologique
@@ -319,125 +316,125 @@ class _CompletionSectionsState extends State<CompletionSections> {
 
     // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.work_outline_rounded,
+                    size: 16, color: accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Expériences',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface),
+                ),
+              ),
+              if (allExperiences.isNotEmpty) ...[
+                GestureDetector(
+                  onTap: () =>
+                      _openForm(context, section: 'experiences', addOnly: true),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(Icons.add_rounded,
+                        size: 16, color: accentColor),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => _showAllExperiences(
+                      context, colors, sorted, allExperiences),
+                  child: const Text(
+                    'Voir tout',
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: accentColor),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (allExperiences.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.work_outline_rounded,
-                      size: 16, color: accentColor),
-                ),
+                const Icon(Icons.work_outline_rounded,
+                    size: 18, color: Colors.orange),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Expériences',
+                    'Aucune expérience ajoutée',
                     style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface),
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4),
+                    ),
                   ),
                 ),
-                if (allExperiences.isNotEmpty) ...[
-                  GestureDetector(
-                    onTap: () => _openForm(context,
-                        section: 'experiences', addOnly: true),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      child: const Icon(Icons.add_rounded,
-                          size: 16, color: accentColor),
-                    ),
+                TextButton(
+                  onPressed: () =>
+                      _openForm(context, section: 'experiences', addOnly: true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: accentColor,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => _showAllExperiences(
-                        context, colors, sorted, allExperiences),
-                    child: const Text(
-                      'Voir tout',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: accentColor),
-                    ),
-                  ),
-                ],
+                  child: const Text('Ajouter',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
               ],
             ),
-          ),
-          if (allExperiences.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.work_outline_rounded,
-                      size: 18, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Aucune expérience ajoutée',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colors.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+            child: Column(
+              children: preview.asMap().entries.map((entry) {
+                final i = entry.key;
+                final exp = entry.value;
+                return _ExperienceTimelineItem(
+                  title: exp.title ?? '',
+                  company: exp.company ?? '',
+                  period: _formatExperiencePeriod(exp.startDate, exp.endDate),
+                  description: exp.description ?? '',
+                  isLast: i == preview.length - 1,
+                  accentColor: accentColor,
+                  colors: colors,
+                  // editIndex : modifier/supprimer CETTE expérience
+                  // précise, pas la liste complète (cf. doc de
+                  // CompletionFormPage.editIndex).
+                  onTap: () => _openForm(
+                    context,
+                    section: 'experiences',
+                    editIndex: allExperiences.indexOf(exp),
                   ),
-                  TextButton(
-                    onPressed: () => _openForm(context,
-                        section: 'experiences', addOnly: true),
-                    style: TextButton.styleFrom(
-                      foregroundColor: accentColor,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text('Ajouter',
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              child: Column(
-                children: preview.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final exp = entry.value;
-                  return _ExperienceTimelineItem(
-                    title: exp.title ?? '',
-                    company: exp.company ?? '',
-                    period: _formatExperiencePeriod(exp.startDate, exp.endDate),
-                    description: exp.description ?? '',
-                    isLast: i == preview.length - 1,
-                    accentColor: accentColor,
-                    colors: colors,
-                    // editIndex : modifier/supprimer CETTE expérience
-                    // précise, pas la liste complète (cf. doc de
-                    // CompletionFormPage.editIndex).
-                    onTap: () => _openForm(
-                      context,
-                      section: 'experiences',
-                      editIndex: allExperiences.indexOf(exp),
-                    ),
-                  );
-                }).toList(),
-              ),
+                );
+              }).toList(),
             ),
-        ],
-      );
+          ),
+      ],
+    );
   }
 
   /// Liste complète des expériences en lecture seule (frise chronologique),
@@ -536,170 +533,169 @@ class _CompletionSectionsState extends State<CompletionSections> {
 
     // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            colors,
-            icon: Icons.school_outlined,
-            title: 'Formation',
-            onAddTap: () =>
-                _openForm(context, section: 'educations', addOnly: true),
-            expanded: _educationsExpanded,
-            onToggle: () =>
-                setState(() => _educationsExpanded = !_educationsExpanded),
-          ),
-          if (_educationsExpanded) ...[
-            if (educations.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.school_outlined,
-                        size: 18, color: Colors.orange),
-                    const SizedBox(width: 12),
-                    // Expanded : sans lui, un réglage d'accessibilité type
-                    // "Texte plus grand" (courant sur iPhone mini/SE, écran
-                    // étroit) peut faire déborder ce libellé au lieu de le
-                    // faire simplement passer à la ligne.
-                    Expanded(
-                      child: Text(
-                        'Aucune formation ajoutée',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.onSurface.withValues(alpha: 0.4),
-                        ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          colors,
+          icon: Icons.school_outlined,
+          title: 'Formation',
+          onAddTap: () =>
+              _openForm(context, section: 'educations', addOnly: true),
+          expanded: _educationsExpanded,
+          onToggle: () =>
+              setState(() => _educationsExpanded = !_educationsExpanded),
+        ),
+        if (_educationsExpanded) ...[
+          if (educations.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.school_outlined,
+                      size: 18, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  // Expanded : sans lui, un réglage d'accessibilité type
+                  // "Texte plus grand" (courant sur iPhone mini/SE, écran
+                  // étroit) peut faire déborder ce libellé au lieu de le
+                  // faire simplement passer à la ligne.
+                  Expanded(
+                    child: Text(
+                      'Aucune formation ajoutée',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              ...educations.asMap().entries.map((entry) {
-                final i = entry.key;
-                final edu = entry.value;
-                final degree = edu.degree ?? '';
-                final school = edu.school ?? '';
-                final field = edu.field ?? '';
-                final startYear = edu.startYear?.toString() ?? '';
-                final endYear = edu.endYear?.toString() ?? '';
+                  ),
+                ],
+              ),
+            )
+          else
+            ...educations.asMap().entries.map((entry) {
+              final i = entry.key;
+              final edu = entry.value;
+              final degree = edu.degree ?? '';
+              final school = edu.school ?? '';
+              final field = edu.field ?? '';
+              final startYear = edu.startYear?.toString() ?? '';
+              final endYear = edu.endYear?.toString() ?? '';
 
-                return Column(
-                  children: [
-                    if (i > 0)
-                      Divider(
-                          height: 1,
-                          color: colors.onSurface.withValues(alpha: 0.05)),
-                    // Tap = ouvrir le formulaire complet pour modifier ou
-                    // supprimer cette formation (seul moyen d'y accéder :
-                    // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
-                    // cf. addOnly sur CompletionFormPage).
-                    InkWell(
-                      onTap: () => _openForm(
-                        context,
-                        section: 'educations',
-                        editIndex: allEducations.indexOf(edu),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF8B5CF6)
-                                    .withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.school_outlined,
-                                  size: 18, color: Color(0xFF8B5CF6)),
+              return Column(
+                children: [
+                  if (i > 0)
+                    Divider(
+                        height: 1,
+                        color: colors.onSurface.withValues(alpha: 0.05)),
+                  // Tap = ouvrir le formulaire complet pour modifier ou
+                  // supprimer cette formation (seul moyen d'y accéder :
+                  // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
+                  // cf. addOnly sur CompletionFormPage).
+                  InkWell(
+                    onTap: () => _openForm(
+                      context,
+                      section: 'educations',
+                      editIndex: allEducations.indexOf(edu),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6)
+                                  .withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    degree,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: colors.onSurface,
-                                    ),
+                            child: const Icon(Icons.school_outlined,
+                                size: 18, color: Color(0xFF8B5CF6)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  degree,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.onSurface,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    school,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF8B5CF6),
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  school,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF8B5CF6),
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  const SizedBox(height: 4),
-                                  // Wrap plutôt que Row : sur un écran étroit
-                                  // (iPhone mini/SE), une filière longue
-                                  // combinée aux années dépassait la largeur
-                                  // disponible et provoquait un débordement
-                                  // (texte tronqué/coupé) — ici la puce passe
-                                  // simplement à la ligne suivante.
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      if (field.isNotEmpty)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF8B5CF6)
-                                                .withValues(alpha: 0.08),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            field,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF8B5CF6),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                ),
+                                const SizedBox(height: 4),
+                                // Wrap plutôt que Row : sur un écran étroit
+                                // (iPhone mini/SE), une filière longue
+                                // combinée aux années dépassait la largeur
+                                // disponible et provoquait un débordement
+                                // (texte tronqué/coupé) — ici la puce passe
+                                // simplement à la ligne suivante.
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (field.isNotEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF8B5CF6)
+                                              .withValues(alpha: 0.08),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
-                                      Text(
-                                        '$startYear - $endYear',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: colors.onSurface
-                                              .withValues(alpha: 0.45),
+                                        child: Text(
+                                          field,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF8B5CF6),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    Text(
+                                      '$startYear - $endYear',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.45),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              size: 20,
-                              color: colors.onSurface.withValues(alpha: 0.3),
-                            ),
-                          ],
-                        ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: colors.onSurface.withValues(alpha: 0.3),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                );
-              }),
-            const SizedBox(height: 8),
-          ],
+                  ),
+                ],
+              );
+            }),
+          const SizedBox(height: 8),
         ],
-      );
+      ],
+    );
   }
 
   Widget _buildSkillsSection(
@@ -709,53 +705,53 @@ class _CompletionSectionsState extends State<CompletionSections> {
   ) {
     // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            colors,
-            icon: Icons.psychology_outlined,
-            title: 'Compétences',
-            onAddTap: () => _openSkillEditor(context),
-            expanded: _skillsExpanded,
-            onToggle: () => setState(() => _skillsExpanded = !_skillsExpanded),
-          ),
-          if (_skillsExpanded) ...[
-            if (skills.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.psychology_outlined,
-                        size: 18, color: Colors.orange),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Aucune compétence ajoutée',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.onSurface.withValues(alpha: 0.4),
-                        ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          colors,
+          icon: Icons.psychology_outlined,
+          title: 'Compétences',
+          onAddTap: () => _openSkillEditor(context),
+          expanded: _skillsExpanded,
+          onToggle: () => setState(() => _skillsExpanded = !_skillsExpanded),
+        ),
+        if (_skillsExpanded) ...[
+          if (skills.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.psychology_outlined,
+                      size: 18, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Aucune compétence ajoutée',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: skills
-                      .map((s) => SkillChip(
-                          label: s.name, subtitle: levelLabel(s.level)))
-                      .toList(),
-                ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 8),
-          ],
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: skills
+                    .map((s) =>
+                        SkillChip(label: s.name, subtitle: levelLabel(s.level)))
+                    .toList(),
+              ),
+            ),
+          const SizedBox(height: 8),
         ],
-      );
+      ],
+    );
   }
 
   void _openSkillEditor(BuildContext context) {
@@ -778,54 +774,54 @@ class _CompletionSectionsState extends State<CompletionSections> {
   ) {
     // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            colors,
-            icon: Icons.interests_outlined,
-            title: "Centre d'intérêt",
-            onAddTap: () => _openInterestsEditor(context),
-            expanded: _interestsExpanded,
-            onToggle: () =>
-                setState(() => _interestsExpanded = !_interestsExpanded),
-          ),
-          if (_interestsExpanded) ...[
-            if (interests.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.interests_outlined,
-                        size: 18, color: Colors.orange),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Aucun centre d'intérêt ajouté",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.onSurface.withValues(alpha: 0.4),
-                        ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          colors,
+          icon: Icons.interests_outlined,
+          title: "Centre d'intérêt",
+          onAddTap: () => _openInterestsEditor(context),
+          expanded: _interestsExpanded,
+          onToggle: () =>
+              setState(() => _interestsExpanded = !_interestsExpanded),
+        ),
+        if (_interestsExpanded) ...[
+          if (interests.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.interests_outlined,
+                      size: 18, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Aucun centre d'intérêt ajouté",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: interests
-                      .map((interest) => SkillChip(
-                          label: interest, color: _interestsAccentColor))
-                      .toList(),
-                ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 8),
-          ],
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: interests
+                    .map((interest) => SkillChip(
+                        label: interest, color: _interestsAccentColor))
+                    .toList(),
+              ),
+            ),
+          const SizedBox(height: 8),
         ],
-      );
+      ],
+    );
   }
 
   void _openInterestsEditor(BuildContext context) {
@@ -872,101 +868,107 @@ class _ExperienceTimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stack plutôt que IntrinsicHeight pour étirer la ligne verticale sur
+    // la hauteur du contenu : IntrinsicHeight calcule la hauteur intrinsèque
+    // de TOUS ses descendants, et ExpandableText (description) en contient
+    // un qui la refuse explicitement ("LayoutBuilder does not support
+    // returning intrinsic dimensions") — ça plantait dès qu'une expérience
+    // avait une description (mêmes coordonnées de positionnement que
+    // l'ancien Column dot+ligne : pastille 10px centrée dans 10px de large,
+    // donc ligne (2px) centrée à gauche:4 ; ligne démarrant à
+    // 5 (marge du haut) + 10 (pastille) + 2 (marge) = 17).
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Pastille + ligne verticale — la ligne s'étire (Expanded) sur
-            // toute la hauteur du contenu à droite, IntrinsicHeight lui
-            // donnant la mesure exacte (padding bas inclus) sans avoir à
-            // calculer une hauteur à la main.
-            Column(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 5),
-                  decoration:
-                      BoxDecoration(shape: BoxShape.circle, color: accentColor),
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      color: accentColor.withValues(alpha: 0.2),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: colors.onSurface,
-                            ),
-                          ),
-                          if (company.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              company,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: accentColor,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 3),
-                          Text(
-                            period,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: colors.onSurface.withValues(alpha: 0.45),
-                            ),
-                          ),
-                          if (description.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            ExpandableText(
-                              description,
-                              maxLines: 3,
-                              accentColor: accentColor,
-                              style: TextStyle(
-                                fontSize: 12,
-                                height: 1.4,
-                                color: colors.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: colors.onSurface.withValues(alpha: 0.3),
-                    ),
-                  ],
-                ),
+      child: Stack(
+        children: [
+          if (!isLast)
+            Positioned(
+              left: 4,
+              top: 17,
+              bottom: 2,
+              child: Container(
+                width: 2,
+                color: accentColor.withValues(alpha: 0.2),
               ),
             ),
-          ],
-        ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 5),
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: accentColor),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                            if (company.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                company,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: accentColor,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 3),
+                            Text(
+                              period,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: colors.onSurface.withValues(alpha: 0.45),
+                              ),
+                            ),
+                            if (description.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              ExpandableText(
+                                description,
+                                maxLines: 3,
+                                accentColor: accentColor,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: colors.onSurface.withValues(alpha: 0.3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

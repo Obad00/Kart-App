@@ -1720,78 +1720,87 @@ class _PublicTimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(top: 5),
-                decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: accentColor),
-              ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 2),
-                    color: accentColor.withValues(alpha: 0.2),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface),
-                  ),
-                  if (company.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      company,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: accentColor),
-                    ),
-                  ],
-                  const SizedBox(height: 3),
-                  Text(
-                    period,
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        color: colors.onSurface.withValues(alpha: 0.45)),
-                  ),
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    ExpandableText(
-                      description,
-                      maxLines: 3,
-                      accentColor: accentColor,
-                      style: TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: colors.onSurface.withValues(alpha: 0.6)),
-                    ),
-                  ],
-                ],
-              ),
+    // Stack plutôt que IntrinsicHeight pour étirer la ligne verticale sur
+    // la hauteur du contenu : IntrinsicHeight calcule la hauteur intrinsèque
+    // de TOUS ses descendants, et ExpandableText (description) en contient
+    // un qui la refuse explicitement ("LayoutBuilder does not support
+    // returning intrinsic dimensions") — ça plantait dès qu'une expérience
+    // avait une description (mêmes coordonnées de positionnement que
+    // l'ancien Column dot+ligne : pastille 10px centrée dans 10px de large,
+    // donc ligne (2px) centrée à gauche:4 ; ligne démarrant à
+    // 5 (marge du haut) + 10 (pastille) + 2 (marge) = 17).
+    return Stack(
+      children: [
+        if (!isLast)
+          Positioned(
+            left: 4,
+            top: 17,
+            bottom: 2,
+            child: Container(
+              width: 2,
+              color: accentColor.withValues(alpha: 0.2),
             ),
           ),
-        ],
-      ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(top: 5),
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: accentColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface),
+                    ),
+                    if (company.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        company,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: accentColor),
+                      ),
+                    ],
+                    const SizedBox(height: 3),
+                    Text(
+                      period,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: colors.onSurface.withValues(alpha: 0.45)),
+                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      ExpandableText(
+                        description,
+                        maxLines: 3,
+                        accentColor: accentColor,
+                        style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: colors.onSurface.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
