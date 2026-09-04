@@ -476,20 +476,11 @@ class _PublicCardPageState extends State<PublicCardPage>
         isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
     final experienceYears = _computeExperienceYears(experiences);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _accentColor.withValues(alpha: 0.12),
-            _accentColor.withValues(alpha: 0.04),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.15)),
-      ),
+    // Plus de carte (fond dégradé + bordure) autour de l'en-tête — même
+    // traitement que ProfilePage._buildProfileHeader : avatar/nom/stats/
+    // actions respirent directement sur le fond de la page.
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
