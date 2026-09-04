@@ -140,6 +140,12 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
   @override
   Widget build(BuildContext context) {
     switch (_status) {
+      case ConnectionStatus.contact:
+        // Déjà un contact (ex: membre d'un réseau déjà connu) — rien à
+        // proposer ici, juste un état visuel ; consulter/gérer le contact
+        // se fait depuis l'onglet Contacts, pas depuis ce bouton.
+        return const _Badge(label: 'Contact', color: Colors.green);
+
       case ConnectionStatus.pendingSent:
         return SizedBox(
           height: 34,
@@ -226,8 +232,8 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
                     )
                   : const Text(
                       'Se connecter',
-                      style:
-                          TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          fontSize: 12.5, fontWeight: FontWeight.w700),
                     ),
             ),
           );

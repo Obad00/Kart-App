@@ -928,7 +928,10 @@ class _ExplorePageState extends State<ExplorePage> {
         if (provider.companies.isEmpty) return const SizedBox.shrink();
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          // 20 comme toutes les autres sections (ProfileCarousel,
+          // _CommunitiesSection...) — 4 laissait un espacement bien plus
+          // resserré avant celle-ci que partout ailleurs sur la page.
+          padding: const EdgeInsets.only(bottom: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -1,4 +1,4 @@
-enum ConnectionStatus { none, pendingSent, pendingReceived }
+enum ConnectionStatus { none, pendingSent, pendingReceived, contact }
 
 class ExploreUser {
   final int id;
@@ -61,6 +61,8 @@ class ExploreUser {
         return ConnectionStatus.pendingSent;
       case 'pending_received':
         return ConnectionStatus.pendingReceived;
+      case 'contact':
+        return ConnectionStatus.contact;
       default:
         return ConnectionStatus.none;
     }
