@@ -113,8 +113,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         (cardProvider.company == null || cardProvider.company!.isEmpty);
     if (!stillEmpty) return;
 
-    // Laisse le temps de voir la carte apparaître avant l'interruption.
-    await Future.delayed(const Duration(seconds: 3));
+    // Laisse le temps de voir la carte apparaître avant l'interruption —
+    // 3s donnait l'impression que le popup coupait l'utilisateur en plein
+    // arrivée sur sa carte (QR, animation d'entrée...).
+    await Future.delayed(const Duration(seconds: 6));
     if (!mounted) return;
 
     HapticFeedback.lightImpact();
