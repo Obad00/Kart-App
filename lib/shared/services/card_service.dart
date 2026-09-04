@@ -70,6 +70,23 @@ class CardService {
     );
   }
 
+  /// Crée la carte digitale sans poste/entreprise — utilisée juste après la
+  /// vérification de l'email à l'inscription (cf. EmailVerificationPage) :
+  /// l'utilisateur voit tout de suite sa carte (nom + QR) plutôt que
+  /// l'écran "Créer ma carte", puis complète poste/entreprise ensuite via
+  /// le popup de complétion. `job_title`/`company` sont nullable côté
+  /// backend (StoreDigitalCardRequest), donc un appel sans ces champs crée
+  /// bien une carte "vide" plutôt que d'échouer la validation.
+  static Future<void> createDefaultCard() async {
+    await ApiClient.dio.post(
+      '/digital-card',
+      data: {
+        'activated_fields': ['phone', 'email', 'linkedin'],
+        'is_public': true,
+      },
+    );
+  }
+
   /// Récupère un lien public de partage pour la carte de l'utilisateur.
   ///
   /// Le backend doit fournir un endpoint sécurisé renvoyant JSON { "url": "https://..." }.

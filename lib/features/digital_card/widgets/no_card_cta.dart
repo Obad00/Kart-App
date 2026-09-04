@@ -65,7 +65,11 @@ class NoCardCta extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            // fontFamily explicite : sans lui, ce textStyle remplace le
+            // DefaultTextStyle ambiant du thème (Syne) par la police système
+            // par défaut — cf. même correctif sur ProfilePage.
             textStyle: const TextStyle(
+              fontFamily: 'Syne',
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),

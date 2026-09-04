@@ -22,6 +22,16 @@ class ConnectActionButton extends StatefulWidget {
   // connecter" à nouveau disponible.
   final VoidCallback? onResolved;
 
+  /// true : bouton "Se connecter" compact (simple tap), pour une rangée
+  /// étroite (ex: liste compacte d'Explorer) où le slider glissant n'a pas
+  /// la place de fonctionner correctement (FractionallySizedBox(0.68) sur
+  /// une largeur trop faible écrase aussi bien le texte que la piste).
+  /// false (défaut) : geste "glisser pour se connecter", conçu pour une
+  /// carte pleine largeur (cf. PublicCardPage). Les autres états (Envoyée/
+  /// Accepter-Refuser) restent identiques dans les deux cas — déjà assez
+  /// compacts pour tenir dans une rangée étroite.
+  final bool compact;
+
   const ConnectActionButton({
     super.key,
     required this.userId,
@@ -29,6 +39,7 @@ class ConnectActionButton extends StatefulWidget {
     this.initialStatus = ConnectionStatus.none,
     this.initialRequestId,
     this.onResolved,
+    this.compact = false,
   });
 
   @override
@@ -188,6 +199,39 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
         );
 
       case ConnectionStatus.none:
+        if (widget.compact) {
+          return SizedBox(
+            height: 34,
+            child: ElevatedButton(
+              onPressed: _busy
+                  ? null
+                  : () {
+                      HapticFeedback.mediumImpact();
+                      _send();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _themeBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text(
+                      'Se connecter',
+                      style:
+                          TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                    ),
+            ),
+          );
+        }
         // key: ValueKey(_busy) — si l'envoi échoue, _busy repasse à false
         // alors que le statut reste `none` : le widget est alors reconstruit
         // à neuf, ce qui remet naturellement le curseur à zéro sans code de

@@ -98,13 +98,10 @@ class _RegisterPageState extends State<RegisterPage>
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/plans',
-        arguments: {
-          'successMessage': 'Compte créé avec succès 🎉',
-        },
-      );
+      // Compte créé -> vérification de l'email avant de poursuivre (cf.
+      // EmailVerificationPage : carte digitale créée automatiquement une
+      // fois l'email confirmé, puis on reprend vers /plans comme avant).
+      Navigator.pushReplacementNamed(context, '/verify-email');
     }
   }
 

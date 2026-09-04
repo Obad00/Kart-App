@@ -38,6 +38,7 @@ import 'features/auth/ui/splash_screen.dart';
 import 'features/auth/ui/login_page.dart';
 import 'features/auth/ui/forgot_password_page.dart';
 import 'features/auth/ui/register_page.dart';
+import 'features/auth/ui/email_verification_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
 import 'features/auth/ui/force_change_password_page.dart';
 import 'features/auth/ui/change_password_page.dart';
@@ -230,6 +231,7 @@ class _KartAppState extends State<KartApp> {
                 '/splash': (_) => const SplashScreen(),
                 '/login': (_) => const LoginPage(),
                 '/register': (_) => const RegisterPage(),
+                '/verify-email': (_) => const EmailVerificationPage(),
                 '/forgot-password': (_) => const ForgotPasswordPage(),
                 '/complete-profile': (_) => const CompleteProfilePage(),
                 '/force-change-password': (_) =>

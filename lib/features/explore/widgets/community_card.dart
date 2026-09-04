@@ -10,11 +10,13 @@ import '../models/community.dart';
 class CommunityCard extends StatelessWidget {
   final Community community;
   final VoidCallback onToggleJoin;
+  final VoidCallback? onTap;
 
   const CommunityCard({
     super.key,
     required this.community,
     required this.onToggleJoin,
+    this.onTap,
   });
 
   String _avatarUrl(String avatar) {
@@ -38,10 +40,15 @@ class CommunityCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.only(top: 14, left: 14, right: 14),
       decoration: BoxDecoration(
-        color: colors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
         boxShadow: [
@@ -89,6 +96,8 @@ class CommunityCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: colors.onSurface.withValues(alpha: 0.55),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
           if (community.previewAvatars.isNotEmpty) ...[
@@ -126,6 +135,8 @@ class CommunityCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      ),
       ),
     );
   }

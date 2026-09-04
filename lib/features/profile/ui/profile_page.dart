@@ -82,8 +82,21 @@ class _ProfilePageState extends State<ProfilePage>
     // seuls après une modification faite ailleurs (ex: formulaire
     // "Informations personnelles"), donnant l'impression que la
     // complétion "met du temps à se mettre à jour".
-    context.read<ProfileCompletionProvider>().load();
-    context.read<CandidateSkillsProvider>().load();
+    //
+    // addPostFrameCallback : appeler .load() directement ici notifiait
+    // ProfileCompletionProvider (notifyListeners() dès la première ligne
+    // de load(), avant le moindre await) EN PLEIN initState() — donc en
+    // plein passage de build de HomeShell (ProfilePage est l'un des 5
+    // onglets de l'IndexedStack, monté dès l'arrivée sur /home). Ça
+    // provoquait "setState() or markNeedsBuild() called during build",
+    // qui corrompait le layout de la frame en cours et faisait
+    // planter/dériver l'écran suivant (ex: ouvrir un profil depuis
+    // Explorer juste après).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ProfileCompletionProvider>().load();
+      context.read<CandidateSkillsProvider>().load();
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
   }
@@ -264,6 +277,10 @@ class _ProfilePageState extends State<ProfilePage>
                         companyColor: companyColor,
                         icon: Icons.palette_outlined,
                         title: 'Apparence',
+                        // Seule section à garder son encart (fond + bordure)
+                        // — demandé explicitement, contrairement aux autres
+                        // sections de la page qui respirent sans carte.
+                        cardStyle: true,
                         children: [
                           _buildBrandingRow(colors, companyColor, card),
                         ],
@@ -318,287 +335,278 @@ class _ProfilePageState extends State<ProfilePage>
     // statut qu'on ne peut pas garantir.
     final isComplete = kartScore >= 100;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            companyColor.withValues(alpha: 0.12),
-            companyColor.withValues(alpha: 0.04),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: companyColor.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar : tap = voir en grand (comme les applis modernes),
-              // badge caméra séparé = changer la photo.
-              Showcase(
-                key: _avatarTourKey,
-                title: 'Votre photo',
-                description:
-                    'Appuyez pour l\'agrandir, ou sur l\'icône appareil photo pour la changer.',
-                targetShapeBorder: const CircleBorder(),
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: avatarUrl == null
-                          ? _pickAndUploadAvatar
-                          : () => PhotoViewer.show(context, avatarUrl),
+    // Plus de carte (fond + bordure) autour de l'en-tête — même traitement
+    // que le reste de la page (cf. _buildSection) : avatar/nom/stats/
+    // actions respirent directement sur le fond de la page.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar : tap = voir en grand (comme les applis modernes),
+            // badge caméra séparé = changer la photo.
+            Showcase(
+              key: _avatarTourKey,
+              title: 'Votre photo',
+              description:
+                  'Appuyez pour l\'agrandir, ou sur l\'icône appareil photo pour la changer.',
+              targetShapeBorder: const CircleBorder(),
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: avatarUrl == null
+                        ? _pickAndUploadAvatar
+                        : () => PhotoViewer.show(context, avatarUrl),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            companyColor,
+                            companyColor.withValues(alpha: 0.7),
+                          ],
+                        ),
+                      ),
+                      child: Hero(
+                        tag: avatarUrl ?? 'profile-avatar-placeholder',
+                        child: CircleAvatar(
+                          radius: 32,
+                          backgroundColor: colors.surface,
+                          backgroundImage: avatarUrl != null
+                              ? CachedNetworkImageProvider(avatarUrl)
+                              : null,
+                          child: avatarUrl == null
+                              ? Text(
+                                  _initials(fullName),
+                                  style: TextStyle(
+                                    color: companyColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () => _showAvatarOptions(avatarUrl != null),
                       child: Container(
-                        padding: const EdgeInsets.all(3),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
+                          color: companyColor,
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              companyColor,
-                              companyColor.withValues(alpha: 0.7),
-                            ],
+                          border: Border.all(
+                            color: colors.surface,
+                            width: 2,
                           ),
                         ),
-                        child: Hero(
-                          tag: avatarUrl ?? 'profile-avatar-placeholder',
-                          child: CircleAvatar(
-                            radius: 32,
-                            backgroundColor: colors.surface,
-                            backgroundImage: avatarUrl != null
-                                ? CachedNetworkImageProvider(avatarUrl)
-                                : null,
-                            child: avatarUrl == null
-                                ? Text(
-                                    _initials(fullName),
-                                    style: TextStyle(
-                                      color: companyColor,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 20,
-                                    ),
-                                  )
-                                : null,
-                          ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 11,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: () => _showAvatarOptions(avatarUrl != null),
-                        child: Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: companyColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: colors.surface,
-                              width: 2,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
-                            size: 11,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(width: 16),
+            const SizedBox(width: 16),
 
-              // Infos utilisateur
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            fullName.isEmpty ? 'Utilisateur' : fullName,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: colors.onSurface,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+            // Infos utilisateur
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          fullName.isEmpty ? 'Utilisateur' : fullName,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: colors.onSurface,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (isComplete) ...[
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 18,
-                            color: companyColor,
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (hasCard &&
-                        card.jobTitle != null &&
-                        card.jobTitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        card.jobTitle!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      ),
+                      if (isComplete) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.verified_rounded,
+                          size: 18,
                           color: companyColor,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      ],
                     ],
-                    if (hasCard &&
-                        card.company != null &&
-                        card.company!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        card.company!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: colors.onSurface.withValues(alpha: 0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  ),
+                  if (hasCard &&
+                      card.jobTitle != null &&
+                      card.jobTitle!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      card.jobTitle!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: companyColor,
                       ),
-                    ],
-                    // Indenté, aligné avec le nom/poste/entreprise (pas
-                    // avec la photo) — cf. maquette fournie.
-                    if (hasCard &&
-                        card.bio != null &&
-                        card.bio!.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      ExpandableText(
-                        card.bio!,
-                        maxLines: 3,
-                        accentColor: companyColor,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          height: 1.5,
-                          color: colors.onSurface.withValues(alpha: 0.75),
-                        ),
-                      ),
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
-                ),
+                  if (hasCard &&
+                      card.company != null &&
+                      card.company!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      card.company!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface.withValues(alpha: 0.6),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  // Indenté, aligné avec le nom/poste/entreprise (pas
+                  // avec la photo) — cf. maquette fournie.
+                  if (hasCard && card.bio != null && card.bio!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    ExpandableText(
+                      card.bio!,
+                      maxLines: 3,
+                      accentColor: companyColor,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        height: 1.5,
+                        color: colors.onSurface.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          IntrinsicHeight(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildProfileStat(
-                    colors,
-                    companyColor,
-                    icon: Icons.work_outline_rounded,
-                    label: 'Expérience',
-                    value: experienceYears > 0
-                        ? '$experienceYears an${experienceYears > 1 ? 's' : ''}'
-                        : '—',
-                  ),
-                ),
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  indent: 2,
-                  endIndent: 2,
-                  color: colors.onSurface.withValues(alpha: 0.08),
-                ),
-                Expanded(
-                  child: _buildProfileStat(
-                    colors,
-                    companyColor,
-                    icon: Icons.star_outline_rounded,
-                    label: 'Compétences',
-                    // Juste le nombre — le libellé "Compétences" au-dessus
-                    // dit déjà de quoi il s'agit, pas besoin de le répéter
-                    // dans la valeur (cf. "23" plutôt que "23 compétences").
-                    value: skillsCount > 0 ? '$skillsCount' : '—',
-                  ),
-                ),
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  indent: 2,
-                  endIndent: 2,
-                  color: colors.onSurface.withValues(alpha: 0.08),
-                ),
-                Expanded(
-                  child: _buildProfileStat(
-                    colors,
-                    companyColor,
-                    icon: Icons.shield_outlined,
-                    label: 'Kart score',
-                    value: '$kartScore/100',
-                    caption: _kartScoreCaption(kartScore),
-                  ),
-                ),
-              ],
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
+          ],
+        ),
+        const SizedBox(height: 18),
+        IntrinsicHeight(
+          child: Row(
             children: [
               Expanded(
-                flex: 3,
-                child: ElevatedButton.icon(
-                  onPressed: () => _shareProfile(context),
-                  icon: const Icon(Icons.ios_share_rounded, size: 17),
-                  label: const Text('Partager mon profil'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: companyColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w700),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
+                child: _buildProfileStat(
+                  colors,
+                  companyColor,
+                  icon: Icons.work_outline_rounded,
+                  label: 'Expérience',
+                  value: experienceYears > 0
+                      ? '$experienceYears an${experienceYears > 1 ? 's' : ''}'
+                      : '—',
                 ),
               ),
-              const SizedBox(width: 10),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                indent: 2,
+                endIndent: 2,
+                color: colors.onSurface.withValues(alpha: 0.08),
+              ),
               Expanded(
-                flex: 2,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openForm(context, section: 'basic'),
-                  icon:
-                      Icon(Icons.edit_outlined, size: 17, color: companyColor),
-                  label: Text('Modifier',
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: companyColor)),
-                  style: OutlinedButton.styleFrom(
-                    side:
-                        BorderSide(color: companyColor.withValues(alpha: 0.3)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
+                child: _buildProfileStat(
+                  colors,
+                  companyColor,
+                  icon: Icons.star_outline_rounded,
+                  label: 'Compétences',
+                  // Juste le nombre — le libellé "Compétences" au-dessus
+                  // dit déjà de quoi il s'agit, pas besoin de le répéter
+                  // dans la valeur (cf. "23" plutôt que "23 compétences").
+                  value: skillsCount > 0 ? '$skillsCount' : '—',
+                ),
+              ),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                indent: 2,
+                endIndent: 2,
+                color: colors.onSurface.withValues(alpha: 0.08),
+              ),
+              Expanded(
+                child: _buildProfileStat(
+                  colors,
+                  companyColor,
+                  icon: Icons.shield_outlined,
+                  label: 'Kart score',
+                  value: '$kartScore/100',
+                  caption: _kartScoreCaption(kartScore),
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: ElevatedButton.icon(
+                onPressed: () => _shareProfile(context),
+                icon: const Icon(Icons.ios_share_rounded, size: 17),
+                label: const Text('Partager mon profil'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: companyColor,
+                  // Blanc en dur devenait illisible si l'accent
+                  // personnalisé était clair (ex: jaune pâle).
+                  foregroundColor: readableForegroundOn(companyColor),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  // fontFamily explicite : ElevatedButton.styleFrom(textStyle: ...)
+                  // remplace entièrement le DefaultTextStyle ambiant (celui du thème,
+                  // en Syne) au lieu de le compléter — sans ce fontFamily, ce label
+                  // retombait sur la police système et jurait avec le reste de la
+                  // page (nom, titres...), tous en Syne.
+                  textStyle: const TextStyle(
+                      fontFamily: 'Syne',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: () => _openForm(context, section: 'basic'),
+                icon: Icon(Icons.edit_outlined, size: 17, color: companyColor),
+                label: Text('Modifier',
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: companyColor)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: companyColor.withValues(alpha: 0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -623,11 +631,21 @@ class _ProfilePageState extends State<ProfilePage>
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              fontSize: 9.5,
+              // 8 plutôt que 9.5, letterSpacing resserré : "COMPÉTENCES"
+              // tient maintenant sur une ligne sans être tronqué, plutôt
+              // que de compter sur l'ellipsis (maxLines ci-dessous) qui
+              // coupait le mot sur les colonnes étroites.
+              fontSize: 8,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
+              letterSpacing: 0.2,
               color: colors.onSurface.withValues(alpha: 0.45),
             ),
+            // Sur les écrans étroits (iPhone mini/SE), 3 colonnes dans la
+            // largeur de carte ne laissent qu'une soixantaine de pixels par
+            // stat — sans limite, un libellé comme "COMPÉTENCES" pouvait
+            // passer à la ligne et désaligner la rangée entière.
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -649,6 +667,11 @@ class _ProfilePageState extends State<ProfilePage>
                 fontWeight: FontWeight.w600,
                 color: companyColor,
               ),
+              // "Profil très complet" est le plus long des libellés
+              // possibles (cf. _kartScoreCaption) — 2 lignes plutôt qu'un
+              // débordement non borné sur les colonnes étroites.
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
@@ -665,23 +688,24 @@ class _ProfilePageState extends State<ProfilePage>
     return 'Profil incomplet';
   }
 
-  /// Somme les durées des expériences (start_date → end_date, ou
-  /// aujourd'hui si toujours en cours), arrondie à l'année — calculé à
-  /// partir des vraies dates saisies dans "Expériences", pas une valeur
-  /// arbitraire.
+  /// Ancienneté depuis le début de la première expérience (start_date la
+  /// plus ancienne → aujourd'hui), arrondie à l'année — pas la somme des
+  /// durées de chaque expérience : deux postes qui se chevauchent (ex: un
+  /// freelance en parallèle d'un CDI sur la même période) comptaient sinon
+  /// chacun leur durée, doublant artificiellement le total.
   int _computeExperienceYears(List<dynamic> experiences) {
-    double totalDays = 0;
+    DateTime? earliestStart;
     for (final exp in experiences) {
       if (exp is! Map) continue;
       final start = DateTime.tryParse(exp['start_date']?.toString() ?? '');
       if (start == null) continue;
-      final end = DateTime.tryParse(exp['end_date']?.toString() ?? '') ??
-          DateTime.now();
-      if (end.isAfter(start)) {
-        totalDays += end.difference(start).inDays;
+      if (earliestStart == null || start.isBefore(earliestStart)) {
+        earliestStart = start;
       }
     }
-    return (totalDays / 365).round();
+    if (earliestStart == null) return 0;
+    final days = DateTime.now().difference(earliestStart).inDays;
+    return days <= 0 ? 0 : (days / 365).round();
   }
 
   /// Ouvre le partage natif avec le lien de la carte publique — même
@@ -772,7 +796,7 @@ class _ProfilePageState extends State<ProfilePage>
           )
         else if (provider.documents.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Ajoutez vos diplômes, attestations ou certificats pour renforcer votre profil.',
               style: TextStyle(
@@ -783,7 +807,7 @@ class _ProfilePageState extends State<ProfilePage>
           )
         else
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Column(
               children: provider.documents
                   .map((doc) => Padding(
@@ -824,71 +848,81 @@ class _ProfilePageState extends State<ProfilePage>
     bool expanded = true,
     VoidCallback? onToggle,
     Widget? trailing,
+    // Plus de carte (fond + bordure) autour des sections : juste l'en-tête
+    // (icône + titre) et le contenu, séparés par l'espacement entre
+    // sections dans ProfilePage.build() — les informations "respirent"
+    // plutôt que d'être chacune enfermée dans un encart. Exception
+    // demandée explicitement : "Apparence" (cardStyle: true) garde son
+    // encart, contrairement aux autres sections de cette page.
+    bool cardStyle = false,
   }) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header de section
+        InkWell(
+          onTap: collapsible ? onToggle : null,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(0, cardStyle ? 4 : 0, 0, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: companyColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 16,
+                    color: companyColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (trailing != null) trailing,
+                if (collapsible)
+                  Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 22,
+                    color: colors.onSurface.withValues(alpha: 0.4),
+                  ),
+              ],
+            ),
+          ),
+        ),
+
+        // Contenu
+        if (!collapsible || expanded) ...[
+          ...children,
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+
+    if (!cardStyle) return content;
+
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.onSurface.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colors.onSurface.withValues(alpha: 0.05),
-        ),
+        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header de section
-          InkWell(
-            onTap: collapsible ? onToggle : null,
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: companyColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 16,
-                      color: companyColor,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                  if (trailing != null) trailing,
-                  if (collapsible)
-                    Icon(
-                      expanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 22,
-                      color: colors.onSurface.withValues(alpha: 0.4),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // Contenu
-          if (!collapsible || expanded) ...[
-            ...children,
-            const SizedBox(height: 8),
-          ],
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -906,7 +940,10 @@ class _ProfilePageState extends State<ProfilePage>
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          // horizontal: 0 — plus de carte autour de la section, ce contenu
+          // s'aligne maintenant avec l'icône de l'en-tête au lieu d'avoir
+          // son propre retrait pensé pour l'ancien encart.
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Icon(
@@ -959,7 +996,7 @@ class _ProfilePageState extends State<ProfilePage>
     final accentColor = _parseHexColor(card.accentColor) ?? companyColor;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
@@ -2022,11 +2059,15 @@ class _BrandingEditorState extends State<_BrandingEditor> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Text(
-                  'Personnaliser ma carte',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    'Personnaliser ma carte',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

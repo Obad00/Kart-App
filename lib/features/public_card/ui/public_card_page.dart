@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../shared/utils/company_color_helper.dart'
+    show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -20,7 +22,9 @@ import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../../shared/widgets/expandable_text.dart';
 
-const _interestsAccentColor = Color(0xFFEC4899);
+// Même bleu (indigo) que CompletionSections._interestsAccentColor côté
+// profil — cohérence entre l'affichage lecture seule ici et l'éditeur.
+const _interestsAccentColor = Color(0xFF6366F1);
 
 class PublicCardPage extends StatefulWidget {
   final String slug;
@@ -107,14 +111,27 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Future<void> _load() async {
-    final data = await _service.fetchCard(widget.slug);
-    setState(() {
-      card = data;
-      isLoading = false;
-    });
+    try {
+      final data = await _service.fetchCard(widget.slug);
+      if (!mounted) return;
+      setState(() {
+        card = data;
+        isLoading = false;
+      });
 
-    // Enregistrer automatiquement la vue
-    _registerView();
+      // Enregistrer automatiquement la vue
+      _registerView();
+    } catch (e) {
+      // Carte introuvable (404 — profil sans carte publique valide) ou
+      // erreur réseau : sans ce catch, l'exception n'était jamais
+      // rattrapée (isLoading restait bloqué à true — écran quasi noir en
+      // thème sombre, juste un spinner) et si l'utilisateur revenait en
+      // arrière avant la résolution de la requête, le setState arrivait
+      // après dispose() et plantait. On bascule sur l'état "Carte non
+      // trouvée" déjà géré par build() (card == null).
+      if (!mounted) return;
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _registerView() async {
@@ -254,7 +271,11 @@ class _PublicCardPageState extends State<PublicCardPage>
         : _getFieldValue('telephone').isNotEmpty
             ? _getFieldValue('telephone')
             : _getFieldValue('mobile');
-    final location = _getFieldValue('location');
+    // Ville (digital_cards.city) — champ à plat comme job_title/company,
+    // pas soumis à activated_fields (jamais géré via _getFieldValue, qui
+    // ne lit que 'fields', un objet construit uniquement à partir des
+    // réseaux sociaux/téléphone — 'location' n'y a jamais existé).
+    final location = card?['city']?.toString() ?? '';
     final firstName = _getFirstName();
     final skills = _skillsList();
     final experiences = _getExperiences();
@@ -278,6 +299,14 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (isLoading) {
       return Scaffold(
         backgroundColor: backgroundColor,
+        // Sans AppBar/bouton retour ici, un chargement bloqué (ou une
+        // carte introuvable ci-dessous) laissait l'utilisateur bloqué sur
+        // le web, sans geste natif "retour" comme sur mobile.
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation(
@@ -291,6 +320,11 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (card == null) {
       return Scaffold(
         backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         body: Center(
           child: Text(
             'Carte non trouvée',
@@ -442,20 +476,11 @@ class _PublicCardPageState extends State<PublicCardPage>
         isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
     final experienceYears = _computeExperienceYears(experiences);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _accentColor.withValues(alpha: 0.12),
-            _accentColor.withValues(alpha: 0.04),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.15)),
-      ),
+    // Plus de carte (fond dégradé + bordure) autour de l'en-tête — même
+    // traitement que ProfilePage._buildProfileHeader : avatar/nom/stats/
+    // actions respirent directement sur le fond de la page.
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -498,7 +523,9 @@ class _PublicCardPageState extends State<PublicCardPage>
                         fontWeight: FontWeight.w700,
                         color: colors.onSurface,
                       ),
-                      maxLines: 1,
+                      // 2 lignes plutôt que la troncature à 1 ligne — un nom
+                      // long passe à la ligne au lieu d'être coupé par "...".
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (jobTitle.isNotEmpty) ...[
@@ -614,11 +641,16 @@ class _PublicCardPageState extends State<PublicCardPage>
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              fontSize: 9.5,
+              // 8 plutôt que 9.5, letterSpacing resserré : "COMPÉTENCES"
+              // tient sur une ligne sans être tronqué — même correctif que
+              // ProfilePage._buildProfileStat.
+              fontSize: 8,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
+              letterSpacing: 0.2,
               color: colors.onSurface.withValues(alpha: 0.45),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -636,23 +668,25 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  /// Somme les durées des expériences (start_date → end_date, ou
-  /// aujourd'hui si toujours en cours), arrondie à l'année — même calcul
-  /// que ProfilePage._computeExperienceYears, appliqué ici aux expériences
-  /// de la carte consultée plutôt qu'aux siennes.
+  /// Ancienneté depuis le début de la première expérience (start_date la
+  /// plus ancienne → aujourd'hui), arrondie à l'année — même calcul que
+  /// ProfilePage._computeExperienceYears, appliqué ici aux expériences de
+  /// la carte consultée plutôt qu'aux siennes. Pas la somme des durées de
+  /// chaque expérience : deux postes qui se chevauchent comptaient sinon
+  /// chacun leur durée, doublant artificiellement le total.
   int _computeExperienceYears(List<dynamic> experiences) {
-    double totalDays = 0;
+    DateTime? earliestStart;
     for (final exp in experiences) {
       if (exp is! Map) continue;
       final start = DateTime.tryParse(exp['start_date']?.toString() ?? '');
       if (start == null) continue;
-      final end = DateTime.tryParse(exp['end_date']?.toString() ?? '') ??
-          DateTime.now();
-      if (end.isAfter(start)) {
-        totalDays += end.difference(start).inDays;
+      if (earliestStart == null || start.isBefore(earliestStart)) {
+        earliestStart = start;
       }
     }
-    return (totalDays / 365).round();
+    if (earliestStart == null) return 0;
+    final days = DateTime.now().difference(earliestStart).inDays;
+    return days <= 0 ? 0 : (days / 365).round();
   }
 
   Widget _buildCallToActions({
@@ -681,7 +715,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentColor,
-            foregroundColor: Colors.white,
+            foregroundColor: readableForegroundOn(_accentColor),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
@@ -829,7 +863,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: 'Réseaux sociaux',
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           // Icône/texte réduits + espacements resserrés : au format
           // d'avant, seuls 2 réseaux tenaient sur la première ligne avant
           // de passer à la ligne — 3 tiennent maintenant confortablement.
@@ -1017,47 +1051,43 @@ class _PublicCardPageState extends State<PublicCardPage>
     Widget? trailing,
     required List<Widget> children,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 16, color: _accentColor),
+    // Plus de carte (fond + bordure) : même traitement que ProfilePage —
+    // le détail d'un profil (Explorer, ou fiche contact) respire plutôt
+    // que d'empiler chaque section dans un encart.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface,
-                      letterSpacing: 0.2,
-                    ),
+                child: Icon(icon, size: 16, color: _accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                if (trailing != null) trailing,
-              ],
-            ),
+              ),
+              if (trailing != null) trailing,
+            ],
           ),
-          ...children,
-          const SizedBox(height: 8),
-        ],
-      ),
+        ),
+        ...children,
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -1074,7 +1104,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Icon(icon,
@@ -1116,11 +1146,7 @@ class _PublicCardPageState extends State<PublicCardPage>
   }
 
   Widget _buildDivider(ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child:
-          Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06)),
-    );
+    return Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.06));
   }
 
   /// "Informations personnelles" en lecture seule — email/téléphone restent
@@ -1172,7 +1198,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: 'Compétences',
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           child: skills.isEmpty
               ? Text(
                   'Aucune compétence ajoutée',
@@ -1202,7 +1228,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       title: "Centre d'intérêt",
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           child: interests.isEmpty
               ? Text(
                   "Aucun centre d'intérêt ajouté",
@@ -1259,7 +1285,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (sorted.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Aucune expérience',
               style: TextStyle(
@@ -1268,7 +1294,7 @@ class _PublicCardPageState extends State<PublicCardPage>
           )
         else
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Column(
               children: preview.asMap().entries.map((entry) {
                 final i = entry.key;
@@ -1404,7 +1430,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (sorted.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
             child: Text(
               'Aucune formation ajoutée',
               style: TextStyle(
@@ -1433,7 +1459,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       children: [
         if (showDivider) _buildDivider(colors),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1687,76 +1713,87 @@ class _PublicTimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(top: 5),
-                decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: accentColor),
-              ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 2),
-                    color: accentColor.withValues(alpha: 0.2),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface),
-                  ),
-                  if (company.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      company,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: accentColor),
-                    ),
-                  ],
-                  const SizedBox(height: 3),
-                  Text(
-                    period,
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        color: colors.onSurface.withValues(alpha: 0.45)),
-                  ),
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: colors.onSurface.withValues(alpha: 0.6)),
-                    ),
-                  ],
-                ],
-              ),
+    // Stack plutôt que IntrinsicHeight pour étirer la ligne verticale sur
+    // la hauteur du contenu : IntrinsicHeight calcule la hauteur intrinsèque
+    // de TOUS ses descendants, et ExpandableText (description) en contient
+    // un qui la refuse explicitement ("LayoutBuilder does not support
+    // returning intrinsic dimensions") — ça plantait dès qu'une expérience
+    // avait une description (mêmes coordonnées de positionnement que
+    // l'ancien Column dot+ligne : pastille 10px centrée dans 10px de large,
+    // donc ligne (2px) centrée à gauche:4 ; ligne démarrant à
+    // 5 (marge du haut) + 10 (pastille) + 2 (marge) = 17).
+    return Stack(
+      children: [
+        if (!isLast)
+          Positioned(
+            left: 4,
+            top: 17,
+            bottom: 2,
+            child: Container(
+              width: 2,
+              color: accentColor.withValues(alpha: 0.2),
             ),
           ),
-        ],
-      ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(top: 5),
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: accentColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 4 : 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface),
+                    ),
+                    if (company.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        company,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: accentColor),
+                      ),
+                    ],
+                    const SizedBox(height: 3),
+                    Text(
+                      period,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: colors.onSurface.withValues(alpha: 0.45)),
+                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      ExpandableText(
+                        description,
+                        maxLines: 3,
+                        accentColor: accentColor,
+                        style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: colors.onSurface.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

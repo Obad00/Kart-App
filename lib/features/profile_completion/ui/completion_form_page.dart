@@ -90,6 +90,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -133,6 +134,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       final m = p.model;
       _jobCtrl.text = m.jobTitle ?? '';
       _companyCtrl.text = m.company ?? '';
+      _cityCtrl.text = m.city ?? '';
       _bioCtrl.text = m.bio ?? '';
       _phoneCtrl.text = m.phone ?? '';
       _emailCtrl.text = m.email ?? '';
@@ -210,6 +212,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   void dispose() {
     _jobCtrl.dispose();
     _companyCtrl.dispose();
+    _cityCtrl.dispose();
     _bioCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
@@ -391,6 +394,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     final updated = ProfileCompletionModel(
       jobTitle: _jobCtrl.text,
       company: _companyCtrl.text,
+      city: _cityCtrl.text,
       bio: _bioCtrl.text,
       phone: _phoneCtrl.text,
       email: _emailCtrl.text,
@@ -544,6 +548,14 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     controller: _companyCtrl,
                     prefixIcon: Icons.business_outlined,
                     hint: 'Nom de votre entreprise'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Ville',
+                    controller: _cityCtrl,
+                    prefixIcon: Icons.location_on_outlined,
+                    // Sert à "Professionnels près de vous" dans Explorer —
+                    // rapprochement par ville, pas de géolocalisation GPS.
+                    hint: 'Ex: Dakar'),
                 const SizedBox(height: 12),
                 AuthTextField(
                     label: 'Bio',
@@ -735,18 +747,19 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     int index,
     Map<String, TextEditingController> exp,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.15)),
-      ),
+    // Plus de carte (fond + bordure) : cf. commentaire de
+    // ProfilePage._buildSection. Un séparateur (au lieu du bloc suivant qui
+    // se contentait de l'espacement) garde les entrées distinctes quand il
+    // y en a plusieurs, puisque l'encart qui les délimitait a disparu.
+    return Padding(
+      padding: EdgeInsets.only(top: index > 0 ? 24 : 0, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (index > 0) ...[
+            Divider(color: colors.onSurface.withValues(alpha: 0.08)),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Container(
@@ -760,7 +773,9 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Expérience ${index + 1}',
+                // "Expérience" tout court pour la première — le numéro ne
+                // sert qu'à distinguer les suivantes.
+                index == 0 ? 'Expérience' : 'Expérience ${index + 1}',
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1024,19 +1039,17 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.12),
-        ),
-      ),
+    // Plus de carte (fond + bordure) : cf. commentaire de
+    // ProfilePage._buildSection / _buildExperienceCard ci-dessus.
+    return Padding(
+      padding: EdgeInsets.only(top: index > 0 ? 24 : 0, bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (index > 0) ...[
+            Divider(color: colors.onSurface.withValues(alpha: 0.08)),
+            const SizedBox(height: 12),
+          ],
           // HEADER
           Row(
             children: [
@@ -1062,7 +1075,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Formation ${index + 1}',
+                      index == 0 ? 'Formation' : 'Formation ${index + 1}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -1254,23 +1267,25 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         children: [
           Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface.withValues(alpha: 0.4)),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: colors.onSurface.withValues(alpha: 0.3)),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface.withValues(alpha: 0.4)),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.3)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
