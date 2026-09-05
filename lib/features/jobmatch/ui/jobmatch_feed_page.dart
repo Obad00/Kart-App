@@ -1,14 +1,20 @@
+import 'dart:math';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
 import '../model/job_feed_item.dart';
 import '../providers/jobmatch_provider.dart';
+import '../widgets/job_details_sheet.dart';
 import '../widgets/job_swipe_card.dart';
 import 'jobmatch_matches_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
@@ -162,20 +168,38 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
       child: Column(
         children: [
           Expanded(child: _buildStack(provider, feed)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           // Boutons explicites en complément du glissement — plus simple à
           // utiliser à la souris/trackpad (Flutter Web) qu'un seuil de drag.
+          // "Détails" au centre (cf. maquette fournie) : le même accès que
+          // le lien texte sur la carte, en plus visible/accessible.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildActionButton(
                 icon: Icons.close_rounded,
+                label: 'Passer',
                 color: Colors.red,
                 onTap: () => provider.swipe(topJob, 'reject'),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 20),
+              _buildActionButton(
+                icon: Icons.info_outline_rounded,
+                label: 'Détails',
+                color: _accentBlue,
+                small: true,
+                onTap: () => showJobDetailsSheet(
+                  context,
+                  title: topJob.title,
+                  companyName: topJob.companyName,
+                  location: topJob.location,
+                  description: topJob.description,
+                ),
+              ),
+              const SizedBox(width: 20),
               _buildActionButton(
                 icon: Icons.favorite_rounded,
+                label: 'Intéressé',
                 color: Colors.green,
                 onTap: () => _handleLike(topJob, provider),
               ),
@@ -188,21 +212,41 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
 
   Widget _buildActionButton({
     required IconData icon,
+    required String label,
     required Color color,
     required VoidCallback onTap,
+    bool small = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+    final colors = Theme.of(context).colorScheme;
+    final size = small ? 46.0 : 58.0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border:
+                  Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: Icon(icon, color: color, size: small ? 20 : 26),
+          ),
         ),
-        child: Icon(icon, color: color, size: 26),
-      ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: colors.onSurface.withValues(alpha: 0.55),
+          ),
+        ),
+      ],
     );
   }
 
@@ -299,60 +343,129 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     );
   }
 
+  /// Prise volontairement sombre quel que soit le thème de l'app (comme
+  /// _buildLikedCelebration ci-dessus) : c'est un plein écran de
+  /// célébration ponctuel, pas un fond de page — même logique qu'une
+  /// visionneuse photo qui assombrit tout autour d'elle.
   Widget _buildMatchOverlay(BuildContext context, JobMatchProvider provider) {
     final match = provider.lastMatch!;
+    final myAvatar = context.watch<AuthProvider>().user?.avatar;
+    final myAvatarUrl = (myAvatar != null && myAvatar.isNotEmpty)
+        ? (myAvatar.startsWith('http')
+            ? myAvatar
+            : '${ApiEndpoints.storageUrl}/$myAvatar')
+        : null;
+    final companyLogo = match.companyLogo;
+    final companyLogoUrl = (companyLogo != null && companyLogo.isNotEmpty)
+        ? (companyLogo.startsWith('http')
+            ? companyLogo
+            : '${ApiEndpoints.storageUrl}/$companyLogo')
+        : null;
 
     return Container(
       color: Colors.black.withValues(alpha: 0.92),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.favorite_rounded, color: _accentBlue, size: 56),
-              const SizedBox(height: 20),
-              const Text(
-                "C'est un match !",
-                style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '${match.jobTitle} · ${match.companyName}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: Colors.white70),
-              ),
-              const SizedBox(height: 36),
-              // Empilés (plutôt que côte à côte) : deux boutons "expanded"
-              // dans une Row débordaient sur la plupart des téléphones
-              // (chacun a une largeur minimale de 200px, largement plus que
-              // ce que la moitié d'un écran standard peut offrir).
-              Column(
+      child: Stack(
+        children: [
+          const Positioned.fill(child: _ConfettiSprinkle()),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  AuthPrimaryButton(
-                    label: 'Voir mes matchs',
-                    onTap: () {
-                      provider.dismissMatch();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const JobMatchMatchesPage()),
-                      );
-                    },
+                  SizedBox(
+                    height: 88,
+                    width: 140,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 0,
+                          child: _MatchAvatar(imageUrl: myAvatarUrl),
+                        ),
+                        Positioned(
+                          right: 0,
+                          child: _MatchAvatar(
+                            imageUrl: companyLogoUrl,
+                            fallbackIcon: Icons.business_rounded,
+                          ),
+                        ),
+                        Positioned(
+                          left: 46,
+                          top: 24,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: _accentBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.favorite_rounded,
+                                color: Colors.white, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  AuthOutlineButton(
-                    label: 'Continuer',
-                    onTap: () => provider.dismissMatch(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "C'est un match ! 🎉",
+                    style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Vous et ${match.companyName} êtes intéressés l\'un par l\'autre pour "${match.jobTitle}".',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 36),
+                  // Empilés (plutôt que côte à côte) : deux boutons
+                  // "expanded" dans une Row débordaient sur la plupart des
+                  // téléphones (chacun a une largeur minimale de 200px,
+                  // largement plus que ce que la moitié d'un écran standard
+                  // peut offrir).
+                  Column(
+                    children: [
+                      AuthPrimaryButton(
+                        label: "Voir l'opportunité",
+                        onTap: () {
+                          provider.dismissMatch();
+                          showJobDetailsSheet(
+                            context,
+                            title: match.jobTitle,
+                            companyName: match.companyName,
+                            location: match.location,
+                            description: match.description,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      AuthOutlineButton(
+                        label: 'Voir mes matchs',
+                        onTap: () {
+                          provider.dismissMatch();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const JobMatchMatchesPage()),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () => provider.dismissMatch(),
+                        style: TextButton.styleFrom(
+                            foregroundColor: Colors.white60),
+                        child: const Text('Continuer à explorer'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -429,6 +542,86 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Avatar rond (candidat ou logo entreprise) sur l'écran "C'est un match !"
+/// — repli sur une icône si pas d'URL/erreur de chargement.
+class _MatchAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final IconData fallbackIcon;
+
+  const _MatchAvatar({
+    this.imageUrl,
+    this.fallbackIcon = Icons.person_rounded,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72,
+      height: 72,
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: ClipOval(
+        child: Container(
+          color: _accentBlue.withValues(alpha: 0.15),
+          child: imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) =>
+                      Icon(fallbackIcon, color: _accentBlue),
+                )
+              : Icon(fallbackIcon, color: _accentBlue),
+        ),
+      ),
+    );
+  }
+}
+
+/// Semis de confettis décoratif pour l'écran de match — positions/couleurs
+/// fixes (graine constante) plutôt qu'une vraie animation de chute : rendu
+/// festif léger, sans dépendance supplémentaire ni logique physique.
+class _ConfettiSprinkle extends StatelessWidget {
+  const _ConfettiSprinkle();
+
+  static const _colors = [
+    Color(0xFF3B82F6),
+    Color(0xFF22C55E),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+    Color(0xFFA855F7),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final random = Random(42);
+    return IgnorePointer(
+      child: Stack(
+        children: List.generate(28, (i) {
+          final size = 6.0 + random.nextDouble() * 6;
+          return Positioned(
+            left: random.nextDouble() * MediaQuery.of(context).size.width,
+            top: random.nextDouble() * MediaQuery.of(context).size.height,
+            child: Transform.rotate(
+              angle: random.nextDouble() * pi,
+              child: Container(
+                width: size,
+                height: size * (random.nextBool() ? 1 : 2.2),
+                decoration: BoxDecoration(
+                  color: _colors[i % _colors.length].withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

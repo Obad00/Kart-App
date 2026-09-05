@@ -2,6 +2,7 @@ class JobFeedItem {
   final int id;
   final String title;
   final String companyName;
+  final String? companyLogo;
   final String? location;
   final bool isRemote;
   final String? contractType;
@@ -10,11 +11,13 @@ class JobFeedItem {
   final int score;
   final String? description;
   final int? experienceRequired;
+  final DateTime? publishedAt;
 
   JobFeedItem({
     required this.id,
     required this.title,
     required this.companyName,
+    this.companyLogo,
     this.location,
     required this.isRemote,
     this.contractType,
@@ -23,6 +26,7 @@ class JobFeedItem {
     required this.score,
     this.description,
     this.experienceRequired,
+    this.publishedAt,
   });
 
   factory JobFeedItem.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,7 @@ class JobFeedItem {
       id: json['id'],
       title: json['title'] ?? '',
       companyName: json['company']?['name'] ?? '',
+      companyLogo: json['company']?['logo'],
       location: json['location'],
       isRemote: json['is_remote'] ?? false,
       contractType: json['contract_type'],
@@ -38,6 +43,7 @@ class JobFeedItem {
       score: json['score'] ?? 0,
       description: json['description'],
       experienceRequired: json['experience_required'],
+      publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
     );
   }
 }
@@ -47,6 +53,7 @@ class JobMatchResult {
   final int score;
   final String jobTitle;
   final String companyName;
+  final String? companyLogo;
   final String? location;
   final bool isRemote;
   final String? contractType;
@@ -54,12 +61,14 @@ class JobMatchResult {
   final int? salaryMax;
   final String? description;
   final int? experienceRequired;
+  final DateTime? publishedAt;
 
   JobMatchResult({
     required this.id,
     required this.score,
     required this.jobTitle,
     required this.companyName,
+    this.companyLogo,
     this.location,
     this.isRemote = false,
     this.contractType,
@@ -67,6 +76,7 @@ class JobMatchResult {
     this.salaryMax,
     this.description,
     this.experienceRequired,
+    this.publishedAt,
   });
 
   factory JobMatchResult.fromJson(Map<String, dynamic> json) {
@@ -74,12 +84,14 @@ class JobMatchResult {
     final company = job?['company'];
     final companyName =
         company is Map ? (company['name'] ?? '') : (company ?? '');
+    final companyLogo = company is Map ? company['logo'] : null;
 
     return JobMatchResult(
       id: json['id'],
       score: json['score'] ?? 0,
       jobTitle: job?['title'] ?? '',
       companyName: companyName?.toString() ?? '',
+      companyLogo: companyLogo,
       location: job?['location'],
       isRemote: job?['is_remote'] ?? false,
       contractType: job?['contract_type'],
@@ -87,6 +99,7 @@ class JobMatchResult {
       salaryMax: job?['salary_max'],
       description: job?['description'],
       experienceRequired: job?['experience_required'],
+      publishedAt: DateTime.tryParse(job?['published_at']?.toString() ?? ''),
     );
   }
 }
@@ -95,6 +108,7 @@ class LikedJobItem {
   final int jobId;
   final String jobTitle;
   final String companyName;
+  final String? companyLogo;
   final String? location;
   final bool isRemote;
   final String? contractType;
@@ -102,11 +116,13 @@ class LikedJobItem {
   final int? salaryMax;
   final String? description;
   final int? experienceRequired;
+  final DateTime? publishedAt;
 
   LikedJobItem({
     required this.jobId,
     required this.jobTitle,
     required this.companyName,
+    this.companyLogo,
     this.location,
     this.isRemote = false,
     this.contractType,
@@ -114,6 +130,7 @@ class LikedJobItem {
     this.salaryMax,
     this.description,
     this.experienceRequired,
+    this.publishedAt,
   });
 
   factory LikedJobItem.fromJson(Map<String, dynamic> json) {
@@ -122,6 +139,7 @@ class LikedJobItem {
       jobId: job?['id'] ?? 0,
       jobTitle: job?['title'] ?? '',
       companyName: job?['company']?['name'] ?? '',
+      companyLogo: job?['company']?['logo'],
       location: job?['location'],
       isRemote: job?['is_remote'] ?? false,
       contractType: job?['contract_type'],
@@ -129,6 +147,7 @@ class LikedJobItem {
       salaryMax: job?['salary_max'],
       description: job?['description'],
       experienceRequired: job?['experience_required'],
+      publishedAt: DateTime.tryParse(job?['published_at']?.toString() ?? ''),
     );
   }
 }
