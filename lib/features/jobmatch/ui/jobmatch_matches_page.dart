@@ -10,8 +10,11 @@ const _accentBlue = Color(0xFF3B82F6);
 
 class JobMatchMatchesPage extends StatefulWidget {
   /// Onglet ouvert au premier affichage (0 = Matchs, 1 = Aimées, 2 =
-  /// Passées) — permet par ex. au deep link `kart://jobmatch/liked` de
-  /// pointer directement sur l'onglet "Aimées".
+  /// Passées, 3 = Sauvegardées) — permet par ex. au deep link
+  /// `kart://jobmatch/liked` de pointer directement sur l'onglet "Aimées".
+  /// Sauvegardées est en 4e position (pas insérée entre Matchs et Aimées
+  /// comme sur la maquette fournie) pour ne pas décaler les index déjà
+  /// utilisés par ces liens.
   final int initialTabIndex;
 
   const JobMatchMatchesPage({super.key, this.initialTabIndex = 0});
@@ -28,6 +31,10 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
   List<JobMatchResult> _matches = [];
   List<LikedJobItem> _liked = [];
   List<LikedJobItem> _rejected = [];
+  // "Sauvegardées" — ajouté en 4e position plutôt qu'inséré entre Matchs et
+  // Aimées (comme sur la maquette) : ça aurait décalé les index 1/2 déjà
+  // utilisés par les deep links kart://jobmatch/liked et /matches.
+  List<LikedJobItem> _saved = [];
   JobMatchSummary? _summary;
   bool _loading = true;
 
@@ -35,7 +42,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -66,15 +73,32 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
         _service.fetchLiked(),
         _service.fetchRejected(),
         _service.fetchSummary(),
+        _service.fetchSaved(),
       ]);
       _matches = results[0] as List<JobMatchResult>;
       _liked = results[1] as List<LikedJobItem>;
       _rejected = results[2] as List<LikedJobItem>;
       _summary = results[3] as JobMatchSummary;
+      _saved = results[4] as List<LikedJobItem>;
     } catch (_) {
       // silencieux : listes vides affichées par défaut
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _unsave(LikedJobItem job) async {
+    // Optimiste : retiré de la liste tout de suite, remis si l'appel échoue
+    // — cohérent avec JobMatchProvider.toggleSave() côté fil de suggestions.
+    setState(() => _saved.removeWhere((s) => s.jobId == job.jobId));
+    try {
+      await _service.unsaveJob(job.jobId);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saved.add(job));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur, réessayez')),
+      );
+    }
   }
 
   Future<void> _reconsider(LikedJobItem job) async {
@@ -130,14 +154,18 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
                   splashBorderRadius: BorderRadius.circular(999),
                   labelColor: Colors.white,
                   unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
+                  // 11.5 plutôt que 13 : avec le 4e onglet (Sauvegardées),
+                  // "Sauvées" à la taille d'origine tronquait/débordait
+                  // dans la pilule à largeur égale.
                   labelStyle: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700),
+                      fontSize: 11.5, fontWeight: FontWeight.w700),
                   unselectedLabelStyle: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600),
+                      fontSize: 11.5, fontWeight: FontWeight.w600),
                   tabs: const [
                     Tab(text: 'Matchs'),
                     Tab(text: 'Aimées'),
                     Tab(text: 'Passées'),
+                    Tab(text: 'Sauvées'),
                   ],
                 ),
               ),
@@ -157,6 +185,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
                       _buildMatchesList(colors),
                       _buildLikedList(colors),
                       _buildRejectedList(colors),
+                      _buildSavedList(colors),
                     ],
                   ),
                 ),
@@ -180,6 +209,10 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           Expanded(
               child: _buildStat(
                   'Passées', summary.rejected, Colors.orange, colors)),
+          const SizedBox(width: 10),
+          Expanded(
+              child: _buildStat(
+                  'Sauvées', summary.saved, Colors.amber.shade700, colors)),
         ],
       ),
     );
@@ -299,6 +332,40 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           trailingWidget: TextButton(
             onPressed: () => _reconsider(job),
             child: const Text('Reconsidérer'),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSavedList(ColorScheme colors) {
+    if (_saved.isEmpty) {
+      return _buildEmpty(colors, 'Aucune offre sauvegardée pour l\'instant');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: _saved.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final job = _saved[index];
+        return _buildRow(
+          colors,
+          icon: Icons.star_rounded,
+          iconColor: Colors.amber.shade700,
+          title: job.jobTitle,
+          subtitle: job.companyName,
+          trailingWidget: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            color: colors.onSurface.withValues(alpha: 0.4),
+            tooltip: 'Retirer des sauvegardes',
+            onPressed: () => _unsave(job),
+          ),
+          onTap: () => showJobDetailsSheet(
+            context,
+            title: job.jobTitle,
+            companyName: job.companyName,
+            location: job.location,
+            description: job.description,
           ),
         );
       },

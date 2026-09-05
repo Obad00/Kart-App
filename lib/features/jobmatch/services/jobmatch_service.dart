@@ -48,4 +48,20 @@ class JobMatchService {
   Future<void> unswipe(int jobId) async {
     await dio.delete(ApiEndpoints.jobMatchSwipe(jobId));
   }
+
+  /// Sauvegarder/retirer une offre — distinct d'un like : ne retire pas
+  /// l'offre du feed et ne déclenche aucun matching.
+  Future<void> saveJob(int jobId) async {
+    await dio.post(ApiEndpoints.jobMatchSave(jobId));
+  }
+
+  Future<void> unsaveJob(int jobId) async {
+    await dio.delete(ApiEndpoints.jobMatchSave(jobId));
+  }
+
+  Future<List<LikedJobItem>> fetchSaved() async {
+    final res = await dio.get(ApiEndpoints.jobMatchSaved);
+    final list = res.data['saved'] as List;
+    return list.map((e) => LikedJobItem.fromJson(e)).toList();
+  }
 }

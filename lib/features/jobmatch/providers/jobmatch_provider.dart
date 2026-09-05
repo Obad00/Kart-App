@@ -59,4 +59,30 @@ class JobMatchProvider extends ChangeNotifier {
     lastMatch = null;
     notifyListeners();
   }
+
+  /// Sauvegarde/retire une offre pour plus tard — contrairement à swipe(),
+  /// l'offre reste dans le feed (pas de matching, juste un marque-page).
+  /// Optimiste (bascule l'état local avant la réponse serveur) avec retour
+  /// en arrière silencieux en cas d'échec, comme le reste de l'app pour ce
+  /// genre d'action à faible risque.
+  Future<void> toggleSave(JobFeedItem job) async {
+    final newValue = !job.isSaved;
+    feed = feed
+        .map((j) => j.id == job.id ? j.copyWithSaved(newValue) : j)
+        .toList();
+    notifyListeners();
+
+    try {
+      if (newValue) {
+        await service.saveJob(job.id);
+      } else {
+        await service.unsaveJob(job.id);
+      }
+    } catch (e) {
+      feed = feed
+          .map((j) => j.id == job.id ? j.copyWithSaved(!newValue) : j)
+          .toList();
+      notifyListeners();
+    }
+  }
 }

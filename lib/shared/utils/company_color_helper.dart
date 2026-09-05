@@ -24,14 +24,14 @@ class CompanyColorHelper {
         _parseColor(cardProvider.accentColor) ??
         colors.primary;
   }
-  
+
   /// Vérifie si une couleur d'entreprise est définie
   static bool hasCompanyColor(BuildContext context) {
     final cardProvider = context.read<CardProvider>();
-    return cardProvider.companyPrimaryColor != null && 
-           cardProvider.companyPrimaryColor!.isNotEmpty;
+    return cardProvider.companyPrimaryColor != null &&
+        cardProvider.companyPrimaryColor!.isNotEmpty;
   }
-  
+
   /// Parse une couleur hexadécimale
   static Color? _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return null;
@@ -49,10 +49,10 @@ class CompanyColorHelper {
 extension CompanyColorContext on BuildContext {
   /// Couleur de l'entreprise ou primaire par défaut (avec watch)
   Color get companyColor => CompanyColorHelper.getCompanyColor(this);
-  
+
   /// Couleur de l'entreprise ou primaire par défaut (sans watch)
   Color get companyColorRead => CompanyColorHelper.getCompanyColorRead(this);
-  
+
   /// Vérifie si une couleur d'entreprise existe
   bool get hasCompanyColor => CompanyColorHelper.hasCompanyColor(this);
 }

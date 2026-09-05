@@ -46,9 +46,13 @@ class ApiEndpoints {
 
   // JobMatch
   static const jobMatchFeed = '/candidate/jobmatch/feed';
-  static String jobMatchSwipe(int jobId) => '/candidate/jobmatch/jobs/$jobId/swipe';
+  static String jobMatchSwipe(int jobId) =>
+      '/candidate/jobmatch/jobs/$jobId/swipe';
   static const jobMatchMatches = '/candidate/jobmatch/matches';
   static const jobMatchLiked = '/candidate/jobmatch/liked';
   static const jobMatchRejected = '/candidate/jobmatch/rejected';
+  static String jobMatchSave(int jobId) =>
+      '/candidate/jobmatch/jobs/$jobId/save';
+  static const jobMatchSaved = '/candidate/jobmatch/saved';
   static const jobMatchSummary = '/candidate/jobmatch/summary';
 }

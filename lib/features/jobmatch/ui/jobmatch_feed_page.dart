@@ -171,8 +171,9 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
           const SizedBox(height: 18),
           // Boutons explicites en complément du glissement — plus simple à
           // utiliser à la souris/trackpad (Flutter Web) qu'un seuil de drag.
-          // "Détails" au centre (cf. maquette fournie) : le même accès que
-          // le lien texte sur la carte, en plus visible/accessible.
+          // Sauvegarder/Détails au centre (cf. maquette fournie), plus
+          // petits pour laisser Passer/Intéressé (l'action principale du
+          // swipe) ressortir.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -182,7 +183,17 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 color: Colors.red,
                 onTap: () => provider.swipe(topJob, 'reject'),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
+              _buildActionButton(
+                icon: topJob.isSaved
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
+                label: 'Sauvegarder',
+                color: Colors.amber.shade700,
+                small: true,
+                onTap: () => provider.toggleSave(topJob),
+              ),
+              const SizedBox(width: 16),
               _buildActionButton(
                 icon: Icons.info_outline_rounded,
                 label: 'Détails',
@@ -196,7 +207,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                   description: topJob.description,
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               _buildActionButton(
                 icon: Icons.favorite_rounded,
                 label: 'Intéressé',

@@ -226,6 +226,18 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                     ),
                   ),
                   const Spacer(),
+                  if (job.isSaved) ...[
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.star_rounded,
+                          size: 16, color: Colors.amber.shade700),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

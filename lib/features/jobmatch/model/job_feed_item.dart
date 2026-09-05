@@ -12,6 +12,7 @@ class JobFeedItem {
   final String? description;
   final int? experienceRequired;
   final DateTime? publishedAt;
+  final bool isSaved;
 
   JobFeedItem({
     required this.id,
@@ -27,6 +28,7 @@ class JobFeedItem {
     this.description,
     this.experienceRequired,
     this.publishedAt,
+    this.isSaved = false,
   });
 
   factory JobFeedItem.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,28 @@ class JobFeedItem {
       description: json['description'],
       experienceRequired: json['experience_required'],
       publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
+      isSaved: json['isSaved'] == true,
+    );
+  }
+
+  /// Retourne une copie avec isSaved mis à jour — après un save/unsave
+  /// réussi côté serveur, pour refléter l'état sans recharger tout le fil.
+  JobFeedItem copyWithSaved(bool saved) {
+    return JobFeedItem(
+      id: id,
+      title: title,
+      companyName: companyName,
+      companyLogo: companyLogo,
+      location: location,
+      isRemote: isRemote,
+      contractType: contractType,
+      salaryMin: salaryMin,
+      salaryMax: salaryMax,
+      score: score,
+      description: description,
+      experienceRequired: experienceRequired,
+      publishedAt: publishedAt,
+      isSaved: saved,
     );
   }
 }
@@ -156,12 +180,14 @@ class JobMatchSummary {
   final int matches;
   final int liked;
   final int rejected;
+  final int saved;
   final int pendingSuggestions;
 
   JobMatchSummary({
     required this.matches,
     required this.liked,
     required this.rejected,
+    this.saved = 0,
     required this.pendingSuggestions,
   });
 
@@ -170,6 +196,7 @@ class JobMatchSummary {
       matches: json['matches'] ?? 0,
       liked: json['liked'] ?? 0,
       rejected: json['rejected'] ?? 0,
+      saved: json['saved'] ?? 0,
       pendingSuggestions: json['pending_suggestions'] ?? 0,
     );
   }
