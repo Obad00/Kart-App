@@ -13,8 +13,10 @@ import '../../../shared/widgets/auth_outline_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
 import '../model/job_feed_item.dart';
+import '../model/job_filters.dart';
 import '../providers/jobmatch_provider.dart';
 import '../widgets/job_details_sheet.dart';
+import '../widgets/job_filters_sheet.dart';
 import '../widgets/job_swipe_card.dart';
 import 'jobmatch_matches_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
@@ -80,6 +82,28 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
       ),
       actions: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.tune_rounded),
+              onPressed: () => showJobFiltersSheet(context, provider),
+            ),
+            if (provider.filters.activeCount > 0)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: _accentBlue,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
         Showcase(
           key: _dashboardTourKey,
           title: 'Votre tableau de bord',
@@ -122,7 +146,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 if (provider.loading)
                   const Center(child: CircularProgressIndicator())
                 else if (provider.feed.isEmpty)
-                  _buildEmptyState(context, colors)
+                  _buildEmptyState(context, colors, provider)
                 else
                   _buildCardStack(context, provider),
                 if (provider.lastMatch != null)
@@ -286,7 +310,14 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, ColorScheme colors) {
+  Widget _buildEmptyState(
+      BuildContext context, ColorScheme colors, JobMatchProvider provider) {
+    // Distingue "aucune suggestion du tout" (proposer d'ajouter des
+    // compétences) de "les filtres actifs n'excluent rien" (proposer de
+    // les réinitialiser) — même icône/état vide, action différente selon
+    // la cause probable.
+    final hasActiveFilters = !provider.filters.isEmpty;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -304,7 +335,10 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Aucune offre pour le moment',
+              hasActiveFilters
+                  ? 'Aucune offre ne correspond à vos filtres'
+                  : 'Aucune offre pour le moment',
+              textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -312,42 +346,68 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ajoutez des compétences à votre profil pour recevoir des suggestions d\'offres correspondantes.',
+              hasActiveFilters
+                  ? 'Essayez de réinitialiser ou d\'élargir vos filtres.'
+                  : 'Ajoutez des compétences à votre profil pour recevoir des suggestions d\'offres correspondantes.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 14, color: colors.onSurface.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (_) => const SkillEditorSheet(),
-                );
-              },
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text('Ajouter des compétences'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentBlue,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            if (hasActiveFilters)
+              ElevatedButton.icon(
+                onPressed: () => provider.applyFilters(const JobMatchFilters()),
+                icon: const Icon(Icons.filter_alt_off_rounded,
+                    color: Colors.white),
+                label: const Text('Réinitialiser les filtres'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentBlue,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'Syne',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                // fontFamily explicite : sans lui, ce textStyle remplace le
-                // DefaultTextStyle ambiant du thème (Syne) par la police
-                // système par défaut — cf. même correctif sur ProfilePage.
-                textStyle: const TextStyle(
-                  fontFamily: 'Syne',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (_) => const SkillEditorSheet(),
+                  );
+                },
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: const Text('Ajouter des compétences'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentBlue,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  // fontFamily explicite : sans lui, ce textStyle remplace
+                  // le DefaultTextStyle ambiant du thème (Syne) par la
+                  // police système par défaut — cf. même correctif sur
+                  // ProfilePage.
+                  textStyle: const TextStyle(
+                    fontFamily: 'Syne',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

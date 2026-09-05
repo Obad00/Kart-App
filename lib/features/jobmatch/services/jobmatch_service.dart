@@ -2,14 +2,23 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../model/job_feed_item.dart';
+import '../model/job_filters.dart';
 
 class JobMatchService {
   final Dio dio = ApiClient.dio;
 
-  Future<List<JobFeedItem>> fetchFeed() async {
-    final res = await dio.get(ApiEndpoints.jobMatchFeed);
+  Future<List<JobFeedItem>> fetchFeed({JobMatchFilters? filters}) async {
+    final res = await dio.get(
+      ApiEndpoints.jobMatchFeed,
+      queryParameters: filters?.toQueryParams(),
+    );
     final list = res.data['feed'] as List;
     return list.map((e) => JobFeedItem.fromJson(e)).toList();
+  }
+
+  Future<JobFilterOptions> fetchFilterOptions() async {
+    final res = await dio.get(ApiEndpoints.jobMatchFilterOptions);
+    return JobFilterOptions.fromJson(res.data);
   }
 
   Future<JobMatchResult?> swipe(int jobId, String action) async {

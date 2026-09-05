@@ -54,5 +54,6 @@ class ApiEndpoints {
   static String jobMatchSave(int jobId) =>
       '/candidate/jobmatch/jobs/$jobId/save';
   static const jobMatchSaved = '/candidate/jobmatch/saved';
+  static const jobMatchFilterOptions = '/candidate/jobmatch/filter-options';
   static const jobMatchSummary = '/candidate/jobmatch/summary';
 }

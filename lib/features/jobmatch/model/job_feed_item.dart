@@ -13,6 +13,8 @@ class JobFeedItem {
   final int? experienceRequired;
   final DateTime? publishedAt;
   final bool isSaved;
+  final String? category;
+  final List<String> skills;
 
   JobFeedItem({
     required this.id,
@@ -29,6 +31,8 @@ class JobFeedItem {
     this.experienceRequired,
     this.publishedAt,
     this.isSaved = false,
+    this.category,
+    this.skills = const [],
   });
 
   factory JobFeedItem.fromJson(Map<String, dynamic> json) {
@@ -47,6 +51,8 @@ class JobFeedItem {
       experienceRequired: json['experience_required'],
       publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
       isSaved: json['isSaved'] == true,
+      category: json['category'],
+      skills: (json['skills'] as List? ?? []).map((e) => e.toString()).toList(),
     );
   }
 
@@ -68,6 +74,8 @@ class JobFeedItem {
       experienceRequired: experienceRequired,
       publishedAt: publishedAt,
       isSaved: saved,
+      category: category,
+      skills: skills,
     );
   }
 }
