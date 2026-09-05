@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../jobmatch_theme.dart';
 import '../model/job_feed_item.dart';
 import '../services/jobmatch_service.dart';
-import '../widgets/job_details_sheet.dart';
+import 'job_detail_page.dart';
 
-const _accentBlue = Color(0xFF3B82F6);
+const _accentBlue = jobMatchAccent;
 
 class JobMatchMatchesPage extends StatefulWidget {
   /// Onglet ouvert au premier affichage (0 = Matchs, 1 = Aimées, 2 =
@@ -99,6 +100,51 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
         const SnackBar(content: Text('Erreur, réessayez')),
       );
     }
+  }
+
+  void _openMatchDetail(JobMatchResult match) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobDetailPage(
+          title: match.jobTitle,
+          companyName: match.companyName,
+          companyLogo: match.companyLogo,
+          location: match.location,
+          isRemote: match.isRemote,
+          contractType: match.contractType,
+          salaryMin: match.salaryMin,
+          salaryMax: match.salaryMax,
+          experienceRequired: match.experienceRequired,
+          description: match.description,
+          publishedAt: match.publishedAt,
+          skills: match.skills,
+          score: match.score,
+        ),
+      ),
+    );
+  }
+
+  void _openJobDetail(LikedJobItem job) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobDetailPage(
+          title: job.jobTitle,
+          companyName: job.companyName,
+          companyLogo: job.companyLogo,
+          location: job.location,
+          isRemote: job.isRemote,
+          contractType: job.contractType,
+          salaryMin: job.salaryMin,
+          salaryMax: job.salaryMax,
+          experienceRequired: job.experienceRequired,
+          description: job.description,
+          publishedAt: job.publishedAt,
+          skills: job.skills,
+        ),
+      ),
+    );
   }
 
   Future<void> _reconsider(LikedJobItem job) async {
@@ -263,13 +309,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           title: match.jobTitle,
           subtitle: match.companyName,
           trailing: '${match.score}%',
-          onTap: () => showJobDetailsSheet(
-            context,
-            title: match.jobTitle,
-            companyName: match.companyName,
-            location: match.location,
-            description: match.description,
-          ),
+          onTap: () => _openMatchDetail(match),
         );
       },
     );
@@ -292,13 +332,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           title: liked.jobTitle,
           subtitle: liked.companyName,
           trailing: null,
-          onTap: () => showJobDetailsSheet(
-            context,
-            title: liked.jobTitle,
-            companyName: liked.companyName,
-            location: liked.location,
-            description: liked.description,
-          ),
+          onTap: () => _openJobDetail(liked),
         );
       },
     );
@@ -333,6 +367,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
             onPressed: () => _reconsider(job),
             child: const Text('Reconsidérer'),
           ),
+          onTap: () => _openJobDetail(job),
         );
       },
     );
@@ -360,13 +395,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
             tooltip: 'Retirer des sauvegardes',
             onPressed: () => _unsave(job),
           ),
-          onTap: () => showJobDetailsSheet(
-            context,
-            title: job.jobTitle,
-            companyName: job.companyName,
-            location: job.location,
-            description: job.description,
-          ),
+          onTap: () => _openJobDetail(job),
         );
       },
     );

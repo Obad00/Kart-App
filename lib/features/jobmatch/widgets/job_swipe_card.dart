@@ -2,11 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/relative_time.dart';
+import '../jobmatch_theme.dart';
 import '../model/job_feed_item.dart';
-import 'job_details_sheet.dart';
-
-const _accentBlue = Color(0xFF3B82F6);
-const _accentGreen = Color(0xFF16A34A);
 
 class JobSwipeCard extends StatefulWidget {
   final JobFeedItem job;
@@ -86,9 +83,8 @@ class _JobSwipeCardState extends State<JobSwipeCard>
   @override
   Widget build(BuildContext context) {
     final angle = (_dragOffset.dx / 300).clamp(-0.4, 0.4);
-    // Progrès 0→1 du geste, dans chaque direction — pilote à la fois
-    // l'opacité du bandeau plein-carte ("J'aime"/"Passer", cf. maquette
-    // JobMatch fournie) et une légère mise à l'échelle pour le feedback.
+    // Progrès 0→1 du geste, dans chaque direction — pilote l'opacité du
+    // bandeau plein-carte "JE SUIS INTÉRESSÉ"/"PASSER" (cf. maquette).
     final likeProgress = (_dragOffset.dx / _swipeThreshold).clamp(0.0, 1.0);
     final rejectProgress = (-_dragOffset.dx / _swipeThreshold).clamp(0.0, 1.0);
 
@@ -105,10 +101,9 @@ class _JobSwipeCardState extends State<JobSwipeCard>
               if (likeProgress > 0)
                 _buildSwipeOverlay(
                   progress: likeProgress,
-                  color: _accentGreen,
+                  color: jobMatchLike,
                   icon: Icons.favorite_rounded,
-                  label: 'INTÉRESSÉ',
-                  alignment: Alignment.topLeft,
+                  label: 'JE SUIS\nINTÉRESSÉ',
                 ),
               if (rejectProgress > 0)
                 _buildSwipeOverlay(
@@ -116,7 +111,6 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                   color: Colors.red,
                   icon: Icons.close_rounded,
                   label: 'PASSER',
-                  alignment: Alignment.topRight,
                 ),
             ],
           ),
@@ -126,15 +120,12 @@ class _JobSwipeCardState extends State<JobSwipeCard>
   }
 
   /// Bandeau plein-carte qui se teinte progressivement pendant le
-  /// glissement — remplace les anciens tampons "OUI"/"NON" en coin par un
-  /// retour plus visible, dans l'esprit de la maquette fournie ("JE SUIS
-  /// INTÉRESSÉ" en surimpression pendant le glissement).
+  /// glissement — cf. maquette ("JE SUIS INTÉRESSÉ" en surimpression).
   Widget _buildSwipeOverlay({
     required double progress,
     required Color color,
     required IconData icon,
     required String label,
-    required Alignment alignment,
   }) {
     return Positioned.fill(
       child: IgnorePointer(
@@ -145,23 +136,29 @@ class _JobSwipeCardState extends State<JobSwipeCard>
               borderRadius: BorderRadius.circular(28),
               color: color.withValues(alpha: 0.94),
             ),
-            child: Align(
-              alignment: alignment == Alignment.topLeft
-                  ? Alignment.center
-                  : Alignment.center,
+            child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: Colors.white, size: 64),
-                  const SizedBox(height: 12),
                   Text(
                     label,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
+                      letterSpacing: 1,
+                      height: 1.2,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 32),
                   ),
                 ],
               ),
@@ -179,21 +176,26 @@ class _JobSwipeCardState extends State<JobSwipeCard>
   }
 
   Widget _buildCardContent(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final job = widget.job;
     final logoUrl = _logoUrl;
 
+    // Carte volontairement toujours sombre (comme une photo de poste de
+    // travail sur la maquette, qu'on n'a pas ici faute d'image dédiée par
+    // offre) — indépendante du thème clair/sombre de l'app, comme l'écran
+    // "C'est un match !".
     return Container(
       width: double.infinity,
       height: MediaQuery.of(context).size.height * 0.62,
       decoration: BoxDecoration(
-        color: colors.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.08)),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF262626), Color(0xFF0D0D0D)],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 28,
             offset: const Offset(0, 10),
           ),
@@ -210,17 +212,20 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     child: Container(
-                      width: 56,
-                      height: 56,
-                      color: _accentBlue.withValues(alpha: 0.1),
+                      width: 52,
+                      height: 52,
+                      color: Colors.white,
                       child: logoUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: logoUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  _logoFallback(),
+                          ? Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: CachedNetworkImage(
+                                imageUrl: logoUrl,
+                                fit: BoxFit.contain,
+                                errorWidget: (context, url, error) =>
+                                    _logoFallback(),
+                              ),
                             )
                           : _logoFallback(),
                     ),
@@ -230,36 +235,37 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                     Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
+                        color: Colors.amber.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.star_rounded,
-                          size: 16, color: Colors.amber.shade700),
+                          size: 16, color: Colors.amber.shade400),
                     ),
                     const SizedBox(width: 8),
                   ],
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _accentBlue.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: jobMatchAccent.withValues(alpha: 0.6)),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.bolt_rounded,
-                            size: 14, color: _accentBlue),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${job.score}% correspondant',
-                          style: const TextStyle(
-                            color: _accentBlue,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      '${job.score}%',
+                      style: const TextStyle(
+                        color: jobMatchAccent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Profil correspondant',
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
                     ),
                   ),
                 ],
@@ -274,100 +280,88 @@ class _JobSwipeCardState extends State<JobSwipeCard>
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       job.title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Syne',
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: colors.onSurface,
+                        color: Colors.white,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            job.companyName,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified_rounded,
+                            size: 15, color: jobMatchAccent),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      job.companyName,
+                      [
+                        if ((job.isRemote ? 'À distance' : job.location)
+                                ?.isNotEmpty ==
+                            true)
+                          job.isRemote ? 'À distance' : job.location,
+                        job.contractType,
+                        job.isRemote ? 'Hybride' : null,
+                      ].whereType<String>().join(' · '),
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _accentBlue,
-                      ),
+                          fontSize: 12.5, color: Colors.white60),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    if ((job.isRemote ? 'À distance' : job.location)
-                            ?.isNotEmpty ==
-                        true)
-                      Row(
-                        children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 14,
-                              color: colors.onSurface.withValues(alpha: 0.45)),
-                          const SizedBox(width: 4),
-                          Text(
-                            job.isRemote ? 'À distance' : job.location!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colors.onSurface.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ],
-                      ),
                     if (_salaryLabel(job) != null) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
                         _salaryLabel(job)!,
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: _accentGreen,
+                          color: jobMatchAccent,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        if (job.contractType != null)
-                          _buildChip(job.contractType!, colors),
-                        if (job.isRemote) _buildChip('Remote', colors),
-                        if (job.experienceRequired != null)
-                          _buildChip(
-                            "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''} d'expérience",
-                            colors,
-                          ),
+                        ...job.skills.take(3).map((s) => _buildChip(s)),
+                        if (job.skills.isEmpty) ...[
+                          if (job.contractType != null)
+                            _buildChip(job.contractType!),
+                          if (job.experienceRequired != null)
+                            _buildChip(
+                              "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''}",
+                            ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    if (job.publishedAt != null)
+                    if (job.publishedAt != null) ...[
+                      const SizedBox(height: 14),
                       Text(
-                        'Publié ${relativeTimeLabel(job.publishedAt!)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colors.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    if ((job.description ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () => _showDetails(context),
-                          icon:
-                              const Icon(Icons.info_outline_rounded, size: 18),
-                          label: const Text('Voir les détails'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: _accentBlue,
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
+                        'Publiée ${relativeTimeLabel(job.publishedAt!)}',
+                        style: const TextStyle(
+                            fontSize: 11.5, color: Colors.white38),
                       ),
                     ],
                   ],
@@ -381,44 +375,41 @@ class _JobSwipeCardState extends State<JobSwipeCard>
   }
 
   Widget _logoFallback() {
-    return const Center(
-      child: Icon(Icons.business_rounded, color: _accentBlue, size: 26),
-    );
-  }
-
-  void _showDetails(BuildContext context) {
-    final job = widget.job;
-    showJobDetailsSheet(
-      context,
-      title: job.title,
-      companyName: job.companyName,
-      location: job.location,
-      description: job.description,
+    final name = widget.job.companyName;
+    return Center(
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(
+          fontFamily: 'Syne',
+          fontWeight: FontWeight.w800,
+          fontSize: 20,
+          color: Color(0xFF111111),
+        ),
+      ),
     );
   }
 
   String? _salaryLabel(JobFeedItem job) {
     if (job.salaryMin == null && job.salaryMax == null) return null;
     if (job.salaryMin != null && job.salaryMax != null) {
-      return '${job.salaryMin} - ${job.salaryMax} FCFA';
+      return '${job.salaryMin} - ${job.salaryMax} FCFA / mois';
     }
-    return '${job.salaryMin ?? job.salaryMax} FCFA';
+    return '${job.salaryMin ?? job.salaryMax} FCFA / mois';
   }
 
-  Widget _buildChip(String label, ColorScheme colors) {
+  Widget _buildChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.05),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.08)),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: colors.onSurface.withValues(alpha: 0.7),
+          color: Colors.white,
         ),
       ),
     );

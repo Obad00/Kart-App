@@ -12,16 +12,17 @@ import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile_completion/ui/skill_editor_sheet.dart';
+import '../jobmatch_theme.dart';
 import '../model/job_feed_item.dart';
 import '../model/job_filters.dart';
 import '../providers/jobmatch_provider.dart';
-import '../widgets/job_details_sheet.dart';
 import '../widgets/job_filters_sheet.dart';
 import '../widgets/job_swipe_card.dart';
+import 'job_detail_page.dart';
 import 'jobmatch_matches_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 
-const _accentBlue = Color(0xFF3B82F6);
+const _accentBlue = jobMatchAccent;
 
 class JobMatchFeedPage extends StatefulWidget {
   const JobMatchFeedPage({super.key});
@@ -60,6 +61,31 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
       context.read<JobMatchProvider>().loadFeed();
       _maybeStartTour();
     });
+  }
+
+  void _openJobDetail(
+      BuildContext context, JobFeedItem job, JobMatchProvider provider) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobDetailPage(
+          title: job.title,
+          companyName: job.companyName,
+          companyLogo: job.companyLogo,
+          location: job.location,
+          isRemote: job.isRemote,
+          contractType: job.contractType,
+          salaryMin: job.salaryMin,
+          salaryMax: job.salaryMax,
+          experienceRequired: job.experienceRequired,
+          description: job.description,
+          publishedAt: job.publishedAt,
+          skills: job.skills,
+          score: job.score,
+          onInterested: () => _handleLike(job, provider),
+        ),
+      ),
+    );
   }
 
   Future<void> _maybeStartTour() async {
@@ -219,23 +245,17 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               ),
               const SizedBox(width: 16),
               _buildActionButton(
-                icon: Icons.info_outline_rounded,
+                icon: Icons.chat_bubble_outline_rounded,
                 label: 'Détails',
-                color: _accentBlue,
+                color: jobMatchAccent,
                 small: true,
-                onTap: () => showJobDetailsSheet(
-                  context,
-                  title: topJob.title,
-                  companyName: topJob.companyName,
-                  location: topJob.location,
-                  description: topJob.description,
-                ),
+                onTap: () => _openJobDetail(context, topJob, provider),
               ),
               const SizedBox(width: 16),
               _buildActionButton(
                 icon: Icons.favorite_rounded,
                 label: 'Intéressé',
-                color: Colors.green,
+                color: jobMatchLike,
                 onTap: () => _handleLike(topJob, provider),
               ),
             ],
@@ -502,12 +522,25 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                         label: "Voir l'opportunité",
                         onTap: () {
                           provider.dismissMatch();
-                          showJobDetailsSheet(
+                          Navigator.push(
                             context,
-                            title: match.jobTitle,
-                            companyName: match.companyName,
-                            location: match.location,
-                            description: match.description,
+                            MaterialPageRoute(
+                              builder: (_) => JobDetailPage(
+                                title: match.jobTitle,
+                                companyName: match.companyName,
+                                companyLogo: match.companyLogo,
+                                location: match.location,
+                                isRemote: match.isRemote,
+                                contractType: match.contractType,
+                                salaryMin: match.salaryMin,
+                                salaryMax: match.salaryMax,
+                                experienceRequired: match.experienceRequired,
+                                description: match.description,
+                                publishedAt: match.publishedAt,
+                                skills: match.skills,
+                                score: match.score,
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -631,15 +664,18 @@ class _MatchAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Carré arrondi (pas un cercle) — cf. maquette fournie pour l'écran
+    // "C'est un match !".
     return Container(
       width: 72,
       height: 72,
       padding: const EdgeInsets.all(3),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: ClipOval(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
         child: Container(
           color: _accentBlue.withValues(alpha: 0.15),
           child: imageUrl != null

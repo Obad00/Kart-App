@@ -94,6 +94,8 @@ class JobMatchResult {
   final String? description;
   final int? experienceRequired;
   final DateTime? publishedAt;
+  final String? category;
+  final List<String> skills;
 
   JobMatchResult({
     required this.id,
@@ -109,6 +111,8 @@ class JobMatchResult {
     this.description,
     this.experienceRequired,
     this.publishedAt,
+    this.category,
+    this.skills = const [],
   });
 
   factory JobMatchResult.fromJson(Map<String, dynamic> json) {
@@ -132,6 +136,8 @@ class JobMatchResult {
       description: job?['description'],
       experienceRequired: job?['experience_required'],
       publishedAt: DateTime.tryParse(job?['published_at']?.toString() ?? ''),
+      category: job?['category'],
+      skills: (job?['skills'] as List? ?? []).map((e) => e.toString()).toList(),
     );
   }
 }
@@ -149,6 +155,8 @@ class LikedJobItem {
   final String? description;
   final int? experienceRequired;
   final DateTime? publishedAt;
+  final String? category;
+  final List<String> skills;
 
   LikedJobItem({
     required this.jobId,
@@ -163,6 +171,8 @@ class LikedJobItem {
     this.description,
     this.experienceRequired,
     this.publishedAt,
+    this.category,
+    this.skills = const [],
   });
 
   factory LikedJobItem.fromJson(Map<String, dynamic> json) {
@@ -180,6 +190,8 @@ class LikedJobItem {
       description: job?['description'],
       experienceRequired: job?['experience_required'],
       publishedAt: DateTime.tryParse(job?['published_at']?.toString() ?? ''),
+      category: job?['category'],
+      skills: (job?['skills'] as List? ?? []).map((e) => e.toString()).toList(),
     );
   }
 }
