@@ -98,6 +98,15 @@ class _ExplorePageState extends State<ExplorePage> {
     });
   }
 
+  /// Tirer la page vers le bas recharge tout — cf. maquette fournie.
+  Future<void> _handleRefresh() {
+    return Future.wait([
+      _communityProvider.loadCommunities(),
+      _provider.loadUsers(),
+      _discoveryProvider.loadAll(),
+    ]);
+  }
+
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 400), () {
@@ -383,59 +392,73 @@ class _ExplorePageState extends State<ExplorePage> {
         value: _provider,
         child: SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: colors.onSurface.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
+          // La liste de postes n'est pas bornée (dépend de ce que les
+          // utilisateurs ont saisi) : sans limite de hauteur ni défilement,
+          // elle débordait tout simplement en bas de l'écran dès qu'il y
+          // avait trop de postes pour tenir (le dernier chip collé au bord,
+          // sans le padding bas prévu).
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: colors.onSurface.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  'Filtrer par poste',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: colors.onSurface),
-                ),
-                const SizedBox(height: 16),
-                Consumer<ExploreProvider>(
-                  builder: (context, p, _) => Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _FilterChip(
-                        label: 'Tous postes',
-                        active: p.jobTitleFilter.isEmpty,
-                        onTap: () {
-                          p.setJobTitleFilter('');
-                          Navigator.of(sheetContext).pop();
-                        },
-                      ),
-                      ...p.jobTitles.map((jobTitle) {
-                        final active = p.jobTitleFilter == jobTitle;
-                        return _FilterChip(
-                          label: jobTitle,
-                          active: active,
-                          onTap: () {
-                            p.setJobTitleFilter(active ? '' : jobTitle);
-                            Navigator.of(sheetContext).pop();
-                          },
-                        );
-                      }),
-                    ],
+                  Text(
+                    'Filtrer par poste',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Consumer<ExploreProvider>(
+                        builder: (context, p, _) => Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _FilterChip(
+                              label: 'Tous postes',
+                              active: p.jobTitleFilter.isEmpty,
+                              onTap: () {
+                                p.setJobTitleFilter('');
+                                Navigator.of(sheetContext).pop();
+                              },
+                            ),
+                            ...p.jobTitles.map((jobTitle) {
+                              final active = p.jobTitleFilter == jobTitle;
+                              return _FilterChip(
+                                label: jobTitle,
+                                active: active,
+                                onTap: () {
+                                  p.setJobTitleFilter(active ? '' : jobTitle);
+                                  Navigator.of(sheetContext).pop();
+                                },
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -492,7 +515,11 @@ class _ExplorePageState extends State<ExplorePage> {
             child: SafeArea(
               top: false,
               bottom: false,
-              child: _buildScrollable(topPadding),
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: _themeBlue,
+                child: _buildScrollable(topPadding),
+              ),
             ),
           ),
           Positioned(

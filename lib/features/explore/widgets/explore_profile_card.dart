@@ -88,9 +88,8 @@ class ExploreProfileCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarUrl = _avatarUrl;
     final subtitle = user.jobTitle ?? '';
-    final thirdLine = showCityInsteadOfCompany
-        ? (user.city ?? '')
-        : (user.company ?? '');
+    final thirdLine =
+        showCityInsteadOfCompany ? (user.city ?? '') : (user.company ?? '');
 
     return SizedBox(
       width: _cardWidth,
@@ -103,7 +102,8 @@ class ExploreProfileCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
+              border:
+                  Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
@@ -118,8 +118,8 @@ class ExploreProfileCard extends StatelessWidget {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(20)),
                       child: SizedBox(
                         height: 110,
                         width: double.infinity,
@@ -127,9 +127,17 @@ class ExploreProfileCard extends StatelessWidget {
                             ? CachedNetworkImage(
                                 imageUrl: avatarUrl,
                                 fit: BoxFit.cover,
+                                // topCenter plutôt que le centre par défaut :
+                                // ce cadre est bien plus large que haut
+                                // (110px), alors qu'une photo de profil est
+                                // généralement plus haute que large — center
+                                // coupait trop souvent le haut du visage.
+                                alignment: Alignment.topCenter,
                                 filterQuality: FilterQuality.high,
-                                fadeInDuration: const Duration(milliseconds: 200),
-                                placeholder: (context, url) => _avatarFallback(),
+                                fadeInDuration:
+                                    const Duration(milliseconds: 200),
+                                placeholder: (context, url) =>
+                                    _avatarFallback(),
                                 errorWidget: (context, url, error) =>
                                     _avatarFallback(),
                               )
@@ -214,7 +222,8 @@ class ExploreProfileCard extends StatelessWidget {
                                 thirdLine,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: colors.onSurface.withValues(alpha: 0.55),
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.55),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
