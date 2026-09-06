@@ -65,26 +65,22 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
 
   void _openJobDetail(
       BuildContext context, JobFeedItem job, JobMatchProvider provider) {
-    Navigator.push(
+    showJobDetailSheet(
       context,
-      MaterialPageRoute(
-        builder: (_) => JobDetailPage(
-          title: job.title,
-          companyName: job.companyName,
-          companyLogo: job.companyLogo,
-          location: job.location,
-          isRemote: job.isRemote,
-          contractType: job.contractType,
-          salaryMin: job.salaryMin,
-          salaryMax: job.salaryMax,
-          experienceRequired: job.experienceRequired,
-          description: job.description,
-          publishedAt: job.publishedAt,
-          skills: job.skills,
-          score: job.score,
-          onInterested: () => _handleLike(job, provider),
-        ),
-      ),
+      title: job.title,
+      companyName: job.companyName,
+      companyLogo: job.companyLogo,
+      location: job.location,
+      isRemote: job.isRemote,
+      contractType: job.contractType,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      experienceRequired: job.experienceRequired,
+      description: job.description,
+      publishedAt: job.publishedAt,
+      skills: job.skills,
+      score: job.score,
+      onInterested: () => _handleLike(job, provider),
     );
   }
 
@@ -522,25 +518,21 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                         label: "Voir l'opportunité",
                         onTap: () {
                           provider.dismissMatch();
-                          Navigator.push(
+                          showJobDetailSheet(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => JobDetailPage(
-                                title: match.jobTitle,
-                                companyName: match.companyName,
-                                companyLogo: match.companyLogo,
-                                location: match.location,
-                                isRemote: match.isRemote,
-                                contractType: match.contractType,
-                                salaryMin: match.salaryMin,
-                                salaryMax: match.salaryMax,
-                                experienceRequired: match.experienceRequired,
-                                description: match.description,
-                                publishedAt: match.publishedAt,
-                                skills: match.skills,
-                                score: match.score,
-                              ),
-                            ),
+                            title: match.jobTitle,
+                            companyName: match.companyName,
+                            companyLogo: match.companyLogo,
+                            location: match.location,
+                            isRemote: match.isRemote,
+                            contractType: match.contractType,
+                            salaryMin: match.salaryMin,
+                            salaryMax: match.salaryMax,
+                            experienceRequired: match.experienceRequired,
+                            description: match.description,
+                            publishedAt: match.publishedAt,
+                            skills: match.skills,
+                            score: match.score,
                           );
                         },
                       ),

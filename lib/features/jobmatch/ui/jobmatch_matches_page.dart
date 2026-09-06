@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../jobmatch_theme.dart';
 import '../model/job_feed_item.dart';
+import '../providers/jobmatch_provider.dart';
 import '../services/jobmatch_service.dart';
 import 'job_detail_page.dart';
 
@@ -103,47 +105,39 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
   }
 
   void _openMatchDetail(JobMatchResult match) {
-    Navigator.push(
+    showJobDetailSheet(
       context,
-      MaterialPageRoute(
-        builder: (_) => JobDetailPage(
-          title: match.jobTitle,
-          companyName: match.companyName,
-          companyLogo: match.companyLogo,
-          location: match.location,
-          isRemote: match.isRemote,
-          contractType: match.contractType,
-          salaryMin: match.salaryMin,
-          salaryMax: match.salaryMax,
-          experienceRequired: match.experienceRequired,
-          description: match.description,
-          publishedAt: match.publishedAt,
-          skills: match.skills,
-          score: match.score,
-        ),
-      ),
+      title: match.jobTitle,
+      companyName: match.companyName,
+      companyLogo: match.companyLogo,
+      location: match.location,
+      isRemote: match.isRemote,
+      contractType: match.contractType,
+      salaryMin: match.salaryMin,
+      salaryMax: match.salaryMax,
+      experienceRequired: match.experienceRequired,
+      description: match.description,
+      publishedAt: match.publishedAt,
+      skills: match.skills,
+      score: match.score,
     );
   }
 
   void _openJobDetail(LikedJobItem job) {
-    Navigator.push(
+    showJobDetailSheet(
       context,
-      MaterialPageRoute(
-        builder: (_) => JobDetailPage(
-          title: job.jobTitle,
-          companyName: job.companyName,
-          companyLogo: job.companyLogo,
-          location: job.location,
-          isRemote: job.isRemote,
-          contractType: job.contractType,
-          salaryMin: job.salaryMin,
-          salaryMax: job.salaryMax,
-          experienceRequired: job.experienceRequired,
-          description: job.description,
-          publishedAt: job.publishedAt,
-          skills: job.skills,
-        ),
-      ),
+      title: job.jobTitle,
+      companyName: job.companyName,
+      companyLogo: job.companyLogo,
+      location: job.location,
+      isRemote: job.isRemote,
+      contractType: job.contractType,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      experienceRequired: job.experienceRequired,
+      description: job.description,
+      publishedAt: job.publishedAt,
+      skills: job.skills,
     );
   }
 
@@ -152,6 +146,12 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       await _service.unswipe(job.jobId);
       if (!mounted) return;
       setState(() => _rejected.removeWhere((r) => r.jobId == job.jobId));
+      // Sans ça, l'offre ne réapparaissait dans le fil de suggestions
+      // (JobMatchProvider, une instance globale et durable, pas recréée à
+      // chaque ouverture de ce tableau de bord) qu'après un redémarrage
+      // complet de l'app — ce qui donnait l'impression que "reconsidérer"
+      // ne marchait pas vraiment.
+      if (mounted) context.read<JobMatchProvider>().loadFeed();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${job.jobTitle} est de retour dans votre fil')),
       );

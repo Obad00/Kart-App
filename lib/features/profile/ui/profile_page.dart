@@ -36,6 +36,7 @@ import '../../profile_completion/widgets/completion_sections.dart';
 import '../../profile_completion/ui/completion_form_page.dart';
 import '../../profile_completion/providers/profile_completion_provider.dart';
 import '../../profile_completion/providers/candidate_skills_provider.dart';
+import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -328,6 +329,8 @@ class _ProfilePageState extends State<ProfilePage>
 
     final completionModel = context.watch<ProfileCompletionProvider>().model;
     final skillsCount = context.watch<CandidateSkillsProvider>().skills.length;
+    final connectionsCount =
+        context.watch<ContactsProvider>().allContacts.length;
     final kartScore = CompletionHelper.calculate(
       completionModel,
       hasSkills: skillsCount > 0,
@@ -528,12 +531,13 @@ class _ProfilePageState extends State<ProfilePage>
                 child: _buildProfileStat(
                   colors,
                   companyColor,
-                  icon: Icons.star_outline_rounded,
-                  label: 'Compétences',
-                  // Juste le nombre — le libellé "Compétences" au-dessus
-                  // dit déjà de quoi il s'agit, pas besoin de le répéter
-                  // dans la valeur (cf. "23" plutôt que "23 compétences").
-                  value: skillsCount > 0 ? '$skillsCount' : '—',
+                  icon: Icons.people_alt_outlined,
+                  // "Connexions" (nombre total de contacts) plutôt que
+                  // "Compétences" ici — les compétences ont déjà leur
+                  // propre section détaillée plus bas sur la page, ce
+                  // chiffre-ci a plus sa place en aperçu rapide du réseau.
+                  label: 'Connexions',
+                  value: connectionsCount > 0 ? '$connectionsCount' : '—',
                 ),
               ),
               VerticalDivider(
