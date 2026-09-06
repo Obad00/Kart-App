@@ -35,7 +35,6 @@ class CompletionSections extends StatefulWidget {
 
 class _CompletionSectionsState extends State<CompletionSections> {
   bool _socialExpanded = false;
-  bool _educationsExpanded = false;
   bool _skillsExpanded = false;
   bool _interestsExpanded = false;
 
@@ -526,174 +525,304 @@ class _CompletionSectionsState extends State<CompletionSections> {
 
   Widget _buildEducationsSection(
       BuildContext context, ColorScheme colors, dynamic model) {
+    const accentColor = Color(0xFF8B5CF6);
     final allEducations = model.educations as List;
     // Plus récente en premier — même logique que les expériences.
     final educations = [...allEducations]
       ..sort((a, b) => (b.startYear ?? 0).compareTo(a.startYear ?? 0));
+    final preview = educations.take(3).toList();
 
-    // Plus de carte (fond + bordure) : cf. commentaire de ProfilePage._buildSection.
+    // Toujours visible (comme Expériences) plutôt que repliée par défaut :
+    // une section repliée au premier rendu ("_educationsExpanded = false")
+    // donnait l'impression qu'une formation ajoutée avait "disparu" tant
+    // qu'on n'avait pas pensé à rouvrir la section.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(
-          colors,
-          icon: Icons.school_outlined,
-          title: 'Formation',
-          onAddTap: () =>
-              _openForm(context, section: 'educations', addOnly: true),
-          expanded: _educationsExpanded,
-          onToggle: () =>
-              setState(() => _educationsExpanded = !_educationsExpanded),
-        ),
-        if (_educationsExpanded) ...[
-          if (educations.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.school_outlined,
-                      size: 18, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  // Expanded : sans lui, un réglage d'accessibilité type
-                  // "Texte plus grand" (courant sur iPhone mini/SE, écran
-                  // étroit) peut faire déborder ce libellé au lieu de le
-                  // faire simplement passer à la ligne.
-                  Expanded(
-                    child: Text(
-                      'Aucune formation ajoutée',
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.school_outlined,
+                    size: 16, color: accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Formation',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface),
+                ),
+              ),
+              if (allEducations.isNotEmpty) ...[
+                GestureDetector(
+                  onTap: () =>
+                      _openForm(context, section: 'educations', addOnly: true),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(Icons.add_rounded,
+                        size: 16, color: accentColor),
+                  ),
+                ),
+                if (educations.length > 3) ...[
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _showAllEducations(
+                        context, colors, educations, allEducations),
+                    child: const Text(
+                      'Voir tout',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: colors.onSurface.withValues(alpha: 0.4),
-                      ),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: accentColor),
                     ),
                   ),
                 ],
-              ),
-            )
-          else
-            ...educations.asMap().entries.map((entry) {
-              final i = entry.key;
-              final edu = entry.value;
-              final degree = edu.degree ?? '';
-              final school = edu.school ?? '';
-              final field = edu.field ?? '';
-              final startYear = edu.startYear?.toString() ?? '';
-              final endYear = edu.endYear?.toString() ?? '';
-
-              return Column(
-                children: [
-                  if (i > 0)
-                    Divider(
-                        height: 1,
-                        color: colors.onSurface.withValues(alpha: 0.05)),
-                  // Tap = ouvrir le formulaire complet pour modifier ou
-                  // supprimer cette formation (seul moyen d'y accéder :
-                  // le "+" de l'en-tête n'ouvre plus qu'une carte vierge,
-                  // cf. addOnly sur CompletionFormPage).
-                  InkWell(
-                    onTap: () => _openForm(
-                      context,
-                      section: 'educations',
-                      editIndex: allEducations.indexOf(edu),
+              ],
+            ],
+          ),
+        ),
+        if (educations.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+            child: Row(
+              children: [
+                const Icon(Icons.school_outlined,
+                    size: 18, color: Colors.orange),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Aucune formation ajoutée',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      _openForm(context, section: 'educations', addOnly: true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: accentColor,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Ajouter',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+            child: Column(
+              children: preview.asMap().entries.map((entry) {
+                return _buildEducationRow(
+                  context,
+                  colors,
+                  entry.value,
+                  allEducations,
+                  showDivider: entry.key > 0,
+                  accentColor: accentColor,
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Liste complète des formations en lecture seule, ouverte via
+  /// "Voir tout" — même présentation que _showAllExperiences.
+  void _showAllEducations(BuildContext context, ColorScheme colors,
+      List<dynamic> sorted, List<dynamic> allEducations) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Formation',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...sorted.asMap().entries.map((entry) => _buildEducationRow(
+                    context,
+                    colors,
+                    entry.value,
+                    allEducations,
+                    showDivider: entry.key > 0,
+                    accentColor: const Color(0xFF8B5CF6),
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Une ligne de formation, réutilisée par l'aperçu (3 max) et "Voir
+  /// tout" — tap = ouvrir le formulaire complet pour modifier/supprimer
+  /// cette formation précise (seul moyen d'y accéder : le "+" de l'en-tête
+  /// n'ouvre plus qu'une carte vierge, cf. addOnly sur CompletionFormPage).
+  Widget _buildEducationRow(
+    BuildContext context,
+    ColorScheme colors,
+    dynamic edu,
+    List<dynamic> allEducations, {
+    required bool showDivider,
+    required Color accentColor,
+  }) {
+    final degree = edu.degree ?? '';
+    final school = edu.school ?? '';
+    final field = edu.field ?? '';
+    final startYear = edu.startYear?.toString() ?? '';
+    final endYear = edu.endYear?.toString() ?? '';
+
+    return Column(
+      children: [
+        if (showDivider)
+          Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.05)),
+        InkWell(
+          onTap: () => _openForm(
+            context,
+            section: 'educations',
+            editIndex: allEducations.indexOf(edu),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.school_outlined,
+                      size: 18, color: accentColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        degree,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        school,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: accentColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Wrap plutôt que Row : sur un écran étroit (iPhone
+                      // mini/SE), une filière longue combinée aux années
+                      // dépassait la largeur disponible et provoquait un
+                      // débordement (texte tronqué/coupé) — ici la puce
+                      // passe simplement à la ligne suivante.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6)
-                                  .withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
+                          if (field.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: accentColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                field,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: accentColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            child: const Icon(Icons.school_outlined,
-                                size: 18, color: Color(0xFF8B5CF6)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  degree,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  school,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF8B5CF6),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                // Wrap plutôt que Row : sur un écran étroit
-                                // (iPhone mini/SE), une filière longue
-                                // combinée aux années dépassait la largeur
-                                // disponible et provoquait un débordement
-                                // (texte tronqué/coupé) — ici la puce passe
-                                // simplement à la ligne suivante.
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    if (field.isNotEmpty)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF8B5CF6)
-                                              .withValues(alpha: 0.08),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          field,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF8B5CF6),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    Text(
-                                      '$startYear - $endYear',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: colors.onSurface
-                                            .withValues(alpha: 0.45),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          Text(
+                            '$startYear - $endYear',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.45),
                             ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: colors.onSurface.withValues(alpha: 0.3),
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              );
-            }),
-          const SizedBox(height: 8),
-        ],
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: colors.onSurface.withValues(alpha: 0.3),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

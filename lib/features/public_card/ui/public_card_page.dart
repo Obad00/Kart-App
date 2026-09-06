@@ -47,6 +47,12 @@ class _PublicCardPageState extends State<PublicCardPage>
   final _service = PublicCardService();
   Map<String, dynamic>? card;
   bool isLoading = true;
+  // "Voir plus" pour Compétences/Centres d'intérêt au-delà de _chipsPreviewCount
+  // puces — sans ça, un profil bien rempli étalait des dizaines de puces
+  // d'un coup.
+  bool _skillsExpanded = false;
+  bool _interestsExpanded = false;
+  static const _chipsPreviewCount = 8;
 
   // Vrai si ce profil est déjà un contact — soit parce que la page a été
   // ouverte depuis la liste des contacts (widget.contactId), soit parce
@@ -1197,13 +1203,13 @@ class _PublicCardPageState extends State<PublicCardPage>
                       fontSize: 14,
                       color: colors.onSurface.withValues(alpha: 0.4)),
                 )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: skills
-                      .map((s) =>
-                          SkillChip(label: s, color: const Color(0xFF10B981)))
-                      .toList(),
+              : _buildChipsWithToggle(
+                  colors,
+                  items: skills,
+                  color: const Color(0xFF10B981),
+                  expanded: _skillsExpanded,
+                  onToggle: () =>
+                      setState(() => _skillsExpanded = !_skillsExpanded),
                 ),
         ),
       ],
@@ -1227,15 +1233,66 @@ class _PublicCardPageState extends State<PublicCardPage>
                       fontSize: 14,
                       color: colors.onSurface.withValues(alpha: 0.4)),
                 )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: interests
-                      .map((i) =>
-                          SkillChip(label: i, color: _interestsAccentColor))
-                      .toList(),
+              : _buildChipsWithToggle(
+                  colors,
+                  items: interests,
+                  color: _interestsAccentColor,
+                  expanded: _interestsExpanded,
+                  onToggle: () =>
+                      setState(() => _interestsExpanded = !_interestsExpanded),
                 ),
         ),
+      ],
+    );
+  }
+
+  /// Puces (compétences/centres d'intérêt) limitées à _chipsPreviewCount
+  /// avec un "Voir plus/Voir moins" au-delà — sans ça, un profil bien
+  /// rempli étalait des dizaines de puces d'un coup.
+  Widget _buildChipsWithToggle(
+    ColorScheme colors, {
+    required List<String> items,
+    required Color color,
+    required bool expanded,
+    required VoidCallback onToggle,
+  }) {
+    final overflowing = items.length > _chipsPreviewCount;
+    final visible =
+        expanded || !overflowing ? items : items.take(_chipsPreviewCount);
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ...visible.map((i) => SkillChip(label: i, color: color)),
+        if (overflowing)
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    expanded ? 'Voir moins' : 'Voir plus',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 18, color: color),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
