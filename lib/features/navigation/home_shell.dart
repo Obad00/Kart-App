@@ -81,17 +81,16 @@ class _HomeShellState extends State<HomeShell>
   late List<AnimationController> _scaleControllers;
   late List<Animation<double>> _scaleAnimations;
 
-  // Pilule de nav qui rapetisse quand on scrolle vers le bas et retrouve sa
-  // taille normale en scrollant vers le haut (façon Instagram) — cf.
+  // Pilule de nav qui rapetisse en continu à mesure qu'on scrolle vers le
+  // bas et retrouve sa taille normale en scrollant vers le haut (façon
+  // Instagram) — 0 = taille normale, 1 = complètement rapetissée. Un
+  // basculement bool + seuil (essayé avant) créait soit une "zone morte"
+  // avant que quoi que ce soit ne bouge, soit un effet qui "saute"
+  // brusquement une fois le seuil franchi ; ici la taille suit
+  // continuellement le doigt dès le premier pixel, cf.
   // _handleScrollNotification.
-  bool _navCollapsed = false;
-
-  // Accumulateur de défilement dans le sens courant, remis à zéro dès que
-  // le sens change — évite de rétrécir/agrandir la pilule dès le moindre
-  // frémissement (ex: rebond en haut/bas de liste), effet jugé trop
-  // brusque avec un simple UserScrollNotification.direction.
-  double _scrollAccum = 0;
-  static const _navToggleThreshold = 32.0;
+  double _navCollapseProgress = 0;
+  static const _navShrinkDistance = 70.0;
 
   // Une clé par slot de nav (5 slots toujours alloués, comme pour
   // _scaleControllers — le 5e, JobMatch, n'est simplement pas montré au
@@ -447,33 +446,22 @@ class _HomeShellState extends State<HomeShell>
     ];
   }
 
-  /// Rétrécit la pilule de nav quand le contenu de l'onglet actif défile
-  /// vers le bas, la restaure quand il défile vers le haut — même geste
-  /// qu'Instagram. Accumule le déplacement réel (ScrollUpdateNotification)
-  /// plutôt que de basculer dès le premier pixel d'un
-  /// UserScrollNotification.direction : ce dernier réagissait à la moindre
-  /// oscillation (rebond de liste, micro-tremblement du doigt), un effet
-  /// jugé trop brusque — ici il faut un vrai geste de _navToggleThreshold
-  /// pixels dans un sens avant de basculer.
+  /// Rétrécit la pilule de nav en continu, proportionnellement au
+  /// défilement réel (ScrollUpdateNotification.scrollDelta), plutôt que de
+  /// basculer d'un coup une fois un seuil franchi — ça bouge dès le
+  /// premier pixel de scroll (pas de "zone morte") mais sans jamais
+  /// "sauter" brusquement, puisque la taille suit continuellement le
+  /// doigt.
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification) {
       final delta = notification.scrollDelta ?? 0;
       if (delta == 0) return false;
 
-      // Un changement de sens repart de zéro plutôt que de continuer à
-      // accumuler dans l'ancien sens.
-      if ((delta > 0) != (_scrollAccum > 0)) _scrollAccum = 0;
-      _scrollAccum += delta;
-
-      if (_scrollAccum > _navToggleThreshold && !_navCollapsed) {
-        setState(() => _navCollapsed = true);
-        _scrollAccum = 0;
-      } else if (_scrollAccum < -_navToggleThreshold && _navCollapsed) {
-        setState(() => _navCollapsed = false);
-        _scrollAccum = 0;
+      final next =
+          (_navCollapseProgress + delta / _navShrinkDistance).clamp(0.0, 1.0);
+      if (next != _navCollapseProgress) {
+        setState(() => _navCollapseProgress = next);
       }
-    } else if (notification is ScrollEndNotification) {
-      _scrollAccum = 0;
     }
     return false;
   }
@@ -592,9 +580,13 @@ class _HomeShellState extends State<HomeShell>
         // taille des icônes/texte à chaque palier, tout rapetisse d'un bloc
         // en gardant ses proportions.
         child: AnimatedScale(
-          scale: _navCollapsed ? 0.88 : 1.0,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
+          // 1.0 -> 0.88 en suivant _navCollapseProgress en continu. Durée
+          // très courte : juste de quoi lisser les à-coups entre deux
+          // notifications de scroll consécutives, sans ajouter de retard
+          // perceptible par rapport au doigt.
+          scale: 1.0 - (0.12 * _navCollapseProgress),
+          duration: const Duration(milliseconds: 80),
+          curve: Curves.linear,
           child: ClipRRect(
             // Même rayon que les cartes du design system (AppTheme.cardRadius)
             // — une seule source de vérité pour l'arrondi de toute l'UI.
