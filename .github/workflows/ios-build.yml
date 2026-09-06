@@ -224,31 +224,48 @@ jobs:
               }
               return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
 
-          def api_request(url, data=None, method=None):
+          def api_request(url, data=None, method=None, retries=3):
               headers = {
                   "Authorization": f"Bearer {make_token()}",
                   "Content-Type": "application/json"
               }
-              req = urllib.request.Request(
-                  url,
-                  data=json.dumps(data).encode() if data else None,
-                  headers=headers,
-                  method=method or ("POST" if data else "GET")
-              )
-              try:
-                  with urllib.request.urlopen(req) as resp:
-                      body = resp.read()
-                      # Un DELETE réussi renvoie souvent 204 No Content (corps
-                      # vide) — ce n'est pas une erreur, il ne faut juste pas
-                      # tenter de le parser en JSON.
-                      if not body:
-                          return None
-                      return json.loads(body)
-              except urllib.error.HTTPError as e:
-                  error_body = e.read().decode()
-                  print(f"::error::Apple API a renvoyé {e.code} pour {method or ('POST' if data else 'GET')} {url}")
-                  print(f"::error::Détail: {error_body}")
-                  raise
+              verb = method or ("POST" if data else "GET")
+              for attempt in range(1, retries + 1):
+                  req = urllib.request.Request(
+                      url,
+                      data=json.dumps(data).encode() if data else None,
+                      headers=headers,
+                      method=verb
+                  )
+                  try:
+                      with urllib.request.urlopen(req) as resp:
+                          body = resp.read()
+                          # Un DELETE réussi renvoie souvent 204 No Content (corps
+                          # vide) — ce n'est pas une erreur, il ne faut juste pas
+                          # tenter de le parser en JSON.
+                          if not body:
+                              return None
+                          return json.loads(body)
+                  except urllib.error.HTTPError as e:
+                      error_body = e.read().decode()
+                      # Un 5xx côté Apple (ex: 500 UNEXPECTED_ERROR) est
+                      # généralement transitoire — parfois le simple délai de
+                      # propagation d'une ressource tout juste créée (le
+                      # certificat de distribution qu'on vient de générer
+                      # n'est peut-être pas encore visible partout côté Apple
+                      # au moment où le profil le référence). On retente donc
+                      # avec un backoff court avant d'abandonner — un 4xx, lui,
+                      # signale un vrai problème (requête invalide, quota...)
+                      # et ne doit jamais être retenté silencieusement.
+                      if e.code >= 500 and attempt < retries:
+                          wait = 5 * attempt
+                          print(f"⏳ Apple API a renvoyé {e.code} pour {verb} {url} (tentative {attempt}/{retries}), nouvel essai dans {wait}s...")
+                          print(f"   Détail: {error_body}")
+                          time.sleep(wait)
+                          continue
+                      print(f"::error::Apple API a renvoyé {e.code} pour {verb} {url}")
+                      print(f"::error::Détail: {error_body}")
+                      raise
 
           # 1. Révocation des certificats de Distribution existants, puis création d'un nouveau.
           # IMPORTANT : l'API App Store Connect ne renvoie JAMAIS la clé privée d'un
