@@ -1582,12 +1582,15 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
+  // 'skills' est un champ à plat renvoyé directement par le backend
+  // (User::skills), pas un champ social passé par _getFieldValue (qui ne
+  // lit que 'fields' — LinkedIn/téléphone/etc.) : lire par erreur via
+  // _getFieldValue('skills') renvoyait toujours une liste vide, même pour
+  // un profil avec de vraies compétences.
   List<String> _skillsList() {
-    return _getFieldValue('skills')
-        .split(',')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
+    final raw = card?['skills'];
+    if (raw is! List) return [];
+    return raw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
   }
 
   List<Map<String, dynamic>> _socialProfiles() {
