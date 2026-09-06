@@ -799,14 +799,21 @@ class _HomeShellState extends State<HomeShell>
                       child: selected
                           ? Padding(
                               padding: const EdgeInsets.only(left: 6),
-                              child: Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: primaryColor,
+                              // FittedBox plutôt que de laisser l'ellipse
+                              // tronquer : sur 5 onglets, "Offres" (le
+                              // libellé le plus long) finissait coupé en
+                              // "Offr..." dans l'espace disponible — ici il
+                              // rétrécit légèrement au lieu d'être tronqué.
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryColor,
+                                  ),
                                 ),
                               ),
                             )

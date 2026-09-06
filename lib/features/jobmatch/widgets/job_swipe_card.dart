@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../jobmatch_theme.dart';
+import '../model/contract_type_label.dart';
 import '../model/job_feed_item.dart';
 
 class JobSwipeCard extends StatefulWidget {
@@ -365,7 +366,9 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                                     ?.isNotEmpty ==
                                 true)
                               job.isRemote ? 'À distance' : job.location,
-                            job.contractType,
+                            job.contractType != null
+                                ? contractTypeLabel(job.contractType!)
+                                : null,
                             job.isRemote ? 'Hybride' : null,
                           ].whereType<String>().join(' · '),
                           style: const TextStyle(
@@ -392,7 +395,8 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ...job.skills.take(3).map((s) => _buildChip(s)),
                             if (job.skills.isEmpty) ...[
                               if (job.contractType != null)
-                                _buildChip(job.contractType!),
+                                _buildChip(
+                                    contractTypeLabel(job.contractType!)),
                               if (job.experienceRequired != null)
                                 _buildChip(
                                   "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''}",

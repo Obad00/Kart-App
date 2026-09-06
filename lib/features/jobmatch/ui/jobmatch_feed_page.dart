@@ -236,7 +236,13 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         20,
         12,
         20,
-        24 + BottomNavMetrics.reservedHeight,
+        // bottomInset() (safe area + pilule), pas juste reservedHeight
+        // (pilule seule) : sans la vraie safe area du bas (l'encoche du
+        // bas / home indicator), les boutons Passer/Sauvegarder/Détails/
+        // Intéressé finissaient collés contre la pilule de nav sur un
+        // iPhone à encoche, au lieu de garder un vrai espace au-dessus.
+        24 +
+            BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
       ),
       child: Column(
         children: [

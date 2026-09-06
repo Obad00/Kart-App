@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../model/contract_type_label.dart';
 import '../model/job_filters.dart';
 import '../providers/jobmatch_provider.dart';
 
@@ -174,7 +175,9 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
                           colors,
                           icon: Icons.description_outlined,
                           label: 'Type de contrat',
-                          value: _draft.contractType ?? 'Indifférent',
+                          value: _draft.contractType != null
+                              ? contractTypeLabel(_draft.contractType!)
+                              : 'Indifférent',
                           onTap: options == null
                               ? null
                               : () async {
@@ -182,7 +185,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
                                     context,
                                     title: 'Type de contrat',
                                     options: options.contractTypes,
-                                    labelOf: (s) => s,
+                                    labelOf: contractTypeLabel,
                                   );
                                   if (picked == null) return;
                                   setState(() => _draft =

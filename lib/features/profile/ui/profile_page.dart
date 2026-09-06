@@ -337,8 +337,12 @@ class _ProfilePageState extends State<ProfilePage>
                     // 40 de respiration + la pilule de nav flottante de
                     // HomeShell (extendBody : la safe area seule ne
                     // suffit plus à protéger le dernier élément).
-                    const SizedBox(
-                        height: 40 + BottomNavMetrics.reservedHeight),
+                    // bottomInset() (safe area + pilule), pas
+                    // reservedHeight seul, cf. bottom_nav_metrics.dart.
+                    SizedBox(
+                        height: 40 +
+                            BottomNavMetrics.bottomInset(
+                                MediaQuery.of(context).padding.bottom)),
                   ],
                 ),
               ),

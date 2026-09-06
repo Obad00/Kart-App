@@ -732,7 +732,11 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       // area transmis ici ne compte déjà plus la pilule elle-même).
       padding: EdgeInsets.only(
         top: 4,
-        bottom: 24 + BottomNavMetrics.reservedHeight,
+        // bottomInset() (safe area + pilule), pas reservedHeight seul
+        // (pilule sans la safe area) — cf. son propre commentaire dans
+        // bottom_nav_metrics.dart.
+        bottom: 24 +
+            BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
       ),
       sliver: SliverList.builder(
         itemCount: contacts.length,

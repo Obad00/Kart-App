@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../jobmatch_theme.dart';
+import '../model/contract_type_label.dart';
 
 /// Détail complet d'une offre — feuille modale (DraggableScrollableSheet),
 /// même présentation que "Voir tout" pour Expériences/Formation sur la
@@ -118,7 +119,7 @@ class _JobDetailSheetContent extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final metaParts = [
       if (isRemote) 'À distance' else location,
-      contractType,
+      contractType != null ? contractTypeLabel(contractType!) : null,
     ].where((e) => e != null && e.isNotEmpty).join(' · ');
 
     return Column(

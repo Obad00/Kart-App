@@ -156,7 +156,12 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('"J\'aime" retiré de ${job.jobTitle}')),
       );
-    } catch (_) {
+    } catch (e) {
+      // Erreur non identifiée statiquement (l'endpoint DELETE est
+      // pourtant générique et identique pour un rejet ou un "j'aime") —
+      // logguée en clair pour pouvoir enfin la diagnostiquer si elle se
+      // reproduit.
+      debugPrint('⚠️ Échec unswipe: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erreur, réessayez')),
@@ -178,7 +183,12 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${job.jobTitle} est de retour dans votre fil')),
       );
-    } catch (_) {
+    } catch (e) {
+      // Erreur non identifiée statiquement (l'endpoint DELETE est
+      // pourtant générique et identique pour un rejet ou un "j'aime") —
+      // logguée en clair pour pouvoir enfin la diagnostiquer si elle se
+      // reproduit.
+      debugPrint('⚠️ Échec unswipe: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erreur, réessayez')),
@@ -269,48 +279,65 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       child: Row(
         children: [
           Expanded(
-              child:
-                  _buildStat('Matchs', summary.matches, Colors.green, colors)),
+              child: _buildStat('Matchs', summary.matches, Colors.green, colors,
+                  tabIndex: 0)),
           const SizedBox(width: 10),
           Expanded(
-              child: _buildStat('Aimées', summary.liked, _accentBlue, colors)),
-          const SizedBox(width: 10),
-          Expanded(
-              child: _buildStat(
-                  'Passées', summary.rejected, Colors.orange, colors)),
+              child: _buildStat('Aimées', summary.liked, _accentBlue, colors,
+                  tabIndex: 1)),
           const SizedBox(width: 10),
           Expanded(
               child: _buildStat(
-                  'Sauvées', summary.saved, Colors.amber.shade700, colors)),
+                  'Passées', summary.rejected, Colors.orange, colors,
+                  tabIndex: 2)),
+          const SizedBox(width: 10),
+          Expanded(
+              child: _buildStat(
+                  'Sauvées', summary.saved, Colors.amber.shade700, colors,
+                  tabIndex: 3)),
         ],
       ),
     );
   }
 
-  Widget _buildStat(String label, int value, Color color, ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w800, color: color),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface.withValues(alpha: 0.5)),
-          ),
-        ],
+  Widget _buildStat(
+    String label,
+    int value,
+    Color color,
+    ColorScheme colors, {
+    required int tabIndex,
+  }) {
+    return InkWell(
+      // Tape la stat = bascule directement sur l'onglet correspondant, au
+      // lieu de forcer à chercher le bon onglet dans le TabBar juste
+      // au-dessus — sans onTap ici, cette rangée entière était purement
+      // décorative.
+      onTap: () => _tabController.animateTo(tabIndex),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$value',
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w800, color: color),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface.withValues(alpha: 0.5)),
+            ),
+          ],
+        ),
       ),
     );
   }
