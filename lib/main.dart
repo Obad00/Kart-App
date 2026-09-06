@@ -69,6 +69,7 @@ import 'features/profile/services/professional_document_service.dart';
 import 'features/jobmatch/providers/jobmatch_provider.dart';
 import 'features/jobmatch/services/jobmatch_service.dart';
 import 'features/explore/providers/connection_badge_provider.dart';
+import 'shared/tour/tab_bar_tour_gate.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -167,6 +168,14 @@ class _KartAppState extends State<KartApp> {
                     Expanded(child: child!),
                   ],
                 ),
+                // Débloque les tours secondaires (Profil, Explorer...) qui
+                // attendent que celui de la barre de nav soit terminé — cf.
+                // TabBarTourGate. Appelé à la fin de CHAQUE séquence de
+                // showcase, mais comme les tours secondaires n'en déclenchent
+                // aucune tant que la porte n'est pas ouverte, la toute
+                // première à se terminer est nécessairement celle de la
+                // barre de nav (ou rien, si elle a été sautée/déjà vue).
+                onFinish: () => TabBarTourGate.open(),
                 // Boutons Précédent/Passer/Suivant affichés sur CHAQUE guide
                 // de l'app (tous écrans confondus) — pas besoin de les
                 // redéfinir par tour. "Passer" ferme juste l'overlay ; le

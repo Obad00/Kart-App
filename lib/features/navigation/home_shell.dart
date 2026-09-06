@@ -1,7 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +24,7 @@ import '../profile_completion/ui/completion_form_page.dart';
 import '../contacts/ui/contacts_page.dart';
 import '../explore/ui/explore_page.dart';
 import '../../shared/tour/tour_prefs.dart';
+import '../../shared/tour/tab_bar_tour_gate.dart';
 import '../../shared/utils/session_reset.dart';
 import '../explore/providers/connection_badge_provider.dart';
 
@@ -86,6 +86,13 @@ class _HomeShellState extends State<HomeShell>
   // _handleScrollNotification.
   bool _navCollapsed = false;
 
+  // Accumulateur de défilement dans le sens courant, remis à zéro dès que
+  // le sens change — évite de rétrécir/agrandir la pilule dès le moindre
+  // frémissement (ex: rebond en haut/bas de liste), effet jugé trop
+  // brusque avec un simple UserScrollNotification.direction.
+  double _scrollAccum = 0;
+  static const _navToggleThreshold = 32.0;
+
   // Une clé par slot de nav (5 slots toujours alloués, comme pour
   // _scaleControllers — le 5e, JobMatch, n'est simplement pas montré au
   // tour si l'item n'est pas rendu pour cet utilisateur).
@@ -142,7 +149,10 @@ class _HomeShellState extends State<HomeShell>
       if (widget.openDashboardTab != null) {
         // Vient d'un deep link (mail d'intérêt candidat ou de match) :
         // priorité à la navigation demandée, pas de tour guidé cette
-        // fois-ci pour ne pas superposer deux overlays.
+        // fois-ci pour ne pas superposer deux overlays. Le tour de la
+        // barre de nav ne démarrera jamais dans ce cas : débloquer
+        // directement les tours secondaires qui attendent ce signal.
+        TabBarTourGate.open();
         _openDashboardPage(widget.openDashboardTab!);
       } else {
         _maybeStartTour();
@@ -327,13 +337,33 @@ class _HomeShellState extends State<HomeShell>
   }
 
   Future<void> _maybeStartTour() async {
+    // Filet de sécurité : un échec n'importe où dans cette séquence (ex:
+    // loadCardSummary() qui échoue) ne doit jamais laisser TabBarTourGate
+    // fermée pour de bon, sans quoi les tours secondaires (Profil,
+    // Explorer...) resteraient bloqués indéfiniment à l'attendre.
+    try {
+      await _doMaybeStartTour();
+    } catch (e) {
+      debugPrint('⚠️ _maybeStartTour a échoué: $e');
+      TabBarTourGate.open();
+    }
+  }
+
+  Future<void> _doMaybeStartTour() async {
     if (!mounted) return;
 
     if (!widget.forceTourReplay && await TourPrefs.hasSeen(_tourKey)) {
+      // Rien à montrer : débloque tout de suite les tours secondaires
+      // (Profil, Explorer...) qui attendent ce signal avant de démarrer
+      // le leur, cf. TabBarTourGate.
+      TabBarTourGate.open();
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      TabBarTourGate.open();
+      return;
+    }
 
     final showJobMatch =
         canAccessJobMatch(context.read<AuthProvider>().user?.plan);
@@ -347,7 +377,10 @@ class _HomeShellState extends State<HomeShell>
     if (_index == 0) {
       final cardProvider = context.read<CardProvider>();
       await cardProvider.loadCardSummary();
-      if (!mounted) return;
+      if (!mounted) {
+        TabBarTourGate.open();
+        return;
+      }
 
       keys.add(_highlightBarKey);
       if (cardProvider.status == CardStatus.noCard) {
@@ -364,7 +397,14 @@ class _HomeShellState extends State<HomeShell>
     // le guide jusqu'au bout ou clique "Passer" en cours de route, il ne
     // doit plus jamais redémarrer tout seul après.
     await TourPrefs.markSeen(_tourKey);
-    if (!mounted) return;
+    if (!mounted) {
+      TabBarTourGate.open();
+      return;
+    }
+    // Ne PAS ouvrir TabBarTourGate ici : elle doit rester fermée tant que
+    // cette séquence n'est pas réellement terminée à l'écran (cf.
+    // ShowCaseWidget.onFinish dans main.dart), sans quoi un tour secondaire
+    // (Profil, Explorer...) pourrait démarrer par-dessus celui-ci.
     ShowCaseWidget.of(context).startShowCase(keys);
   }
 
@@ -385,6 +425,12 @@ class _HomeShellState extends State<HomeShell>
   }
 
   List<Widget> _pages(bool showJobMatch) {
+    // Indices d'Explorer/Profil selon la présence de l'onglet Offres —
+    // permet à isActive (ci-dessous) de savoir précisément si CET onglet
+    // est bien celui affiché, pour ne déclencher son tour local qu'à ce
+    // moment-là (cf. ProfilePage.isActive / ExplorePage.isActive).
+    final exploreIndex = showJobMatch ? 3 : 2;
+    final profileIndex = showJobMatch ? 4 : 3;
     return [
       MyDigitalCardPage(
         highlightBarKey: _highlightBarKey,
@@ -393,27 +439,59 @@ class _HomeShellState extends State<HomeShell>
       ),
       const ContactsPage(),
       if (showJobMatch) const JobMatchFeedPage(),
-      ExplorePage(initialTabIndex: widget.openExploreTab ?? 0),
-      const ProfilePage(),
+      ExplorePage(
+        initialTabIndex: widget.openExploreTab ?? 0,
+        isActive: _index == exploreIndex,
+      ),
+      ProfilePage(isActive: _index == profileIndex),
     ];
   }
 
   /// Rétrécit la pilule de nav quand le contenu de l'onglet actif défile
   /// vers le bas, la restaure quand il défile vers le haut — même geste
-  /// qu'Instagram. `UserScrollNotification` (plutôt que `ScrollNotification`
-  /// brut) : ne réagit qu'à un scroll initié par le doigt, pas à un
-  /// ajustement programmatique (ex: liste qui se recharge en haut).
-  bool _handleScrollNotification(UserScrollNotification notification) {
-    // Un léger rebond en fin de liste (ScrollDirection.idle) déclenche parfois
-    // une notification isolée : on l'ignore pour éviter un
-    // rétrécissement/agrandissement parasite.
-    if (notification.direction == ScrollDirection.reverse && !_navCollapsed) {
-      setState(() => _navCollapsed = true);
-    } else if (notification.direction == ScrollDirection.forward &&
-        _navCollapsed) {
-      setState(() => _navCollapsed = false);
+  /// qu'Instagram. Accumule le déplacement réel (ScrollUpdateNotification)
+  /// plutôt que de basculer dès le premier pixel d'un
+  /// UserScrollNotification.direction : ce dernier réagissait à la moindre
+  /// oscillation (rebond de liste, micro-tremblement du doigt), un effet
+  /// jugé trop brusque — ici il faut un vrai geste de _navToggleThreshold
+  /// pixels dans un sens avant de basculer.
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      final delta = notification.scrollDelta ?? 0;
+      if (delta == 0) return false;
+
+      // Un changement de sens repart de zéro plutôt que de continuer à
+      // accumuler dans l'ancien sens.
+      if ((delta > 0) != (_scrollAccum > 0)) _scrollAccum = 0;
+      _scrollAccum += delta;
+
+      if (_scrollAccum > _navToggleThreshold && !_navCollapsed) {
+        setState(() => _navCollapsed = true);
+        _scrollAccum = 0;
+      } else if (_scrollAccum < -_navToggleThreshold && _navCollapsed) {
+        setState(() => _navCollapsed = false);
+        _scrollAccum = 0;
+      }
+    } else if (notification is ScrollEndNotification) {
+      _scrollAccum = 0;
     }
     return false;
+  }
+
+  /// Bascule vers l'onglet précédent/suivant selon le sens du glissement,
+  /// avec un seuil de vélocité pour ignorer un simple frémissement.
+  void _handleHorizontalSwipe(DragEndDetails details, int pageCount) {
+    final velocity = details.primaryVelocity ?? 0;
+    const threshold = 250.0;
+    if (velocity.abs() < threshold) return;
+
+    if (velocity < 0) {
+      // Glissé vers la gauche : onglet suivant.
+      if (_index < pageCount - 1) _onTap(_index + 1);
+    } else {
+      // Glissé vers la droite : onglet précédent.
+      if (_index > 0) _onTap(_index - 1);
+    }
   }
 
   void _onTap(int idx) {
@@ -468,11 +546,23 @@ class _HomeShellState extends State<HomeShell>
         // parfaitement net, flou totalement absent). Bénéfice en prime :
         // chaque onglet garde son état (scroll, données déjà chargées) au
         // lieu d'être détruit/recréé à chaque changement d'onglet.
-        body: NotificationListener<UserScrollNotification>(
-          onNotification: _handleScrollNotification,
-          child: IndexedStack(
-            index: safeIndex,
-            children: pages,
+        body: GestureDetector(
+          // Glisser horizontalement change d'onglet (Carte -> Contacts ->
+          // ... -> Profil et inversement), en plus des taps sur la pilule
+          // du bas — même geste que la plupart des apps à onglets.
+          // onHorizontalDragEnd (pas Update) : on ne réagit qu'une fois le
+          // geste terminé, avec une vraie vélocité, pour rester un signal
+          // "grossier" qui laisse un widget interne (ex: le sous-tabbar
+          // d'Explorer, une liste horizontale) gagner la priorité du
+          // geste dès qu'il peut lui-même défiler.
+          onHorizontalDragEnd: (details) =>
+              _handleHorizontalSwipe(details, pages.length),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: _handleScrollNotification,
+            child: IndexedStack(
+              index: safeIndex,
+              children: pages,
+            ),
           ),
         ),
         bottomNavigationBar: _buildBottomNavigation(colors, showJobMatch),
@@ -502,8 +592,8 @@ class _HomeShellState extends State<HomeShell>
         // taille des icônes/texte à chaque palier, tout rapetisse d'un bloc
         // en gardant ses proportions.
         child: AnimatedScale(
-          scale: _navCollapsed ? 0.82 : 1.0,
-          duration: const Duration(milliseconds: 220),
+          scale: _navCollapsed ? 0.88 : 1.0,
+          duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
           child: ClipRRect(
             // Même rayon que les cartes du design system (AppTheme.cardRadius)

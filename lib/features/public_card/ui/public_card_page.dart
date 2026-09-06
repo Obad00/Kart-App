@@ -52,6 +52,11 @@ class _PublicCardPageState extends State<PublicCardPage>
   // d'un coup.
   bool _skillsExpanded = false;
   bool _interestsExpanded = false;
+  // Une photo dont les octets sont invalides/corrompus (ex: upload
+  // interrompu côté propriétaire de la carte) faisait planter le décodage
+  // à chaque repaint (erreur "source image cannot be decoded" répétée en
+  // boucle) au lieu de simplement retomber sur les initiales.
+  bool _avatarBroken = false;
   static const _chipsPreviewCount = 8;
 
   // Vrai si ce profil est déjà un contact — soit parce que la page a été
@@ -180,12 +185,24 @@ class _PublicCardPageState extends State<PublicCardPage>
     required Color backgroundColor,
     Widget? child,
   }) {
+    final showImage = avatarUrl.isNotEmpty && !_avatarBroken;
     final circle = CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor,
-      backgroundImage:
-          avatarUrl.isNotEmpty ? CachedNetworkImageProvider(avatarUrl) : null,
-      child: child,
+      backgroundImage: showImage ? CachedNetworkImageProvider(avatarUrl) : null,
+      onBackgroundImageError: showImage
+          ? (_, __) {
+              if (!_avatarBroken) setState(() => _avatarBroken = true);
+            }
+          : null,
+      // Si l'image casse au décodage, on retombe sur les initiales même
+      // si l'appelant avait initialement décidé de ne pas fournir de
+      // child (parce qu'une URL était présente).
+      child: !showImage
+          ? (child ??
+              Text(getInitials(card?['fullname']?.toString() ?? '',
+                  fallback: '?')))
+          : null,
     );
 
     if (avatarUrl.isEmpty) return circle;
@@ -415,7 +432,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                           bio: bio,
                           avatarUrl: portraitUrl,
                           experiences: experiences,
-                          skills: skills,
+                          connectionsCount:
+                              card?['connections_count'] as int? ?? 0,
                           email: email,
                           firstName: firstName,
                         ),
@@ -455,7 +473,7 @@ class _PublicCardPageState extends State<PublicCardPage>
   // Modifier) puisqu'il ne s'agit jamais de son propre profil ici. Le
   // "Kart score" n'a pas d'équivalent (calculé côté profil à partir de son
   // propre modèle de complétion, non exposé publiquement) : la rangée de
-  // stats se limite donc à Expérience/Compétences.
+  // stats se limite donc à Expérience/Connexions.
   Widget _buildHeaderCard({
     required ColorScheme colors,
     required String fullName,
@@ -464,7 +482,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     required String bio,
     required String avatarUrl,
     required List<dynamic> experiences,
-    required List<String> skills,
+    required int connectionsCount,
     required String email,
     required String firstName,
   }) {
@@ -592,10 +610,12 @@ class _PublicCardPageState extends State<PublicCardPage>
                 Expanded(
                   child: _buildProfileStat(
                     colors,
-                    icon: Icons.star_outline_rounded,
-                    label: 'Compétences',
-                    // Juste le nombre — même choix que ProfilePage.
-                    value: skills.isNotEmpty ? '${skills.length}' : '—',
+                    icon: Icons.people_alt_outlined,
+                    label: 'Connexions',
+                    // Même stat que ProfilePage affiche sur son propre
+                    // profil — remplace "Compétences" ici aussi, qui a sa
+                    // propre section détaillée plus bas sur cette page.
+                    value: connectionsCount > 0 ? '$connectionsCount' : '—',
                   ),
                 ),
               ],

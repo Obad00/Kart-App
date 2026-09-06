@@ -157,6 +157,11 @@ class ContactRow extends StatelessWidget {
                       ? DecorationImage(
                           image: CachedNetworkImageProvider(avatarUrl),
                           fit: BoxFit.cover,
+                          // Sans ce handler, une photo dont les octets sont
+                          // invalides/corrompus faisait planter le décodage
+                          // à chaque repaint (erreur "source image cannot be
+                          // decoded" répétée en boucle).
+                          onError: (_, __) {},
                         )
                       : null,
                 ),

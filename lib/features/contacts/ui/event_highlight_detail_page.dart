@@ -329,6 +329,13 @@ class _AttendeeRow extends StatelessWidget {
                     backgroundImage: avatarUrl != null
                         ? CachedNetworkImageProvider(avatarUrl)
                         : null,
+                    // Sans ce handler, une photo dont les octets sont
+                    // invalides/corrompus faisait planter le décodage à
+                    // chaque repaint (erreur "source image cannot be
+                    // decoded" répétée en boucle) au lieu de simplement
+                    // garder les initiales affichées.
+                    onBackgroundImageError:
+                        avatarUrl != null ? (_, __) {} : null,
                     child: avatarUrl == null
                         ? Text(
                             getInitials(user.name),

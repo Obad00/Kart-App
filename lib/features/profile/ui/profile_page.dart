@@ -25,6 +25,7 @@ import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../providers/professional_document_provider.dart';
@@ -40,7 +41,15 @@ import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
+  // à `_index == <index Profil>`. Sans lui, le tour local de cette page
+  // (avatar + réglages) démarrait dès son montage dans l'IndexedStack de
+  // HomeShell (donc au tout premier frame, quel que soit l'onglet
+  // vraiment visible), pouvant surligner une zone qui n'était pas
+  // affichée à l'écran.
+  final bool isActive;
+
+  const ProfilePage({super.key, this.isActive = true});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -53,6 +62,12 @@ class _ProfilePageState extends State<ProfilePage>
   late Animation<Offset> _slideAnimation;
 
   String _appVersion = '';
+
+  // Une photo dont les octets sont invalides/corrompus (ex: upload interrompu)
+  // faisait planter le décodage à chaque repaint (erreur "source image cannot
+  // be decoded" répétée en boucle) au lieu de simplement retomber sur les
+  // initiales — onBackgroundImageError bascule ici une fois pour de bon.
+  bool _avatarBroken = false;
 
   final _avatarTourKey = GlobalKey();
   final _settingsTourKey = GlobalKey();
@@ -102,11 +117,32 @@ class _ProfilePageState extends State<ProfilePage>
       context.read<CandidateSkillsProvider>().load();
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    if (widget.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // L'onglet vient de devenir actif (l'utilisateur y navigue pour la
+    // première fois) : c'est seulement maintenant que ce tour a un sens.
+    if (widget.isActive && !oldWidget.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    }
   }
 
   Future<void> _maybeStartTour() async {
-    if (!mounted || await TourPrefs.hasSeen('profile')) return;
+    if (!mounted) return;
+    // Attend que le tour de la barre de nav (HomeShell) ait fini de se
+    // décider/afficher — sinon ce tour, mécaniquement plus rapide à
+    // démarrer (un seul SharedPreferences à lire), gagnait toujours la
+    // course et s'affichait en premier, même quand l'onglet Profil
+    // n'était pas celui affiché à l'écran.
+    await TabBarTourGate.ready;
+    if (!mounted || !widget.isActive || await TourPrefs.hasSeen('profile')) {
+      return;
+    }
 
     await TourPrefs.markSeen('profile');
     if (!mounted) return;
@@ -380,10 +416,17 @@ class _ProfilePageState extends State<ProfilePage>
                         child: CircleAvatar(
                           radius: 32,
                           backgroundColor: colors.surface,
-                          backgroundImage: avatarUrl != null
+                          backgroundImage: avatarUrl != null && !_avatarBroken
                               ? CachedNetworkImageProvider(avatarUrl)
                               : null,
-                          child: avatarUrl == null
+                          onBackgroundImageError: avatarUrl != null
+                              ? (_, __) {
+                                  if (!_avatarBroken) {
+                                    setState(() => _avatarBroken = true);
+                                  }
+                                }
+                              : null,
+                          child: (avatarUrl == null || _avatarBroken)
                               ? Text(
                                   getInitials(fullName, fallback: '?'),
                                   style: TextStyle(

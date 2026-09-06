@@ -52,7 +52,6 @@ class HighlightBar extends StatelessWidget {
             isCompanyUser: isCompanyUser,
           );
         },
-
       ),
     );
   }
@@ -105,99 +104,109 @@ class _HighlightItem extends StatelessWidget {
         : colors.onSurface.withValues(alpha: 0.2);
 
     return GestureDetector(
-onLongPress: () {
-  _openCreateHighlightModal(context, accentColor, isCompanyUser,
-      existing: highlight);
-},
-onTap: () async {
-  // Un highlight d'événement KART (créé automatiquement lors d'une
-  // inscription via le formulaire public) ouvre la fiche de l'événement
-  // avec ses autres participants — le toggle actif/inactif classique n'a
-  // pas de sens ici, ce n'est pas un highlight qu'on gère soi-même.
-  if (highlight.isCompanyEvent && highlight.eventId != null) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EventHighlightDetailPage(
-          eventId: highlight.eventId!,
-          fallbackName: highlight.name,
-        ),
-      ),
-    );
-    return;
-  }
-
-  final bool isCurrentlyActive = highlight.isActive;
-
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) {
-      final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-      final dialogBgColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-      final textColor = isDark ? Colors.white : Colors.black87;
-      final subtitleColor = isDark ? Colors.white70 : Colors.black54;
-
-      return AlertDialog(
-        backgroundColor: dialogBgColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.0),
-            width: 1,
-          ),
-        ),
-        elevation: isDark ? 12 : 24,
-        title: Text(
-          isCurrentlyActive
-              ? 'Désactiver ce highlight ?'
-              : 'Activer ce highlight ?',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        content: Text(
-          isCurrentlyActive
-              ? 'Voulez-vous désactiver "${highlight.name}" ?'
-              : 'Voulez-vous activer "${highlight.name}" ?',
-          style: TextStyle(
-            color: subtitleColor,
-            fontSize: 15,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            style: TextButton.styleFrom(
-              foregroundColor: subtitleColor,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isCompanyUser ? accentColor : const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      onLongPress: () {
+        // Un highlight d'événement KART n'appartient pas à l'utilisateur
+        // (il est auto-créé quand il s'inscrit à l'événement d'un autre) —
+        // il ne doit donc pas pouvoir en changer le nom, seul l'organisateur
+        // le peut.
+        if (highlight.isCompanyEvent) return;
+        _openCreateHighlightModal(context, accentColor, isCompanyUser,
+            existing: highlight);
+      },
+      onTap: () async {
+        // Un highlight d'événement KART (créé automatiquement lors d'une
+        // inscription via le formulaire public) ouvre la fiche de l'événement
+        // avec ses autres participants — le toggle actif/inactif classique n'a
+        // pas de sens ici, ce n'est pas un highlight qu'on gère soi-même.
+        if (highlight.isCompanyEvent && highlight.eventId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EventHighlightDetailPage(
+                eventId: highlight.eventId!,
+                fallbackName: highlight.name,
               ),
             ),
-            child: Text(
-              isCurrentlyActive ? 'Désactiver' : 'Activer',
-            ),
-          ),
-        ],
-      );
-    },
-  );
+          );
+          return;
+        }
 
-  if (confirm == true) {
-    provider.toggleHighlight(highlight);
-  }
-},
+        final bool isCurrentlyActive = highlight.isActive;
+
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            final isDark =
+                Theme.of(dialogContext).brightness == Brightness.dark;
+            final dialogBgColor =
+                isDark ? const Color(0xFF2A2A2A) : Colors.white;
+            final textColor = isDark ? Colors.white : Colors.black87;
+            final subtitleColor = isDark ? Colors.white70 : Colors.black54;
+
+            return AlertDialog(
+              backgroundColor: dialogBgColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.0),
+                  width: 1,
+                ),
+              ),
+              elevation: isDark ? 12 : 24,
+              title: Text(
+                isCurrentlyActive
+                    ? 'Désactiver ce highlight ?'
+                    : 'Activer ce highlight ?',
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
+              ),
+              content: Text(
+                isCurrentlyActive
+                    ? 'Voulez-vous désactiver "${highlight.name}" ?'
+                    : 'Voulez-vous activer "${highlight.name}" ?',
+                style: TextStyle(
+                  color: subtitleColor,
+                  fontSize: 15,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  style: TextButton.styleFrom(
+                    foregroundColor: subtitleColor,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isCompanyUser ? accentColor : const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    isCurrentlyActive ? 'Désactiver' : 'Activer',
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (confirm == true) {
+          provider.toggleHighlight(highlight);
+        }
+      },
       child: Column(
         children: [
           Stack(
@@ -255,14 +264,18 @@ onTap: () async {
               // seulement sur le highlight actif : sur les autres, l'appui
               // long reste disponible mais on n'encombre pas visuellement
               // toute la rangée.
-              if (highlight.isActive)
+              // Le crayon de renommage n'a de sens que sur un highlight
+              // qu'on gère soi-même — pas sur un highlight d'événement où
+              // l'on n'est que participant.
+              if (highlight.isActive && !highlight.isCompanyEvent)
                 Positioned(
                   top: -2,
                   right: -2,
                   child: GestureDetector(
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      _openCreateHighlightModal(context, accentColor, isCompanyUser,
+                      _openCreateHighlightModal(
+                          context, accentColor, isCompanyUser,
                           existing: highlight);
                     },
                     child: Container(
@@ -521,7 +534,8 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
               controller: widget.controller,
               maxLength: 20,
               autofocus: true,
-              cursorColor: widget.isCompanyUser ? widget.accentColor : colors.primary,
+              cursorColor:
+                  widget.isCompanyUser ? widget.accentColor : colors.primary,
               style: TextStyle(
                 color: textColor,
                 fontSize: 16,
@@ -530,7 +544,8 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
               decoration: InputDecoration(
                 hintText: 'Ex: Salon Dakar 2026',
                 hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
-                counterStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
+                counterStyle:
+                    TextStyle(color: textColor.withValues(alpha: 0.5)),
                 filled: true,
                 fillColor: widget.isCompanyUser
                     ? widget.accentColor.withValues(alpha: isDark ? 0.15 : 0.1)
@@ -553,7 +568,9 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: widget.isCompanyUser ? widget.accentColor : colors.primary,
+                    color: widget.isCompanyUser
+                        ? widget.accentColor
+                        : colors.primary,
                     width: 1.5,
                   ),
                 ),
@@ -573,8 +590,9 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   disabledBackgroundColor: (widget.isCompanyUser
-                      ? widget.accentColor
-                      : const Color(0xFF3B82F6)).withValues(alpha: 0.5),
+                          ? widget.accentColor
+                          : const Color(0xFF3B82F6))
+                      .withValues(alpha: 0.5),
                 ),
                 onPressed: _isLoading ? null : _submit,
                 child: _isLoading

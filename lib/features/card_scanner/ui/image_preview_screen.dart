@@ -118,6 +118,38 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
                     ? Image.network(
                         provider.selectedImage!.path,
                         fit: BoxFit.contain,
+                        // Un format que le navigateur ne sait pas décoder
+                        // (ex: HEIC transféré depuis un iPhone) faisait
+                        // planter le décodage en boucle à chaque repaint
+                        // (erreur "source image cannot be decoded" répétée)
+                        // au lieu de simplement prévenir l'utilisateur.
+                        errorBuilder: (context, error, stack) => Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.broken_image_outlined,
+                                    size: 40,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black38),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Cette image ne peut pas être affichée '
+                                  '(format non supporté). Réessayez avec une '
+                                  'autre photo.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       )
                     : Image.file(
                         provider.selectedImage!,
@@ -233,9 +265,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(

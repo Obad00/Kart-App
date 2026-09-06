@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -52,7 +53,17 @@ class ExplorePage extends StatefulWidget {
   // de connexion et par le tap sur la notification push correspondante.
   final int initialTabIndex;
 
-  const ExplorePage({super.key, this.initialTabIndex = 0});
+  // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
+  // à `_index == <index Explorer>`. Sans lui, le tour local de cette page
+  // démarrait dès son montage dans l'IndexedStack de HomeShell (donc au
+  // tout premier frame, quel que soit l'onglet vraiment visible).
+  final bool isActive;
+
+  const ExplorePage({
+    super.key,
+    this.initialTabIndex = 0,
+    this.isActive = true,
+  });
 
   @override
   State<ExplorePage> createState() => _ExplorePageState();
@@ -99,15 +110,31 @@ class _ExplorePageState extends State<ExplorePage> {
 
       if (widget.initialTabIndex == 1) _openMyRequests();
 
-      _maybeStartTour();
+      if (widget.isActive) _maybeStartTour();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant ExplorePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // L'onglet vient de devenir actif (l'utilisateur y navigue pour la
+    // première fois) : c'est seulement maintenant que ce tour a un sens.
+    if (widget.isActive && !oldWidget.isActive) _maybeStartTour();
   }
 
   /// Explorer n'avait aucun guide (contrairement à Profil, JobMatch...) —
   /// un seul point d'entrée mis en avant (filtres + Mes demandes), même
   /// niveau de détail que les tours déjà en place ailleurs dans l'app.
   Future<void> _maybeStartTour() async {
-    if (!mounted || await TourPrefs.hasSeen('explore')) return;
+    if (!mounted) return;
+    // Attend que le tour de la barre de nav (HomeShell) ait fini de se
+    // décider/afficher — sinon ce tour, mécaniquement plus rapide à
+    // démarrer, gagnait toujours la course et s'affichait en premier,
+    // même quand l'onglet Explorer n'était pas celui affiché à l'écran.
+    await TabBarTourGate.ready;
+    if (!mounted || !widget.isActive || await TourPrefs.hasSeen('explore')) {
+      return;
+    }
 
     await TourPrefs.markSeen('explore');
     if (!mounted) return;
