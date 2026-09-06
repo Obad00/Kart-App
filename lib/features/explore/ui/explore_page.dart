@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -63,6 +65,7 @@ class _ExplorePageState extends State<ExplorePage> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _searchDebounce;
+  final _filterTourKey = GlobalKey();
 
   // Puce active sous la recherche — filtre quels carrousels sont affichés
   // ('tous' = tout). 'opportunites' ne filtre rien : elle navigue
@@ -95,7 +98,21 @@ class _ExplorePageState extends State<ExplorePage> {
       _discoveryProvider.loadAll();
 
       if (widget.initialTabIndex == 1) _openMyRequests();
+
+      _maybeStartTour();
     });
+  }
+
+  /// Explorer n'avait aucun guide (contrairement à Profil, JobMatch...) —
+  /// un seul point d'entrée mis en avant (filtres + Mes demandes), même
+  /// niveau de détail que les tours déjà en place ailleurs dans l'app.
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('explore')) return;
+
+    await TourPrefs.markSeen('explore');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase([_filterTourKey]);
   }
 
   /// Tirer la page vers le bas recharge tout — cf. maquette fournie.
@@ -568,8 +585,15 @@ class _ExplorePageState extends State<ExplorePage> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      _FilterIconButton(
-                        onTap: () => _openFiltersSheet(context),
+                      Showcase(
+                        key: _filterTourKey,
+                        title: 'Filtres et demandes',
+                        description:
+                            'Filtrez par poste, ou retrouvez les demandes de mise en relation en attente.',
+                        targetShapeBorder: const CircleBorder(),
+                        child: _FilterIconButton(
+                          onTap: () => _openFiltersSheet(context),
+                        ),
                       ),
                     ],
                   ),

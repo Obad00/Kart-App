@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:showcaseview/showcaseview.dart';
 
+import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
@@ -51,6 +53,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
   final Set<int> selectedContacts = {};
   // null = tous highlights confondus.
   int? _highlightFilterId;
+  final _addContactTourKey = GlobalKey();
 
   void clearSelection() {
     setState(() {
@@ -64,7 +67,20 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<ContactsProvider>().fetchGroupedContacts();
+      _maybeStartTour();
     });
+  }
+
+  /// Contacts n'avait aucun guide (contrairement à Profil, JobMatch,
+  /// Explorer...) — un seul point d'entrée mis en avant, même niveau de
+  /// détail que les autres tours déjà en place dans l'app.
+  Future<void> _maybeStartTour() async {
+    if (!mounted || await TourPrefs.hasSeen('contacts')) return;
+
+    await TourPrefs.markSeen('contacts');
+    if (!mounted) return;
+
+    ShowCaseWidget.of(context).startShowCase([_addContactTourKey]);
   }
 
   @override
@@ -449,10 +465,17 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                                 ],
                               ),
                             ),
-                            _SquareIconButton(
-                              icon: Icons.person_add_alt_1_rounded,
-                              tooltip: 'Ajouter un contact',
-                              onTap: () => showAddContactSheet(context),
+                            Showcase(
+                              key: _addContactTourKey,
+                              title: 'Ajouter un contact',
+                              description:
+                                  'Enregistrez un contact manuellement, sans passer par un scan de carte.',
+                              targetShapeBorder: const CircleBorder(),
+                              child: _SquareIconButton(
+                                icon: Icons.person_add_alt_1_rounded,
+                                tooltip: 'Ajouter un contact',
+                                onTap: () => showAddContactSheet(context),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             _ContactsMenuButton(
