@@ -31,12 +31,23 @@ class _SplashScreenState extends State<SplashScreen>
   // loader figeait les 3 points au lieu de les faire tourner.
   late final AnimationController _loaderController;
 
+  // La grande animation façon "intro de marque" n'a de sens qu'au tout
+  // premier lancement après installation. Le système d'exploitation tue le
+  // process Flutter en arrière-plan bien plus souvent qu'on ne le pense
+  // (Android avec l'optimisation de batterie, RAM limitée, mode debug...) —
+  // à chaque fois, main() redémarre et ce splash se rejoue en entier. Sans
+  // ce flag, ces 3,8s redevenaient un pur délai artificiel à chaque retour
+  // dans l'app, alors que l'init de l'auth, elle, est quasi instantanée dès
+  // qu'un token est déjà en cache.
+  static const _hasShownIntroKey = 'has_shown_full_splash_intro';
+
   @override
   void initState() {
     super.initState();
-    // Assez long pour être vu et apprécié (le contenu réel attend de toute
-    // façon la fin de l'init de l'auth avant de naviguer, donc l'allonger
-    // ne retarde rien qui ne l'était pas déjà en pratique).
+    // Durée par défaut (premier lancement) — potentiellement raccourcie
+    // juste avant de lancer l'animation, cf. _prepareAndStart(). Les
+    // courbes ci-dessous sont des Interval(0..1) relatifs à cette durée,
+    // donc la raccourcir rejoue la même chorégraphie, juste plus vite.
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 3800),
       vsync: this,
@@ -79,14 +90,30 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     )..repeat();
 
-    _animationController.forward();
-
     // When the splash animation completes, wait for auth initialization then navigate
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _navigateAfterInit();
       }
     });
+
+    _prepareAndStart();
+  }
+
+  Future<void> _prepareAndStart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyShownIntro = prefs.getBool(_hasShownIntroKey) ?? false;
+
+    if (alreadyShownIntro) {
+      // Un simple flash de marque, pas toute l'intro — cf. commentaire sur
+      // _hasShownIntroKey.
+      _animationController.duration = const Duration(milliseconds: 900);
+    } else {
+      await prefs.setBool(_hasShownIntroKey, true);
+    }
+
+    if (!mounted) return;
+    _animationController.forward();
   }
 
   Future<void> _navigateAfterInit() async {
