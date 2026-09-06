@@ -3,6 +3,11 @@ class JobFeedItem {
   final String title;
   final String companyName;
   final String? companyLogo;
+  // Photo de couverture façon Tinder pour la carte swipeable — seulement
+  // si l'entreprise a du branding configuré (Company::branding_enabled),
+  // cf. commentaire de JobMatchController::jobPayload(). Sans elle, la
+  // carte affiche un simple dégradé sombre entre le logo et le titre.
+  final String? companyBackgroundImage;
   final String? location;
   final bool isRemote;
   final String? contractType;
@@ -21,6 +26,7 @@ class JobFeedItem {
     required this.title,
     required this.companyName,
     this.companyLogo,
+    this.companyBackgroundImage,
     this.location,
     required this.isRemote,
     this.contractType,
@@ -41,6 +47,7 @@ class JobFeedItem {
       title: json['title'] ?? '',
       companyName: json['company']?['name'] ?? '',
       companyLogo: json['company']?['logo'],
+      companyBackgroundImage: json['company']?['background_image'],
       location: json['location'],
       isRemote: json['is_remote'] ?? false,
       contractType: json['contract_type'],
@@ -64,6 +71,7 @@ class JobFeedItem {
       title: title,
       companyName: companyName,
       companyLogo: companyLogo,
+      companyBackgroundImage: companyBackgroundImage,
       location: location,
       isRemote: isRemote,
       contractType: contractType,

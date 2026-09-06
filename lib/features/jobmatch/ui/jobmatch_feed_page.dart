@@ -334,20 +334,28 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
       children: feed.take(3).toList().reversed.map((job) {
         final isTop = job.id == feed.first.id;
 
+        // Positioned.fill : sans lui, JobSwipeCard (qui ne se dimensionne
+        // plus lui-même via MediaQuery, cf. son propre commentaire)
+        // s'effondrerait à sa taille minimale au lieu de remplir tout
+        // l'espace que cet Expanded lui réserve réellement.
         if (!isTop) {
-          return IgnorePointer(
-            child: Opacity(
-              opacity: 0.5,
-              child: JobSwipeCard(job: job, onLike: () {}, onReject: () {}),
+          return Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.5,
+                child: JobSwipeCard(job: job, onLike: () {}, onReject: () {}),
+              ),
             ),
           );
         }
 
-        return JobSwipeCard(
-          key: ValueKey(job.id),
-          job: job,
-          onLike: () => _handleLike(job, provider),
-          onReject: () => provider.swipe(job, 'reject'),
+        return Positioned.fill(
+          child: JobSwipeCard(
+            key: ValueKey(job.id),
+            job: job,
+            onLike: () => _handleLike(job, provider),
+            onReject: () => provider.swipe(job, 'reject'),
+          ),
         );
       }).toList(),
     );
