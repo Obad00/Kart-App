@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../shared/utils/initials.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../models/explore_user.dart';
 import '../providers/explore_provider.dart';
@@ -29,15 +30,6 @@ class ExploreUserRow extends StatelessWidget {
         : '${ApiEndpoints.storageUrl}/$avatar';
   }
 
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
-  }
-
   void _openCard(BuildContext context) {
     final slug = user.cardSlug;
     if (slug == null || slug.isEmpty) return;
@@ -58,7 +50,7 @@ class ExploreUserRow extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          _initials(user.name),
+          getInitials(user.name),
           style: const TextStyle(
             fontFamily: 'Syne',
             fontSize: 18,
@@ -90,7 +82,8 @@ class ExploreUserRow extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
+              border:
+                  Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
               // Ombre discrète — juste de quoi détacher la carte du fond.
               boxShadow: [
                 BoxShadow(
@@ -186,8 +179,9 @@ class ExploreUserRow extends StatelessWidget {
                   initialStatus: user.connectionStatus,
                   initialRequestId: user.connectionRequestId,
                   compact: true,
-                  onResolved: () =>
-                      context.read<ExploreProvider>().removeUserLocally(user.id),
+                  onResolved: () => context
+                      .read<ExploreProvider>()
+                      .removeUserLocally(user.id),
                 ),
               ],
             ),

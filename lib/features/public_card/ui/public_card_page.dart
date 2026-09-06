@@ -14,6 +14,7 @@ import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/skill_chip.dart';
+import '../../../shared/utils/initials.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
@@ -162,16 +163,6 @@ class _PublicCardPageState extends State<PublicCardPage>
       slug: widget.slug,
       ownerName: card!['fullname'] ?? 'le proprietaire',
     );
-  }
-
-  String _getInitials(String name) {
-    List<String> parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
   }
 
   /// Avatar tapable ouvrant la photo en plein écran (comme les applis
@@ -501,7 +492,7 @@ class _PublicCardPageState extends State<PublicCardPage>
                   backgroundColor: avatarBackground,
                   child: avatarUrl.isEmpty
                       ? Text(
-                          _getInitials(fullName),
+                          getInitials(fullName),
                           style: TextStyle(
                             color: _accentColor,
                             fontWeight: FontWeight.w700,

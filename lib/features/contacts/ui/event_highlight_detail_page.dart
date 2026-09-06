@@ -7,6 +7,7 @@ import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/services/card_service.dart';
+import '../../../shared/utils/initials.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
 
@@ -290,15 +291,6 @@ class _AttendeeRow extends StatelessWidget {
         : '${ApiEndpoints.storageUrl}/$avatar';
   }
 
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
-  }
-
   void _openCard(BuildContext context) {
     final slug = user.cardSlug;
     if (slug == null || slug.isEmpty) return;
@@ -339,7 +331,7 @@ class _AttendeeRow extends StatelessWidget {
                         : null,
                     child: avatarUrl == null
                         ? Text(
-                            _initials(user.name),
+                            getInitials(user.name),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, color: _themeBlue),
                           )

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../shared/utils/initials.dart';
 import '../models/contact_model.dart';
 
 /// Rangée d'accès rapide aux contacts marqués favoris (étoile ⭐ sur la
@@ -88,7 +89,7 @@ class FavoritesStrip extends StatelessWidget {
                         child: avatarUrl == null
                             ? Center(
                                 child: Text(
-                                  _initials(contact.fullname),
+                                  getInitials(contact.fullname),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -118,15 +119,5 @@ class FavoritesStrip extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
   }
 }

@@ -2,14 +2,25 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../shared/utils/initials.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
 const _frenchMonths = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
 ];
 
 String _formatFrenchDate(DateTime date) =>
@@ -42,16 +53,6 @@ class ContactRow extends StatelessWidget {
     return avatar.startsWith('http')
         ? avatar
         : '${ApiEndpoints.storageUrl}/$avatar';
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
   }
 
   void _openPublicCard(BuildContext context) {
@@ -162,7 +163,7 @@ class ContactRow extends StatelessWidget {
                 child: avatarUrl == null
                     ? Center(
                         child: Text(
-                          _initials(contact.fullname),
+                          getInitials(contact.fullname),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

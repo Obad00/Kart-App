@@ -12,6 +12,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
+import '../../../shared/utils/initials.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
@@ -108,9 +109,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     final pending = await OnboardingPrefs.consumePendingJobCompanyPrompt();
     if (!pending || !mounted) return;
 
-    final stillEmpty = (cardProvider.jobTitle == null ||
-            cardProvider.jobTitle!.isEmpty) &&
-        (cardProvider.company == null || cardProvider.company!.isEmpty);
+    final stillEmpty =
+        (cardProvider.jobTitle == null || cardProvider.jobTitle!.isEmpty) &&
+            (cardProvider.company == null || cardProvider.company!.isEmpty);
     if (!stillEmpty) return;
 
     // Laisse le temps de voir la carte apparaître avant l'interruption —
@@ -160,12 +161,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
   void _reload() => context.read<CardProvider>().loadMyCardQr();
 
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
   /// Pose un Scaffold uniquement quand cette page n'est pas déjà montée
   /// sous celui d'un parent (cf. MyDigitalCardPage.embedded) — évite un
   /// second fond potentiellement différent (Scaffold.backgroundColor par
@@ -190,7 +185,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         ? '${user.firstname} ${user.lastname}'.trim()
         : 'Utilisateur';
 
-    final initials = _initials(fullName);
+    final initials = getInitials(fullName);
 
     final subtitle = card.company?.isNotEmpty == true
         ? card.company!

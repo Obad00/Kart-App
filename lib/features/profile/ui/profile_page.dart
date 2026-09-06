@@ -20,6 +20,7 @@ import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/utils/crop_image.dart';
+import '../../../shared/utils/initials.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
@@ -381,7 +382,7 @@ class _ProfilePageState extends State<ProfilePage>
                               : null,
                           child: avatarUrl == null
                               ? Text(
-                                  _initials(fullName),
+                                  getInitials(fullName, fallback: '?'),
                                   style: TextStyle(
                                     color: companyColor,
                                     fontWeight: FontWeight.w700,
@@ -1837,13 +1838,6 @@ class _ProfilePageState extends State<ProfilePage>
       ),
       builder: (_) => const _BrandingEditor(),
     );
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty || parts[0].isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
   void _showAvatarOptions(bool hasAvatar) {
