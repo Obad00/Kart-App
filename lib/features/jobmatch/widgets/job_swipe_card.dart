@@ -252,7 +252,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -283,17 +283,30 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                           // l'entreprise (souvent juste un symbole/icône) —
                           // sans ce texte à côté, l'identité de
                           // l'entreprise n'était lisible qu'en bas de la
-                          // carte, loin du logo.
+                          // carte, loin du logo. Remplace l'ancienne
+                          // rangée nom+vérifié plus bas (qui doublonnait
+                          // cette info et provoquait un débordement en bas
+                          // de carte une fois cette ligne d'en-tête
+                          // ajoutée).
                           Expanded(
-                            child: Text(
-                              job.companyName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    job.companyName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.verified_rounded,
+                                    size: 14, color: jobMatchAccent),
+                              ],
                             ),
                           ),
                           if (job.isSaved)
@@ -308,7 +321,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       // Le badge "% Profil correspondant" sur une ligne à
                       // part, sous le logo/nom — il partageait la même
                       // ligne que le logo avant, ce qui la surchargeait.
@@ -349,7 +362,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                   // défilement interne. maxLines sur chaque texte + Wrap sur
                   // les chips gardent ce contenu dans un gabarit prévisible.
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,26 +379,6 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                job.companyName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.verified_rounded,
-                                size: 15, color: jobMatchAccent),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
                         Text(
                           [
                             if ((job.isRemote ? 'À distance' : job.location)
@@ -413,7 +406,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ),
                           ),
                         ],
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -431,7 +424,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                           ],
                         ),
                         if (job.publishedAt != null) ...[
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
                           Text(
                             'Publiée ${relativeTimeLabel(job.publishedAt!)}',
                             style: const TextStyle(
