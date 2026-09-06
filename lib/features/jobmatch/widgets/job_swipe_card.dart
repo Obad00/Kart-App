@@ -253,65 +253,91 @@ class _JobSwipeCardState extends State<JobSwipeCard>
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          width: 52,
-                          height: 52,
-                          color: Colors.white,
-                          child: logoUrl != null
-                              ? Padding(
-                                  padding: const EdgeInsets.all(6),
-                                  child: CachedNetworkImage(
-                                    imageUrl: logoUrl,
-                                    fit: BoxFit.contain,
-                                    errorWidget: (context, url, error) =>
-                                        _logoFallback(),
-                                  ),
-                                )
-                              : _logoFallback(),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (job.isSaved) ...[
-                        Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              color: Colors.white,
+                              child: logoUrl != null
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(6),
+                                      child: CachedNetworkImage(
+                                        imageUrl: logoUrl,
+                                        fit: BoxFit.contain,
+                                        errorWidget: (context, url, error) =>
+                                            _logoFallback(),
+                                      ),
+                                    )
+                                  : _logoFallback(),
+                            ),
                           ),
-                          child: Icon(Icons.star_rounded,
-                              size: 16, color: Colors.amber.shade400),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: jobMatchAccent.withValues(alpha: 0.6)),
-                        ),
-                        child: Text(
-                          '${job.score}%',
-                          style: const TextStyle(
-                            color: jobMatchAccent,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                          const SizedBox(width: 12),
+                          // Le logo seul ne porte pas toujours le nom de
+                          // l'entreprise (souvent juste un symbole/icône) —
+                          // sans ce texte à côté, l'identité de
+                          // l'entreprise n'était lisible qu'en bas de la
+                          // carte, loin du logo.
+                          Expanded(
+                            child: Text(
+                              job.companyName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          if (job.isSaved)
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.star_rounded,
+                                  size: 16, color: Colors.amber.shade400),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Profil correspondant',
-                          style: TextStyle(color: Colors.white54, fontSize: 11),
-                        ),
+                      const SizedBox(height: 12),
+                      // Le badge "% Profil correspondant" sur une ligne à
+                      // part, sous le logo/nom — il partageait la même
+                      // ligne que le logo avant, ce qui la surchargeait.
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: jobMatchAccent.withValues(alpha: 0.6)),
+                            ),
+                            child: Text(
+                              '${job.score}%',
+                              style: const TextStyle(
+                                color: jobMatchAccent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Profil correspondant',
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 11),
+                          ),
+                        ],
                       ),
                     ],
                   ),
