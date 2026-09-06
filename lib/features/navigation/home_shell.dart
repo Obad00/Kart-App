@@ -543,8 +543,18 @@ class _HomeShellState extends State<HomeShell>
           // "grossier" qui laisse un widget interne (ex: le sous-tabbar
           // d'Explorer, une liste horizontale) gagner la priorité du
           // geste dès qu'il peut lui-même défiler.
-          onHorizontalDragEnd: (details) =>
-              _handleHorizontalSwipe(details, pages.length),
+          //
+          // Callback à null (pas juste un no-op) sur l'onglet Offres :
+          // un callback non-nul enregistre quand même un
+          // HorizontalDragGestureRecognizer qui entre dans l'arène de
+          // gestes et pouvait faire échouer le swipe gauche/droite des
+          // cartes JobMatch (glisser pour Passer/Aimer, géré par un
+          // GestureDetector.onPanUpdate/onPanEnd interne à la carte) —
+          // seul callback strictement null évite de créer ce
+          // concurrent.
+          onHorizontalDragEnd: showJobMatch && safeIndex == 2
+              ? null
+              : (details) => _handleHorizontalSwipe(details, pages.length),
           child: NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
             child: IndexedStack(

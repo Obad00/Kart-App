@@ -141,6 +141,29 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
     );
   }
 
+  /// Retire un "j'aime" — l'offre redevient éligible au fil de suggestions,
+  /// exactement comme _reconsider() pour un rejet (même endpoint générique
+  /// côté backend : DELETE sur le swipe, quel que soit son type).
+  Future<void> _removeLike(LikedJobItem job) async {
+    try {
+      await _service.unswipe(job.jobId);
+      if (!mounted) return;
+      setState(() => _liked.removeWhere((l) => l.jobId == job.jobId));
+      // Sans ça, l'offre ne réapparaissait dans le fil de suggestions
+      // (JobMatchProvider, une instance globale et durable) qu'après un
+      // redémarrage complet de l'app.
+      if (mounted) context.read<JobMatchProvider>().loadFeed();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"J\'aime" retiré de ${job.jobTitle}')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur, réessayez')),
+      );
+    }
+  }
+
   Future<void> _reconsider(LikedJobItem job) async {
     try {
       await _service.unswipe(job.jobId);
@@ -331,7 +354,12 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           iconColor: _accentBlue,
           title: liked.jobTitle,
           subtitle: liked.companyName,
-          trailing: null,
+          trailingWidget: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            color: colors.onSurface.withValues(alpha: 0.4),
+            tooltip: 'Retirer le j\'aime',
+            onPressed: () => _removeLike(liked),
+          ),
           onTap: () => _openJobDetail(liked),
         );
       },
