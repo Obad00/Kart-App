@@ -66,8 +66,11 @@ class _ProfilePageState extends State<ProfilePage>
   // Une photo dont les octets sont invalides/corrompus (ex: upload interrompu)
   // faisait planter le décodage à chaque repaint (erreur "source image cannot
   // be decoded" répétée en boucle) au lieu de simplement retomber sur les
-  // initiales — onBackgroundImageError bascule ici une fois pour de bon.
-  bool _avatarBroken = false;
+  // initiales. On retient l'URL cassée (pas juste un bool) : sans ça, un
+  // nouvel upload qui réussit restait bloqué sur les initiales pour
+  // toujours, la photo cassée précédente ayant définitivement "grillé" le
+  // flag.
+  String? _brokenAvatarUrl;
 
   final _avatarTourKey = GlobalKey();
   final _settingsTourKey = GlobalKey();
@@ -362,6 +365,13 @@ class _ProfilePageState extends State<ProfilePage>
             ? avatarPath
             : '${ApiEndpoints.storageUrl}/$avatarPath')
         : null;
+    // CircleAvatar exige que backgroundImage et onBackgroundImageError
+    // soient nuls/non-nuls EN MÊME TEMPS (assertion interne) — sans cette
+    // même condition partagée pour les deux, une photo cassée faisait
+    // basculer backgroundImage à null tout en laissant
+    // onBackgroundImageError non-nul, plantant toute la page au rebuild
+    // suivant.
+    final avatarOk = avatarUrl != null && avatarUrl != _brokenAvatarUrl;
 
     final completionModel = context.watch<ProfileCompletionProvider>().model;
     final skillsCount = context.watch<CandidateSkillsProvider>().skills.length;
@@ -416,17 +426,18 @@ class _ProfilePageState extends State<ProfilePage>
                         child: CircleAvatar(
                           radius: 32,
                           backgroundColor: colors.surface,
-                          backgroundImage: avatarUrl != null && !_avatarBroken
+                          backgroundImage: avatarOk
                               ? CachedNetworkImageProvider(avatarUrl)
                               : null,
-                          onBackgroundImageError: avatarUrl != null
+                          onBackgroundImageError: avatarOk
                               ? (_, __) {
-                                  if (!_avatarBroken) {
-                                    setState(() => _avatarBroken = true);
+                                  if (_brokenAvatarUrl != avatarUrl) {
+                                    setState(
+                                        () => _brokenAvatarUrl = avatarUrl);
                                   }
                                 }
                               : null,
-                          child: (avatarUrl == null || _avatarBroken)
+                          child: !avatarOk
                               ? Text(
                                   getInitials(fullName, fallback: '?'),
                                   style: TextStyle(

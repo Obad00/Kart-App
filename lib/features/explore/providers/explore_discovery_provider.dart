@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../shared/utils/safe_change_notifier.dart';
 import '../models/discoverable_company.dart';
 import '../models/explore_category.dart';
 import '../models/explore_user.dart';
@@ -15,7 +16,7 @@ import '../services/explore_service.dart';
 /// Chaque section échoue indépendamment (ex: pas de ville renseignée ->
 /// "près de vous" vide) sans faire échouer les autres — Future.wait avec
 /// des futures qui capturent déjà leurs erreurs.
-class ExploreDiscoveryProvider extends ChangeNotifier {
+class ExploreDiscoveryProvider extends SafeChangeNotifier {
   final ExploreService _exploreService;
   final CompanyDiscoveryService _companyService;
 

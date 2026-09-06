@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../../../shared/utils/safe_change_notifier.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart';
 import '../services/explore_service.dart';
 
-class ExploreProvider extends ChangeNotifier {
+class ExploreProvider extends SafeChangeNotifier {
   final ExploreService _service;
 
   // 'recommended' (défaut, classement par complétion) | 'certified' |

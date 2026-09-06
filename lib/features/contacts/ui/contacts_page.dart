@@ -3,7 +3,11 @@ import '../../../shared/widgets/bottom_nav_metrics.dart';
 import 'contacts_grouped_view.dart';
 
 class ContactsPage extends StatefulWidget {
-  const ContactsPage({super.key});
+  // Transmis à ContactsGroupedView — cf. son propre commentaire sur
+  // isActive.
+  final bool isActive;
+
+  const ContactsPage({super.key, this.isActive = true});
 
   @override
   State<ContactsPage> createState() => _ContactsPageState();
@@ -58,6 +62,7 @@ class _ContactsPageState extends State<ContactsPage> {
             selectionModeActive: _isSelectionMode,
             onEnterSelectionMode: () => setState(() => _isSelectionMode = true),
             onCancelSelection: _cancelSelection,
+            isActive: widget.isActive,
           ),
           // Barre d'actions (Annuler / Supprimer / Exporter) positionnée
           // explicitement au-dessus de la pilule de nav de HomeShell.

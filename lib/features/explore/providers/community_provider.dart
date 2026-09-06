@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
+import '../../../shared/utils/safe_change_notifier.dart';
 import '../models/community.dart';
 import '../services/community_service.dart';
 
-class CommunityProvider extends ChangeNotifier {
+class CommunityProvider extends SafeChangeNotifier {
   final CommunityService _service;
 
   CommunityProvider(this._service);

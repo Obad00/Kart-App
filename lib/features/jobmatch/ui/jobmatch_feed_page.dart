@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
@@ -25,7 +26,15 @@ import '../../../shared/widgets/glass_app_bar.dart';
 const _accentBlue = jobMatchAccent;
 
 class JobMatchFeedPage extends StatefulWidget {
-  const JobMatchFeedPage({super.key});
+  // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
+  // à `_index == <index Offres>`. Sans lui, le tour local de cette page
+  // ("Votre tableau de bord") démarrait dès son montage dans l'IndexedStack
+  // de HomeShell (donc au tout premier frame, quel que soit l'onglet
+  // vraiment visible) — d'où ce guide qui parlait de "tableau de bord"
+  // alors qu'on était sur un tout autre onglet.
+  final bool isActive;
+
+  const JobMatchFeedPage({super.key, this.isActive = true});
 
   @override
   State<JobMatchFeedPage> createState() => _JobMatchFeedPageState();
@@ -59,8 +68,16 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<JobMatchProvider>().loadFeed();
-      _maybeStartTour();
+      if (widget.isActive) _maybeStartTour();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant JobMatchFeedPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // L'onglet vient de devenir actif (l'utilisateur y navigue pour la
+    // première fois) : c'est seulement maintenant que ce tour a un sens.
+    if (widget.isActive && !oldWidget.isActive) _maybeStartTour();
   }
 
   void _openJobDetail(
@@ -85,7 +102,17 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
   }
 
   Future<void> _maybeStartTour() async {
-    if (!mounted || await TourPrefs.hasSeen('jobmatch_feed')) return;
+    if (!mounted) return;
+    // Attend que le tour de la barre de nav (HomeShell) ait fini de se
+    // décider/afficher — sinon ce tour, mécaniquement plus rapide à
+    // démarrer, gagnait toujours la course et s'affichait en premier,
+    // même quand l'onglet Offres n'était pas celui affiché à l'écran.
+    await TabBarTourGate.ready;
+    if (!mounted ||
+        !widget.isActive ||
+        await TourPrefs.hasSeen('jobmatch_feed')) {
+      return;
+    }
 
     await TourPrefs.markSeen('jobmatch_feed');
     if (!mounted) return;

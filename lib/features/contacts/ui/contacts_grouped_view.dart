@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
@@ -35,12 +36,20 @@ class ContactsGroupedView extends StatefulWidget {
   // contacts.
   final VoidCallback? onCancelSelection;
 
+  // Onglet réellement affiché à l'écran en ce moment — HomeShell (via
+  // ContactsPage) le passe à `_index == <index Contacts>`. Sans lui, le
+  // tour local de cette page démarrait dès son montage dans l'IndexedStack
+  // de HomeShell (donc au tout premier frame, quel que soit l'onglet
+  // vraiment visible).
+  final bool isActive;
+
   const ContactsGroupedView({
     super.key,
     this.onSelectionChanged,
     this.selectionModeActive = false,
     this.onEnterSelectionMode,
     this.onCancelSelection,
+    this.isActive = true,
   });
 
   @override
@@ -67,15 +76,31 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<ContactsProvider>().fetchGroupedContacts();
-      _maybeStartTour();
+      if (widget.isActive) _maybeStartTour();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant ContactsGroupedView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // L'onglet vient de devenir actif (l'utilisateur y navigue pour la
+    // première fois) : c'est seulement maintenant que ce tour a un sens.
+    if (widget.isActive && !oldWidget.isActive) _maybeStartTour();
   }
 
   /// Contacts n'avait aucun guide (contrairement à Profil, JobMatch,
   /// Explorer...) — un seul point d'entrée mis en avant, même niveau de
   /// détail que les autres tours déjà en place dans l'app.
   Future<void> _maybeStartTour() async {
-    if (!mounted || await TourPrefs.hasSeen('contacts')) return;
+    if (!mounted) return;
+    // Attend que le tour de la barre de nav (HomeShell) ait fini de se
+    // décider/afficher — sinon ce tour, mécaniquement plus rapide à
+    // démarrer, gagnait toujours la course et s'affichait en premier,
+    // même quand l'onglet Contacts n'était pas celui affiché à l'écran.
+    await TabBarTourGate.ready;
+    if (!mounted || !widget.isActive || await TourPrefs.hasSeen('contacts')) {
+      return;
+    }
 
     await TourPrefs.markSeen('contacts');
     if (!mounted) return;

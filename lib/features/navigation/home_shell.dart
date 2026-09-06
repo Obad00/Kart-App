@@ -437,8 +437,8 @@ class _HomeShellState extends State<HomeShell>
         createCardKey: _createCardKey,
         embedded: true,
       ),
-      const ContactsPage(),
-      if (showJobMatch) const JobMatchFeedPage(),
+      ContactsPage(isActive: _index == 1),
+      if (showJobMatch) JobMatchFeedPage(isActive: _index == 2),
       ExplorePage(
         initialTabIndex: widget.openExploreTab ?? 0,
         isActive: _index == exploreIndex,
