@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -79,6 +80,11 @@ class _HomeShellState extends State<HomeShell>
   late int _index;
   late List<AnimationController> _scaleControllers;
   late List<Animation<double>> _scaleAnimations;
+
+  // Pilule de nav qui rapetisse quand on scrolle vers le bas et retrouve sa
+  // taille normale en scrollant vers le haut (façon Instagram) — cf.
+  // _handleScrollNotification.
+  bool _navCollapsed = false;
 
   // Une clé par slot de nav (5 slots toujours alloués, comme pour
   // _scaleControllers — le 5e, JobMatch, n'est simplement pas montré au
@@ -392,6 +398,24 @@ class _HomeShellState extends State<HomeShell>
     ];
   }
 
+  /// Rétrécit la pilule de nav quand le contenu de l'onglet actif défile
+  /// vers le bas, la restaure quand il défile vers le haut — même geste
+  /// qu'Instagram. `UserScrollNotification` (plutôt que `ScrollNotification`
+  /// brut) : ne réagit qu'à un scroll initié par le doigt, pas à un
+  /// ajustement programmatique (ex: liste qui se recharge en haut).
+  bool _handleScrollNotification(UserScrollNotification notification) {
+    // Un léger rebond en fin de liste (ScrollDirection.idle) déclenche parfois
+    // une notification isolée : on l'ignore pour éviter un
+    // rétrécissement/agrandissement parasite.
+    if (notification.direction == ScrollDirection.reverse && !_navCollapsed) {
+      setState(() => _navCollapsed = true);
+    } else if (notification.direction == ScrollDirection.forward &&
+        _navCollapsed) {
+      setState(() => _navCollapsed = false);
+    }
+    return false;
+  }
+
   void _onTap(int idx) {
     if (_index == idx) return;
     HapticFeedback.lightImpact();
@@ -444,9 +468,12 @@ class _HomeShellState extends State<HomeShell>
         // parfaitement net, flou totalement absent). Bénéfice en prime :
         // chaque onglet garde son état (scroll, données déjà chargées) au
         // lieu d'être détruit/recréé à chaque changement d'onglet.
-        body: IndexedStack(
-          index: safeIndex,
-          children: pages,
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: _handleScrollNotification,
+          child: IndexedStack(
+            index: safeIndex,
+            children: pages,
+          ),
         ),
         bottomNavigationBar: _buildBottomNavigation(colors, showJobMatch),
       );
@@ -468,68 +495,79 @@ class _HomeShellState extends State<HomeShell>
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: ClipRRect(
-          // Même rayon que les cartes du design system (AppTheme.cardRadius)
-          // — une seule source de vérité pour l'arrondi de toute l'UI.
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.5),
-                borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                // Bordure du même token que les cartes (colorScheme.outline).
-                // Largeur 1.2 plutôt que le défaut 1.0 : fine mais qui se
-                // voit clairement, y compris en thème sombre.
-                border: Border.all(color: colors.outline, width: 1.2),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.credit_card_outlined,
-                    activeIcon: Icons.credit_card,
-                    label: 'Carte',
-                    index: 0,
-                    tourDescription:
-                        'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
-                  ),
-                  _buildNavItem(
-                    icon: Icons.people_outline,
-                    activeIcon: Icons.people,
-                    label: 'Contacts',
-                    index: 1,
-                    tourDescription:
-                        'Retrouvez tous les contacts collectés au même endroit.',
-                  ),
-                  if (showJobMatch)
+        // La pilule rapetisse en scrollant vers le bas et retrouve sa
+        // taille normale en scrollant vers le haut (façon Instagram) —
+        // cf. _handleScrollNotification. AnimatedScale plutôt qu'un
+        // AnimatedContainer sur la hauteur : évite de devoir recalculer la
+        // taille des icônes/texte à chaque palier, tout rapetisse d'un bloc
+        // en gardant ses proportions.
+        child: AnimatedScale(
+          scale: _navCollapsed ? 0.82 : 1.0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: ClipRRect(
+            // Même rayon que les cartes du design system (AppTheme.cardRadius)
+            // — une seule source de vérité pour l'arrondi de toute l'UI.
+            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.5),
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  // Bordure du même token que les cartes (colorScheme.outline).
+                  // Largeur 1.2 plutôt que le défaut 1.0 : fine mais qui se
+                  // voit clairement, y compris en thème sombre.
+                  border: Border.all(color: colors.outline, width: 1.2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
                     _buildNavItem(
-                      icon: Icons.favorite_outline,
-                      activeIcon: Icons.favorite,
-                      label: 'Offres',
-                      index: 2,
+                      icon: Icons.credit_card_outlined,
+                      activeIcon: Icons.credit_card,
+                      label: 'Carte',
+                      index: 0,
                       tourDescription:
-                          "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                          'Votre carte de visite digitale, personnalisable et prête à partager. Retournez-la pour scanner un code QR.',
                     ),
-                  _buildNavItem(
-                    icon: Icons.explore_outlined,
-                    activeIcon: Icons.explore,
-                    label: 'Explorer',
-                    index: showJobMatch ? 3 : 2,
-                    tourDescription:
-                        'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
-                    badgeCount: badgeCount,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    label: 'Profil',
-                    index: showJobMatch ? 4 : 3,
-                    tourDescription:
-                        'Gérez vos informations, votre carte et les réglages de l\'app.',
-                  ),
-                ],
+                    _buildNavItem(
+                      icon: Icons.people_outline,
+                      activeIcon: Icons.people,
+                      label: 'Contacts',
+                      index: 1,
+                      tourDescription:
+                          'Retrouvez tous les contacts collectés au même endroit.',
+                    ),
+                    if (showJobMatch)
+                      _buildNavItem(
+                        icon: Icons.favorite_outline,
+                        activeIcon: Icons.favorite,
+                        label: 'Offres',
+                        index: 2,
+                        tourDescription:
+                            "Découvrez les offres d'emploi qui correspondent à votre profil.",
+                      ),
+                    _buildNavItem(
+                      icon: Icons.explore_outlined,
+                      activeIcon: Icons.explore,
+                      label: 'Explorer',
+                      index: showJobMatch ? 3 : 2,
+                      tourDescription:
+                          'Découvrez d\'autres utilisateurs KART et connectez-vous avec eux.',
+                      badgeCount: badgeCount,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.person_outline,
+                      activeIcon: Icons.person,
+                      label: 'Profil',
+                      index: showJobMatch ? 4 : 3,
+                      tourDescription:
+                          'Gérez vos informations, votre carte et les réglages de l\'app.',
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
