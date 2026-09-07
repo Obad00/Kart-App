@@ -29,6 +29,9 @@ void showJobDetailSheet(
   List<String> skills = const [],
   int? score,
   VoidCallback? onInterested,
+  VoidCallback? onPass,
+  VoidCallback? onSave,
+  bool isSaved = false,
 }) {
   final colors = Theme.of(context).colorScheme;
 
@@ -59,6 +62,9 @@ void showJobDetailSheet(
         skills: skills,
         score: score,
         onInterested: onInterested,
+        onPass: onPass,
+        onSave: onSave,
+        isSaved: isSaved,
         scrollController: scrollController,
       ),
     ),
@@ -80,6 +86,9 @@ class _JobDetailSheetContent extends StatelessWidget {
   final List<String> skills;
   final int? score;
   final VoidCallback? onInterested;
+  final VoidCallback? onPass;
+  final VoidCallback? onSave;
+  final bool isSaved;
   final ScrollController scrollController;
 
   const _JobDetailSheetContent({
@@ -97,6 +106,9 @@ class _JobDetailSheetContent extends StatelessWidget {
     this.skills = const [],
     this.score,
     this.onInterested,
+    this.onPass,
+    this.onSave,
+    this.isSaved = false,
     required this.scrollController,
   });
 
@@ -296,32 +308,92 @@ class _JobDetailSheetContent extends StatelessWidget {
         if (onInterested != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  onInterested!();
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.favorite_rounded, color: Colors.white),
-                label: const Text('Je suis intéressé'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: jobMatchAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            // Mêmes actions que sur la carte (Passer/Sauvegarder/Intéressé)
+            // — ouvrir le détail ne doit pas priver l'utilisateur de ces
+            // gestes, sinon il faut fermer la fiche pour agir sur l'offre.
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                if (onPass != null)
+                  _buildRoundAction(
+                    colors: colors,
+                    icon: Icons.close_rounded,
+                    label: 'Passer',
+                    color: Colors.red,
+                    onTap: () {
+                      onPass!();
+                      Navigator.pop(context);
+                    },
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'Syne',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                if (onSave != null)
+                  _buildRoundAction(
+                    colors: colors,
+                    icon: isSaved
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    label: 'Sauvegarder',
+                    color: Colors.amber.shade700,
+                    small: true,
+                    onTap: () {
+                      onSave!();
+                      Navigator.pop(context);
+                    },
                   ),
+                _buildRoundAction(
+                  colors: colors,
+                  icon: Icons.favorite_rounded,
+                  label: 'Intéressé',
+                  color: jobMatchAccent,
+                  onTap: () {
+                    onInterested!();
+                    Navigator.pop(context);
+                  },
                 ),
-              ),
+              ],
             ),
           ),
+      ],
+    );
+  }
+
+  // Même présentation que les boutons ronds du fil de suggestions
+  // (JobMatchFeedPage._buildActionButton) pour rester cohérent visuellement.
+  Widget _buildRoundAction({
+    required ColorScheme colors,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    bool small = false,
+  }) {
+    final size = small ? 46.0 : 58.0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border:
+                  Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: Icon(icon, color: color, size: small ? 20 : 26),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: colors.onSurface.withValues(alpha: 0.55),
+          ),
+        ),
       ],
     );
   }

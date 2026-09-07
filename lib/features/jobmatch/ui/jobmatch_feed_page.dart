@@ -98,6 +98,9 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
       skills: job.skills,
       score: job.score,
       onInterested: () => _handleLike(job, provider),
+      onPass: () => provider.swipe(job, 'reject'),
+      onSave: () => provider.toggleSave(job),
+      isSaved: job.isSaved,
     );
   }
 
@@ -282,7 +285,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
-        12,
+        32,
         20,
         // bottomInset() (safe area + pilule), pas juste reservedHeight
         // (pilule seule) : sans la vraie safe area du bas (l'encoche du
