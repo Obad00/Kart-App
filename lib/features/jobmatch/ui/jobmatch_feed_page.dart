@@ -126,9 +126,15 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
     final colors = Theme.of(context).colorScheme;
 
     final glassAppBar = GlassAppBar(
-      title: const Text(
-        'Offres pour vous',
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+      centerTitle: false,
+      title: Text(
+        'JobMatch',
+        style: TextStyle(
+          fontFamily: 'Syne',
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: colors.onSurface,
+        ),
       ),
       actions: [
         Stack(
@@ -190,24 +196,66 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
           child: SafeArea(
             top: false,
             bottom: false,
-            child: Stack(
+            // Column plutôt que Stack directement : la description doit
+            // rester juste sous l'en-tête (hors du GlassAppBar), au-dessus
+            // du contenu, qui prend le reste de la hauteur via Expanded.
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (provider.loading)
-                  const Center(child: CircularProgressIndicator())
-                else if (provider.feed.isEmpty)
-                  _buildEmptyState(context, colors, provider)
-                else
-                  _buildCardStack(context, provider),
-                if (provider.lastMatch != null)
-                  _buildMatchOverlay(context, provider),
-                // AnimatedSwitcher : fondu à l'apparition ET à la
-                // disparition, au lieu d'un "pop"/disparition brutale quand
-                // _celebrating repasse à null.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _celebrating != null
-                      ? _buildLikedCelebration(_celebrating!)
-                      : const SizedBox.shrink(key: ValueKey('no-celebration')),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trouvez votre prochaine opportunité.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
+                          // Pleine opacité (pas les 60% ci-dessous) : couleur
+                          // du thème adaptée clair/sombre, contrairement à un
+                          // blanc littéral qui deviendrait invisible sur fond
+                          // clair.
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      Text(
+                        'Des offres adaptées à votre profil, en quelques '
+                        'gestes.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                          color: colors.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      if (provider.loading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (provider.feed.isEmpty)
+                        _buildEmptyState(context, colors, provider)
+                      else
+                        _buildCardStack(context, provider),
+                      if (provider.lastMatch != null)
+                        _buildMatchOverlay(context, provider),
+                      // AnimatedSwitcher : fondu à l'apparition ET à la
+                      // disparition, au lieu d'un "pop"/disparition brutale
+                      // quand _celebrating repasse à null.
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _celebrating != null
+                            ? _buildLikedCelebration(_celebrating!)
+                            : const SizedBox.shrink(
+                                key: ValueKey('no-celebration')),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
