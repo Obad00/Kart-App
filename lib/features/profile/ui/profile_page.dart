@@ -433,11 +433,24 @@ class _ProfilePageState extends State<ProfilePage>
                           backgroundImage: avatarOk
                               ? CachedNetworkImageProvider(avatarUrl)
                               : null,
+                          // addPostFrameCallback : ce callback d'erreur est
+                          // invoqué de façon synchrone pendant la PEINTURE
+                          // (paint) de la frame en cours dès que l'image est
+                          // déjà connue en échec — appeler setState()
+                          // directement ici plantait avec "Build scheduled
+                          // during frame" (setState pendant build/paint est
+                          // interdit). On reporte la mise à jour à la frame
+                          // suivante, seul moment sûr pour la déclencher.
                           onBackgroundImageError: avatarOk
                               ? (_, __) {
                                   if (_brokenAvatarUrl != avatarUrl) {
-                                    setState(
-                                        () => _brokenAvatarUrl = avatarUrl);
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (mounted) {
+                                        setState(
+                                            () => _brokenAvatarUrl = avatarUrl);
+                                      }
+                                    });
                                   }
                                 }
                               : null,

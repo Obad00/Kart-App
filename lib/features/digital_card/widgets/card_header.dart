@@ -159,25 +159,38 @@ class _ProfileDropdownButton extends StatelessWidget {
             color: colors.primary.withValues(alpha: 0.2),
             width: 1,
           ),
-          image: avatarUrl != null
-              ? DecorationImage(
-                  image: CachedNetworkImageProvider(avatarUrl),
-                  fit: BoxFit.cover,
-                )
-              : null,
         ),
-        child: avatarUrl != null
-            ? null
-            : Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    color: colors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
+        // Initiales toujours présentes en dessous (pas juste en repli
+        // conditionnel) : DecorationImage n'a pas de vrai retour d'échec
+        // exploitable ici, donc une image qui ne se décode pas (cf.
+        // EncodingError CORS sur Flutter Web tant que le fix backend n'est
+        // pas déployé) plantait silencieusement en laissant juste le fond
+        // vide — remonté comme un avatar "cassé", visible même une fois le
+        // problème compris. CachedNetworkImage (widget, pas juste le
+        // provider) par-dessus avec un errorWidget vide : les initiales
+        // recouvrent l'échec au lieu de laisser paraître un carré vide.
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Text(
+                initials,
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
                 ),
               ),
+            ),
+            if (avatarUrl != null)
+              CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                placeholder: (_, __) => const SizedBox.shrink(),
+              ),
+          ],
+        ),
       ),
     );
   }

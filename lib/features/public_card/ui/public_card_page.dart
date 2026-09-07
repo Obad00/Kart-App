@@ -190,9 +190,18 @@ class _PublicCardPageState extends State<PublicCardPage>
       radius: radius,
       backgroundColor: backgroundColor,
       backgroundImage: showImage ? CachedNetworkImageProvider(avatarUrl) : null,
+      // addPostFrameCallback : ce callback est invoqué de façon synchrone
+      // pendant la peinture de la frame en cours dès que l'image est déjà
+      // connue en échec — un setState() direct ici plante avec "Build
+      // scheduled during frame" (interdit pendant build/paint). On reporte
+      // à la frame suivante, seul moment sûr.
       onBackgroundImageError: showImage
           ? (_, __) {
-              if (!_avatarBroken) setState(() => _avatarBroken = true);
+              if (!_avatarBroken) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _avatarBroken = true);
+                });
+              }
             }
           : null,
       // Si l'image casse au décodage, on retombe sur les initiales même
