@@ -321,7 +321,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       // Le badge "% Profil correspondant" sur une ligne à
                       // part, sous le logo/nom — il partageait la même
                       // ligne que le logo avant, ce qui la surchargeait.
@@ -396,7 +396,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (_salaryLabel(job) != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text(
                             _salaryLabel(job)!,
                             style: const TextStyle(
@@ -406,12 +406,16 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            ...job.skills.take(3).map((s) => _buildChip(s)),
+                            // take(2) (pas 3) : un 3e chip passait souvent à
+                            // la ligne (Wrap), ajoutant une rangée entière
+                            // que le budget vertical fixe de cette carte
+                            // n'a pas — RenderFlex overflow en bas.
+                            ...job.skills.take(2).map((s) => _buildChip(s)),
                             if (job.skills.isEmpty) ...[
                               if (job.contractType != null)
                                 _buildChip(
@@ -424,7 +428,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                           ],
                         ),
                         if (job.publishedAt != null) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Text(
                             'Publiée ${relativeTimeLabel(job.publishedAt!)}',
                             style: const TextStyle(

@@ -228,4 +228,23 @@ class JobMatchSummary {
       pendingSuggestions: json['pending_suggestions'] ?? 0,
     );
   }
+
+  /// Pour ajuster un compteur localement après une action (retrait d'un
+  /// j'aime/sauvegarde/reconsidération) sans devoir refaire un aller-retour
+  /// réseau juste pour rafraîchir cette rangée de stats.
+  JobMatchSummary copyWith({
+    int? matches,
+    int? liked,
+    int? rejected,
+    int? saved,
+    int? pendingSuggestions,
+  }) {
+    return JobMatchSummary(
+      matches: matches ?? this.matches,
+      liked: liked ?? this.liked,
+      rejected: rejected ?? this.rejected,
+      saved: saved ?? this.saved,
+      pendingSuggestions: pendingSuggestions ?? this.pendingSuggestions,
+    );
+  }
 }

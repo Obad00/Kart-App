@@ -92,12 +92,28 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
   Future<void> _unsave(LikedJobItem job) async {
     // Optimiste : retiré de la liste tout de suite, remis si l'appel échoue
     // — cohérent avec JobMatchProvider.toggleSave() côté fil de suggestions.
-    setState(() => _saved.removeWhere((s) => s.jobId == job.jobId));
+    setState(() {
+      _saved.removeWhere((s) => s.jobId == job.jobId);
+      if (_summary != null) {
+        _summary = _summary!.copyWith(saved: _summary!.saved - 1);
+      }
+    });
     try {
       await _service.unsaveJob(job.jobId);
+      // Sans ça, l'étoile de la carte restait pleine dans le fil de
+      // suggestions (JobMatchProvider, une instance globale et durable)
+      // tant qu'il n'était pas rechargé en entier.
+      if (mounted) {
+        context.read<JobMatchProvider>().setSavedLocally(job.jobId, false);
+      }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _saved.add(job));
+      setState(() {
+        _saved.add(job);
+        if (_summary != null) {
+          _summary = _summary!.copyWith(saved: _summary!.saved + 1);
+        }
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erreur, réessayez')),
       );
@@ -148,13 +164,21 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
     try {
       await _service.unswipe(job.jobId);
       if (!mounted) return;
-      setState(() => _liked.removeWhere((l) => l.jobId == job.jobId));
+      setState(() {
+        _liked.removeWhere((l) => l.jobId == job.jobId);
+        if (_summary != null) {
+          _summary = _summary!.copyWith(liked: _summary!.liked - 1);
+        }
+      });
       // Sans ça, l'offre ne réapparaissait dans le fil de suggestions
       // (JobMatchProvider, une instance globale et durable) qu'après un
       // redémarrage complet de l'app.
       if (mounted) context.read<JobMatchProvider>().loadFeed();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"J\'aime" retiré de ${job.jobTitle}')),
+        // Le nom de l'offre en premier (comme pour _reconsider ci-dessous)
+        // — "'J'aime' retiré de [offre]" se lisait comme si "j'aime" était
+        // le sujet qu'on retirait DE l'offre, pas l'inverse.
+        SnackBar(content: Text('${job.jobTitle} retiré de vos j\'aime')),
       );
     } catch (e) {
       // Erreur non identifiée statiquement (l'endpoint DELETE est
@@ -173,7 +197,12 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
     try {
       await _service.unswipe(job.jobId);
       if (!mounted) return;
-      setState(() => _rejected.removeWhere((r) => r.jobId == job.jobId));
+      setState(() {
+        _rejected.removeWhere((r) => r.jobId == job.jobId);
+        if (_summary != null) {
+          _summary = _summary!.copyWith(rejected: _summary!.rejected - 1);
+        }
+      });
       // Sans ça, l'offre ne réapparaissait dans le fil de suggestions
       // (JobMatchProvider, une instance globale et durable, pas recréée à
       // chaque ouverture de ce tableau de bord) qu'après un redémarrage

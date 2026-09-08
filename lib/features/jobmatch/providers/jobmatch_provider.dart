@@ -79,6 +79,18 @@ class JobMatchProvider extends ChangeNotifier {
     }
   }
 
+  /// Met à jour isSaved localement, sans appel réseau — pour quand l'action
+  /// a déjà été faite ailleurs (ex: bouton "Retirer" du tableau de bord,
+  /// onglet Sauvegardées). Sans ça, l'étoile de la carte dans le fil de
+  /// suggestions restait pleine après une désauvegarde faite depuis le
+  /// tableau de bord, tant que le fil n'était pas rechargé en entier.
+  void setSavedLocally(int jobId, bool saved) {
+    final index = feed.indexWhere((j) => j.id == jobId);
+    if (index == -1) return;
+    feed[index] = feed[index].copyWithSaved(saved);
+    notifyListeners();
+  }
+
   void dismissMatch() {
     lastMatch = null;
     notifyListeners();

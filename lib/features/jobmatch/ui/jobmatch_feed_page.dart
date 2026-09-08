@@ -130,13 +130,17 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
 
     final glassAppBar = GlassAppBar(
       centerTitle: false,
-      title: Text(
-        'JobMatch',
-        style: TextStyle(
-          fontFamily: 'Syne',
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          color: colors.onSurface,
+      title: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+            fontFamily: 'Syne',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+          children: [
+            TextSpan(text: 'Job', style: TextStyle(color: colors.onSurface)),
+            const TextSpan(text: 'Match', style: TextStyle(color: _accentBlue)),
+          ],
         ),
       ),
       actions: [
@@ -291,9 +295,10 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         // (pilule seule) : sans la vraie safe area du bas (l'encoche du
         // bas / home indicator), les boutons Passer/Sauvegarder/Détails/
         // Intéressé finissaient collés contre la pilule de nav sur un
-        // iPhone à encoche, au lieu de garder un vrai espace au-dessus.
-        24 +
-            BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
+        // iPhone à encoche. 8 (pas 24) : juste assez de respiration,
+        // l'écart précédent laissait un vide trop marqué au-dessus de la
+        // pilule.
+        8 + BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
       ),
       child: Column(
         children: [
@@ -313,7 +318,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 color: Colors.red,
                 onTap: () => provider.swipe(topJob, 'reject'),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 10),
               _buildActionButton(
                 icon: topJob.isSaved
                     ? Icons.star_rounded
@@ -323,7 +328,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 small: true,
                 onTap: () => provider.toggleSave(topJob),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 10),
               _buildActionButton(
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'Détails',
@@ -331,7 +336,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                 small: true,
                 onTap: () => _openJobDetail(context, topJob, provider),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 10),
               _buildActionButton(
                 icon: Icons.favorite_rounded,
                 label: 'Intéressé',
