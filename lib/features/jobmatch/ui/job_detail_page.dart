@@ -264,7 +264,7 @@ class _JobDetailSheetContent extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: jobMatchLike,
+                      color: Color(0xFF16A34A),
                     ),
                   ),
                 ],
@@ -343,7 +343,7 @@ class _JobDetailSheetContent extends StatelessWidget {
                   colors: colors,
                   icon: Icons.favorite_rounded,
                   label: 'Intéressé',
-                  color: jobMatchAccent,
+                  color: jobMatchLike,
                   onTap: () {
                     onInterested!();
                     Navigator.pop(context);

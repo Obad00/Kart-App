@@ -321,7 +321,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                             ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 14),
                       // Le badge "% Profil correspondant" sur une ligne à
                       // part, sous le logo/nom — il partageait la même
                       // ligne que le logo avant, ce qui la surchargeait.
@@ -362,7 +362,7 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                   // défilement interne. maxLines sur chaque texte + Wrap sur
                   // les chips gardent ce contenu dans un gabarit prévisible.
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,

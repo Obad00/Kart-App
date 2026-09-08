@@ -210,14 +210,14 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Trouvez votre prochaine opportunité.',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           height: 1.3,
                           // Pleine opacité (pas les 60% ci-dessous) : couleur
@@ -231,7 +231,7 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
                         'Des offres adaptées à votre profil, en quelques '
                         'gestes.',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w500,
                           height: 1.3,
                           color: colors.onSurface.withValues(alpha: 0.6),
@@ -295,14 +295,25 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
         // (pilule seule) : sans la vraie safe area du bas (l'encoche du
         // bas / home indicator), les boutons Passer/Sauvegarder/Détails/
         // Intéressé finissaient collés contre la pilule de nav sur un
-        // iPhone à encoche. 8 (pas 24) : juste assez de respiration,
-        // l'écart précédent laissait un vide trop marqué au-dessus de la
-        // pilule.
-        8 + BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
+        // iPhone à encoche. 2 (pas 8/24) : juste assez de respiration,
+        // l'écart précédent laissait encore un vide trop marqué au-dessus
+        // de la pilule.
+        2 + BottomNavMetrics.bottomInset(MediaQuery.of(context).padding.bottom),
       ),
       child: Column(
         children: [
-          Expanded(child: _buildStack(provider, feed)),
+          Expanded(
+            // heightFactor 0.85 (pas 1) : sur les écrans hauts, la carte
+            // s'étirait sur toute la hauteur disponible alors que son
+            // contenu (en-tête + titre ancré en bas) ne remplit jamais tout
+            // cet espace — ça laissait un grand vide au milieu, entre le
+            // badge "% Profil correspondant" et le titre du poste.
+            child: FractionallySizedBox(
+              heightFactor: 0.85,
+              alignment: Alignment.topCenter,
+              child: _buildStack(provider, feed),
+            ),
+          ),
           const SizedBox(height: 18),
           // Boutons explicites en complément du glissement — plus simple à
           // utiliser à la souris/trackpad (Flutter Web) qu'un seuil de drag.
