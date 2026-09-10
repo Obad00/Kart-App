@@ -166,18 +166,32 @@ class PushNotificationService {
   /// racine.
   static Future<void> registerToken() async {
     try {
+      final messaging = FirebaseMessaging.instance;
+
+      if (!kIsWeb && Platform.isIOS) {
+        // Préalable obligatoire à tout token FCM sur iOS : le token APNs
+        // natif, dont l'enregistrement auprès d'APNs est asynchrone côté OS
+        // et pas toujours terminé au moment où on arrive ici (registerToken()
+        // est appelé juste après le login, donc potentiellement à froid,
+        // juste après l'accord de permission). Sans cette attente,
+        // getToken() ci-dessous peut renvoyer null silencieusement s'il est
+        // appelé trop tôt — on lui laisse jusqu'à 10s pour apparaître.
+        for (var i = 0; i < 10 && await messaging.getAPNSToken() == null; i++) {
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
+
       // Le web a besoin de la clé VAPID pour obtenir un token — absente/
       // ignorée sur mobile, où c'est géré nativement (FCM/APNs).
-      final token = await FirebaseMessaging.instance
-          .getToken(vapidKey: kIsWeb ? webVapidKey : null);
+      final token =
+          await messaging.getToken(vapidKey: kIsWeb ? webVapidKey : null);
       if (token == null) {
         // Cas silencieux le plus fréquent sur iOS : permission refusée par
-        // l'utilisateur (ou pas encore accordée), ou token APNs pas encore
-        // disponible au moment de l'appel — FirebaseMessaging.getToken() ne
-        // lève pas d'exception dans ce cas, il renvoie juste null. On logue
-        // le statut d'autorisation courant pour distinguer les deux.
-        final settings =
-            await FirebaseMessaging.instance.getNotificationSettings();
+        // l'utilisateur (ou pas encore accordée), ou token APNs toujours pas
+        // disponible après l'attente ci-dessus — FirebaseMessaging.getToken()
+        // ne lève pas d'exception dans ce cas, il renvoie juste null. On
+        // logue le statut d'autorisation courant pour distinguer les deux.
+        final settings = await messaging.getNotificationSettings();
         debugPrint(
           '⚠️ Aucun token push obtenu (permission: '
           '${settings.authorizationStatus})',
