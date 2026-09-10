@@ -10,6 +10,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
+import '../../firebase_options_web.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../network/api_client.dart';
 
@@ -22,6 +23,13 @@ import '../network/api_client.dart';
 /// ou app fermée, le système affiche la notification tout seul (pas de
 /// handler background nécessaire côté Dart) — on ne gère que le premier
 /// plan (affichage manuel) et l'ouverture au tap (navigation).
+///
+/// Web : même flux (token FCM enregistré via [registerToken]), mais avec sa
+/// propre config (voir firebase_options_web.dart) et son propre "système" —
+/// le service worker web/firebase-messaging-sw.js, qui affiche la
+/// notification en arrière-plan/onglet fermé. Au premier plan, en revanche,
+/// rien n'est affiché sur le web (flutter_local_notifications ne supporte
+/// pas cette plateforme) — limitation connue, pas un oubli.
 class PushNotificationService {
   PushNotificationService(this._navigatorKey);
 
@@ -40,7 +48,12 @@ class PushNotificationService {
 
   Future<void> init() async {
     try {
-      await Firebase.initializeApp();
+      // Android/iOS lisent leur config nativement (google-services.json /
+      // GoogleService-Info.plist) — seul le web a besoin qu'on la lui passe
+      // explicitement, il n'a pas d'équivalent.
+      await Firebase.initializeApp(
+        options: kIsWeb ? webFirebaseOptions : null,
+      );
     } catch (e) {
       debugPrint('⚠️ Firebase.initializeApp a échoué: $e');
       return;
@@ -145,15 +158,16 @@ class PushNotificationService {
   /// appelable depuis AuthProvider sans référence au singleton du widget
   /// racine.
   static Future<void> registerToken() async {
-    if (kIsWeb) return;
-
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      // Le web a besoin de la clé VAPID pour obtenir un token — absente/
+      // ignorée sur mobile, où c'est géré nativement (FCM/APNs).
+      final token = await FirebaseMessaging.instance
+          .getToken(vapidKey: kIsWeb ? webVapidKey : null);
       if (token == null) return;
 
       await ApiClient.dio.post('/device-tokens', data: {
         'token': token,
-        'platform': Platform.isIOS ? 'ios' : 'android',
+        'platform': kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android'),
       });
     } catch (e) {
       debugPrint('⚠️ Enregistrement du token push échoué: $e');
@@ -165,10 +179,9 @@ class PushNotificationService {
   /// que l'appareil arrête de recevoir des notifications une fois
   /// déconnecté.
   static Future<void> deleteToken() async {
-    if (kIsWeb) return;
-
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await FirebaseMessaging.instance
+          .getToken(vapidKey: kIsWeb ? webVapidKey : null);
       if (token == null) return;
 
       await ApiClient.dio.delete('/device-tokens', data: {'token': token});
