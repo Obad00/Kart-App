@@ -6,6 +6,8 @@ class ApiEndpoints {
   static const storageUrl = 'https://kart.meblo.cloud/storage';
 
   // backend local pour tester la Phase  (lancer `php artisan serve`)
+  // 10.0.2.2 : alias spécial de l'émulateur Android vers le 127.0.0.1 de la
+  // machine hôte — 127.0.0.1 depuis l'émulateur pointerait vers lui-même.
   // static const baseUrl = 'http://127.0.0.1:8000/api';
   // static const storageUrl = 'http://127.0.0.1:8000/storage';
 
