@@ -64,7 +64,14 @@ class PushNotificationService {
     final messaging = FirebaseMessaging.instance;
 
     try {
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      debugPrint(
+        '🔔 Permission notifications: ${settings.authorizationStatus}',
+      );
     } catch (e) {
       debugPrint('⚠️ Demande de permission notifications échouée: $e');
     }
@@ -163,7 +170,20 @@ class PushNotificationService {
       // ignorée sur mobile, où c'est géré nativement (FCM/APNs).
       final token = await FirebaseMessaging.instance
           .getToken(vapidKey: kIsWeb ? webVapidKey : null);
-      if (token == null) return;
+      if (token == null) {
+        // Cas silencieux le plus fréquent sur iOS : permission refusée par
+        // l'utilisateur (ou pas encore accordée), ou token APNs pas encore
+        // disponible au moment de l'appel — FirebaseMessaging.getToken() ne
+        // lève pas d'exception dans ce cas, il renvoie juste null. On logue
+        // le statut d'autorisation courant pour distinguer les deux.
+        final settings =
+            await FirebaseMessaging.instance.getNotificationSettings();
+        debugPrint(
+          '⚠️ Aucun token push obtenu (permission: '
+          '${settings.authorizationStatus})',
+        );
+        return;
+      }
 
       await ApiClient.dio.post('/device-tokens', data: {
         'token': token,
