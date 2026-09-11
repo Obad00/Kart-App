@@ -165,6 +165,9 @@ class PushNotificationService {
   /// appelable depuis AuthProvider sans référence au singleton du widget
   /// racine.
   static Future<void> registerToken() async {
+    final platform = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
+    var apnsTokenPresent = kIsWeb || !Platform.isIOS; // sans objet hors iOS
+
     try {
       final messaging = FirebaseMessaging.instance;
 
@@ -179,6 +182,7 @@ class PushNotificationService {
         for (var i = 0; i < 10 && await messaging.getAPNSToken() == null; i++) {
           await Future.delayed(const Duration(seconds: 1));
         }
+        apnsTokenPresent = await messaging.getAPNSToken() != null;
       }
 
       // Le web a besoin de la clé VAPID pour obtenir un token — absente/
@@ -190,22 +194,57 @@ class PushNotificationService {
         // l'utilisateur (ou pas encore accordée), ou token APNs toujours pas
         // disponible après l'attente ci-dessus — FirebaseMessaging.getToken()
         // ne lève pas d'exception dans ce cas, il renvoie juste null. On
-        // logue le statut d'autorisation courant pour distinguer les deux.
+        // remonte le statut d'autorisation au backend (voir _reportDiagnostic)
+        // pour pouvoir le voir sans Mac/Console.app.
         final settings = await messaging.getNotificationSettings();
-        debugPrint(
-          '⚠️ Aucun token push obtenu (permission: '
-          '${settings.authorizationStatus})',
+        final reason =
+            'Aucun token obtenu (permission: ${settings.authorizationStatus})';
+        debugPrint('⚠️ $reason');
+        await _reportDiagnostic(
+          platform: platform,
+          authorizationStatus: settings.authorizationStatus.name,
+          apnsTokenPresent: apnsTokenPresent,
+          error: reason,
         );
         return;
       }
 
       await ApiClient.dio.post('/device-tokens', data: {
         'token': token,
-        'platform': kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android'),
+        'platform': platform,
       });
     } catch (e) {
       debugPrint('⚠️ Enregistrement du token push échoué: $e');
+      await _reportDiagnostic(
+        platform: platform,
+        authorizationStatus: null,
+        apnsTokenPresent: apnsTokenPresent,
+        error: e.toString(),
+      );
     }
+  }
+
+  /// Remonte au backend les cas où aucun token n'a pu être obtenu — sans ça,
+  /// ces échecs (permission refusée, course APNs...) sont invisibles côté
+  /// serveur, puisqu'aucune requête n'est jamais posée sur /device-tokens.
+  /// Volontairement tolérant : un échec réseau ici ne doit jamais faire
+  /// planter registerToken() lui-même (déjà dans son propre try/catch, mais
+  /// on s'en protège explicitement pour rester appelable depuis deux points
+  /// différents de la fonction).
+  static Future<void> _reportDiagnostic({
+    required String platform,
+    required String? authorizationStatus,
+    required bool apnsTokenPresent,
+    required String error,
+  }) async {
+    try {
+      await ApiClient.dio.post('/device-tokens/diagnostic', data: {
+        'platform': platform,
+        'authorization_status': authorizationStatus,
+        'apns_token_present': apnsTokenPresent,
+        'error': error,
+      });
+    } catch (_) {}
   }
 
   /// Supprime le token FCM de cet appareil côté backend — appelé avant la
