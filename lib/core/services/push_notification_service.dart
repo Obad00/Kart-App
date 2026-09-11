@@ -171,24 +171,30 @@ class PushNotificationService {
     try {
       final messaging = FirebaseMessaging.instance;
 
-      if (!kIsWeb && Platform.isIOS) {
-        // Préalable obligatoire à tout token FCM sur iOS : le token APNs
-        // natif, dont l'enregistrement auprès d'APNs est asynchrone côté OS
-        // et pas toujours terminé au moment où on arrive ici (registerToken()
-        // est appelé juste après le login, donc potentiellement à froid,
-        // juste après l'accord de permission). Sans cette attente,
-        // getToken() ci-dessous peut renvoyer null silencieusement s'il est
-        // appelé trop tôt — on lui laisse jusqu'à 10s pour apparaître.
-        for (var i = 0; i < 10 && await messaging.getAPNSToken() == null; i++) {
-          await Future.delayed(const Duration(seconds: 1));
+      // Le web a besoin de la clé VAPID pour obtenir un token — absente/
+      // ignorée sur mobile, où c'est géré nativement (FCM/APNs).
+      String? token;
+      for (var attempt = 1; attempt <= 15; attempt++) {
+        try {
+          token =
+              await messaging.getToken(vapidKey: kIsWeb ? webVapidKey : null);
+          break;
+        } on FirebaseException catch (e) {
+          // Constaté en prod sur iOS : même une fois le token APNs natif
+          // disponible, getToken() peut encore lever cette erreur juste
+          // après — condition de course connue côté SDK natif, pas
+          // seulement "pas encore prêt du tout". On retente donc l'appel
+          // lui-même (jusqu'à ~30s cumulés) plutôt que de se contenter
+          // d'attendre une fois avant, qui ne suffisait pas.
+          if (e.code != 'apns-token-not-set' || attempt == 15) rethrow;
+          await Future.delayed(const Duration(seconds: 2));
         }
+      }
+
+      if (!kIsWeb && Platform.isIOS) {
         apnsTokenPresent = await messaging.getAPNSToken() != null;
       }
 
-      // Le web a besoin de la clé VAPID pour obtenir un token — absente/
-      // ignorée sur mobile, où c'est géré nativement (FCM/APNs).
-      final token =
-          await messaging.getToken(vapidKey: kIsWeb ? webVapidKey : null);
       if (token == null) {
         // Cas silencieux le plus fréquent sur iOS : permission refusée par
         // l'utilisateur (ou pas encore accordée), ou token APNs toujours pas
