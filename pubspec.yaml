@@ -24,8 +24,10 @@ dependencies:
   dio: ^5.4.0
 
   # Notifications push (FCM)
-  firebase_core: ^3.8.0
-  firebase_messaging: ^15.1.6
+  # v16+ (firebase_messaging) bump le SDK iOS natif à 12.0.0 — cible un bug
+  # d'enregistrement APNs persistant sur iOS (voir push_notification_service.dart).
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
   flutter_local_notifications: ^18.0.1
 
   # State management
