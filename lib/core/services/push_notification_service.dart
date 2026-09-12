@@ -46,6 +46,15 @@ class PushNotificationService {
     importance: Importance.high,
   );
 
+  /// État de cette séquence d'init, consulté par registerToken() pour savoir
+  /// (via le diagnostic remonté au backend) si l'échec vient d'ici — ex:
+  /// init() pas encore passé par requestPermission() au moment où
+  /// registerToken() tourne (ils démarrent tous les deux, indépendamment et
+  /// sans s'attendre, depuis main.dart/AuthProvider), ou requestPermission()
+  /// qui échoue silencieusement. Valeurs : `pending`, `firebase_init_failed:…`,
+  /// `permission_requested:<status>`, `permission_request_failed:…`.
+  static String _initStage = 'pending';
+
   Future<void> init() async {
     try {
       // Android/iOS lisent leur config nativement (google-services.json /
@@ -56,6 +65,7 @@ class PushNotificationService {
       );
     } catch (e) {
       debugPrint('⚠️ Firebase.initializeApp a échoué: $e');
+      _initStage = 'firebase_init_failed:$e';
       return;
     }
 
@@ -72,8 +82,10 @@ class PushNotificationService {
       debugPrint(
         '🔔 Permission notifications: ${settings.authorizationStatus}',
       );
+      _initStage = 'permission_requested:${settings.authorizationStatus}';
     } catch (e) {
       debugPrint('⚠️ Demande de permission notifications échouée: $e');
+      _initStage = 'permission_request_failed:$e';
     }
 
     // iOS : laisse le système afficher la bannière nativement au premier
@@ -249,6 +261,11 @@ class PushNotificationService {
         'authorization_status': authorizationStatus,
         'apns_token_present': apnsTokenPresent,
         'error': error,
+        // État de PushNotificationService.init() au moment de l'échec — dit
+        // si registerToken() a tourné avant même que requestPermission()
+        // n'ait eu lieu (les deux démarrent indépendamment, sans s'attendre,
+        // depuis main.dart/AuthProvider).
+        'init_stage': _initStage,
       });
     } catch (_) {}
   }
