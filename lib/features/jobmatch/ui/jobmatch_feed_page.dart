@@ -25,6 +25,14 @@ import '../../../shared/widgets/glass_app_bar.dart';
 
 const _accentBlue = jobMatchAccent;
 
+// Hauteur en dessous de laquelle le contenu de JobSwipeCard (en-tête logo +
+// badge, titre sur 2 lignes, lieu/contrat, salaire éventuel, chips, date de
+// publication) ne tient plus dans la carte : le FractionallySizedBox
+// heightFactor 0.85 de _buildCardStack lui retire encore 15% d'un espace
+// déjà réduit par les boutons Passer/Sauvegarder/Détails/Intéressé, ce qui
+// provoquait un RenderFlex overflow en bas de carte sur petits écrans.
+const _minCardContentHeight = 340.0;
+
 class JobMatchFeedPage extends StatefulWidget {
   // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
   // à `_index == <index Offres>`. Sans lui, le tour local de cette page
@@ -308,10 +316,25 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
             // contenu (en-tête + titre ancré en bas) ne remplit jamais tout
             // cet espace — ça laissait un grand vide au milieu, entre le
             // badge "% Profil correspondant" et le titre du poste.
-            child: FractionallySizedBox(
-              heightFactor: 0.85,
-              alignment: Alignment.topCenter,
-              child: _buildStack(provider, feed),
+            //
+            // Mais sur petit écran, l'espace que cet Expanded reçoit est
+            // déjà tout juste suffisant pour le contenu de la carte — lui
+            // retirer encore 15% le faisait déborder (overflow en bas du
+            // titre/des chips, cf. _minCardContentHeight). On ne réduit
+            // donc que quand il reste assez de marge pour absorber cette
+            // perte, sinon la carte garde toute la hauteur disponible.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final heightFactor =
+                    constraints.maxHeight * 0.85 < _minCardContentHeight
+                        ? 1.0
+                        : 0.85;
+                return FractionallySizedBox(
+                  heightFactor: heightFactor,
+                  alignment: Alignment.topCenter,
+                  child: _buildStack(provider, feed),
+                );
+              },
             ),
           ),
           const SizedBox(height: 18),

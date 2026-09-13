@@ -106,6 +106,15 @@ dev_dependencies:
   # App icon generator
   flutter_launcher_icons: ^0.13.1
 
+# firebase_core_web 3.11.0 uses `e.isA<JSObject>()` on a catch variable typed
+# `Object`, which only compiles on Dart >=3.12 (dart:js_interop's `isA` moved
+# from `JSAny?` to `Object?` there). Our Dart SDK is 3.11.x, so pin back to
+# 3.10.0 (pre-regression) until a patched firebase_core_web is published.
+# https://github.com/firebase/flutterfire/issues/18611 (fixed upstream by
+# https://github.com/firebase/flutterfire/pull/18612, not yet released)
+dependency_overrides:
+  firebase_core_web: 3.10.0
+
 flutter:
   uses-material-design: true
 
