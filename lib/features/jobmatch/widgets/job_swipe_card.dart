@@ -371,97 +371,116 @@ class _JobSwipeCardState extends State<JobSwipeCard>
                   // défilement interne. maxLines sur chaque texte + Wrap sur
                   // les chips gardent ce contenu dans un gabarit prévisible.
                   //
-                  // LayoutBuilder : sur petit écran, l'espace réservé à ce
-                  // bloc peut rester trop juste même après l'ajustement du
-                  // heightFactor dans JobMatchFeedPage (notch, rotation,
-                  // filtres actifs qui rallongent l'AppBar...). `compact`
-                  // resserre les écarts et retire la ligne "Publiée..."
-                  // (la moins utile pour décider) plutôt que de déborder.
+                  // FittedBox(scaleDown) plutôt qu'un seuil "compact" à
+                  // 210px avec tailles de police devinées à la main (2
+                  // correctifs précédents, 7d072ae puis 18e07c3, tous deux
+                  // insuffisants — cf. iphone13_repro_test.dart : ça
+                  // débordait encore dès que la taille de texte système de
+                  // l'utilisateur (Réglages > Affichage > Taille du texte)
+                  // dépassait le réglage par défaut, un cas qu'aucun des
+                  // deux ne couvrait). Ce bloc se redimensionne maintenant
+                  // lui-même pour tenir EXACTEMENT dans l'espace réellement
+                  // disponible, quels que soient l'appareil ou la taille de
+                  // texte système — garantie structurelle plutôt qu'un
+                  // seuil en pixels à réajuster à chaque nouveau signalement.
+                  // SizedBox de largeur fixe à l'intérieur : sans lui,
+                  // FittedBox mesure son enfant à largeur non bornée, donc
+                  // le titre ne retournerait jamais à la ligne (maxLines
+                  // perdrait son effet) avant d'être réduit à l'échelle.
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final compact = constraints.maxHeight < 210;
-                      final gap = compact ? 3.0 : 8.0;
                       return Padding(
-                        padding: EdgeInsets.fromLTRB(
-                            20, compact ? 8 : 14, 20, compact ? 4 : 10),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              job.title,
-                              style: TextStyle(
-                                fontFamily: 'Syne',
-                                fontSize: compact ? 19 : 22,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: compact ? 3 : 6),
-                            Text(
-                              [
-                                if ((job.isRemote ? 'À distance' : job.location)
-                                        ?.isNotEmpty ==
-                                    true)
-                                  job.isRemote ? 'À distance' : job.location,
-                                job.contractType != null
-                                    ? contractTypeLabel(job.contractType!)
-                                    : null,
-                                job.isRemote ? 'Hybride' : null,
-                              ].whereType<String>().join(' · '),
-                              style: const TextStyle(
-                                  fontSize: 12.5, color: Colors.white60),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_salaryLabel(job) != null) ...[
-                              SizedBox(height: gap),
-                              Text(
-                                _salaryLabel(job)!,
-                                style: TextStyle(
-                                  fontSize: compact ? 15 : 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: jobMatchAccent,
-                                ),
-                              ),
-                            ],
-                            SizedBox(height: gap),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.bottomLeft,
+                          child: SizedBox(
+                            width: constraints.maxWidth - 40,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // take(2) (pas 3) : un 3e chip passait
-                                // souvent à la ligne (Wrap), ajoutant une
-                                // rangée entière que le budget vertical
-                                // fixe de cette carte n'a pas — RenderFlex
-                                // overflow en bas.
-                                ...job.skills.take(2).map(
-                                    (s) => _buildChip(s, compact: compact)),
-                                if (job.skills.isEmpty) ...[
-                                  if (job.contractType != null)
-                                    _buildChip(
-                                        contractTypeLabel(job.contractType!),
-                                        compact: compact),
-                                  if (job.experienceRequired != null)
-                                    _buildChip(
-                                      "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''}",
-                                      compact: compact,
+                                Text(
+                                  job.title,
+                                  style: const TextStyle(
+                                    fontFamily: 'Syne',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  [
+                                    if ((job.isRemote
+                                                ? 'À distance'
+                                                : job.location)
+                                            ?.isNotEmpty ==
+                                        true)
+                                      job.isRemote
+                                          ? 'À distance'
+                                          : job.location,
+                                    job.contractType != null
+                                        ? contractTypeLabel(job.contractType!)
+                                        : null,
+                                    job.isRemote ? 'Hybride' : null,
+                                  ].whereType<String>().join(' · '),
+                                  style: const TextStyle(
+                                      fontSize: 12.5, color: Colors.white60),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_salaryLabel(job) != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _salaryLabel(job)!,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: jobMatchAccent,
                                     ),
+                                  ),
+                                ],
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    // take(2) (pas 3) : un 3e chip passait
+                                    // souvent à la ligne (Wrap), ajoutant
+                                    // une rangée entière qui aurait
+                                    // simplement rétréci un peu plus tout
+                                    // le bloc (FittedBox) — mais autant
+                                    // garder un rendu cohérent avec la
+                                    // maquette (2 chips max).
+                                    ...job.skills
+                                        .take(2)
+                                        .map((s) => _buildChip(s)),
+                                    if (job.skills.isEmpty) ...[
+                                      if (job.contractType != null)
+                                        _buildChip(contractTypeLabel(
+                                            job.contractType!)),
+                                      if (job.experienceRequired != null)
+                                        _buildChip(
+                                          "${job.experienceRequired} an${job.experienceRequired! > 1 ? 's' : ''}",
+                                        ),
+                                    ],
+                                  ],
+                                ),
+                                if (job.publishedAt != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Publiée ${relativeTimeLabel(job.publishedAt!)}',
+                                    style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: Colors.white38),
+                                  ),
                                 ],
                               ],
                             ),
-                            if (job.publishedAt != null && !compact) ...[
-                              SizedBox(height: gap),
-                              Text(
-                                'Publiée ${relativeTimeLabel(job.publishedAt!)}',
-                                style: const TextStyle(
-                                    fontSize: 11.5, color: Colors.white38),
-                              ),
-                            ],
-                          ],
+                          ),
                         ),
                       );
                     },
@@ -498,9 +517,9 @@ class _JobSwipeCardState extends State<JobSwipeCard>
     return '${job.salaryMin ?? job.salaryMax} FCFA / mois';
   }
 
-  Widget _buildChip(String label, {bool compact = false}) {
+  Widget _buildChip(String label) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 4 : 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
