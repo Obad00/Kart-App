@@ -290,17 +290,25 @@ class PushNotificationService {
     final type = data['type'] as String?;
     if (type == null) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final navigator = _navigatorKey.currentState;
       final context = _navigatorKey.currentContext;
       if (navigator == null || context == null) return;
 
+      // Essentiel au cold start (app tuée, relancée par un tap sur la
+      // notification) : sans ça, on peut naviguer vers /home avant que
+      // AuthProvider ait fini de charger la session (user encore null),
+      // ce qui fait apparaître l'app comme déconnectée — SplashScreen,
+      // lui, attend déjà ça normalement (voir _navigateAfterInit()) avant
+      // de décider où aller.
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.waitForInit();
+      if (!authProvider.isAuthenticated) return;
+
       switch (type) {
         case 'connection_request_received':
         case 'connection_request_accepted':
-          final showJobMatch = canAccessJobMatch(
-            context.read<AuthProvider>().user?.plan,
-          );
+          final showJobMatch = canAccessJobMatch(authProvider.user?.plan);
           navigator.pushNamedAndRemoveUntil(
             '/home',
             (route) => false,
