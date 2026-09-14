@@ -33,6 +33,16 @@ const _accentBlue = jobMatchAccent;
 // provoquait un RenderFlex overflow en bas de carte sur petits écrans.
 const _minCardContentHeight = 340.0;
 
+/// Fraction de `availableHeight` à donner à la carte (cf. usage dans
+/// `_buildCardStack`) : jamais moins que 0.85 (sinon un grand vide apparaît
+/// entre le badge et le titre sur les écrans hauts), jamais plus que ce
+/// qu'il faut pour couvrir `_minCardContentHeight` (sinon la carte reprend
+/// tout l'espace même quand un peu plus que 0.85 suffisait déjà, ce qui
+/// recrée ce même grand vide — le bug remonté sur iPhone 13).
+double _cardHeightFactor(double availableHeight) {
+  return (_minCardContentHeight / availableHeight).clamp(0.85, 1.0);
+}
+
 class JobMatchFeedPage extends StatefulWidget {
   // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
   // à `_index == <index Offres>`. Sans lui, le tour local de cette page
@@ -311,26 +321,14 @@ class _JobMatchFeedPageState extends State<JobMatchFeedPage> {
       child: Column(
         children: [
           Expanded(
-            // heightFactor 0.85 (pas 1) : sur les écrans hauts, la carte
-            // s'étirait sur toute la hauteur disponible alors que son
-            // contenu (en-tête + titre ancré en bas) ne remplit jamais tout
-            // cet espace — ça laissait un grand vide au milieu, entre le
-            // badge "% Profil correspondant" et le titre du poste.
-            //
-            // Mais sur petit écran, l'espace que cet Expanded reçoit est
-            // déjà tout juste suffisant pour le contenu de la carte — lui
-            // retirer encore 15% le faisait déborder (overflow en bas du
-            // titre/des chips, cf. _minCardContentHeight). On ne réduit
-            // donc que quand il reste assez de marge pour absorber cette
-            // perte, sinon la carte garde toute la hauteur disponible.
+            // cf. _cardHeightFactor : la carte ne prend pas toute la
+            // hauteur disponible (sinon un grand vide apparaît entre le
+            // badge et le titre sur les écrans hauts), sauf quand c'est
+            // nécessaire pour éviter que son contenu déborde en bas.
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final heightFactor =
-                    constraints.maxHeight * 0.85 < _minCardContentHeight
-                        ? 1.0
-                        : 0.85;
                 return FractionallySizedBox(
-                  heightFactor: heightFactor,
+                  heightFactor: _cardHeightFactor(constraints.maxHeight),
                   alignment: Alignment.topCenter,
                   child: _buildStack(provider, feed),
                 );
