@@ -21,8 +21,14 @@ class _LoginPageState extends State<LoginPage>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
+  // Email OU téléphone (cf. AuthService::login() côté backend, qui détecte
+  // lequel des deux a été tapé) — un compte créé depuis l'inscription
+  // événement sans email (visiteur qui n'en avait pas) se connecte
+  // uniquement avec son téléphone. >= 4 et pas >= 6 : le mot de passe peut
+  // être un code PIN à 4 chiffres (EventRegistrationService), pas
+  // seulement un mot de passe classique.
   bool _isFormValid() =>
-      _emailCtrl.text.contains('@') && _passwordCtrl.text.length >= 6;
+      _emailCtrl.text.trim().isNotEmpty && _passwordCtrl.text.length >= 4;
 
   @override
   void initState() {
@@ -135,13 +141,16 @@ class _LoginPageState extends State<LoginPage>
 
                         const SizedBox(height: 32),
 
-                        // Email
+                        // Email ou téléphone (cf. _isFormValid) — un
+                        // clavier neutre plutôt qu'emailAddress, qui
+                        // masquerait les touches utiles pour taper un
+                        // numéro.
                         AuthTextField(
-                          label: 'Email',
-                          hint: 'votre@email.com',
+                          label: 'Email ou téléphone',
+                          hint: 'votre@email.com ou +221 77 123 45 67',
                           controller: _emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          prefixIcon: Icons.mail_outline_rounded,
+                          keyboardType: TextInputType.text,
+                          prefixIcon: Icons.person_outline_rounded,
                           onChanged: (_) => setState(() {}),
                         ),
 
