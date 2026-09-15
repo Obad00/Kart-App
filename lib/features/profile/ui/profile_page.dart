@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/widgets/secure_pin_banner.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
@@ -266,6 +267,8 @@ class _ProfilePageState extends State<ProfilePage>
                     // certificats ; juste après l'en-tête comme demandé.
                     // Vérification réservée au superadmin (CRM web).
                     _buildDocumentsSection(colors, companyColor),
+
+                    const SecurePinBanner(),
 
                     const CompletionBanner(),
 
