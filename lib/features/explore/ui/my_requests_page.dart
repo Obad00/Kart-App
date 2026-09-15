@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/connection_request_item.dart';
+import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
+import '../../contacts/providers/contacts_provider.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
@@ -216,11 +218,25 @@ class _MyRequestRow extends StatelessWidget {
     final error = await context
         .read<ExploreProvider>()
         .respondFromMyRequests(item.id, action);
-    if (error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: Colors.red),
-      );
+    if (error != null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
+        );
+      }
+      return;
     }
+    if (!context.mounted) return;
+    if (action == 'accept') {
+      // ContactsProvider est un singleton chargé une seule fois au
+      // démarrage de l'app — sans ce refresh explicite, accepter une
+      // demande ici n'affichait le nouveau contact dans l'onglet Contacts
+      // qu'après avoir quitté et relancé l'app.
+      context.read<ContactsProvider>().fetchGroupedContacts();
+    }
+    // Accepter ou refuser résout une demande reçue en attente : le badge
+    // de la barre de nav doit le refléter tout de suite.
+    context.read<ConnectionBadgeProvider>().refresh();
   }
 
   @override
