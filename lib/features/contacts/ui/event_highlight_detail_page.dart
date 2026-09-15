@@ -1,8 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/network/api_endpoints.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../company_community/ui/event_participant_scan_page.dart';
 import '../../explore/models/explore_user.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../public_card/ui/public_card_page.dart';
@@ -107,11 +110,46 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     return "${date.day} $month ${date.year} à ${hour}h$minute";
   }
 
+  /// Icône "scanner les participants" — visible uniquement pour un
+  /// collaborateur de l'entreprise qui a créé CET événement
+  /// (event.company_id === son company_id), pas pour un participant
+  /// lambda : c'est ce contexte-là qui lève toute ambiguïté avec le scan
+  /// habituel (carte → ajout aux contacts).
+  bool _canScanParticipants(BuildContext context) {
+    final companyId = _event?['company_id'];
+    final userCompanyId = context.read<AuthProvider>().user?.companyId;
+    return companyId != null && userCompanyId != null && companyId == userCompanyId;
+  }
+
+  void _openParticipantScan(BuildContext context) {
+    final event = _event;
+    if (event == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventParticipantScanPage(
+          eventId: widget.eventId,
+          eventName: event['name'] as String? ?? widget.fallbackName,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final event = _event;
-    final appBar =
-        GlassAppBar(title: Text(event?['name'] ?? widget.fallbackName));
+    final appBar = GlassAppBar(
+      title: Text(event?['name'] ?? widget.fallbackName),
+      actions: event != null && _canScanParticipants(context)
+          ? [
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                tooltip: 'Scanner les participants',
+                onPressed: () => _openParticipantScan(context),
+              ),
+            ]
+          : null,
+    );
 
     return Scaffold(
       // extendBodyBehindAppBar + le padding top ci-dessous (au lieu d'un

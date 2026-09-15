@@ -15,7 +15,6 @@ import '../../company_community/ui/company_event_participants_page.dart';
 import '../../company_community/ui/company_events_list_page.dart';
 import '../../company_community/widgets/company_event_card.dart';
 import '../../jobmatch/ui/jobmatch_feed_page.dart';
-import '../../scan/ui/scan_page.dart';
 import '../models/community.dart';
 import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
@@ -233,13 +232,6 @@ class _ExplorePageState extends State<ExplorePage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CompanyEventsListPage()),
-    );
-  }
-
-  void _openScan() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ScanPage()),
     );
   }
 
@@ -556,16 +548,6 @@ class _ExplorePageState extends State<ExplorePage> {
           color: colors.onSurface,
         ),
       ),
-      // Scanner un QR depuis Explorer plutôt que seulement en retournant
-      // "Ma carte" (cf. ScanPage) — c'est ici qu'on scanne aussi le QR de
-      // check-in d'un événement (même page, même caméra : elle détecte
-      // elle-même de quel type de QR il s'agit).
-      actions: [
-        IconButton(
-          icon: Icon(Icons.qr_code_scanner_rounded, color: colors.onSurface),
-          onPressed: _openScan,
-        ),
-      ],
     );
 
     // Hauteur totale de la barre (statut + toolbar) — passée à la liste
