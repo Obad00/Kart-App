@@ -70,13 +70,37 @@ class AuthProvider extends ChangeNotifier {
       final token = await ApiClient.getToken();
       debugPrint('🔑 Token found on startup: ${token != null ? "Yes" : "No"}');
       if (token != null) {
-        await loadMe();
+        await _loadMeWithRetry();
       }
     } catch (e) {
       debugPrint('❌ Auth init error: $e');
     } finally {
       _isInitialized = true;
       notifyListeners();
+    }
+  }
+
+  /// Signalé : "je clique sur une notification (demande de connexion) et je
+  /// suis déconnecté". Cause réelle — au lancement à froid déclenché par un
+  /// tap sur une notification, Firebase/FCM (init, permission, jeton) se
+  /// dispute la connexion réseau au même moment que ce tout premier /me :
+  /// un raté transitoire (timeout, DNS pas encore prêt...) laissait `user`
+  /// à null pour TOUTE la session, malgré un jeton valide en stockage — ni
+  /// SplashScreen ni le handler de notification (qui attendent tous deux
+  /// waitForInit() puis vérifient isAuthenticated) ne pouvaient alors
+  /// deviner qu'il s'agissait d'un raté réseau plutôt que d'une vraie
+  /// déconnexion, et renvoyaient vers /login. 2 tentatives de plus avant
+  /// d'abandonner — uniquement pour un échec réseau/inconnu (loadMe() met
+  /// `error` à une valeur non nulle dans ce cas précis) : un vrai 401/403
+  /// appelle logout() qui remet `error` à null, ce qui arrête aussitôt les
+  /// tentatives (pas la peine de réessayer une déconnexion légitime).
+  Future<void> _loadMeWithRetry() async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await loadMe();
+      if (user != null || error == null) return;
+      if (attempt < 2) {
+        await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+      }
     }
   }
 

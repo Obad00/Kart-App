@@ -495,6 +495,21 @@ class _HomeShellState extends State<HomeShell>
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(builder: (context, auth, _) {
+      // isInitialized d'abord : sans ce garde-fou, HomeShell traitait "pas
+      // encore su si la session est valide" exactement comme "vraiment pas
+      // connecté" et renvoyait déjà vers /login — un chemin qui atteint
+      // HomeShell sans avoir explicitement attendu waitForInit() en amont
+      // (ex: onUnknownRoute dans main.dart) tombait alors dans ce cas à
+      // tort. Chaque appelant connu (SplashScreen, notifications, deep
+      // links) attend déjà l'init avant de naviguer ici, mais HomeShell ne
+      // doit pas dépendre uniquement d'eux pour rester correct.
+      if (!auth.isInitialized) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       if (!auth.isAuthenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/login');

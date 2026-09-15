@@ -14,6 +14,20 @@ class MyDigitalCardGuard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
+        // isInitialized d'abord — même garde-fou que HomeShell : ne pas
+        // confondre "pas encore su si la session est valide" avec "vraiment
+        // pas connecté".
+        if (!authProvider.isInitialized) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF0A0A0A),
+            body: SizedBox.expand(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
         // Rediriger si non authentifié
         if (!authProvider.isAuthenticated) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
