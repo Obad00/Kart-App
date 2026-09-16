@@ -9,6 +9,11 @@ import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../company_community/providers/company_events_provider.dart';
+import '../../company_community/services/company_community_service.dart';
+import '../../company_community/ui/company_event_participants_page.dart';
+import '../../company_community/ui/company_events_list_page.dart';
+import '../../company_community/widgets/company_event_card.dart';
 import '../../jobmatch/ui/jobmatch_feed_page.dart';
 import '../models/community.dart';
 import '../providers/community_provider.dart';
@@ -73,6 +78,7 @@ class _ExplorePageState extends State<ExplorePage> {
   late final ExploreProvider _provider;
   late final CommunityProvider _communityProvider;
   late final ExploreDiscoveryProvider _discoveryProvider;
+  late final CompanyEventsProvider _companyEventsProvider;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _searchDebounce;
@@ -94,6 +100,7 @@ class _ExplorePageState extends State<ExplorePage> {
     _communityProvider = CommunityProvider(CommunityService());
     _discoveryProvider =
         ExploreDiscoveryProvider(ExploreService(), CompanyDiscoveryService());
+    _companyEventsProvider = CompanyEventsProvider(CompanyCommunityService());
 
     // addPostFrameCallback : ces load() notifient leurs providers
     // (notifyListeners() dès leur première ligne, avant le moindre await)
@@ -107,6 +114,12 @@ class _ExplorePageState extends State<ExplorePage> {
       _communityProvider.loadCommunities();
       _provider.loadUsers();
       _discoveryProvider.loadAll();
+      // Uniquement pour un compte entreprise (owner/admin) — évite un
+      // appel réseau (et un éventuel 403, plan non-enterprise) inutile
+      // pour tous les autres utilisateurs d'Explorer.
+      if (context.read<AuthProvider>().user?.isCompanyOwnerOrAdmin == true) {
+        _companyEventsProvider.load();
+      }
 
       if (widget.initialTabIndex == 1) _openMyRequests();
 
@@ -148,6 +161,8 @@ class _ExplorePageState extends State<ExplorePage> {
       _communityProvider.loadCommunities(),
       _provider.loadUsers(),
       _discoveryProvider.loadAll(),
+      if (context.read<AuthProvider>().user?.isCompanyOwnerOrAdmin == true)
+        _companyEventsProvider.load(force: true),
     ]);
   }
 
@@ -166,6 +181,7 @@ class _ExplorePageState extends State<ExplorePage> {
     _provider.dispose();
     _communityProvider.dispose();
     _discoveryProvider.dispose();
+    _companyEventsProvider.dispose();
     super.dispose();
   }
 
@@ -209,6 +225,13 @@ class _ExplorePageState extends State<ExplorePage> {
       MaterialPageRoute(
         builder: (_) => SectionProfilesPage(section: section, title: title),
       ),
+    );
+  }
+
+  void _openCompanyCommunity() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CompanyEventsListPage()),
     );
   }
 
@@ -543,6 +566,7 @@ class _ExplorePageState extends State<ExplorePage> {
         ChangeNotifierProvider.value(value: _provider),
         ChangeNotifierProvider.value(value: _communityProvider),
         ChangeNotifierProvider.value(value: _discoveryProvider),
+        ChangeNotifierProvider.value(value: _companyEventsProvider),
       ],
       child: Stack(
         children: [
@@ -630,6 +654,14 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           ),
         ),
+
+        // "Ma communauté" (compte entreprise owner/admin uniquement) —
+        // affichée en tout premier, avant les carrousels de découverte :
+        // ses propres événements/participants sont plus pertinents pour ce
+        // compte que du contenu à découvrir. Invisible (aucun changement
+        // de design) pour tout le reste des utilisateurs.
+        if (context.watch<AuthProvider>().user?.isCompanyOwnerOrAdmin == true)
+          SliverToBoxAdapter(child: _buildCompanyCommunitySection()),
 
         // Profils recommandés pour vous — le titre était affiché quel que
         // soit le filtre actif (seul le contenu en dessous était masqué),
@@ -989,6 +1021,56 @@ class _ExplorePageState extends State<ExplorePage> {
                           ),
                         );
                       },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// "Ma communauté" — les événements créés par l'entreprise du compte
+  /// connecté (owner/admin), avec inscrits/présents. Même charpente
+  /// visuelle (ExploreSectionHeader + carrousel horizontal) que les autres
+  /// sections de la page, pour ne rien changer au design existant.
+  Widget _buildCompanyCommunitySection() {
+    return Consumer<CompanyEventsProvider>(
+      builder: (context, provider, _) {
+        if (provider.events.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ExploreSectionHeader(
+                title: 'Ma communauté',
+                subtitle: 'Vos événements, inscrits et présents',
+                onSeeAll: _openCompanyCommunity,
+              ),
+              SizedBox(
+                height: 176,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: provider.events.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final event = provider.events[index];
+                    return CompanyEventCard(
+                      event: event,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompanyEventParticipantsPage(
+                            eventId: event.id,
+                            eventName: event.name,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

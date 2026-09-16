@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../services/event_checkin_service.dart';
 import '../services/scan_service.dart';
 import '../../card_scanner/ui/card_scanner_screen.dart';
 import '../../digital_card/ui/my_digital_card_page.dart';
@@ -23,6 +24,7 @@ class _ScanPageState extends State<ScanPage> {
   bool _isProcessing = false;
 
   final ScanService _service = ScanService();
+  final EventCheckinService _eventCheckinService = EventCheckinService();
   final MobileScannerController _scannerController = MobileScannerController();
 
   @override
@@ -91,6 +93,15 @@ void _showComingSoonDialog() {
 
     if (rawValue == null) return;
 
+    // QR de check-in d'un événement (.../events/{slug}/checkin) : détecté
+    // en premier, distinct du QR d'une carte perso (.../card/{slug}) —
+    // même caméra/écran pour les deux, seule l'URL scannée diffère.
+    final eventSlug = _extractEventCheckinSlug(rawValue);
+    if (eventSlug != null) {
+      await _handleEventCheckin(eventSlug);
+      return;
+    }
+
     final slug = _extractSlug(rawValue);
 
     if (slug == null) return;
@@ -130,6 +141,53 @@ void _showComingSoonDialog() {
     if (uri == null) return null;
 
     return uri.pathSegments.isNotEmpty ? uri.pathSegments.last : null;
+  }
+
+  /// Repère un slug d'événement dans .../events/{slug}/checkin — cherche
+  /// littéralement "events" suivi de 2 segments (peu importe le préfixe
+  /// avant, contrairement à _extractSlug qui prend juste le dernier
+  /// segment, insuffisant ici puisque "checkin" serait pris pour le slug).
+  String? _extractEventCheckinSlug(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return null;
+
+    final segments = uri.pathSegments;
+    final eventsIndex = segments.indexOf('events');
+    if (eventsIndex < 0 || eventsIndex + 2 >= segments.length) return null;
+    if (segments[eventsIndex + 2] != 'checkin') return null;
+
+    return segments[eventsIndex + 1];
+  }
+
+  Future<void> _handleEventCheckin(String slug) async {
+    setState(() => _isProcessing = true);
+    try {
+      final result = await _eventCheckinService.checkin(slug);
+
+      if (!mounted) return;
+
+      final eventName =
+          (result['event'] as Map?)?['name']?.toString() ?? "l'événement";
+
+      FeedbackOverlay.showSuccess(
+        context,
+        title: 'Présence enregistrée !',
+        subtitle: 'Vous êtes noté·e présent·e à $eventName.',
+      );
+
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (mounted) Navigator.of(context).pop();
+    } on EventCheckinException catch (e) {
+      _showError(e.message);
+    } catch (_) {
+      _showError('Erreur inconnue');
+    } finally {
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   void _showSuccess(String message) {

@@ -18,6 +18,11 @@ class User {
   // EmailVerificationPage) — absent des anciennes réponses /me en cache,
   // d'où le défaut à true pour ne jamais bloquer un compte existant.
   final bool emailVerified;
+  // Compte créé via l'inscription événement avec un code PIN à 4 chiffres
+  // comme mot de passe (EventRegistrationService, côté backend) — pilote
+  // le nudge non bloquant "Sécurisez votre compte" (cf. SecurePinBanner),
+  // distinct de mustChangePassword qui bloque l'accès à l'app.
+  final bool hasTemporaryPin;
 
   User({
     required this.id,
@@ -33,6 +38,7 @@ class User {
     this.companyId,
     this.company,
     this.emailVerified = true,
+    this.hasTemporaryPin = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -79,6 +85,7 @@ class User {
       // considère alors l'email déjà vérifié plutôt que de bloquer un
       // compte existant à tort.
       emailVerified: json['email_verified'] ?? true,
+      hasTemporaryPin: json['has_temporary_pin'] == true,
     );
   }
 
