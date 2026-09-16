@@ -6,6 +6,7 @@ import '../models/highlight_model.dart';
 import '../ui/event_highlight_detail_page.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 
 class HighlightBar extends StatelessWidget {
   const HighlightBar({super.key});
@@ -133,74 +134,16 @@ class _HighlightItem extends StatelessWidget {
 
         final bool isCurrentlyActive = highlight.isActive;
 
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) {
-            final isDark =
-                Theme.of(dialogContext).brightness == Brightness.dark;
-            final dialogBgColor =
-                isDark ? const Color(0xFF2A2A2A) : Colors.white;
-            final textColor = isDark ? Colors.white : Colors.black87;
-            final subtitleColor = isDark ? Colors.white70 : Colors.black54;
-
-            return AlertDialog(
-              backgroundColor: dialogBgColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.0),
-                  width: 1,
-                ),
-              ),
-              elevation: isDark ? 12 : 24,
-              title: Text(
-                isCurrentlyActive
-                    ? 'Désactiver ce highlight ?'
-                    : 'Activer ce highlight ?',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
-              content: Text(
-                isCurrentlyActive
-                    ? 'Voulez-vous désactiver "${highlight.name}" ?'
-                    : 'Voulez-vous activer "${highlight.name}" ?',
-                style: TextStyle(
-                  color: subtitleColor,
-                  fontSize: 15,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  style: TextButton.styleFrom(
-                    foregroundColor: subtitleColor,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                  ),
-                  child: const Text('Annuler'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isCompanyUser ? accentColor : const Color(0xFF3B82F6),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    isCurrentlyActive ? 'Désactiver' : 'Activer',
-                  ),
-                ),
-              ],
-            );
-          },
+        final confirm = await GlassDialog.confirm(
+          context,
+          title: isCurrentlyActive
+              ? 'Désactiver ce highlight ?'
+              : 'Activer ce highlight ?',
+          message: isCurrentlyActive
+              ? 'Voulez-vous désactiver "${highlight.name}" ?'
+              : 'Voulez-vous activer "${highlight.name}" ?',
+          confirmLabel: isCurrentlyActive ? 'Désactiver' : 'Activer',
+          isDestructive: isCurrentlyActive,
         );
 
         if (confirm == true) {

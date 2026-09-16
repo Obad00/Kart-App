@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/services/user_service.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 
 class LeadCaptureSheet extends StatefulWidget {
   final String slug;
@@ -125,11 +127,10 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors de l\'envoi'),
-          backgroundColor: Colors.red,
-        ),
+      FeedbackOverlay.showError(
+        context,
+        title: 'Erreur',
+        subtitle: "Erreur lors de l'envoi",
       );
     } finally {
       if (mounted) {
@@ -269,46 +270,44 @@ class _SuccessDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, size: 22),
-                ),
-              ],
-            ),
-            Icon(
-              isDuplicate ? Icons.info_outline : Icons.check_circle,
-              color: isDuplicate ? Colors.orange : const Color(0xFF2563EB),
-              size: 60,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isDuplicate ? 'Déjà envoyé' : 'Merci !',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+    final colors = Theme.of(context).colorScheme;
+
+    return GlassDialog(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Icon(Icons.close, size: 22, color: colors.onSurface),
               ),
+            ],
+          ),
+          Icon(
+            isDuplicate ? Icons.info_outline : Icons.check_circle,
+            color: isDuplicate ? Colors.orange : const Color(0xFF2563EB),
+            size: 60,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isDuplicate ? 'Déjà envoyé' : 'Merci !',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
             ),
-            const SizedBox(height: 8),
-            Text(
-              isDuplicate
-                  ? 'Vous avez déjà partagé vos coordonnées avec $ownerName'
-                  : '$ownerName a reçu vos coordonnées',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isDuplicate
+                ? 'Vous avez déjà partagé vos coordonnées avec $ownerName'
+                : '$ownerName a reçu vos coordonnées',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.onSurface.withValues(alpha: 0.75)),
+          ),
+        ],
       ),
     );
   }

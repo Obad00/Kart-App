@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../providers/payment_provider.dart';
 import '../models/payment.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 
 class PaymentProcessingScreen extends StatefulWidget {
   const PaymentProcessingScreen({super.key});
@@ -234,37 +235,15 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
     }
   }
 
-  void _showCancelDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Annuler le paiement ?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
+  Future<void> _showCancelDialog() async {
+    final confirmed = await GlassDialog.confirm(
+      context,
+      title: 'Annuler le paiement ?',
+      message:
           'Votre paiement est peut-être en cours de traitement. Êtes-vous sûr de vouloir quitter ?',
-          style: TextStyle(color: Colors.grey),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Non, continuer'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Oui, quitter'),
-          ),
-        ],
-      ),
+      cancelLabel: 'Non, continuer',
+      confirmLabel: 'Oui, quitter',
     );
+    if (confirmed && mounted) Navigator.pop(context);
   }
 }

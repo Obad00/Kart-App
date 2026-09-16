@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/plan_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../config/auth_config.dart';
 import '../../../config/feature_flags.dart';
@@ -143,13 +144,12 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
       debugPrint('🧭 Plan activation status=$statusCode data=$data');
 
       if (requiresVerification) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+        FeedbackOverlay.showInfo(
+          context,
+          title: 'Vérification requise',
+          subtitle:
               'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
-            ),
-            duration: Duration(seconds: 8),
-          ),
+          duration: const Duration(seconds: 8),
         );
         return;
       }
@@ -165,8 +165,10 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
             ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'
             : 'Votre plan Enterprise a été activé avec succès.';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: successMessage,
         );
 
         if (!mounted) return;
@@ -233,15 +235,12 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
         if (!mounted) return;
 
         if (switchedSubscriptionId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                provider.error ??
-                    backendMessage ??
-                    'Une erreur est survenue. Veuillez réessayer.',
-              ),
-              backgroundColor: Colors.red,
-            ),
+          FeedbackOverlay.showError(
+            context,
+            title: 'Erreur',
+            subtitle: provider.error ??
+                backendMessage ??
+                'Une erreur est survenue. Veuillez réessayer.',
           );
           return;
         }
@@ -254,8 +253,10 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
             ? 'Votre plan Pro a été activé avec succès. Vous pouvez vous connecter directement.'
             : 'Votre plan Enterprise a été activé avec succès.';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: successMessage,
         );
 
         if (!mounted) return;

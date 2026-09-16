@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../navigation/home_shell.dart';
 import '../models/contact_model.dart';
@@ -117,11 +119,10 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
   Future<void> exportSelectedContacts() async {
     if (selectedContacts.isEmpty) {
-      _showSnackBar(
+      FeedbackOverlay.showInfo(
+        context,
         title: 'Aucun contact sélectionné',
         subtitle: 'Sélectionnez au moins un contact',
-        icon: Icons.info_rounded,
-        iconColor: Colors.orange,
       );
       return;
     }
@@ -138,11 +139,10 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
           .toList();
 
       if (selectedContactsList.isEmpty) {
-        _showSnackBar(
+        FeedbackOverlay.showError(
+          context,
           title: 'Erreur',
           subtitle: 'Impossible de trouver les contacts sélectionnés',
-          icon: Icons.error_rounded,
-          iconColor: Colors.red,
         );
         return;
       }
@@ -214,111 +214,77 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       setState(() {});
       widget.onSelectionChanged?.call(0);
 
-      _showSnackBar(
+      FeedbackOverlay.showSuccess(
+        context,
         title: 'Succès',
         subtitle: '${selectedContactsList.length} contact(s) exporté(s) en CSV',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
       );
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ _exportContactsAsCSV Exception: $e');
-      _showSnackBar(
+      FeedbackOverlay.showError(
+        context,
         title: 'Erreur d\'export',
         subtitle: 'Une erreur est survenue lors de l\'export : ${e.toString()}',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
       );
     }
   }
 
   Future<void> _deleteSingleContact(ContactModel contact) async {
     final provider = context.read<ContactsProvider>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Supprimer ce contact ?'),
-        content: Text(
+    final confirmed = await GlassDialog.confirm(
+      context,
+      title: 'Supprimer ce contact ?',
+      message:
           'Voulez-vous vraiment supprimer ${contact.fullname} ? Cette action est irréversible.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Supprimer',
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await provider.deleteContact(contact.id);
       if (!mounted) return;
       selectedContacts.remove(contact.id);
       widget.onSelectionChanged?.call(selectedContacts.length);
-      _showSnackBar(
+      FeedbackOverlay.showSuccess(
+        context,
         title: 'Contact supprimé',
         subtitle: '${contact.fullname} a été supprimé',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
       );
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ _deleteSingleContact Exception: $e');
-      _showSnackBar(
+      FeedbackOverlay.showError(
+        context,
         title: 'Erreur',
         subtitle: 'Une erreur est survenue lors de la suppression',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
       );
     }
   }
 
   Future<void> deleteSelectedContacts() async {
     if (selectedContacts.isEmpty) {
-      _showSnackBar(
+      FeedbackOverlay.showInfo(
+        context,
         title: 'Aucun contact sélectionné',
         subtitle: 'Sélectionnez au moins un contact',
-        icon: Icons.info_rounded,
-        iconColor: Colors.orange,
       );
       return;
     }
 
     final count = selectedContacts.length;
     final provider = context.read<ContactsProvider>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Supprimer les contacts ?'),
-        content: Text(
-          count > 1
-              ? 'Voulez-vous vraiment supprimer ces $count contacts ? Cette action est irréversible.'
-              : 'Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+    final confirmed = await GlassDialog.confirm(
+      context,
+      title: 'Supprimer les contacts ?',
+      message: count > 1
+          ? 'Voulez-vous vraiment supprimer ces $count contacts ? Cette action est irréversible.'
+          : 'Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible.',
+      confirmLabel: 'Supprimer',
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await Future.wait(
@@ -331,78 +297,20 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       setState(() {});
       widget.onSelectionChanged?.call(0);
 
-      _showSnackBar(
+      FeedbackOverlay.showSuccess(
+        context,
         title: 'Succès',
         subtitle: count > 1 ? '$count contacts supprimés' : 'Contact supprimé',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green,
       );
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ deleteSelectedContacts Exception: $e');
-      _showSnackBar(
+      FeedbackOverlay.showError(
+        context,
         title: 'Erreur',
         subtitle: 'Une erreur est survenue lors de la suppression',
-        icon: Icons.error_rounded,
-        iconColor: Colors.red,
       );
     }
-  }
-
-  void _showSnackBar({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        backgroundColor: Colors.white,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(16),
-        elevation: 8,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   static const double _titleRowHeight = 66;

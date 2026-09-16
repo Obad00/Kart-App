@@ -35,7 +35,25 @@ class FeedbackOverlay {
       title: title,
       subtitle: subtitle,
       icon: Icons.info,
-       iconColor: Colors.black,
+      // colors.onSurface (pas Colors.black) : la carte est en verre dépoli
+      // désormais, un icône noir fixe disparaîtrait en thème sombre.
+      iconColor: Theme.of(context).colorScheme.onSurface,
+      duration: duration,
+    );
+  }
+
+  static void showError(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    Duration duration = const Duration(milliseconds: 3500),
+  }) {
+    _show(
+      context,
+      title: title,
+      subtitle: subtitle,
+      icon: Icons.error_rounded,
+      iconColor: Colors.redAccent,
       duration: duration,
     );
   }

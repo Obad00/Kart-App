@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../../shared/utils/session_reset.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class CardHeader extends StatelessWidget {
@@ -298,73 +299,15 @@ class _ProfileDropdownButton extends StatelessWidget {
     HapticFeedback.mediumImpact();
     final currentContext = context;
 
-    final confirm = await showDialog<bool>(
-      context: currentContext,
+    final confirm = await GlassDialog.confirm(
+      currentContext,
+      title: 'Déconnexion',
+      message: 'Êtes-vous sûr de vouloir vous déconnecter de votre compte ?',
+      confirmLabel: 'Confirmer',
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.red.shade400,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('Deconnexion'),
-          ],
-        ),
-        content: const Text(
-          'Etes-vous sur de vouloir vous deconnecter de votre compte ?',
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Annuler'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Confirmer'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
 
-    if (confirm == true && currentContext.mounted) {
+    if (confirm && currentContext.mounted) {
       await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
         Navigator.of(currentContext)

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
@@ -58,18 +59,19 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     try {
       await _authApi.resendEmailVerification();
       if (!silent && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email de vérification renvoyé.')),
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: 'Email de vérification renvoyé.',
         );
         _startResendCooldown();
       }
     } catch (e) {
       if (!silent && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Impossible d'envoyer l'email pour le moment."),
-            backgroundColor: Colors.red,
-          ),
+        FeedbackOverlay.showError(
+          context,
+          title: 'Erreur',
+          subtitle: "Impossible d'envoyer l'email pour le moment.",
         );
       }
     }

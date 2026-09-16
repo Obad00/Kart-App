@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -258,7 +259,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                         child: NoCardCta(
                           onCreate: () async {
                             final navigator = Navigator.of(context);
-                            final messenger = ScaffoldMessenger.of(context);
                             final cardProvider = context.read<CardProvider>();
 
                             final created = await navigator.push(
@@ -274,44 +274,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
                             if (!mounted) return;
 
-                            messenger
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                SnackBar(
-                                  behavior: SnackBarBehavior.floating,
-                                  backgroundColor: const Color(0xFF0A0A0A),
-                                  elevation: 0,
-                                  duration: const Duration(seconds: 3),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  content: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.check_circle,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          'Carte créée avec succès 🎉',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            letterSpacing: 0.3,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
+                            FeedbackOverlay.showSuccess(
+                              context,
+                              title: 'Succès',
+                              subtitle: 'Carte créée avec succès 🎉',
+                            );
                           },
                         ),
                       ),
@@ -594,11 +561,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       // permettait de savoir si le téléchargement/partage avait réellement
       // abouti (ex: enregistré dans Photos) ou avait été fermé sans suite.
       if (result.status == ShareResultStatus.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Carte téléchargée avec succès'),
-            backgroundColor: Colors.green,
-          ),
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: 'Carte téléchargée avec succès',
         );
       }
     } catch (e) {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -211,35 +212,19 @@ class _CreateCardFormState extends State<CreateCardForm> {
         }
 
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Erreur de validation'),
-              content: Text(errorMsg),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
+          GlassDialog.info(
+            context,
+            title: 'Erreur de validation',
+            message: errorMsg,
           );
         }
       } else {
         // Autres erreurs réseau ou serveur
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Erreur'),
-              content: Text('Une erreur est survenue : ${e.message}'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
+          GlassDialog.info(
+            context,
+            title: 'Erreur',
+            message: 'Une erreur est survenue : ${e.message}',
           );
         }
       }

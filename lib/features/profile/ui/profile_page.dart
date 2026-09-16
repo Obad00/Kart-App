@@ -13,11 +13,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
 import '../../../shared/utils/crop_image.dart';
 import '../../../shared/utils/initials.dart';
@@ -1415,23 +1417,44 @@ class _ProfilePageState extends State<ProfilePage>
                   Navigator.pop(context);
                   showDialog(
                     context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      title: const Text('KART'),
-                      content: Text(
-                        _appVersion.isNotEmpty
-                            ? 'Version $_appVersion\nVotre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.'
-                            : 'Votre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Fermer'),
+                    builder: (ctx) {
+                      final colors = Theme.of(ctx).colorScheme;
+                      return GlassDialog(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'KART',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _appVersion.isNotEmpty
+                                  ? 'Version $_appVersion\nVotre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.'
+                                  : 'Votre carte de visite digitale.\n\n© ${DateTime.now().year} KART. Tous droits réservés.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: colors.onSurface.withValues(alpha: 0.7),
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Fermer'),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -1626,10 +1649,10 @@ class _ProfilePageState extends State<ProfilePage>
                 // appareil verrait les données de celui qui vient d'être
                 // supprimé.
                 resetSessionProviders(pageContext);
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('Votre compte a été supprimé avec succès'),
-                  ),
+                FeedbackOverlay.showSuccess(
+                  pageContext,
+                  title: 'Succès',
+                  subtitle: 'Votre compte a été supprimé avec succès',
                 );
                 Navigator.of(pageContext)
                     .pushNamedAndRemoveUntil('/login', (_) => false);
@@ -1647,11 +1670,10 @@ class _ProfilePageState extends State<ProfilePage>
               if (result.status == DeleteAccountStatus.sessionExpired) {
                 Navigator.of(dialogContext).pop();
                 if (!mounted || !pageContext.mounted) return;
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('Session expirée'),
-                    backgroundColor: Colors.red,
-                  ),
+                FeedbackOverlay.showError(
+                  pageContext,
+                  title: 'Erreur',
+                  subtitle: 'Session expirée',
                 );
                 Navigator.of(pageContext)
                     .pushNamedAndRemoveUntil('/login', (_) => false);
@@ -1662,156 +1684,146 @@ class _ProfilePageState extends State<ProfilePage>
                 isLoading = false;
               });
               if (!mounted || !pageContext.mounted) return;
-              ScaffoldMessenger.of(pageContext).showSnackBar(
-                const SnackBar(
-                  content: Text('Une erreur est survenue. Veuillez réessayer.'),
-                  backgroundColor: Colors.red,
-                ),
+              FeedbackOverlay.showError(
+                pageContext,
+                title: 'Erreur',
+                subtitle: 'Une erreur est survenue. Veuillez réessayer.',
               );
             }
 
             final colors = Theme.of(context).colorScheme;
 
-            return Dialog(
-              insetPadding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              backgroundColor: colors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            Icons.delete_forever_outlined,
-                            color: Colors.red.shade400,
-                            size: 20,
+            return GlassDialog(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.delete_forever_outlined,
+                          color: Colors.red.shade400,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Supprimer le compte',
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            color: colors.onSurface,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Supprimer le compte',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w700,
-                              color: colors.onSurface,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Cette action est irréversible. Toutes vos données seront supprimées.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: colors.onSurface.withValues(alpha: 0.75),
                     ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Cette action est irréversible. Toutes vos données seront supprimées.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.45,
-                        color: colors.onSurface.withValues(alpha: 0.75),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'Entrez votre mot de passe',
+                      errorText: passwordError,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                setStateDialog(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: colors.onSurface.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: colors.primary,
+                          width: 1.3,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: obscurePassword,
-                      enabled: !isLoading,
-                      decoration: InputDecoration(
-                        hintText: 'Entrez votre mot de passe',
-                        errorText: passwordError,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
                           onPressed: isLoading
                               ? null
-                              : () {
-                                  setStateDialog(() {
-                                    obscurePassword = !obscurePassword;
-                                  });
-                                },
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                              : () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: colors.onSurface.withValues(alpha: 0.15),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: colors.primary,
-                            width: 1.3,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
+                          child: const Text('Annuler'),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => Navigator.of(dialogContext).pop(),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : handleDelete,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text('Annuler'),
                           ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Text('Confirmer'),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : handleDelete,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  )
-                                : const Text('Confirmer'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           },
@@ -1826,73 +1838,15 @@ class _ProfilePageState extends State<ProfilePage>
     HapticFeedback.mediumImpact();
     final currentContext = context;
 
-    final confirm = await showDialog<bool>(
-      context: currentContext,
+    final confirm = await GlassDialog.confirm(
+      currentContext,
+      title: 'Déconnexion',
+      message: 'Êtes-vous sûr de vouloir vous déconnecter de votre compte ?',
+      confirmLabel: 'Confirmer',
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.red.shade400,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('Déconnexion'),
-          ],
-        ),
-        content: const Text(
-          'Êtes-vous sûr de vouloir vous déconnecter de votre compte ?',
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Annuler'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Confirmer'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
 
-    if (confirm == true && currentContext.mounted) {
+    if (confirm && currentContext.mounted) {
       await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
         Navigator.of(currentContext)
@@ -1968,34 +1922,23 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Future<void> _confirmDeleteAvatar() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Supprimer la photo ?'),
-        content:
-            const Text('Votre photo de profil sera retirée de votre carte.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final confirmed = await GlassDialog.confirm(
+      context,
+      title: 'Supprimer la photo ?',
+      message: 'Votre photo de profil sera retirée de votre carte.',
+      confirmLabel: 'Supprimer',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final authProvider = context.read<AuthProvider>();
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await authProvider.deleteAvatar();
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      FeedbackOverlay.showError(
+        context,
+        title: 'Erreur',
+        subtitle: e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }

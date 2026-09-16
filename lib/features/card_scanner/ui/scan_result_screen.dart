@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/card_scan_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../navigation/home_shell.dart';
 
@@ -73,11 +74,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       // Refresh contacts list
       context.read<ContactsProvider>().fetchGroupedContacts();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Contact enregistr\u00e9 avec succ\u00e8s'),
-          backgroundColor: Colors.green,
-        ),
+      FeedbackOverlay.showSuccess(
+        context,
+        title: 'Succ\u00e8s',
+        subtitle: 'Contact enregistr\u00e9 avec succ\u00e8s',
       );
       provider.reset();
       // Navigate to contacts tab (index 1 depuis le retrait de Scan de la barre)

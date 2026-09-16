@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 
@@ -48,8 +49,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     setState(() => _isSubmitting = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mot de passe mis à jour avec succès.')),
+      FeedbackOverlay.showSuccess(
+        context,
+        title: 'Succès',
+        subtitle: 'Mot de passe mis à jour avec succès.',
       );
       Navigator.pop(context);
     } else {

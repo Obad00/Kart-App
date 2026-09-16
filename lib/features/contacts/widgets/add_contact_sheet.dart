@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_sheet.dart';
 import '../providers/contacts_provider.dart';
 
@@ -55,7 +56,6 @@ class _AddContactSheetState extends State<_AddContactSheet> {
 
     final provider = context.read<ContactsProvider>();
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await provider.createManualContact(
@@ -63,26 +63,29 @@ class _AddContactSheetState extends State<_AddContactSheet> {
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
       );
+      // Avant le pop (pas après) : l'Overlay qui affiche ce toast est
+      // atteignable depuis le contexte de cette feuille tant qu'elle est
+      // encore montée, et l'entrée déjà insérée survit ensuite à sa
+      // fermeture (indépendante du widget qui l'a créée).
+      if (mounted) {
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: _emailController.text.trim().isNotEmpty
+              ? '$fullname ajouté — un mail l\'invitant à créer sa carte KART lui a été envoyé.'
+              : '$fullname ajouté à vos contacts.',
+        );
+      }
       if (navigator.mounted) navigator.pop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            _emailController.text.trim().isNotEmpty
-                ? '$fullname ajouté — un mail l\'invitant à créer sa carte KART lui a été envoyé.'
-                : '$fullname ajouté à vos contacts.',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-              'Erreur : ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        FeedbackOverlay.showError(
+          context,
+          title: 'Erreur',
+          subtitle: e.toString().replaceAll('DioException [bad response]: ', ''),
+        );
+      }
     }
   }
 
