@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../contacts/providers/contacts_provider.dart';
 import '../models/explore_user.dart';
+import '../providers/connection_badge_provider.dart';
 import '../services/explore_service.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
@@ -128,7 +131,18 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       _setStatus(ConnectionStatus.none);
       if (action == 'accept') {
         _snack('${widget.userName} ajouté à vos contacts');
+        // ContactsProvider est un singleton chargé une seule fois au
+        // démarrage de l'app (cf. main.dart) — sans ce refresh explicite,
+        // le nouveau contact n'apparaissait dans l'onglet Contacts qu'après
+        // avoir quitté et relancé l'app.
+        if (mounted) context.read<ContactsProvider>().fetchGroupedContacts();
       }
+      // Accepter ou refuser résout une demande reçue en attente : le badge
+      // de la barre de nav doit le refléter tout de suite, pas seulement
+      // au prochain démarrage/retour au premier plan (cf.
+      // ConnectionBadgeProvider, jusqu'ici seulement rafraîchi à ces
+      // moments-là).
+      if (mounted) context.read<ConnectionBadgeProvider>().refresh();
       widget.onResolved?.call();
     } catch (e) {
       _snack(_errorMessage(e), isError: true);
