@@ -267,12 +267,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                               ),
                             );
 
-                            if (!mounted || created != true) return;
+                            if (!context.mounted || created != true) return;
 
                             await cardProvider.loadCardSummary();
                             await cardProvider.loadMyCardQr();
 
-                            if (!mounted) return;
+                            // context.mounted (pas juste `mounted`) : `context`
+                            // ici est le paramètre de build(), pas this.context
+                            // — l'analyseur ne peut pas prouver qu'un simple
+                            // `mounted` (State) le garde encore après ces deux
+                            // await, d'où le lint use_build_context_synchronously
+                            // qui persistait malgré le garde-fou déjà présent.
+                            if (!context.mounted) return;
 
                             FeedbackOverlay.showSuccess(
                               context,
