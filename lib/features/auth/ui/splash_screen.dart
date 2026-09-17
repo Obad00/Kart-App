@@ -213,12 +213,19 @@ class _SplashScreenState extends State<SplashScreen>
                       AnimatedBuilder(
                         animation: _cardAnimation,
                         builder: (context, child) {
+                          // Entrée : le porte-badge DESCEND et se pose au
+                          // bout de son cordon (la courbe easeOutBack du
+                          // contrôleur donne le petit rebond d'arrivée),
+                          // au lieu d'un simple grossissement sur place.
                           final t = _cardAnimation.value;
                           return Opacity(
                             opacity: t.clamp(0.0, 1.0),
-                            child: Transform.scale(
-                              scale: 0.85 + (0.15 * t),
-                              child: child,
+                            child: Transform.translate(
+                              offset: Offset(0, -46 * (1 - t)),
+                              child: Transform.scale(
+                                scale: 0.94 + (0.06 * t),
+                                child: child,
+                              ),
                             ),
                           );
                         },
@@ -317,26 +324,39 @@ const double _ringSize = 23;
 const double _holeCenterY = _cardTopInset + 10;
 
 class _SplashKartCardState extends State<_SplashKartCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _floatController;
-  late final Animation<double> _floatAnimation;
+    with TickerProviderStateMixin {
+  // Balancement : un badge pendu à un cordon oscille autour de son anneau.
+  // Remplace l'ancien flottement vertical, qui faisait léviter la carte
+  // sans rapport avec l'objet.
+  late final AnimationController _swingController;
+  late final Animation<double> _swingAnimation;
+
+  // Reflet qui balaie la surface — la carte est noire brillante sur le
+  // visuel de référence ; sans ce passage de lumière elle paraît éteinte.
+  late final AnimationController _sheenController;
 
   @override
   void initState() {
     super.initState();
-    _floatController = AnimationController(
+    _swingController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 4200),
     )..repeat(reverse: true);
 
-    _floatAnimation = Tween<double>(begin: 0, end: 6).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    _swingAnimation = Tween<double>(begin: -0.028, end: 0.028).animate(
+      CurvedAnimation(parent: _swingController, curve: Curves.easeInOutSine),
     );
+
+    _sheenController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(period: const Duration(milliseconds: 5200));
   }
 
   @override
   void dispose() {
-    _floatController.dispose();
+    _swingController.dispose();
+    _sheenController.dispose();
     super.dispose();
   }
 
@@ -354,9 +374,12 @@ class _SplashKartCardState extends State<_SplashKartCard>
         : 'ID ${user.id.toString().padLeft(10, '0')}';
 
     return AnimatedBuilder(
-      animation: _floatAnimation,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(0, _floatAnimation.value),
+      animation: _swingAnimation,
+      // alignment.topCenter : la rotation se fait autour de l'attache,
+      // comme un vrai badge au bout de son cordon.
+      builder: (context, child) => Transform.rotate(
+        angle: _swingAnimation.value,
+        alignment: Alignment.topCenter,
         child: child,
       ),
       child: Column(
@@ -412,6 +435,17 @@ class _SplashKartCardState extends State<_SplashKartCard>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(18),
                         child: CustomPaint(painter: const _CornerArcsPainter()),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: AnimatedBuilder(
+                          animation: _sheenController,
+                          builder: (context, _) => CustomPaint(
+                            painter: _SheenPainter(_sheenController.value),
+                          ),
+                        ),
                       ),
                     ),
                     Padding(
@@ -619,6 +653,60 @@ class _KartMark extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Reflet diagonal qui traverse la carte, puis disparaît jusqu'au passage
+/// suivant. Donne à la surface noire l'aspect brillant du visuel de
+/// référence — sans lui, la carte paraît complètement éteinte à l'écran.
+class _SheenPainter extends CustomPainter {
+  /// 0 → 1 sur la durée d'un passage.
+  final double progress;
+
+  const _SheenPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // La bande part hors cadre à gauche et sort à droite : la largeur
+    // parcourue vaut donc deux fois celle de la carte.
+    final travel = size.width * 2;
+    final x = -size.width * 0.5 + travel * progress;
+
+    // Atténuation aux extrémités : le reflet naît et meurt en douceur au
+    // lieu d'apparaître d'un bloc au bord de la carte.
+    final fade = (1 - (progress - 0.5).abs() * 2).clamp(0.0, 1.0);
+    if (fade <= 0) return;
+
+    canvas.save();
+    // Bande inclinée, comme une lumière rasante.
+    canvas.translate(x, 0);
+    canvas.rotate(-0.38);
+
+    final bandWidth = size.width * 0.42;
+    final rect = Rect.fromLTWH(
+      -bandWidth / 2,
+      -size.height,
+      bandWidth,
+      size.height * 3,
+    );
+
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.white.withValues(alpha: 0),
+          Colors.white.withValues(alpha: 0.07 * fade),
+          Colors.white.withValues(alpha: 0),
+        ],
+      ).createShader(rect);
+
+    canvas.drawRect(rect, paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_SheenPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 /// Arcs concentriques très discrets dans l'angle bas-droit de la carte.
