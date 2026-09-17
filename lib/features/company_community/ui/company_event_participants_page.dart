@@ -160,22 +160,57 @@ class _CompanyEventParticipantsPageState
     final registered = _stats['registered'] as int? ?? 0;
     final present = _stats['present'] as int? ?? 0;
     final walkIns = _stats['walk_ins'] as int? ?? 0;
+    final absent = _stats['not_present'] as int? ?? (registered - present);
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-            child: _StatTile(
-                label: 'Inscrits', value: registered, color: colors.onSurface)),
-        const SizedBox(width: 10),
-        Expanded(
-            child: _StatTile(
-                label: 'Présents', value: present, color: Colors.green)),
-        const SizedBox(width: 10),
-        Expanded(
-            child: _StatTile(
-                label: 'Walk-in',
-                value: walkIns,
-                color: Colors.amber.shade700)),
+        Row(
+          children: [
+            Expanded(
+                child: _StatTile(
+                    label: 'Inscrits',
+                    value: registered,
+                    color: colors.onSurface)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _StatTile(
+                    label: 'Présents', value: present, color: Colors.green)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _StatTile(
+                    label: 'Absents',
+                    value: absent,
+                    color: colors.onSurface.withValues(alpha: 0.6))),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _StatTile(
+                    label: 'Walk-in',
+                    value: walkIns,
+                    color: Colors.amber.shade700)),
+          ],
+        ),
+        if (walkIns > 0) ...[
+          const SizedBox(height: 8),
+          // "Walk-in" n'est pas parlant tel quel (question remontée côté
+          // produit) — la définition est donnée là où le chiffre s'affiche.
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 13, color: colors.onSurface.withValues(alpha: 0.45)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Walk-in : venu·e le jour J sans s\'être inscrit·e en ligne.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: colors.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

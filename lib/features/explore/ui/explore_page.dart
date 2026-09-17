@@ -1146,22 +1146,59 @@ class _FilterIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.onSurface.withValues(alpha: 0.06),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(Icons.tune_rounded,
-              color: colors.onSurface.withValues(alpha: 0.7), size: 20),
+    // Le nombre de demandes en attente n'existait que DANS la feuille
+    // ouverte par ce bouton : depuis Explorer, rien n'indiquait qu'on avait
+    // des demandes (remonté côté produit). La pastille est désormais sur le
+    // bouton lui-même, et c'est cette feuille qui porte à la fois les
+    // demandes et les filtres.
+    final pending = context.watch<ConnectionBadgeProvider>().pendingReceivedCount;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: colors.onSurface.withValues(alpha: 0.06),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(Icons.tune_rounded,
+                  color: colors.onSurface.withValues(alpha: 0.7), size: 20),
+            ),
+          ),
         ),
-      ),
+        if (pending > 0)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              constraints: const BoxConstraints(minWidth: 19, minHeight: 19),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: pending > 9 ? BoxShape.rectangle : BoxShape.circle,
+                borderRadius: pending > 9 ? BorderRadius.circular(999) : null,
+                border: Border.all(color: colors.surface, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  pending > 9 ? '9+' : '$pending',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

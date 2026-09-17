@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../core/network/api_client.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_category.dart';
@@ -23,24 +25,38 @@ class ExploreService {
     // Nom d'un secteur JobSectors ("Tech & Digital"...) — "Explorer par
     // catégorie" (tap sur une case), indépendant de section.
     String category = '',
+    CancelToken? cancelToken,
   }) async {
-    final response = await ApiClient.dio.get('/explore', queryParameters: {
-      'page': page,
-      if (search.isNotEmpty) 'search': search,
-      if (jobTitle.isNotEmpty) 'job_title': jobTitle,
-      if (section != 'recommended') 'section': section,
-      if (category.isNotEmpty) 'category': category,
-    });
+    final response = await ApiClient.dio.get(
+      '/explore',
+      queryParameters: {
+        'page': page,
+        if (search.isNotEmpty) 'search': search,
+        if (jobTitle.isNotEmpty) 'job_title': jobTitle,
+        if (section != 'recommended') 'section': section,
+        if (category.isNotEmpty) 'category': category,
+      },
+      cancelToken: cancelToken,
+    );
 
+    // `as List` sec sur une réponse inattendue (corps vide servi par le
+    // cache hors-ligne, page d'erreur HTML d'un proxy...) faisait remonter
+    // un TypeError présenté comme "Impossible de charger les profils" :
+    // une réponse sans 'data' exploitable vaut mieux comme liste vide.
     final data = response.data;
-    final list = (data['data'] as List)
-        .map((e) => ExploreUser.fromJson(e as Map<String, dynamic>))
+    final rawList = (data is Map ? data['data'] : null) as List? ?? const [];
+    final list = rawList
+        .whereType<Map<String, dynamic>>()
+        .map(ExploreUser.fromJson)
         .toList();
 
-    final currentPage = data['current_page'] as int? ?? page;
-    final lastPage = data['last_page'] as int? ?? page;
+    final currentPage =
+        (data is Map ? data['current_page'] : null) as int? ?? page;
+    final lastPage = (data is Map ? data['last_page'] : null) as int? ?? page;
     final jobTitles =
-        (data['jobTitles'] as List? ?? []).map((e) => e.toString()).toList();
+        ((data is Map ? data['jobTitles'] : null) as List? ?? const [])
+            .map((e) => e.toString())
+            .toList();
 
     return (users: list, hasMore: currentPage < lastPage, jobTitles: jobTitles);
   }

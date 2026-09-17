@@ -189,12 +189,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final foreground = colors.onSurface;
+    // Toujours sombre, quel que soit le thème du téléphone : c'est un
+    // écran de marque (cf. visuels de référence, tous sur fond noir), pas
+    // un écran de contenu qui doit suivre le mode clair.
+    const foreground = Colors.white;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF07070A) : colors.surface,
+      backgroundColor: const Color(0xFF07070A),
       body: Stack(
         children: [
           SafeArea(
@@ -202,8 +203,9 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // La même carte KART que sur l'écran "Ma carte" : fond
-                  // noir dégradé, badge KART, flottement continu.
+                  // Badge à lanyard (cf. visuels de référence fournis) :
+                  // carte sombre, trou de cordon, nom de la personne
+                  // connectée, signature KART en pied.
                   AnimatedBuilder(
                     animation: _cardAnimation,
                     builder: (context, child) {
@@ -318,12 +320,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// Reprend exactement l'habillage de [BasicQrCard] (l'écran "Ma carte" —
-/// fond noir dégradé, badge KART, flottement continu) pour que le tout
-/// premier écran de l'app annonce déjà la vraie carte que l'utilisateur va
-/// créer, plutôt qu'un visuel générique inventé pour l'occasion. La zone qui
-/// accueille normalement le QR code affiche ici le monogramme KART, aucun
-/// utilisateur n'étant encore connecté à ce stade.
+/// Badge à lanyard — reprend les visuels de référence fournis côté produit
+/// (carte sombre, trou de cordon, nom en grand, signature de marque en
+/// pied) plutôt que l'ancienne carte "QR + monogramme". Les informations
+/// sont celles de KART et, si quelqu'un est déjà connecté, les siennes :
+/// l'app s'ouvre sur SON badge, pas sur un visuel générique.
 class _SplashKartCard extends StatefulWidget {
   const _SplashKartCard();
 
@@ -357,115 +358,196 @@ class _SplashKartCardState extends State<_SplashKartCard>
 
   @override
   Widget build(BuildContext context) {
+    // watch : l'init de l'auth se termine pendant l'animation du splash —
+    // le badge passe alors tout seul du libellé générique au nom réel.
+    final user = context.watch<AuthProvider>().user;
+    final name = user == null ? 'Votre badge' : user.fullName.trim();
+    final role = user?.company?.name ?? 'Identité professionnelle digitale';
+
     return AnimatedBuilder(
       animation: _floatAnimation,
       builder: (context, child) => Transform.translate(
         offset: Offset(0, _floatAnimation.value),
         child: child,
       ),
-      child: Container(
-        width: 260,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A1A1A), Color(0xFF0D0D0D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Badge KART — identique à celui de la vraie carte
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Attache du cordon, au-dessus de la carte.
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 2.5,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                        color: Colors.white54, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'KART',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
+            ),
+          ),
+          Container(
+            width: 3,
+            height: 10,
+            color: Colors.white.withValues(alpha: 0.18),
+          ),
+          Container(
+            width: 250,
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF17171A), Color(0xFF070708)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Trou du cordon, comme sur un vrai badge.
+                Center(
+                  child: Container(
+                    width: 46,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12),
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Emplacement du QR sur la vraie carte : ici, le monogramme KART
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      spreadRadius: -5),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  'K',
-                  style: TextStyle(
+                ),
+                const SizedBox(height: 26),
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontFamily: 'Syne',
-                    fontSize: 72,
+                    color: Colors.white,
+                    fontSize: 25,
+                    height: 1.1,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0D0D0D),
+                    letterSpacing: -0.5,
                   ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  role,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Syne',
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // Courbe d'accent — l'équivalent sobre du motif chromé des
+                // visuels de référence, dessiné plutôt qu'importé (aucun
+                // asset haute résolution disponible).
+                SizedBox(
+                  height: 54,
+                  width: double.infinity,
+                  child: CustomPaint(painter: _BadgeSwirlPainter()),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: _electricBlue,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'K',
+                        style: TextStyle(
+                          fontFamily: 'Syne',
+                          fontSize: 12,
+                          height: 1,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    const Text(
+                      'KART',
+                      style: TextStyle(
+                        fontFamily: 'Syne',
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              'Votre identité professionnelle digitale',
-              style: TextStyle(
-                fontFamily: 'Syne',
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'prête en quelques secondes',
-              style: TextStyle(
-                fontFamily: 'Syne',
-                color: Colors.grey[500],
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// Deux boucles entrelacées façon ruban métallique (cf. visuels fournis) —
+/// un dégradé clair sur trait épais suffit à en donner l'impression sans
+/// image bitmap.
+class _BadgeSwirlPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round
+      ..shader = const LinearGradient(
+        colors: [Color(0xFFE9EDF2), Color(0xFF7E8894), Color(0xFFD6DCE4)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(rect);
+
+    final path = Path()
+      ..moveTo(size.width * 0.04, size.height * 0.78)
+      ..cubicTo(
+        size.width * 0.08,
+        size.height * 0.08,
+        size.width * 0.46,
+        size.height * 0.06,
+        size.width * 0.44,
+        size.height * 0.72,
+      )
+      ..cubicTo(
+        size.width * 0.43,
+        size.height * 1.06,
+        size.width * 0.74,
+        size.height * 0.98,
+        size.width * 0.72,
+        size.height * 0.36,
+      )
+      ..cubicTo(
+        size.width * 0.71,
+        size.height * 0.02,
+        size.width * 0.94,
+        size.height * 0.12,
+        size.width * 0.96,
+        size.height * 0.54,
+      );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_BadgeSwirlPainter oldDelegate) => false;
 }
 
 /// Trait ondulé (squiggle) dessiné à la main, utilisé comme accent de marque

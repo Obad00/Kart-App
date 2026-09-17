@@ -177,11 +177,16 @@ class AuthProvider extends ChangeNotifier {
       // debugPrint('✅ Company: ${user?.company?.name}');
     } on DioException catch (e) {
       // debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.response?.data}');
-      if (e.response?.statusCode == 401) {
-        error = 'Email ou mot de passe incorrect';
-      } else {
-        error = getErrorMessage(e, fallback: 'Erreur serveur, réessayez');
-      }
+      // Le backend dit maintenant précisément ce qui cloche (identifiant
+      // inconnu / mot de passe / compte désactivé, cf. AuthService::login)
+      // — on affiche SON message plutôt que le "Email ou mot de passe
+      // incorrect" fourre-tout d'avant, qui masquait l'information.
+      error = getErrorMessage(
+        e,
+        fallback: e.response?.statusCode == 401
+            ? 'Email ou mot de passe incorrect'
+            : 'Erreur serveur, réessayez',
+      );
     } catch (e) {
       // debugPrint('❌ Unknown error: $e');
       error = 'Une erreur est survenue: $e';

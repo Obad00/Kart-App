@@ -36,7 +36,22 @@ class PublicCardPage extends StatefulWidget {
   /// Reste `null` pour une carte publique consultée par un visiteur.
   final int? contactId;
 
-  const PublicCardPage({super.key, required this.slug, this.contactId});
+  /// État de la mise en relation déjà connu par l'écran qui ouvre cette
+  /// page (Explorer, Mes demandes...). Sert de repli quand la réponse de
+  /// /cards/{slug} est moins à jour — typiquement resservie par le cache
+  /// hors-ligne après un échec réseau : le profil affichait alors
+  /// "Se connecter" alors que la liste, elle, montrait bien Accepter/
+  /// Refuser pour la même personne (remonté côté produit).
+  final ConnectionStatus? initialConnectionStatus;
+  final int? initialConnectionRequestId;
+
+  const PublicCardPage({
+    super.key,
+    required this.slug,
+    this.contactId,
+    this.initialConnectionStatus,
+    this.initialConnectionRequestId,
+  });
 
   @override
   State<PublicCardPage> createState() => _PublicCardPageState();
@@ -66,7 +81,10 @@ class _PublicCardPageState extends State<PublicCardPage>
   // Sans ce second cas, la page reste bloquée sur "Se connecter" à chaque
   // réouverture après acceptation, même si le contact a bien été créé.
   bool get _isConnected =>
-      widget.contactId != null || card?['connection_status'] == 'contact';
+      widget.contactId != null ||
+      card?['connection_status'] == 'contact' ||
+      (card?['connection_status'] == null &&
+          widget.initialConnectionStatus == ConnectionStatus.contact);
 
   Color get _accentColor =>
       _parseHexColor(card?['accent_color'] as String?) ??
@@ -829,9 +847,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         userId: id,
         userName: fullName.isNotEmpty ? fullName : 'ce profil',
         initialStatus: _connectionStatusFromCard(),
-        initialRequestId: card?['connection_request_id'] != null
-            ? int.tryParse(card!['connection_request_id'].toString())
-            : null,
+        initialRequestId: _connectionRequestIdFromCard(),
       ),
     );
   }
@@ -846,9 +862,20 @@ class _PublicCardPageState extends State<PublicCardPage>
         return ConnectionStatus.pendingSent;
       case 'pending_received':
         return ConnectionStatus.pendingReceived;
+      case 'contact':
+        return ConnectionStatus.contact;
       default:
-        return ConnectionStatus.none;
+        // 'none' (ou champ absent) : l'écran appelant peut savoir mieux —
+        // sa liste vient d'être chargée, alors que cette carte-ci a pu
+        // être resservie par le cache hors-ligne (cf. champ du widget).
+        return widget.initialConnectionStatus ?? ConnectionStatus.none;
     }
+  }
+
+  int? _connectionRequestIdFromCard() {
+    final raw = card?['connection_request_id'];
+    if (raw != null) return int.tryParse(raw.toString());
+    return widget.initialConnectionRequestId;
   }
 
   /// Nom du highlight actuellement assigné à ce contact, ou "Highlight" (le

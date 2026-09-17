@@ -35,7 +35,15 @@ class ExploreUserRow extends StatelessWidget {
     if (slug == null || slug.isEmpty) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PublicCardPage(slug: slug)),
+      MaterialPageRoute(
+        builder: (_) => PublicCardPage(
+          slug: slug,
+          // Ce que cette liste vient de charger fait foi si la carte, elle,
+          // est resservie par le cache hors-ligne (cf. PublicCardPage).
+          initialConnectionStatus: user.connectionStatus,
+          initialConnectionRequestId: user.connectionRequestId,
+        ),
+      ),
     );
   }
 

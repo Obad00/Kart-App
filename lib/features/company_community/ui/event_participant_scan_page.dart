@@ -87,6 +87,9 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
       final name =
           (result['user'] as Map?)?['name']?.toString() ?? 'Participant';
       final alreadyPresent = result['already_present'] == true;
+      // Un scan de carte peut concerner quelqu'un qui ne s'était jamais
+      // inscrit : on l'accepte (il est devant vous) mais on le signale.
+      final wasRegistered = result['was_registered'] != false;
 
       if (alreadyPresent) {
         FeedbackOverlay.showInfo(
@@ -99,8 +102,9 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
         FeedbackOverlay.showSuccess(
           context,
           title: '$name marqué·e présent·e ✅',
-          subtitle:
-              '$_checkedInCount participant·e${_checkedInCount > 1 ? 's' : ''} scanné·e${_checkedInCount > 1 ? 's' : ''}.',
+          subtitle: wasRegistered
+              ? '$_checkedInCount participant·e${_checkedInCount > 1 ? 's' : ''} scanné·e${_checkedInCount > 1 ? 's' : ''}.'
+              : "N'était pas inscrit·e en ligne — ajouté·e à la liste.",
         );
       }
     } on EventCheckinException catch (e) {

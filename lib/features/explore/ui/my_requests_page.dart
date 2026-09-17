@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/connection_request_item.dart';
+import '../models/explore_user.dart' show ConnectionStatus;
 import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
@@ -285,7 +286,20 @@ class _MyRequestRow extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => PublicCardPage(slug: slug)),
+                      builder: (_) => PublicCardPage(
+                        slug: slug,
+                        // Une demande encore en attente doit rester
+                        // "Accepter/Refuser" une fois le profil ouvert, pas
+                        // redevenir "Se connecter" (cf. PublicCardPage).
+                        initialConnectionStatus: item.status != 'pending'
+                            ? null
+                            : (item.direction == RequestDirection.received
+                                ? ConnectionStatus.pendingReceived
+                                : ConnectionStatus.pendingSent),
+                        initialConnectionRequestId:
+                            item.status == 'pending' ? item.id : null,
+                      ),
+                    ),
                   );
                 },
                 child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../../shared/utils/session_reset.dart';
 import '../../../shared/widgets/glass_dialog.dart';
@@ -46,7 +47,10 @@ class _MenuLines extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    // Couleur de marque de l'entreprise (comme HomeShell) plutôt qu'un gris
+    // neutre : ce bouton restait le seul élément de l'en-tête de carte à
+    // ignorer le branding — remonté côté produit.
+    final brand = context.companyColor;
 
     return GestureDetector(
       onTap: () {
@@ -57,33 +61,33 @@ class _MenuLines extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: colors.onSurface.withValues(alpha: 0.05),
+          color: brand.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colors.onSurface.withValues(alpha: 0.1),
+            color: brand.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildLine(colors, 18),
+            _buildLine(brand, 18),
             const SizedBox(height: 4),
-            _buildLine(colors, 14),
+            _buildLine(brand, 14),
             const SizedBox(height: 4),
-            _buildLine(colors, 10),
+            _buildLine(brand, 10),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLine(ColorScheme colors, double width) {
+  Widget _buildLine(Color color, double width) {
     return Container(
       width: width,
       height: 2,
       decoration: BoxDecoration(
-        color: colors.onSurface.withValues(alpha: 0.5),
+        color: color,
         borderRadius: BorderRadius.circular(1),
       ),
     );
@@ -102,6 +106,8 @@ class _ProfileDropdownButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    // Initiales/cadre aux couleurs de l'entreprise (cf. _MenuLines).
+    final brand = context.companyColor;
     final avatarPath = context.watch<AuthProvider>().user?.avatar;
     final avatarUrl = (avatarPath != null && avatarPath.isNotEmpty)
         ? (avatarPath.startsWith('http')
@@ -154,10 +160,10 @@ class _ProfileDropdownButton extends StatelessWidget {
         height: 44,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: colors.primary.withValues(alpha: 0.1),
+          color: brand.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colors.primary.withValues(alpha: 0.2),
+            color: brand.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -177,7 +183,7 @@ class _ProfileDropdownButton extends StatelessWidget {
               child: Text(
                 initials,
                 style: TextStyle(
-                  color: colors.primary,
+                  color: brand,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),

@@ -41,6 +41,10 @@ class EventCheckinService {
 
       return {
         'already_present': response.data['already_present'] == true,
+        // Cette carte correspond-elle à quelqu'un de réellement inscrit à
+        // cet événement ? (vérification demandée côté produit — on marque
+        // présent dans les deux cas, mais le scanneur doit le savoir.)
+        'was_registered': response.data['was_registered'] == true,
         'user': response.data['user'],
         'checked_in_at': response.data['checked_in_at'],
       };

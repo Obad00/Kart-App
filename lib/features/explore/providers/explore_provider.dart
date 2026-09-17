@@ -17,7 +17,8 @@ class ExploreProvider extends SafeChangeNotifier {
   // catégorie", indépendant de section.
   final String category;
 
-  ExploreProvider(this._service, {this.section = 'recommended', this.category = ''});
+  ExploreProvider(this._service,
+      {this.section = 'recommended', this.category = ''});
 
   List<ExploreUser> users = [];
   List<String> jobTitles = [];
@@ -30,11 +31,27 @@ class ExploreProvider extends SafeChangeNotifier {
   String _jobTitleFilter = '';
   String get jobTitleFilter => _jobTitleFilter;
 
+  // Requête en cours : annulée dès qu'une nouvelle recherche la remplace.
+  // Sans ça, une requête plus ancienne qui échoue (réseau lent, frappe en
+  // rafale) écrasait le résultat de la plus récente par un message
+  // d'erreur — remonté côté produit : "dès que je commence à taper on me
+  // dit impossible de charger les profils".
+  CancelToken? _loadToken;
+
   Future<void> loadUsers({String? search, String? jobTitle}) async {
     _search = search ?? _search;
     _jobTitleFilter = jobTitle ?? _jobTitleFilter;
     _page = 1;
-    isLoading = true;
+
+    _loadToken?.cancel('remplacée par une recherche plus récente');
+    final token = CancelToken();
+    _loadToken = token;
+
+    // On garde les profils déjà affichés pendant le rechargement : la
+    // recherche se contente de les remplacer une fois arrivée, au lieu de
+    // vider l'écran puis de le remplir (impression de lenteur à chaque
+    // frappe).
+    isLoading = users.isEmpty;
     error = null;
     notifyListeners();
 
@@ -45,6 +62,7 @@ class ExploreProvider extends SafeChangeNotifier {
         jobTitle: _jobTitleFilter,
         section: section,
         category: category,
+        cancelToken: token,
       );
       users = result.users;
       hasMore = result.hasMore;
@@ -52,13 +70,42 @@ class ExploreProvider extends SafeChangeNotifier {
       // cours côté serveur — on la garde une fois récupérée pour éviter
       // que les chips ne disparaissent en filtrant.
       if (result.jobTitles.isNotEmpty) jobTitles = result.jobTitles;
+    } on DioException catch (e) {
+      // Annulation volontaire (frappe suivante) : ni erreur ni fin de
+      // chargement, la requête qui l'a remplacée s'en charge.
+      if (CancelToken.isCancel(e)) return;
+
+      debugPrint(
+          '❌ Erreur loadUsers (explore): ${e.response?.statusCode} ${e.message}');
+      error = _messageFor(e);
     } catch (e) {
       debugPrint('❌ Erreur loadUsers (explore): $e');
       error = 'Impossible de charger les profils.';
     }
 
+    if (_loadToken != token) return;
     isLoading = false;
     notifyListeners();
+  }
+
+  /// Message qui dit ce qui s'est réellement passé plutôt qu'un
+  /// "Impossible de charger les profils" systématique — sans ça, un 500
+  /// côté serveur, une session expirée et une coupure réseau étaient
+  /// impossibles à distinguer depuis l'app comme depuis un rapport de bug.
+  String _messageFor(DioException e) {
+    final status = e.response?.statusCode;
+
+    if (status == null) {
+      return 'Connexion impossible. Vérifiez votre réseau.';
+    }
+    if (status == 401 || status == 403) {
+      return 'Session expirée. Reconnectez-vous pour continuer.';
+    }
+    if (status >= 500) {
+      return 'Le serveur a rencontré une erreur ($status). Réessayez dans un instant.';
+    }
+
+    return 'Impossible de charger les profils ($status).';
   }
 
   void setJobTitleFilter(String jobTitle) {

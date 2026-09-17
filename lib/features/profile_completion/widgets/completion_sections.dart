@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../model/skill_model.dart';
@@ -17,6 +18,15 @@ import '../ui/interests_editor_sheet.dart';
 // restent visuellement différenciables plutôt que d'utiliser exactement le
 // même accent que l'ancien rose remplaçait.
 const _interestsAccentColor = Color(0xFF6366F1);
+
+/// Accent d'une section du profil (Formation, Compétences, Réseaux
+/// sociaux, Centres d'intérêt) : la couleur de marque de l'entreprise
+/// quand le compte en a une — comme HomeShell et le reste de l'app
+/// (remonté côté produit : ces sections restaient sur leurs bleus/violets
+/// d'origine malgré le branding). Sans entreprise, chaque section garde
+/// sa couleur distincte d'origine.
+Color _accent(BuildContext context, Color fallback) =>
+    context.hasCompanyColor ? context.companyColor : fallback;
 
 /// Réseaux sociaux, Expériences, Formation et Compétences — embarqué
 /// directement dans l'onglet Profil. "Informations de base" (Poste,
@@ -155,10 +165,12 @@ class _CompletionSectionsState extends State<CompletionSections> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                color: _accent(context, const Color(0xFF3B82F6))
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 16, color: const Color(0xFF3B82F6)),
+              child: Icon(icon,
+                  size: 16, color: _accent(context, const Color(0xFF3B82F6))),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -176,11 +188,12 @@ class _CompletionSectionsState extends State<CompletionSections> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: _accent(context, const Color(0xFF3B82F6))
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.add_rounded,
-                    size: 18, color: Color(0xFF3B82F6)),
+                child: Icon(Icons.add_rounded,
+                    size: 18, color: _accent(context, const Color(0xFF3B82F6))),
               ),
             ),
             const SizedBox(width: 8),
@@ -303,7 +316,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
   /// tient déjà lieu.
   Widget _buildExperiencesSection(
       BuildContext context, ColorScheme colors, dynamic model) {
-    const accentColor = Color(0xFF3B82F6);
+    final accentColor = _accent(context, const Color(0xFF3B82F6));
     final allExperiences = model.experiences as List;
 
     final sorted = [...allExperiences]..sort((a, b) {
@@ -328,7 +341,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.work_outline_rounded,
+                child: Icon(Icons.work_outline_rounded,
                     size: 16, color: accentColor),
               ),
               const SizedBox(width: 12),
@@ -352,15 +365,15 @@ class _CompletionSectionsState extends State<CompletionSections> {
                       color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(9),
                     ),
-                    child: const Icon(Icons.add_rounded,
-                        size: 16, color: accentColor),
+                    child:
+                        Icon(Icons.add_rounded, size: 16, color: accentColor),
                   ),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => _showAllExperiences(
                       context, colors, sorted, allExperiences),
-                  child: const Text(
+                  child: Text(
                     'Voir tout',
                     style: TextStyle(
                         fontSize: 12.5,
@@ -493,7 +506,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
                   period: _formatExperiencePeriod(exp.startDate, exp.endDate),
                   description: exp.description ?? '',
                   isLast: i == sorted.length - 1,
-                  accentColor: const Color(0xFF3B82F6),
+                  accentColor: _accent(context, const Color(0xFF3B82F6)),
                   colors: colors,
                   onTap: () => _openForm(
                     context,
@@ -608,12 +621,14 @@ class _CompletionSectionsState extends State<CompletionSections> {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6)
+                              color: _accent(context, const Color(0xFF8B5CF6))
                                   .withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.school_outlined,
-                                size: 18, color: Color(0xFF8B5CF6)),
+                            child: Icon(Icons.school_outlined,
+                                size: 18,
+                                color:
+                                    _accent(context, const Color(0xFF8B5CF6))),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -631,9 +646,10 @@ class _CompletionSectionsState extends State<CompletionSections> {
                                 const SizedBox(height: 2),
                                 Text(
                                   school,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: Color(0xFF8B5CF6),
+                                    color: _accent(
+                                        context, const Color(0xFF8B5CF6)),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -654,16 +670,18 @@ class _CompletionSectionsState extends State<CompletionSections> {
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF8B5CF6)
+                                          color: _accent(context,
+                                                  const Color(0xFF8B5CF6))
                                               .withValues(alpha: 0.08),
                                           borderRadius:
                                               BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           field,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 11,
-                                            color: Color(0xFF8B5CF6),
+                                            color: _accent(context,
+                                                const Color(0xFF8B5CF6)),
                                             fontWeight: FontWeight.w500,
                                           ),
                                           maxLines: 1,
