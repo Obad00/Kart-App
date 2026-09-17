@@ -9,8 +9,6 @@ import 'login_page.dart';
 import '../../navigation/home_shell.dart';
 import '../../plans/ui/plan_selection_page.dart';
 
-const _electricBlue = Color(0xFF3B82F6);
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -24,7 +22,6 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _cardAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _glowAnimation;
-  late Animation<double> _lineAnimation;
 
   // Contrôleur séparé, en boucle : _animationController ne joue qu'une
   // fois (0 → 1 puis s'arrête), donc passer directement sa valeur au
@@ -74,14 +71,6 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.7, curve: Curves.easeInOut),
-      ),
-    );
-
-    // Trait ondulé qui se trace sous le wordmark
-    _lineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.5, 0.8, curve: Curves.easeInOut),
       ),
     );
 
@@ -246,46 +235,12 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
 
-                      const SizedBox(height: 40),
-
-                      // Wordmark — incliné vers l'avant et resserré pour évoquer
-                      // l'esprit du logo (anguleux, dynamique), en gardant du
-                      // vrai texte net à toutes les tailles (le fichier du logo
-                      // n'existe qu'en basse résolution, illisible en grand).
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()..setEntry(0, 1, -0.18),
-                          child: Text(
-                            'KART',
-                            style: TextStyle(
-                              fontFamily: 'Syne',
-                              fontSize: 46,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1,
-                              color: foreground,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      // Trait ondulé (accent de marque) qui se trace sous le wordmark
-                      FadeTransition(
-                        opacity: _lineAnimation,
-                        child: AnimatedBuilder(
-                          animation: _lineAnimation,
-                          builder: (context, _) => CustomPaint(
-                            painter: SquigglePainter(
-                                _lineAnimation.value, _electricBlue),
-                            size: const Size(110, 14),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
+                      // Ni wordmark ni trait décoratif sous la carte : le
+                      // nom de la marque est déjà sur la carte ET sur le
+                      // cordon, le réécrire en grand juste en dessous
+                      // faisait triplon et éloignait du visuel de
+                      // référence, qui ne montre que le porte-badge.
+                      const SizedBox(height: 34),
 
                       FadeTransition(
                         opacity: _fadeAnimation,
@@ -402,8 +357,8 @@ class _SplashKartCardState extends State<_SplashKartCard>
         children: [
           const _LanyardStrap(),
           Container(
-            width: 232,
-            height: 320,
+            width: 236,
+            height: 342,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF121214), Color(0xFF050506)],
@@ -449,7 +404,7 @@ class _SplashKartCardState extends State<_SplashKartCard>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        height: 34,
+                        height: 38,
                         child: Stack(
                           children: [
                             // Perforation, alignée sous l'anneau du cordon.
@@ -495,14 +450,18 @@ class _SplashKartCardState extends State<_SplashKartCard>
                       const SizedBox(height: 7),
                       Text(
                         subtitle,
-                        maxLines: 1,
+                        // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
+                        // ne tient pas sur une seule à cet interlettrage et
+                        // ressortait tronqué ("PROFESSIONNELL…").
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Syne',
-                          color: Colors.white.withValues(alpha: 0.42),
+                          color: Colors.white.withValues(alpha: 0.45),
                           fontSize: 9.5,
+                          height: 1.5,
                           fontWeight: FontWeight.w500,
-                          letterSpacing: 2.2,
+                          letterSpacing: 1.6,
                         ),
                       ),
                       const SizedBox(height: 22),
@@ -544,52 +503,71 @@ class _LanyardStrap extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.28);
 
     return SizedBox(
-      height: 150,
+      height: 202,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          // Sangle large, comme sur le visuel de référence : le nom de la
+          // marque y est répété verticalement, chaque occurrence tournée,
+          // et la sangle est volontairement coupée en haut — elle doit se
+          // lire comme un cordon qui sort du cadre, pas comme une étiquette.
           Container(
-            width: 34,
-            height: 118,
+            width: 46,
+            // Hauteur calée sur les 3 occurrences tournées de "KART" :
+            // trop courte, la Column débordait (RenderFlex overflow).
+            height: 172,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF17171A), Color(0xFF0C0C0E)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.symmetric(
+                vertical: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.07),
+                ),
+              ),
             ),
-            alignment: Alignment.center,
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                'KART · KART · KART',
-                style: TextStyle(
-                  fontFamily: 'Syne',
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                  color: Colors.white.withValues(alpha: 0.5),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(
+                3,
+                (_) => RotatedBox(
+                  quarterTurns: 3,
+                  child: Text(
+                    'KART',
+                    style: TextStyle(
+                      fontFamily: 'Syne',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 3,
+                      color: Colors.white.withValues(alpha: 0.62),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          // Attache : petit bloc puis anneau.
+          // Attache métallique puis anneau, comme sur le visuel.
           Container(
-            width: 20,
-            height: 10,
+            width: 26,
+            height: 13,
             decoration: BoxDecoration(
-              color: const Color(0xFF17171A),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2A2A2E), Color(0xFF131316)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
               borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
           ),
           Container(
-            width: 16,
-            height: 16,
+            width: 17,
+            height: 17,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: ringColor, width: 2),
+              border: Border.all(color: ringColor, width: 2.2),
             ),
           ),
         ],
@@ -650,48 +628,6 @@ class _CornerArcsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CornerArcsPainter oldDelegate) => false;
-}
-
-/// Trait ondulé (squiggle) dessiné à la main, utilisé comme accent de marque
-/// sous le wordmark — se trace progressivement selon [progress] (0..1).
-class SquigglePainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  SquigglePainter(this.progress, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    const waves = 3;
-    final amplitude = size.height / 2;
-    final midY = size.height / 2;
-
-    path.moveTo(0, midY);
-    for (int i = 0; i < waves; i++) {
-      final x1 = size.width * (i + 0.5) / waves;
-      final y1 = i.isEven ? midY - amplitude : midY + amplitude;
-      final x2 = size.width * (i + 1) / waves;
-      path.quadraticBezierTo(x1, y1, x2, midY);
-    }
-
-    // On ne dessine que la portion du trait correspondant à `progress`
-    final metrics = path.computeMetrics().first;
-    final extracted = metrics.extractPath(0, metrics.length * progress);
-    canvas.drawPath(extracted, paint);
-  }
-
-  @override
-  bool shouldRepaint(SquigglePainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
 }
 
 /// Premium subtle loader painter
