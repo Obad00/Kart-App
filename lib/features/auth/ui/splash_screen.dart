@@ -309,6 +309,13 @@ class _SplashKartCard extends StatefulWidget {
   State<_SplashKartCard> createState() => _SplashKartCardState();
 }
 
+// Géométrie de l'attache, partagée entre la carte et l'anneau pour qu'ils
+// restent concentriques quoi qu'il arrive.
+const double _cardTopInset = 11;
+const double _holeSize = 13;
+const double _ringSize = 23;
+const double _holeCenterY = _cardTopInset + 10;
+
 class _SplashKartCardState extends State<_SplashKartCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _floatController;
@@ -356,130 +363,150 @@ class _SplashKartCardState extends State<_SplashKartCard>
         mainAxisSize: MainAxisSize.min,
         children: [
           const _LanyardStrap(),
-          Container(
-            width: 236,
-            height: 342,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF121214), Color(0xFF050506)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // Stack (et non Column) : sur le visuel de référence l'anneau
+          // TRAVERSE la perforation, il est donc à cheval sur le bord
+          // supérieur de la carte, pas posé au-dessus.
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: _cardTopInset),
+                width: 236,
+                height: 342,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF121214), Color(0xFF050506)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                  // Deux ombres superposées : une large et très diffuse pour
+                  // la profondeur, une courte au contact. Une seule ombre
+                  // marquée dessinait une barre grise nette sous la carte
+                  // plutôt qu'une ombre portée.
+                  boxShadow: widget.isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            blurRadius: 44,
+                            spreadRadius: -6,
+                            offset: const Offset(0, 22),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.10),
+                            blurRadius: 10,
+                            spreadRadius: -4,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                ),
+                child: Stack(
+                  children: [
+                    // Arcs concentriques dans l'angle bas-droit, très peu
+                    // contrastés — la texture du visuel de référence.
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: CustomPaint(painter: const _CornerArcsPainter()),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // La perforation n'est plus ici : elle est
+                          // positionnée au bord haut de la carte, avec
+                          // l'anneau exactement par-dessus (cf. plus bas).
+                          const Align(
+                            alignment: Alignment.topRight,
+                            child: _KartMark(),
+                          ),
+                          const Spacer(),
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Syne',
+                              color: Colors.white,
+                              fontSize: 23,
+                              height: 1.12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            subtitle,
+                            // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
+                            // ne tient pas sur une seule à cet interlettrage et
+                            // ressortait tronqué ("PROFESSIONNELL…").
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Syne',
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 9.5,
+                              height: 1.5,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.6,
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text(
+                            footer,
+                            style: TextStyle(
+                              fontFamily: 'Syne',
+                              color: Colors.white.withValues(alpha: 0.3),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-              // Deux ombres superposées : une large et très diffuse pour
-              // la profondeur, une courte au contact. Une seule ombre
-              // marquée dessinait une barre grise nette sous la carte
-              // plutôt qu'une ombre portée.
-              boxShadow: widget.isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        blurRadius: 44,
-                        spreadRadius: -6,
-                        offset: const Offset(0, 22),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
-                        blurRadius: 10,
-                        spreadRadius: -4,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-            ),
-            child: Stack(
-              children: [
-                // Arcs concentriques dans l'angle bas-droit, très peu
-                // contrastés — la texture du visuel de référence.
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: CustomPaint(painter: const _CornerArcsPainter()),
+              // Perforation de la carte, puis anneau EXACTEMENT centré
+              // dessus : c'est ce qui donne l'impression que l'anneau
+              // traverse le trou, au lieu d'être posé au-dessus.
+              // _holeCenterY est partagé par les deux, il ne peut donc pas
+              // y avoir de décalage.
+              Positioned(
+                top: _holeCenterY - _holeSize / 2,
+                child: Container(
+                  width: _holeSize,
+                  height: _holeSize,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF020203),
+                    shape: BoxShape.circle,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: 38,
-                        child: Stack(
-                          children: [
-                            // Perforation, alignée sous l'anneau du cordon.
-                            Align(
-                              alignment: Alignment.topCenter,
-                              child: Container(
-                                width: 13,
-                                height: 13,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF040405),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.16),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Align(
-                              alignment: Alignment.topRight,
-                              child: SizedBox(
-                                width: 34,
-                                height: 34,
-                                child: CustomPaint(painter: _KartMarkPainter()),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontFamily: 'Syne',
-                          color: Colors.white,
-                          fontSize: 23,
-                          height: 1.12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        subtitle,
-                        // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
-                        // ne tient pas sur une seule à cet interlettrage et
-                        // ressortait tronqué ("PROFESSIONNELL…").
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          color: Colors.white.withValues(alpha: 0.45),
-                          fontSize: 9.5,
-                          height: 1.5,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      Text(
-                        footer,
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          color: Colors.white.withValues(alpha: 0.3),
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.6,
-                        ),
-                      ),
-                    ],
+              ),
+              Positioned(
+                top: _holeCenterY - _ringSize / 2,
+                child: Container(
+                  width: _ringSize,
+                  height: _ringSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.isDark
+                          ? Colors.white.withValues(alpha: 0.5)
+                          : Colors.black.withValues(alpha: 0.55),
+                      width: 2.4,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -494,45 +521,35 @@ class _LanyardStrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Le cordon et l'attache restent sombres (ils font partie de l'objet),
-    // mais l'anneau se détache sur le FOND de la page : en blanc translucide
-    // il devenait invisible en mode clair.
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ringColor = isDark
-        ? Colors.white.withValues(alpha: 0.22)
-        : Colors.black.withValues(alpha: 0.28);
-
-    return SizedBox(
-      height: 202,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // Sangle large, comme sur le visuel de référence : le nom de la
-          // marque y est répété verticalement, chaque occurrence tournée,
-          // et la sangle est volontairement coupée en haut — elle doit se
-          // lire comme un cordon qui sort du cadre, pas comme une étiquette.
-          Container(
-            width: 46,
-            // Hauteur calée sur les 3 occurrences tournées de "KART" :
-            // trop courte, la Column débordait (RenderFlex overflow).
-            height: 172,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.symmetric(
-                vertical: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.07),
-                ),
+    return Column(
+      // AUCUNE hauteur fixe ici, et mainAxisSize.min : la sangle est
+      // dimensionnée PAR son texte. Une hauteur en dur calée à la main
+      // débordait dès que la police réelle (Syne) rendait les libellés
+      // tournés plus hauts que dans mes essais — RenderFlex overflow
+      // visible sur l'appareil mais pas en test, faute de la vraie police.
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 46,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.symmetric(
+              vertical: BorderSide(
+                color: Colors.white.withValues(alpha: 0.07),
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(
-                3,
-                (_) => RotatedBox(
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(
+              2,
+              (_) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: RotatedBox(
                   quarterTurns: 3,
                   child: Text(
                     'KART',
@@ -548,65 +565,60 @@ class _LanyardStrap extends StatelessWidget {
               ),
             ),
           ),
-          // Attache métallique puis anneau, comme sur le visuel.
-          Container(
-            width: 26,
-            height: 13,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2A2A2E), Color(0xFF131316)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        // Mousqueton : le corps métallique, puis la tige qui descend vers
+        // l'anneau (lequel traverse la perforation, cf. _SplashKartCard).
+        Container(
+          width: 28,
+          height: 14,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2E2E33), Color(0xFF141417)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
-          Container(
-            width: 17,
-            height: 17,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ringColor, width: 2.2),
-            ),
-          ),
-        ],
-      ),
+        ),
+        Container(
+          width: 5,
+          height: 9,
+          color: const Color(0xFF232327),
+        ),
+      ],
     );
   }
 }
 
-/// Marque KART : disque rayé, écho du logo du visuel de référence (barres
-/// blanches de largeurs inégales détourées en cercle).
-class _KartMarkPainter extends CustomPainter {
-  const _KartMarkPainter();
+/// Marque KART en haut à droite de la carte : le "K" de la marque dans sa
+/// pastille, à la place du disque rayé du visuel de référence (qui est le
+/// logo d'une autre marque).
+class _KartMark extends StatelessWidget {
+  const _KartMark();
 
   @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.clipPath(Path()..addOval(Offset.zero & size));
-
-    final paint = Paint()..color = Colors.white;
-    // Barres de hauteur constante, largeurs décalées : donne le relief du
-    // logo sans dépendre d'un asset (aucun fichier haute résolution
-    // disponible côté projet).
-    const bars = 7;
-    final barHeight = size.height / (bars * 1.85);
-    for (var i = 0; i < bars; i++) {
-      final top = size.height * (i + 0.5) / bars - barHeight / 2;
-      final inset = size.width * (i.isEven ? 0.06 : 0.18) * (i / bars + 0.35);
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(inset, top, size.width - inset * 2, barHeight),
-        Radius.circular(barHeight),
-      );
-      canvas.drawRRect(rect, paint);
-    }
-
-    canvas.restore();
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        'K',
+        style: TextStyle(
+          fontFamily: 'Syne',
+          fontSize: 22,
+          height: 1,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF07070A),
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(_KartMarkPainter oldDelegate) => false;
 }
 
 /// Arcs concentriques très discrets dans l'angle bas-droit de la carte.
