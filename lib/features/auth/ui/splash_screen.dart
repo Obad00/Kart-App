@@ -199,111 +199,133 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         children: [
           SafeArea(
+            // FittedBox(scaleDown) : sur un écran court (fenêtre web
+            // redimensionnée, petit téléphone en paysage), la colonne
+            // cordon + carte + wordmark + tagline dépassait la hauteur
+            // disponible et déclenchait un RenderFlex overflow. Elle se
+            // réduit proportionnellement au lieu d'être coupée — même
+            // parade que la card JobMatch. mainAxisSize.min est
+            // indispensable ici : sans lui, la colonne réclame une hauteur
+            // infinie dans le FittedBox.
             child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Carte KART suspendue à son cordon (cf. visuel de
-                  // référence fourni) : carte noire mate, marque en haut à
-                  // droite, nom de la personne connectée en bas à gauche.
-                  AnimatedBuilder(
-                    animation: _cardAnimation,
-                    builder: (context, child) {
-                      final t = _cardAnimation.value;
-                      return Opacity(
-                        opacity: t.clamp(0.0, 1.0),
-                        child: Transform.scale(
-                          scale: 0.85 + (0.15 * t),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) => Opacity(
-                        // Simple montée en présence : le halo bleu d'avant
-                        // dessinait un bloc coloré derrière le cordon, à
-                        // l'opposé du visuel de référence (noir intégral).
-                        opacity: 0.35 + (0.65 * _glowAnimation.value),
-                        child: child,
-                      ),
-                      child: const _SplashKartCard(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Wordmark — incliné vers l'avant et resserré pour évoquer
-                  // l'esprit du logo (anguleux, dynamique), en gardant du
-                  // vrai texte net à toutes les tailles (le fichier du logo
-                  // n'existe qu'en basse résolution, illisible en grand).
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()..setEntry(0, 1, -0.18),
-                      child: Text(
-                        'KART',
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          fontSize: 46,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1,
-                          color: foreground,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Carte KART suspendue à son cordon (cf. visuel de
+                      // référence fourni) : carte noire mate, marque en haut à
+                      // droite, nom de la personne connectée en bas à gauche.
+                      AnimatedBuilder(
+                        animation: _cardAnimation,
+                        builder: (context, child) {
+                          final t = _cardAnimation.value;
+                          return Opacity(
+                            opacity: t.clamp(0.0, 1.0),
+                            child: Transform.scale(
+                              scale: 0.85 + (0.15 * t),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: AnimatedBuilder(
+                          animation: _glowAnimation,
+                          builder: (context, child) => Opacity(
+                            // Simple montée en présence : le halo bleu d'avant
+                            // dessinait un bloc coloré derrière le cordon, à
+                            // l'opposé du visuel de référence (noir intégral).
+                            opacity: 0.35 + (0.65 * _glowAnimation.value),
+                            child: child,
+                          ),
+                          child: const _SplashKartCard(),
                         ),
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 6),
+                      const SizedBox(height: 40),
 
-                  // Trait ondulé (accent de marque) qui se trace sous le wordmark
-                  FadeTransition(
-                    opacity: _lineAnimation,
-                    child: AnimatedBuilder(
-                      animation: _lineAnimation,
-                      builder: (context, _) => CustomPaint(
-                        painter: SquigglePainter(
-                            _lineAnimation.value, _electricBlue),
-                        size: const Size(110, 14),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Text(
-                      'Le réseau qui tient dans une carte.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Syne',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: foreground.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Loader premium discret
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: AnimatedBuilder(
-                        animation: _loaderController,
-                        builder: (context, _) => CustomPaint(
-                          painter: PremiumLoaderPainter(
-                              _loaderController.value, foreground),
+                      // Wordmark — incliné vers l'avant et resserré pour évoquer
+                      // l'esprit du logo (anguleux, dynamique), en gardant du
+                      // vrai texte net à toutes les tailles (le fichier du logo
+                      // n'existe qu'en basse résolution, illisible en grand).
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()..setEntry(0, 1, -0.18),
+                          child: Text(
+                            'KART',
+                            style: TextStyle(
+                              fontFamily: 'Syne',
+                              fontSize: 46,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1,
+                              color: foreground,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 6),
+
+                      // Trait ondulé (accent de marque) qui se trace sous le wordmark
+                      FadeTransition(
+                        opacity: _lineAnimation,
+                        child: AnimatedBuilder(
+                          animation: _lineAnimation,
+                          builder: (context, _) => CustomPaint(
+                            painter: SquigglePainter(
+                                _lineAnimation.value, _electricBlue),
+                            size: const Size(110, 14),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        // Largeur bornée : c'est l'élément le plus large de
+                        // la colonne, donc celui qui pilote la réduction du
+                        // FittedBox — sans borne, il touche les deux bords
+                        // sur un téléphone étroit.
+                        child: SizedBox(
+                          width: 250,
+                          child: Text(
+                            'Le réseau qui tient dans une carte.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Syne',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: foreground.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 48),
+
+                      // Loader premium discret
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: AnimatedBuilder(
+                            animation: _loaderController,
+                            builder: (context, _) => CustomPaint(
+                              painter: PremiumLoaderPainter(
+                                  _loaderController.value, foreground),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -423,8 +445,7 @@ class _SplashKartCardState extends State<_SplashKartCard>
                               child: SizedBox(
                                 width: 34,
                                 height: 34,
-                                child:
-                                    CustomPaint(painter: _KartMarkPainter()),
+                                child: CustomPaint(painter: _KartMarkPainter()),
                               ),
                             ),
                           ],
