@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fond de l'écran de lancement natif : le même noir que le splash
-         Flutter (SplashScreen, #07070A), en mode clair comme en mode
-         sombre. Sans ça, le lancement affichait un fond blanc (thème
-         clair du système) avant de basculer d'un coup sur le splash noir. -->
-    <color name="launch_background">#07070A</color>
+    <!-- Fond de l'écran de lancement natif, mode CLAIR : le même que le
+         splash Flutter (SplashScreen) pour un enchaînement invisible.
+         La variante sombre est dans values-night/colors.xml. -->
+    <color name="launch_background">#F4F5F7</color>
 </resources>

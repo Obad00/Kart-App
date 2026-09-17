@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fond de l'écran de lancement natif, mode SOMBRE — cf.
+         values/colors.xml pour le mode clair. -->
+    <color name="launch_background">#07070A</color>
+</resources>

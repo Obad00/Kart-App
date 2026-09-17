@@ -189,13 +189,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Toujours sombre, quel que soit le thème du téléphone : c'est un
-    // écran de marque (cf. visuels de référence, tous sur fond noir), pas
-    // un écran de contenu qui doit suivre le mode clair.
-    const foreground = Colors.white;
+    // La CARTE reste noire dans les deux modes — c'est l'objet KART
+    // lui-même (cf. visuel de référence) — mais la scène autour suit le
+    // thème du téléphone : fond clair et texte sombre en mode clair.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = isDark ? Colors.white : const Color(0xFF0B0B0F);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor:
+          isDark ? const Color(0xFF07070A) : const Color(0xFFF4F5F7),
       body: Stack(
         children: [
           SafeArea(
@@ -240,7 +242,7 @@ class _SplashScreenState extends State<SplashScreen>
                             opacity: 0.35 + (0.65 * _glowAnimation.value),
                             child: child,
                           ),
-                          child: const _SplashKartCard(),
+                          child: _SplashKartCard(isDark: isDark),
                         ),
                       ),
 
@@ -341,7 +343,12 @@ class _SplashScreenState extends State<SplashScreen>
 /// de KART et, si quelqu'un est déjà connecté, les siennes : l'app s'ouvre
 /// sur SA carte, pas sur un visuel générique.
 class _SplashKartCard extends StatefulWidget {
-  const _SplashKartCard();
+  /// Le thème n'change pas la carte elle-même (toujours noire) : il sert
+  /// uniquement à poser une ombre portée en mode clair, sans laquelle la
+  /// carte paraît découpée sur le fond clair.
+  final bool isDark;
+
+  const _SplashKartCard({required this.isDark});
 
   @override
   State<_SplashKartCard> createState() => _SplashKartCardState();
@@ -405,6 +412,26 @@ class _SplashKartCardState extends State<_SplashKartCard>
               ),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              // Deux ombres superposées : une large et très diffuse pour
+              // la profondeur, une courte au contact. Une seule ombre
+              // marquée dessinait une barre grise nette sous la carte
+              // plutôt qu'une ombre portée.
+              boxShadow: widget.isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 44,
+                        spreadRadius: -6,
+                        offset: const Offset(0, 22),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 10,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
             ),
             child: Stack(
               children: [
@@ -508,6 +535,14 @@ class _LanyardStrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Le cordon et l'attache restent sombres (ils font partie de l'objet),
+    // mais l'anneau se détache sur le FOND de la page : en blanc translucide
+    // il devenait invisible en mode clair.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ringColor = isDark
+        ? Colors.white.withValues(alpha: 0.22)
+        : Colors.black.withValues(alpha: 0.28);
+
     return SizedBox(
       height: 150,
       child: Column(
@@ -554,10 +589,7 @@ class _LanyardStrap extends StatelessWidget {
             height: 16,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.22),
-                width: 2,
-              ),
+              border: Border.all(color: ringColor, width: 2),
             ),
           ),
         ],
