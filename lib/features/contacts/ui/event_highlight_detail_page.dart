@@ -118,7 +118,9 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
   bool _canScanParticipants(BuildContext context) {
     final companyId = _event?['company_id'];
     final userCompanyId = context.read<AuthProvider>().user?.companyId;
-    return companyId != null && userCompanyId != null && companyId == userCompanyId;
+    return companyId != null &&
+        userCompanyId != null &&
+        companyId == userCompanyId;
   }
 
   void _openParticipantScan(BuildContext context) {
@@ -226,6 +228,24 @@ class _EventInfoCard extends StatelessWidget {
 
   const _EventInfoCard({required this.event, required this.formatDate});
 
+  /// "#RRGGBB" (ou "RRGGBB") -> Color ; repli sur le bleu KART pour toute
+  /// valeur absente ou mal formée, jamais d'exception ici.
+  static Color _parseBrandColor(String? hex) {
+    const fallback = Color(0xFF1D4ED8);
+    if (hex == null) return fallback;
+    final cleaned = hex.replaceAll('#', '').trim();
+    if (cleaned.length != 6) return fallback;
+    final value = int.tryParse(cleaned, radix: 16);
+    return value == null ? fallback : Color(0xFF000000 | value);
+  }
+
+  static Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = event['theme'] as String?;
@@ -233,11 +253,17 @@ class _EventInfoCard extends StatelessWidget {
     final description = event['description'] as String?;
     final startsAt = formatDate(event['starts_at'] as String?);
 
+    // Dégradé aux couleurs de l'entreprise organisatrice (brand_color =
+    // couleur de l'événement, sinon celle de l'entreprise, sinon le bleu
+    // KART — cf. Event::qrColor() côté backend) au lieu du bleu→violet
+    // fixe d'avant, sans rapport avec la marque (remonté côté produit).
+    final brand = _parseBrandColor(event['brand_color'] as String?);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF6D28D9)],
+        gradient: LinearGradient(
+          colors: [brand, _darken(brand, 0.22)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

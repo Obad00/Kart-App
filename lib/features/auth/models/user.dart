@@ -23,6 +23,11 @@ class User {
   // le nudge non bloquant "Sécurisez votre compte" (cf. SecurePinBanner),
   // distinct de mustChangePassword qui bloque l'accès à l'app.
   final bool hasTemporaryPin;
+  // Accès à "Ma communauté" délégué par l'admin à un collaborateur
+  // (company_role = member) sans le promouvoir admin — cf.
+  // User::canManageCompanyCommunity() côté backend. Un owner/admin y a
+  // toujours accès, indépendamment de ce champ (cf. canAccessCommunity).
+  final bool canManageCommunity;
 
   User({
     required this.id,
@@ -39,6 +44,7 @@ class User {
     this.company,
     this.emailVerified = true,
     this.hasTemporaryPin = false,
+    this.canManageCommunity = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -86,6 +92,7 @@ class User {
       // compte existant à tort.
       emailVerified: json['email_verified'] ?? true,
       hasTemporaryPin: json['has_temporary_pin'] == true,
+      canManageCommunity: json['can_manage_community'] == true,
     );
   }
 
@@ -93,5 +100,11 @@ class User {
   bool get hasCompany => companyId != null || company != null;
   bool get isCompanyOwnerOrAdmin =>
       companyRole == 'owner' || companyRole == 'admin';
+  /// Qui peut ouvrir "Ma communauté" (événements/participants de
+  /// l'entreprise) : owner/admin toujours, plus tout collaborateur à qui
+  /// l'admin a explicitement délégué cet accès depuis le CRM — remonté
+  /// côté produit : les collaborateurs ne la voyaient dans aucun cas.
+  bool get canAccessCompanyCommunity =>
+      isCompanyOwnerOrAdmin || canManageCommunity;
   String get fullName => '$firstname $lastname';
 }

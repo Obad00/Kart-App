@@ -117,7 +117,7 @@ class _ExplorePageState extends State<ExplorePage> {
       // Uniquement pour un compte entreprise (owner/admin) — évite un
       // appel réseau (et un éventuel 403, plan non-enterprise) inutile
       // pour tous les autres utilisateurs d'Explorer.
-      if (context.read<AuthProvider>().user?.isCompanyOwnerOrAdmin == true) {
+      if (context.read<AuthProvider>().user?.canAccessCompanyCommunity == true) {
         _companyEventsProvider.load();
       }
 
@@ -161,7 +161,7 @@ class _ExplorePageState extends State<ExplorePage> {
       _communityProvider.loadCommunities(),
       _provider.loadUsers(),
       _discoveryProvider.loadAll(),
-      if (context.read<AuthProvider>().user?.isCompanyOwnerOrAdmin == true)
+      if (context.read<AuthProvider>().user?.canAccessCompanyCommunity == true)
         _companyEventsProvider.load(force: true),
     ]);
   }
@@ -655,12 +655,15 @@ class _ExplorePageState extends State<ExplorePage> {
           ),
         ),
 
-        // "Ma communauté" (compte entreprise owner/admin uniquement) —
-        // affichée en tout premier, avant les carrousels de découverte :
+        // "Ma communauté" — owner/admin de l'entreprise, plus tout
+        // collaborateur à qui l'admin a délégué cet accès depuis le CRM
+        // (cf. User.canAccessCompanyCommunity) : les collaborateurs ne la
+        // voyaient auparavant dans aucun cas, remonté côté produit.
+        // Affichée en tout premier, avant les carrousels de découverte :
         // ses propres événements/participants sont plus pertinents pour ce
         // compte que du contenu à découvrir. Invisible (aucun changement
         // de design) pour tout le reste des utilisateurs.
-        if (context.watch<AuthProvider>().user?.isCompanyOwnerOrAdmin == true)
+        if (context.watch<AuthProvider>().user?.canAccessCompanyCommunity == true)
           SliverToBoxAdapter(child: _buildCompanyCommunitySection()),
 
         // Profils recommandés pour vous — le titre était affiché quel que
@@ -1068,6 +1071,7 @@ class _ExplorePageState extends State<ExplorePage> {
                           builder: (_) => CompanyEventParticipantsPage(
                             eventId: event.id,
                             eventName: event.name,
+                            publicUrl: event.publicUrl,
                           ),
                         ),
                       ),

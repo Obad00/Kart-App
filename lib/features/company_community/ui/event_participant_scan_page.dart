@@ -45,6 +45,27 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
     return uri.pathSegments.last;
   }
 
+  /// Un QR de badge encode ".../events/{slug}/badge/{token}" (cf.
+  /// Event::badgeCheckinUrl() côté backend) — le dernier segment est alors
+  /// un jeton de présence, PAS un slug de carte : envoyé tel quel à
+  /// checkinByCard(), il échouait en "carte introuvable". Remonté côté
+  /// produit : scanner le badge téléchargé doit marquer présent au même
+  /// titre que scanner la carte de visite.
+  ({String slug, String token})? _extractBadgeToken(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return null;
+
+    // Forme attendue : .../events/{slug}/badge/{token} — 'events' se
+    // trouve donc toujours exactement 2 segments avant 'badge', quel que
+    // soit le préfixe de chemin du front.
+    final segments = uri.pathSegments;
+    final badgeIndex = segments.indexOf('badge');
+    if (badgeIndex < 2 || badgeIndex + 1 >= segments.length) return null;
+    if (segments[badgeIndex - 2] != 'events') return null;
+
+    return (slug: segments[badgeIndex - 1], token: segments[badgeIndex + 1]);
+  }
+
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
     if (capture.barcodes.isEmpty) return;
@@ -52,15 +73,19 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
     final rawValue = capture.barcodes.first.rawValue;
     if (rawValue == null) return;
 
-    final slug = _extractCardSlug(rawValue);
-    if (slug == null) return;
+    final badge = _extractBadgeToken(rawValue);
+    final slug = badge == null ? _extractCardSlug(rawValue) : null;
+    if (badge == null && slug == null) return;
 
     setState(() => _isProcessing = true);
     try {
-      final result = await _service.checkinByCard(widget.eventId, slug);
+      final result = badge != null
+          ? await _service.checkinByBadge(badge.slug, badge.token)
+          : await _service.checkinByCard(widget.eventId, slug!);
       if (!mounted) return;
 
-      final name = (result['user'] as Map?)?['name']?.toString() ?? 'Participant';
+      final name =
+          (result['user'] as Map?)?['name']?.toString() ?? 'Participant';
       final alreadyPresent = result['already_present'] == true;
 
       if (alreadyPresent) {
@@ -74,20 +99,21 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
         FeedbackOverlay.showSuccess(
           context,
           title: '$name marqué·e présent·e ✅',
-          subtitle: '$_checkedInCount participant·e${_checkedInCount > 1 ? 's' : ''} scanné·e${_checkedInCount > 1 ? 's' : ''}.',
+          subtitle:
+              '$_checkedInCount participant·e${_checkedInCount > 1 ? 's' : ''} scanné·e${_checkedInCount > 1 ? 's' : ''}.',
         );
       }
     } on EventCheckinException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
+        FeedbackOverlay.showError(context,
+            title: 'Erreur', subtitle: e.message);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Erreur inconnue'), backgroundColor: Colors.red),
+        FeedbackOverlay.showError(
+          context,
+          title: 'Erreur',
+          subtitle: 'Erreur inconnue',
         );
       }
     } finally {

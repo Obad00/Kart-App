@@ -102,6 +102,7 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
                     builder: (_) => CompanyEventParticipantsPage(
                       eventId: event.id,
                       eventName: event.name,
+                      publicUrl: event.publicUrl,
                     ),
                   ),
                 ),

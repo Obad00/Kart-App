@@ -9,6 +9,10 @@ class CompanyEventSummary {
   final DateTime? endsAt;
   final bool isActive;
   final int participantsCount;
+  // Lien d'inscription publique (cf. Event::getPublicUrlAttribute() côté
+  // backend) — permet de le partager depuis l'app, comme le fait déjà le
+  // CRM (remonté côté produit).
+  final String? publicUrl;
 
   const CompanyEventSummary({
     required this.id,
@@ -18,6 +22,7 @@ class CompanyEventSummary {
     this.endsAt,
     required this.isActive,
     required this.participantsCount,
+    this.publicUrl,
   });
 
   factory CompanyEventSummary.fromJson(Map<String, dynamic> json) {
@@ -33,6 +38,7 @@ class CompanyEventSummary {
           : null,
       isActive: json['is_active'] == true,
       participantsCount: json['participants_count'] as int? ?? 0,
+      publicUrl: json['public_url'] as String?,
     );
   }
 

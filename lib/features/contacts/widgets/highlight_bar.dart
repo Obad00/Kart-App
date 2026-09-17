@@ -6,6 +6,7 @@ import '../models/highlight_model.dart';
 import '../ui/event_highlight_detail_page.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 
 class HighlightBar extends StatelessWidget {
@@ -128,6 +129,21 @@ class _HighlightItem extends StatelessWidget {
                 fallbackName: highlight.name,
               ),
             ),
+          );
+          return;
+        }
+
+        // Highlight d'événement sans event_id (créé avant l'ajout de cette
+        // colonne) : pas de fiche à ouvrir, mais son activation reste du
+        // ressort de l'entreprise organisatrice (HighlightController::
+        // activate() renvoie 403 pour is_company_event) — on l'explique au
+        // lieu de laisser la bascule échouer silencieusement.
+        if (highlight.isCompanyEvent) {
+          FeedbackOverlay.showInfo(
+            context,
+            title: 'Mise en avant gérée par l\'organisateur',
+            subtitle:
+                "L'entreprise qui organise cet événement décide de son affichage.",
           );
           return;
         }

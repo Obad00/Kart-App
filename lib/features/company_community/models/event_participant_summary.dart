@@ -14,6 +14,17 @@ class EventParticipantSummary {
   final bool isPresent;
   final bool isWalkIn;
   final DateTime? registeredAt;
+  // Coordonnées : remonté côté produit — l'admin doit voir "les
+  // informations de celui qui s'est inscrit", pas juste son nom.
+  final String? phone;
+  // Identifiant du compte KART derrière ce participant (null pour un
+  // walk-in pas encore rattaché) + état de la relation avec le compte qui
+  // consulte, pour proposer "Se connecter" comme ailleurs dans Explorer
+  // (cf. EventController::participants(), même calcul que attendees()).
+  final int? userId;
+  final String connectionStatus;
+  final int? connectionRequestId;
+  final String? cardSlug;
 
   const EventParticipantSummary({
     required this.id,
@@ -26,6 +37,11 @@ class EventParticipantSummary {
     required this.isPresent,
     required this.isWalkIn,
     this.registeredAt,
+    this.phone,
+    this.userId,
+    this.connectionStatus = 'none',
+    this.connectionRequestId,
+    this.cardSlug,
   });
 
   factory EventParticipantSummary.fromJson(Map<String, dynamic> json) {
@@ -50,6 +66,13 @@ class EventParticipantSummary {
       registeredAt: json['registered_at'] != null
           ? DateTime.tryParse(json['registered_at'] as String)
           : null,
+      // Le téléphone de la carte d'abord (celui que la personne a choisi
+      // d'exposer), sinon celui du compte.
+      phone: (digitalCard?['phone'] as String?) ?? (user?['phone'] as String?),
+      userId: user?['id'] as int?,
+      connectionStatus: json['connection_status'] as String? ?? 'none',
+      connectionRequestId: json['connection_request_id'] as int?,
+      cardSlug: digitalCard?['slug'] as String?,
     );
   }
 }

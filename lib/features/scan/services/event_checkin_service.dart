@@ -55,6 +55,35 @@ class EventCheckinService {
       );
     }
   }
+
+  /// Check-in via le QR PERSONNEL imprimé sur le badge d'un participant
+  /// (cf. Event::badgeCheckinUrl() côté backend) — le jeton identifie déjà
+  /// la ligne de présence, donc rien d'autre à fournir. Endpoint public
+  /// (le jeton fait foi) mais appelé ici avec la session du collaborateur :
+  /// remonté côté produit, scanner le badge téléchargé doit marquer présent
+  /// aussi bien que scanner la carte de visite.
+  Future<Map<String, dynamic>> checkinByBadge(String slug, String token) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/events/$slug/badge/$token/checkin',
+      );
+
+      return {
+        'already_present': response.data['already_checked_in'] == true,
+        'user': {'name': response.data['participant_name']},
+        'checked_in_at': response.data['checked_in_at'],
+      };
+    } on DioException catch (e) {
+      final message = e.response?.data is Map
+          ? (e.response?.data['message']?.toString())
+          : null;
+
+      throw EventCheckinException(
+        message: message ?? "Impossible d'enregistrer cette présence.",
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
 }
 
 class EventCheckinException implements Exception {
