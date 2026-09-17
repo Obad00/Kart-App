@@ -8,6 +8,12 @@ class ExploreUser {
   final String? city;
   final String? avatar;
   final String? cardSlug;
+  // Renseignés UNIQUEMENT par EventController::attendees(), et seulement
+  // pour un collaborateur/admin de l'entreprise organisatrice — jamais
+  // pour un participant lambda (le backend ne les envoie pas dans ce cas,
+  // cf. commentaire côté API). Toujours null via ExploreController::index().
+  final String? email;
+  final String? phone;
   final ConnectionStatus connectionStatus;
   // Présent seulement quand connectionStatus != none — permet d'accepter/
   // refuser directement dans l'app (pas seulement depuis le mail).
@@ -28,6 +34,8 @@ class ExploreUser {
     this.city,
     this.avatar,
     this.cardSlug,
+    this.email,
+    this.phone,
     this.connectionStatus = ConnectionStatus.none,
     this.connectionRequestId,
     this.completionScore = 0,
@@ -45,6 +53,8 @@ class ExploreUser {
       city: json['city'],
       avatar: json['avatar'],
       cardSlug: json['cardSlug'],
+      email: json['email'] as String?,
+      phone: json['phone'] as String?,
       connectionStatus: _statusFromJson(json['connectionStatus']),
       connectionRequestId: json['connectionRequestId'] != null
           ? int.tryParse(json['connectionRequestId'].toString())
@@ -80,6 +90,8 @@ class ExploreUser {
       city: city,
       avatar: avatar,
       cardSlug: cardSlug,
+      email: email,
+      phone: phone,
       connectionStatus: connectionStatus ?? this.connectionStatus,
       connectionRequestId: connectionRequestId ?? this.connectionRequestId,
       completionScore: completionScore,
@@ -99,6 +111,8 @@ class ExploreUser {
       city: city,
       avatar: avatar,
       cardSlug: cardSlug,
+      email: email,
+      phone: phone,
       connectionStatus: ConnectionStatus.none,
       connectionRequestId: null,
       completionScore: completionScore,

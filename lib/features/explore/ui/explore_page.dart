@@ -1072,6 +1072,7 @@ class _ExplorePageState extends State<ExplorePage> {
                             eventId: event.id,
                             eventName: event.name,
                             publicUrl: event.publicUrl,
+                            eventHasEnded: event.hasEnded,
                           ),
                         ),
                       ),

@@ -95,8 +95,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (alreadyShownIntro) {
       // Un simple flash de marque, pas toute l'intro — cf. commentaire sur
-      // _hasShownIntroKey.
-      _animationController.duration = const Duration(milliseconds: 900);
+      // _hasShownIntroKey. 1600ms (pas 900) : le nom de la personne
+      // connectée ne s'affiche qu'une fois /me résolu (après le tout début
+      // de l'anim), à 900ms il ne restait quasiment plus de temps pour le
+      // lire — remonté côté produit ("on voit à peine le nom").
+      _animationController.duration = const Duration(milliseconds: 1600);
     } else {
       await prefs.setBool(_hasShownIntroKey, true);
     }

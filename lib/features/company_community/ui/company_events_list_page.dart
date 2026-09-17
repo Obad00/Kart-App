@@ -103,6 +103,7 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
                       eventId: event.id,
                       eventName: event.name,
                       publicUrl: event.publicUrl,
+                      eventHasEnded: event.hasEnded,
                     ),
                   ),
                 ),

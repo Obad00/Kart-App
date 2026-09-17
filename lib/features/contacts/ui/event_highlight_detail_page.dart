@@ -1,20 +1,14 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 
-import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/ui/event_participant_scan_page.dart';
+import '../../company_community/widgets/participant_list_widgets.dart';
 import '../../explore/models/explore_user.dart';
-import '../../explore/widgets/connect_action_button.dart';
-import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/services/card_service.dart';
-import '../../../shared/utils/initials.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
-
-const _themeBlue = Color(0xFF3B82F6);
 
 /// Ouverte en tapant sur un highlight d'événement (voir highlight_bar.dart) :
 /// affiche les infos de l'événement (thème, lieu, date, description) ainsi
@@ -82,6 +76,34 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     setState(() => _attendees.removeWhere((u) => u.id == userId));
   }
 
+  /// Fiche d'un participant — identique à celle de "Ma communauté" (cf.
+  /// ParticipantDetailSheet), sans présence, et sans mail/téléphone quand
+  /// le backend ne les a pas envoyés (participant lambda, pas staff).
+  void _openAttendeeSheet(ExploreUser user) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ParticipantDetailSheet(
+        displayName: user.name,
+        subtitle: [user.jobTitle, user.company]
+            .where((s) => (s ?? '').isNotEmpty)
+            .join(' · '),
+        email: user.email,
+        phone: user.phone,
+        userId: user.id,
+        connectionStatus: switch (user.connectionStatus) {
+          ConnectionStatus.pendingSent => 'pending_sent',
+          ConnectionStatus.pendingReceived => 'pending_received',
+          ConnectionStatus.contact => 'contact',
+          ConnectionStatus.none => 'none',
+        },
+        connectionRequestId: user.connectionRequestId,
+        onResolved: () => _removeAttendee(user.id),
+      ),
+    );
+  }
+
   static const _frMonths = [
     'janvier',
     'février',
@@ -120,7 +142,19 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     final userCompanyId = context.read<AuthProvider>().user?.companyId;
     return companyId != null &&
         userCompanyId != null &&
-        companyId == userCompanyId;
+        companyId == userCompanyId &&
+        !_eventHasEnded();
+  }
+
+  /// Un événement terminé n'a plus besoin d'être scanné — plus personne
+  /// n'arrive à ce moment-là. Même calcul que CompanyEventSummary.hasEnded
+  /// côté "Ma communauté", reproduit ici faute de date de fin dans la
+  /// réponse d'attendees() sous une autre forme.
+  bool _eventHasEnded() {
+    final endsAt = _event?['ends_at'] as String?;
+    if (endsAt == null || endsAt.isEmpty) return false;
+    final date = DateTime.tryParse(endsAt);
+    return date != null && date.isBefore(DateTime.now());
   }
 
   void _openParticipantScan(BuildContext context) {
@@ -193,10 +227,21 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      // Même ParticipantListTile/ParticipantDetailSheet que
+                      // "Ma communauté" (remonté côté produit : les deux
+                      // listes de participants avaient chacune leur propre
+                      // design) — sans présence (non pertinente ici) et
+                      // sans mail/téléphone pour qui n'est pas
+                      // collaborateur/admin de l'entreprise organisatrice :
+                      // le backend ne les envoie tout simplement pas dans
+                      // ce cas (cf. EventController::attendees()).
                       ..._attendees.map(
-                        (user) => _AttendeeRow(
-                          user: user,
-                          onResolved: () => _removeAttendee(user.id),
+                        (user) => ParticipantListTile(
+                          displayName: user.name,
+                          subtitle: [user.jobTitle, user.company]
+                              .where((s) => (s ?? '').isNotEmpty)
+                              .join(' · '),
+                          onTap: () => _openAttendeeSheet(user),
                         ),
                       ),
                     ],
@@ -258,59 +303,87 @@ class _EventInfoCard extends StatelessWidget {
     // KART — cf. Event::qrColor() côté backend) au lieu du bleu→violet
     // fixe d'avant, sans rapport avec la marque (remonté côté produit).
     final brand = _parseBrandColor(event['brand_color'] as String?);
+    // Affiche ajoutée à la création de l'événement (cf. EventCreateView.vue
+    // côté CRM) — remonté côté produit : elle n'apparaissait nulle part
+    // dans l'app, seulement sur la page publique d'inscription.
+    final imageUrl = event['image_url'] as String?;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [brand, _darken(brand, 0.22)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            event['name'] ?? '',
-            style: const TextStyle(
-              fontFamily: 'Syne',
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [brand, _darken(brand, 0.22)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          if ((theme ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              theme!,
-              style: TextStyle(
-                  fontSize: 13.5, color: Colors.white.withValues(alpha: 0.85)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  // Une affiche qui ne charge pas (réseau, image supprimée
+                  // côté serveur) ne doit pas casser le reste de la fiche.
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event['name'] ?? '',
+                    style: const TextStyle(
+                      fontFamily: 'Syne',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if ((theme ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      theme!,
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          color: Colors.white.withValues(alpha: 0.85)),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  if (startsAt != null)
+                    _InfoLine(
+                        icon: Icons.calendar_today_rounded, label: startsAt),
+                  if ((location ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _InfoLine(
+                        icon: Icons.location_on_rounded, label: location!),
+                  ],
+                  if ((description ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                        height: 1, color: Colors.white.withValues(alpha: 0.15)),
+                    const SizedBox(height: 14),
+                    ExpandableText(
+                      description!,
+                      maxLines: 3,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          height: 1.4),
+                      accentColor: Colors.white,
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
-          const SizedBox(height: 14),
-          if (startsAt != null)
-            _InfoLine(icon: Icons.calendar_today_rounded, label: startsAt),
-          if ((location ?? '').isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _InfoLine(icon: Icons.location_on_rounded, label: location!),
-          ],
-          if ((description ?? '').isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
-            const SizedBox(height: 14),
-            ExpandableText(
-              description!,
-              maxLines: 3,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  height: 1.4),
-              accentColor: Colors.white,
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -337,118 +410,6 @@ class _InfoLine extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AttendeeRow extends StatelessWidget {
-  final ExploreUser user;
-  final VoidCallback onResolved;
-
-  const _AttendeeRow({required this.user, required this.onResolved});
-
-  String? get _avatarUrl {
-    final avatar = user.avatar;
-    if (avatar == null || avatar.isEmpty) return null;
-    return avatar.startsWith('http')
-        ? avatar
-        : '${ApiEndpoints.storageUrl}/$avatar';
-  }
-
-  void _openCard(BuildContext context) {
-    final slug = user.cardSlug;
-    if (slug == null || slug.isEmpty) return;
-    Navigator.push(
-        context, MaterialPageRoute(builder: (_) => PublicCardPage(slug: slug)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final avatarUrl = _avatarUrl;
-    final subtitle = [user.jobTitle, user.company]
-        .where((v) => (v ?? '').isNotEmpty)
-        .join(' · ');
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: () => _openCard(context),
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: _themeBlue.withValues(alpha: 0.12),
-                    backgroundImage: avatarUrl != null
-                        ? CachedNetworkImageProvider(avatarUrl)
-                        : null,
-                    // Sans ce handler, une photo dont les octets sont
-                    // invalides/corrompus faisait planter le décodage à
-                    // chaque repaint (erreur "source image cannot be
-                    // decoded" répétée en boucle) au lieu de simplement
-                    // garder les initiales affichées.
-                    onBackgroundImageError:
-                        avatarUrl != null ? (_, __) {} : null,
-                    child: avatarUrl == null
-                        ? Text(
-                            getInitials(user.name),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700, color: _themeBlue),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.name,
-                          style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: colors.onSurface),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    colors.onSurface.withValues(alpha: 0.55)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            ConnectActionButton(
-              userId: user.id,
-              userName: user.name,
-              initialStatus: user.connectionStatus,
-              initialRequestId: user.connectionRequestId,
-              onResolved: onResolved,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

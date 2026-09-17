@@ -1,15 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
-import '../../../shared/widgets/glass_sheet.dart';
-import '../../explore/models/explore_user.dart' show ConnectionStatus;
-import '../../explore/widgets/connect_action_button.dart';
 import '../models/event_participant_summary.dart';
 import '../services/company_community_service.dart';
-
-const _themeBlue = Color(0xFF3B82F6);
+import '../widgets/participant_list_widgets.dart';
 
 /// Détail d'un événement de l'entreprise : statistiques inscrits/présents/
 /// walk-ins + table "Participant / Statut / Profil KART" (cf. maquette
@@ -23,12 +20,17 @@ class CompanyEventParticipantsPage extends StatefulWidget {
   // antérieure à ce champ : le bouton de partage est alors simplement
   // masqué plutôt que de partager une URL vide.
   final String? publicUrl;
+  // Un événement terminé ne doit plus pouvoir être partagé — inutile
+  // d'inviter à s'inscrire à quelque chose qui n'a plus lieu — cf. bouton
+  // de partage plus bas, masqué dans ce cas.
+  final bool eventHasEnded;
 
   const CompanyEventParticipantsPage({
     super.key,
     required this.eventId,
     required this.eventName,
     this.publicUrl,
+    this.eventHasEnded = false,
   });
 
   @override
@@ -63,6 +65,17 @@ class _CompanyEventParticipantsPageState
         _stats = result.stats;
         _isLoading = false;
       });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      // Message qui dit ce qui s'est réellement passé plutôt qu'un
+      // "Impossible de charger les participants" systématique — remonté
+      // côté produit : un admin voyait cette erreur là où un collaborateur
+      // du même événement n'avait aucun souci, impossible à comprendre
+      // sans savoir si c'était un 403, une session expirée ou le réseau.
+      setState(() {
+        _error = _messageFor(e);
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -72,13 +85,36 @@ class _CompanyEventParticipantsPageState
     }
   }
 
+  String _messageFor(DioException e) {
+    final status = e.response?.statusCode;
+    final serverMessage = e.response?.data is Map
+        ? (e.response?.data as Map)['message']?.toString()
+        : null;
+
+    if (status == null) {
+      return 'Connexion impossible. Vérifiez votre réseau.';
+    }
+    if (status == 401 || status == 403) {
+      return serverMessage ??
+          "Vous n'avez plus accès à cet événement (session expirée ou entreprise différente).";
+    }
+    if (status >= 500) {
+      return 'Le serveur a rencontré une erreur ($status). Réessayez dans un instant.';
+    }
+    return serverMessage ?? 'Impossible de charger les participants ($status).';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final glassAppBar = GlassAppBar(
       title: Text(widget.eventName),
       actions: [
-        if (widget.publicUrl != null && widget.publicUrl!.isNotEmpty)
+        // Un événement terminé n'a plus vocation à être partagé — inutile
+        // d'inviter à s'inscrire à quelque chose qui n'a plus lieu.
+        if (!widget.eventHasEnded &&
+            widget.publicUrl != null &&
+            widget.publicUrl!.isNotEmpty)
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),
             tooltip: "Partager le lien d'inscription",
@@ -123,7 +159,14 @@ class _CompanyEventParticipantsPageState
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Text(_error!, textAlign: TextAlign.center),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_error!, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _load, child: const Text('Réessayer')),
+              ],
+            ),
           ),
         ),
       );
@@ -147,8 +190,13 @@ class _CompanyEventParticipantsPageState
           )
         else
           ..._participants.map(
-            (p) => _ParticipantRow(
-              participant: p,
+            (p) => ParticipantListTile(
+              displayName: p.displayName,
+              subtitle: [p.jobTitle, p.company]
+                  .where((s) => s?.isNotEmpty == true)
+                  .join(' · '),
+              isPresent: p.isPresent,
+              hasAccount: p.hasAccount,
               onTap: () => _openParticipantSheet(p),
             ),
           ),
@@ -245,7 +293,18 @@ class _CompanyEventParticipantsPageState
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _ParticipantSheet(participant: participant),
+      builder: (_) => ParticipantDetailSheet(
+        displayName: participant.displayName,
+        subtitle: [participant.jobTitle, participant.company]
+            .where((s) => s?.isNotEmpty == true)
+            .join(' · '),
+        email: participant.email,
+        phone: participant.phone,
+        isPresent: participant.isPresent,
+        userId: participant.userId,
+        connectionStatus: participant.connectionStatus,
+        connectionRequestId: participant.connectionRequestId,
+      ),
     );
   }
 }
@@ -290,328 +349,3 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-/// Une ligne "Participant / Statut / Profil KART" — cf. tableau demandé
-/// côté produit (dashboard superadmin fourni en exemple).
-class _ParticipantRow extends StatelessWidget {
-  final EventParticipantSummary participant;
-  final VoidCallback? onTap;
-
-  const _ParticipantRow({required this.participant, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: _themeBlue.withValues(alpha: 0.12),
-              child: Text(
-                participant.displayName.isNotEmpty
-                    ? participant.displayName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    fontFamily: 'Syne',
-                    fontWeight: FontWeight.w800,
-                    color: _themeBlue),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    participant.displayName,
-                    style: TextStyle(
-                      fontFamily: 'Syne',
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: colors.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (participant.jobTitle?.isNotEmpty == true ||
-                      participant.company?.isNotEmpty == true)
-                    Text(
-                      [participant.jobTitle, participant.company]
-                          .where((s) => s?.isNotEmpty == true)
-                          .join(' · '),
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: colors.onSurface.withValues(alpha: 0.55)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _Badge(
-                  label: participant.isPresent ? 'Présent' : 'Absent',
-                  icon: participant.isPresent
-                      ? Icons.check_circle_rounded
-                      : Icons.cancel_rounded,
-                  color: participant.isPresent ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(height: 4),
-                _Badge(
-                  label: participant.hasAccount ? 'KART créé' : 'Pas encore',
-                  icon: participant.hasAccount
-                      ? Icons.verified_rounded
-                      : Icons.hourglass_empty_rounded,
-                  color: participant.hasAccount ? _themeBlue : Colors.orange,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  const _Badge({required this.label, required this.icon, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 10.5, fontWeight: FontWeight.w700, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Fiche d'un inscrit, ouverte au tap sur une ligne : coordonnées visibles
-/// (mail/téléphone) + mise en relation, réutilisant le ConnectActionButton
-/// d'Explorer plutôt qu'un bouton maison — même comportement et mêmes états
-/// (Envoyer / Envoyée / Accepter-Refuser) que partout ailleurs dans l'app.
-class _ParticipantSheet extends StatelessWidget {
-  final EventParticipantSummary participant;
-
-  const _ParticipantSheet({required this.participant});
-
-  ConnectionStatus get _status {
-    switch (participant.connectionStatus) {
-      case 'pending_sent':
-        return ConnectionStatus.pendingSent;
-      case 'pending_received':
-        return ConnectionStatus.pendingReceived;
-      case 'contact':
-        return ConnectionStatus.contact;
-      default:
-        return ConnectionStatus.none;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return SafeArea(
-      top: false,
-      child: GlassSheet(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: _themeBlue.withValues(alpha: 0.12),
-                    child: Text(
-                      participant.displayName.isNotEmpty
-                          ? participant.displayName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        fontFamily: 'Syne',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        color: _themeBlue,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          participant.displayName,
-                          style: TextStyle(
-                            fontFamily: 'Syne',
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: colors.onSurface,
-                          ),
-                        ),
-                        if (participant.jobTitle?.isNotEmpty == true ||
-                            participant.company?.isNotEmpty == true)
-                          Text(
-                            [participant.jobTitle, participant.company]
-                                .where((s) => s?.isNotEmpty == true)
-                                .join(' · '),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colors.onSurface.withValues(alpha: 0.6),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _SheetInfoRow(
-                icon: Icons.mail_outline_rounded,
-                label: 'Email',
-                value: participant.email,
-              ),
-              _SheetInfoRow(
-                icon: Icons.phone_outlined,
-                label: 'Téléphone',
-                value: participant.phone,
-              ),
-              _SheetInfoRow(
-                icon: Icons.event_available_outlined,
-                label: 'Présence',
-                value: participant.isPresent ? 'Présent' : 'Pas encore arrivé',
-              ),
-              const SizedBox(height: 18),
-              // Pas de compte KART rattaché (walk-in pas encore inscrit) :
-              // rien à quoi se connecter, on l'explique au lieu d'afficher
-              // un bouton qui ne pourrait rien faire.
-              if (participant.userId == null)
-                Text(
-                  "Ce visiteur n'a pas encore créé son compte KART — la mise en relation sera possible dès qu'il l'aura fait.",
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: colors.onSurface.withValues(alpha: 0.6),
-                  ),
-                )
-              else if (_status == ConnectionStatus.contact)
-                Row(
-                  children: [
-                    const Icon(Icons.check_circle_rounded,
-                        size: 18, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Déjà dans vos contacts',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface.withValues(alpha: 0.75),
-                      ),
-                    ),
-                  ],
-                )
-              else
-                ConnectActionButton(
-                  userId: participant.userId!,
-                  userName: participant.displayName,
-                  initialStatus: _status,
-                  initialRequestId: participant.connectionRequestId,
-                  compact: true,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String? value;
-
-  const _SheetInfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (value == null || value!.isEmpty) return const SizedBox.shrink();
-
-    final colors = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 17, color: colors.onSurface.withValues(alpha: 0.45)),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: colors.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value!,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
