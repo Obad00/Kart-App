@@ -203,9 +203,9 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Badge à lanyard (cf. visuels de référence fournis) :
-                  // carte sombre, trou de cordon, nom de la personne
-                  // connectée, signature KART en pied.
+                  // Carte KART suspendue à son cordon (cf. visuel de
+                  // référence fourni) : carte noire mate, marque en haut à
+                  // droite, nom de la personne connectée en bas à gauche.
                   AnimatedBuilder(
                     animation: _cardAnimation,
                     builder: (context, child) {
@@ -220,18 +220,11 @@ class _SplashScreenState extends State<SplashScreen>
                     },
                     child: AnimatedBuilder(
                       animation: _glowAnimation,
-                      builder: (context, child) => Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _electricBlue.withValues(
-                                  alpha: 0.14 * _glowAnimation.value),
-                              blurRadius: 28,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
+                      builder: (context, child) => Opacity(
+                        // Simple montée en présence : le halo bleu d'avant
+                        // dessinait un bloc coloré derrière le cordon, à
+                        // l'opposé du visuel de référence (noir intégral).
+                        opacity: 0.35 + (0.65 * _glowAnimation.value),
                         child: child,
                       ),
                       child: const _SplashKartCard(),
@@ -320,11 +313,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// Badge à lanyard — reprend les visuels de référence fournis côté produit
-/// (carte sombre, trou de cordon, nom en grand, signature de marque en
-/// pied) plutôt que l'ancienne carte "QR + monogramme". Les informations
-/// sont celles de KART et, si quelqu'un est déjà connecté, les siennes :
-/// l'app s'ouvre sur SON badge, pas sur un visuel générique.
+/// Carte KART suspendue à son cordon — reprend le visuel de référence
+/// fourni côté produit : carte noire mate, marque en haut à droite, nom en
+/// bas à gauche, arcs discrets dans l'angle. Les informations sont celles
+/// de KART et, si quelqu'un est déjà connecté, les siennes : l'app s'ouvre
+/// sur SA carte, pas sur un visuel générique.
 class _SplashKartCard extends StatefulWidget {
   const _SplashKartCard();
 
@@ -359,10 +352,15 @@ class _SplashKartCardState extends State<_SplashKartCard>
   @override
   Widget build(BuildContext context) {
     // watch : l'init de l'auth se termine pendant l'animation du splash —
-    // le badge passe alors tout seul du libellé générique au nom réel.
+    // la carte passe alors d'elle-même du libellé KART au nom réel.
     final user = context.watch<AuthProvider>().user;
-    final name = user == null ? 'Votre badge' : user.fullName.trim();
-    final role = user?.company?.name ?? 'Identité professionnelle digitale';
+
+    final title = user == null ? 'KART' : user.fullName.trim().toUpperCase();
+    final subtitle = user?.company?.name.toUpperCase() ??
+        'IDENTITÉ PROFESSIONNELLE DIGITALE';
+    final footer = user == null
+        ? 'PRÊTE EN QUELQUES SECONDES'
+        : 'ID ${user.id.toString().padLeft(10, '0')}';
 
     return AnimatedBuilder(
       animation: _floatAnimation,
@@ -373,122 +371,105 @@ class _SplashKartCardState extends State<_SplashKartCard>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Attache du cordon, au-dessus de la carte.
+          const _LanyardStrap(),
           Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-                width: 2.5,
-              ),
-            ),
-          ),
-          Container(
-            width: 3,
-            height: 10,
-            color: Colors.white.withValues(alpha: 0.18),
-          ),
-          Container(
-            width: 250,
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
+            width: 232,
+            height: 320,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF17171A), Color(0xFF070708)],
+                colors: [Color(0xFF121214), Color(0xFF050506)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                // Trou du cordon, comme sur un vrai badge.
-                Center(
-                  child: Container(
-                    width: 46,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
+                // Arcs concentriques dans l'angle bas-droit, très peu
+                // contrastés — la texture du visuel de référence.
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: CustomPaint(painter: const _CornerArcsPainter()),
                   ),
                 ),
-                const SizedBox(height: 26),
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'Syne',
-                    color: Colors.white,
-                    fontSize: 25,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  role,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Syne',
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // Courbe d'accent — l'équivalent sobre du motif chromé des
-                // visuels de référence, dessiné plutôt qu'importé (aucun
-                // asset haute résolution disponible).
-                SizedBox(
-                  height: 54,
-                  width: double.infinity,
-                  child: CustomPaint(painter: _BadgeSwirlPainter()),
-                ),
-                const SizedBox(height: 22),
-                Row(
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: _electricBlue,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'K',
-                        style: TextStyle(
-                          fontFamily: 'Syne',
-                          fontSize: 12,
-                          height: 1,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 34,
+                        child: Stack(
+                          children: [
+                            // Perforation, alignée sous l'anneau du cordon.
+                            Align(
+                              alignment: Alignment.topCenter,
+                              child: Container(
+                                width: 13,
+                                height: 13,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF040405),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.16),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const Align(
+                              alignment: Alignment.topRight,
+                              child: SizedBox(
+                                width: 34,
+                                height: 34,
+                                child:
+                                    CustomPaint(painter: _KartMarkPainter()),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 9),
-                    const Text(
-                      'KART',
-                      style: TextStyle(
-                        fontFamily: 'Syne',
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
+                      const Spacer(),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Syne',
+                          color: Colors.white,
+                          fontSize: 23,
+                          height: 1.12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 7),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Syne',
+                          color: Colors.white.withValues(alpha: 0.42),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 2.2,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Text(
+                        footer,
+                        style: TextStyle(
+                          fontFamily: 'Syne',
+                          color: Colors.white.withValues(alpha: 0.3),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -499,55 +480,123 @@ class _SplashKartCardState extends State<_SplashKartCard>
   }
 }
 
-/// Deux boucles entrelacées façon ruban métallique (cf. visuels fournis) —
-/// un dégradé clair sur trait épais suffit à en donner l'impression sans
-/// image bitmap.
-class _BadgeSwirlPainter extends CustomPainter {
+/// Cordon + mousqueton au-dessus de la carte, avec le nom de la marque
+/// répété dessus comme sur le visuel de référence.
+class _LanyardStrap extends StatelessWidget {
+  const _LanyardStrap();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 150,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            width: 34,
+            height: 118,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF17171A), Color(0xFF0C0C0E)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            alignment: Alignment.center,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                'KART · KART · KART',
+                style: TextStyle(
+                  fontFamily: 'Syne',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ),
+          // Attache : petit bloc puis anneau.
+          Container(
+            width: 20,
+            height: 10,
+            decoration: BoxDecoration(
+              color: const Color(0xFF17171A),
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+          ),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.22),
+                width: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Marque KART : disque rayé, écho du logo du visuel de référence (barres
+/// blanches de largeurs inégales détourées en cercle).
+class _KartMarkPainter extends CustomPainter {
+  const _KartMarkPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..shader = const LinearGradient(
-        colors: [Color(0xFFE9EDF2), Color(0xFF7E8894), Color(0xFFD6DCE4)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(rect);
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Offset.zero & size));
 
-    final path = Path()
-      ..moveTo(size.width * 0.04, size.height * 0.78)
-      ..cubicTo(
-        size.width * 0.08,
-        size.height * 0.08,
-        size.width * 0.46,
-        size.height * 0.06,
-        size.width * 0.44,
-        size.height * 0.72,
-      )
-      ..cubicTo(
-        size.width * 0.43,
-        size.height * 1.06,
-        size.width * 0.74,
-        size.height * 0.98,
-        size.width * 0.72,
-        size.height * 0.36,
-      )
-      ..cubicTo(
-        size.width * 0.71,
-        size.height * 0.02,
-        size.width * 0.94,
-        size.height * 0.12,
-        size.width * 0.96,
-        size.height * 0.54,
+    final paint = Paint()..color = Colors.white;
+    // Barres de hauteur constante, largeurs décalées : donne le relief du
+    // logo sans dépendre d'un asset (aucun fichier haute résolution
+    // disponible côté projet).
+    const bars = 7;
+    final barHeight = size.height / (bars * 1.85);
+    for (var i = 0; i < bars; i++) {
+      final top = size.height * (i + 0.5) / bars - barHeight / 2;
+      final inset = size.width * (i.isEven ? 0.06 : 0.18) * (i / bars + 0.35);
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(inset, top, size.width - inset * 2, barHeight),
+        Radius.circular(barHeight),
       );
+      canvas.drawRRect(rect, paint);
+    }
 
-    canvas.drawPath(path, paint);
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_BadgeSwirlPainter oldDelegate) => false;
+  bool shouldRepaint(_KartMarkPainter oldDelegate) => false;
+}
+
+/// Arcs concentriques très discrets dans l'angle bas-droit de la carte.
+class _CornerArcsPainter extends CustomPainter {
+  const _CornerArcsPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..color = Colors.white.withValues(alpha: 0.045);
+
+    final center = Offset(size.width * 1.1, size.height * 1.12);
+    for (var i = 1; i <= 4; i++) {
+      canvas.drawCircle(center, size.width * 0.13 * i, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CornerArcsPainter oldDelegate) => false;
 }
 
 /// Trait ondulé (squiggle) dessiné à la main, utilisé comme accent de marque
