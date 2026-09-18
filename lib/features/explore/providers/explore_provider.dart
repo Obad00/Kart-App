@@ -203,17 +203,30 @@ class ExploreProvider extends SafeChangeNotifier {
           : 'Une erreur est survenue, réessayez.';
     }
 
+    ExploreUser? otherUser;
     myRequests = myRequests
-        .map((r) => r.id == requestId
-            ? ConnectionRequestItem(
-                id: r.id,
-                direction: r.direction,
-                status: action == 'accept' ? 'accepted' : 'declined',
-                createdAt: r.createdAt,
-                otherUser: r.otherUser,
-              )
-            : r)
+        .map((r) {
+          if (r.id != requestId) return r;
+          otherUser = r.otherUser;
+          return ConnectionRequestItem(
+            id: r.id,
+            direction: r.direction,
+            status: action == 'accept' ? 'accepted' : 'declined',
+            createdAt: r.createdAt,
+            otherUser: r.otherUser,
+          );
+        })
         .toList();
+
+    // Sans ça, accepter/refuser ici ne se répercutait pas sur le bouton de
+    // ce profil dans la liste Explorer (deux états locaux distincts) tant
+    // que l'app n'était pas relancée — même bug que ConnectActionButton.
+    // ConnectionStatus.none dans les deux cas pour rester cohérent avec
+    // ConnectActionButton._respond(), qui fait de même après resolution.
+    if (otherUser != null) {
+      updateUserConnection(otherUser!.id, ConnectionStatus.none, null);
+    }
+
     notifyListeners();
     return null;
   }
