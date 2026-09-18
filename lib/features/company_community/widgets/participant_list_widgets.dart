@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/widgets/glass_sheet.dart';
 import '../../explore/models/explore_user.dart' show ConnectionStatus;
 import '../../explore/widgets/connect_action_button.dart';
 
@@ -250,10 +249,18 @@ class ParticipantDetailSheet extends StatelessWidget {
     // padding bottom réduit (16, pas 24) : combiné à l'espace ajouté par
     // SafeArea (bord de geste iPhone), 24 laissait un vide visible sous le
     // dernier élément — remonté côté produit.
+    //
+    // Container plein (colors.surface), pas GlassSheet (verre dépoli) —
+    // remonté côté produit : "le même design que voir tout", qui utilise un
+    // fond plein classique (cf. PublicCardPage._showAllExperiences()), pas
+    // l'effet de flou utilisé ailleurs pour les popups.
     return SafeArea(
       top: false,
-      child: GlassSheet(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: Column(
