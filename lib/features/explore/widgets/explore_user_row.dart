@@ -42,6 +42,9 @@ class ExploreUserRow extends StatelessWidget {
           // est resservie par le cache hors-ligne (cf. PublicCardPage).
           initialConnectionStatus: user.connectionStatus,
           initialConnectionRequestId: user.connectionRequestId,
+          onConnectionChanged: (status, requestId) => context
+              .read<ExploreProvider>()
+              .updateUserConnection(user.id, status, requestId),
         ),
       ),
     );
@@ -182,6 +185,13 @@ class ExploreUserRow extends StatelessWidget {
                 // pour se connecter" n'a pas la place de fonctionner dans
                 // une rangée aussi étroite (cf. ConnectActionButton).
                 ConnectActionButton(
+                  // Cf. ExploreProfileCard : nécessaire pour que
+                  // ExploreProvider.updateUserConnection() (déclenché
+                  // depuis cette rangée OU depuis la fiche détail ouverte
+                  // via _openCard) force bien ce bouton à se réinitialiser
+                  // avec le statut à jour.
+                  key: ValueKey(
+                      '${user.id}-${user.connectionStatus}-${user.connectionRequestId}'),
                   userId: user.id,
                   userName: user.name,
                   initialStatus: user.connectionStatus,
@@ -190,6 +200,9 @@ class ExploreUserRow extends StatelessWidget {
                   onResolved: () => context
                       .read<ExploreProvider>()
                       .removeUserLocally(user.id),
+                  onStatusChanged: (status, requestId) => context
+                      .read<ExploreProvider>()
+                      .updateUserConnection(user.id, status, requestId),
                 ),
               ],
             ),

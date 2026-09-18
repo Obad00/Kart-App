@@ -146,6 +146,21 @@ class ExploreProvider extends SafeChangeNotifier {
     notifyListeners();
   }
 
+  /// Synchronise le statut de connexion d'un profil affiché ici — remonté
+  /// côté produit : envoyer/annuler une demande depuis la fiche détail
+  /// (PublicCardPage) d'un profil ne se répercutait pas sur son bouton
+  /// dans cette liste (deux instances de ConnectActionButton, chacune avec
+  /// son propre état interne). Voir ConnectActionButton.onStatusChanged.
+  void updateUserConnection(int userId, ConnectionStatus status, int? requestId) {
+    users = users.map((u) {
+      if (u.id != userId) return u;
+      return status == ConnectionStatus.none
+          ? u.clearConnection()
+          : u.copyWith(connectionStatus: status, connectionRequestId: requestId);
+    }).toList();
+    notifyListeners();
+  }
+
   // ───────────────── Onglet "Mes demandes" ─────────────────
   List<ConnectionRequestItem> myRequests = [];
   bool isLoadingMyRequests = false;

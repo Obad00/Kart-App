@@ -54,6 +54,15 @@ class PublicCardPage extends StatefulWidget {
   final String? organizerContactEmail;
   final String? organizerContactPhone;
 
+  // Remonté côté produit : envoyer/annuler une demande de connexion depuis
+  // CETTE page ne se répercutait pas sur le bouton affiché pour la même
+  // personne dans la liste d'où elle a été ouverte (Explorer...) — chaque
+  // écran a sa propre instance de ConnectActionButton avec son propre état
+  // interne. `null` : rien à synchroniser (ex: ouverte depuis un lien
+  // direct/QR, pas depuis une liste qui garde son propre état).
+  final void Function(ConnectionStatus status, int? requestId)?
+      onConnectionChanged;
+
   const PublicCardPage({
     super.key,
     required this.slug,
@@ -62,6 +71,7 @@ class PublicCardPage extends StatefulWidget {
     this.initialConnectionRequestId,
     this.organizerContactEmail,
     this.organizerContactPhone,
+    this.onConnectionChanged,
   });
 
   @override
@@ -929,6 +939,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         userName: fullName.isNotEmpty ? fullName : 'ce profil',
         initialStatus: _connectionStatusFromCard(),
         initialRequestId: _connectionRequestIdFromCard(),
+        onStatusChanged: widget.onConnectionChanged,
       ),
     );
   }

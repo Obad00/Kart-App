@@ -54,6 +54,10 @@ class ExploreProfileCard extends StatelessWidget {
           // est resservie par le cache hors-ligne (cf. PublicCardPage).
           initialConnectionStatus: user.connectionStatus,
           initialConnectionRequestId: user.connectionRequestId,
+          onConnectionChanged: removeFrom == null
+              ? null
+              : (status, requestId) =>
+                  removeFrom!.updateUserConnection(user.id, status, requestId),
         ),
       ),
     );
@@ -240,6 +244,16 @@ class ExploreProfileCard extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ConnectActionButton(
+                          // Dérivée du statut/id de demande : quand
+                          // removeFrom!.updateUserConnection() met à jour
+                          // ce user (déclenché depuis CETTE carte ou depuis
+                          // la fiche détail ouverte via _openCard), la clé
+                          // change et Flutter reconstruit ce bouton à neuf
+                          // avec le statut à jour — sans ça, son état
+                          // interne (figé à la première init) ignorerait
+                          // silencieusement tout changement externe.
+                          key: ValueKey(
+                              '${user.id}-${user.connectionStatus}-${user.connectionRequestId}'),
                           userId: user.id,
                           userName: user.name,
                           initialStatus: user.connectionStatus,
@@ -248,6 +262,11 @@ class ExploreProfileCard extends StatelessWidget {
                           onResolved: removeFrom == null
                               ? null
                               : () => removeFrom!.removeUserLocally(user.id),
+                          onStatusChanged: removeFrom == null
+                              ? null
+                              : (status, requestId) => removeFrom!
+                                  .updateUserConnection(
+                                      user.id, status, requestId),
                         ),
                       ),
                     ],

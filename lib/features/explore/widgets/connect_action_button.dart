@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../models/explore_user.dart';
 import '../providers/connection_badge_provider.dart';
@@ -25,6 +26,20 @@ class ConnectActionButton extends StatefulWidget {
   // connecter" à nouveau disponible.
   final VoidCallback? onResolved;
 
+  // Remonte CHAQUE changement d'état (envoyer/annuler/accepter/refuser) au
+  // parent — remonté côté produit : la même personne peut apparaître à la
+  // fois dans une liste Explorer et sur sa fiche détail (PublicCardPage),
+  // chacune avec sa PROPRE instance de ce bouton et son propre état
+  // interne ; sans ce callback, envoyer une demande depuis l'une ne se
+  // reflétait jamais dans l'autre (ex: toujours "Se connecter" en dehors
+  // après l'avoir déjà envoyée depuis le détail). Le parent est
+  // responsable de propager la mise à jour (ex: ExploreProvider.
+  // updateUserConnection()) et, si la liste concernée est reconstruite
+  // avec une clé dérivée du nouveau statut, ce widget-ci sera réinitialisé
+  // avec la valeur à jour la prochaine fois qu'il est affiché.
+  final void Function(ConnectionStatus status, int? requestId)?
+      onStatusChanged;
+
   /// true : bouton "Se connecter" compact (simple tap), pour une rangée
   /// étroite (ex: liste compacte d'Explorer) où le slider glissant n'a pas
   /// la place de fonctionner correctement (FractionallySizedBox(0.68) sur
@@ -42,6 +57,7 @@ class ConnectActionButton extends StatefulWidget {
     this.initialStatus = ConnectionStatus.none,
     this.initialRequestId,
     this.onResolved,
+    this.onStatusChanged,
     this.compact = false,
   });
 
@@ -68,14 +84,20 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       _status = status;
       _requestId = requestId;
     });
+    widget.onStatusChanged?.call(status, requestId);
   }
 
+  // FeedbackOverlay (carte en verre dépoli), pas un SnackBar Material par
+  // défaut — remonté côté produit : la notification après une demande de
+  // connexion détonnait avec toutes les autres notifications de succès/
+  // erreur de l'app, qui utilisent déjà ce même composant.
   void _snack(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: isError ? Colors.red : null,
-    ));
+    if (isError) {
+      FeedbackOverlay.showError(context, title: 'Erreur', subtitle: message);
+    } else {
+      FeedbackOverlay.showSuccess(context, title: 'Succès', subtitle: message);
+    }
   }
 
   /// Message d'erreur lisible depuis une DioException — sans ça, un échec
