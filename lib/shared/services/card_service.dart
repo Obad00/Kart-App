@@ -368,6 +368,28 @@ class CardService {
     }
   }
 
+  /// QR de check-in de l'événement lui-même (celui affiché à l'accueil
+  /// côté CRM) — remonté côté produit : un collaborateur doit pouvoir
+  /// l'afficher directement depuis son téléphone (dans l'écran de scan de
+  /// l'événement), pas seulement depuis un ordinateur/le CRM.
+  static Future<String> getEventQrCode(int eventId) async {
+    try {
+      final response = await ApiClient.dio.get('/events/$eventId/qr');
+      final data = response.data;
+      if (data == null || data['qr'] == null || data['qr'].isEmpty) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          error: 'QR code SVG vide reçu du serveur',
+          type: DioExceptionType.unknown,
+        );
+      }
+      return data['qr'] as String;
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
   /// Marque manuellement un participant présent/absent — uniquement
   /// possible une fois l'événement terminé côté backend (avant, seul le
   /// scan de carte fait foi, cf. EventController::updateParticipantPresence()),

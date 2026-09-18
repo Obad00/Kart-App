@@ -174,6 +174,22 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
     );
   }
 
+  // Bleu fixe même en thème sombre — détonnait avec le reste de l'app, où
+  // un bouton principal en dark mode est blanc/noir (cf. ElevatedButtonTheme
+  // dérivé de colorScheme.primary dans AppTheme.dark(), pas de surcharge
+  // bleue) — remonté côté produit.
+  Color get _buttonBackground {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark
+        ? Theme.of(context).colorScheme.primary
+        : const Color(0xFF3B82F6);
+  }
+
+  Color get _buttonForeground {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? Theme.of(context).colorScheme.onPrimary : Colors.white;
+  }
+
   Widget _buildForm(Color textColor) {
     return Form(
       key: _formKey,
@@ -217,14 +233,20 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
+                backgroundColor: _buttonBackground,
+                foregroundColor: _buttonForeground,
                 padding: const EdgeInsets.all(16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          color: _buttonForeground, strokeWidth: 2.5),
+                    )
                   : const Text('Envoyer',
                       style: TextStyle(fontWeight: FontWeight.bold)),
             ),
