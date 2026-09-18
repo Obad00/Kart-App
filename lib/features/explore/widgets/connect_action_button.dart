@@ -106,6 +106,14 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
   /// cliquable, sans aucune explication ("j'accepte et rien ne se passe").
   String _errorMessage(Object e) {
     if (e is DioException) {
+      // 404 : la demande a déjà été résolue/supprimée côté serveur (ex.
+      // état local resté périmé après une action faite ailleurs dans
+      // l'app, cf. onStatusChanged) — message compréhensible plutôt que le
+      // message technique Eloquent brut ("No query results for model
+      // [App\Models\ConnectionRequest] 73"), remonté côté produit.
+      if (e.response?.statusCode == 404) {
+        return "Cette demande n'existe plus. Actualisez la page.";
+      }
       final serverMessage = e.response?.data is Map
           ? (e.response?.data as Map)['message']?.toString()
           : null;
@@ -138,6 +146,12 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       _setStatus(ConnectionStatus.none);
       _snack('Demande à ${widget.userName} annulée');
     } catch (e) {
+      // 404 : déjà résolue/supprimée ailleurs (état local périmé) — on se
+      // remet à "Se connecter" plutôt que de rester bloqué sur "Envoyée"
+      // pour une demande qui n'existe plus, jusqu'au prochain redémarrage.
+      if (e is DioException && e.response?.statusCode == 404) {
+        _setStatus(ConnectionStatus.none);
+      }
       _snack(_errorMessage(e), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -167,6 +181,9 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       if (mounted) context.read<ConnectionBadgeProvider>().refresh();
       widget.onResolved?.call();
     } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        _setStatus(ConnectionStatus.none);
+      }
       _snack(_errorMessage(e), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
