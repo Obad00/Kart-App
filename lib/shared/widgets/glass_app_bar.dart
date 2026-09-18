@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../utils/status_bar_style.dart';
+
 /// AppBar "verre dépoli" façon Apple (Liquid Glass / navigation bar iOS) —
 /// remplaçant direct d'un AppBar classique. À utiliser avec
 /// `Scaffold(extendBodyBehindAppBar: true, ...)` : sans ça, rien ne défile
@@ -65,6 +67,10 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
+            // cf. statusBarStyleFor() : sans lui, Flutter estime la barre
+            // de statut à partir du RGB de ce fond transparent (0,0,0) et
+            // impose des icônes blanches invisibles en thème clair.
+            systemOverlayStyle: statusBarStyleFor(context),
           ),
         ),
       ),

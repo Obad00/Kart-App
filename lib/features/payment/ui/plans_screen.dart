@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/payment_provider.dart';
 import '../models/plan.dart';
@@ -27,6 +28,8 @@ class _PlansScreenState extends State<PlansScreen> {
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        // Fond de cet écran toujours sombre (pas adaptatif au thème).
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),

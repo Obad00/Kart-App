@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/utils/status_bar_style.dart';
 
 /// Écran de changement de mot de passe volontaire, accessible depuis
 /// Profil > Réglages. Contrairement à [ForceChangePasswordPage], l'utilisateur
@@ -73,6 +74,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        systemOverlayStyle: statusBarStyleFor(context),
         elevation: 0,
         iconTheme: IconThemeData(color: colors.onSurface),
       ),

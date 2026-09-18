@@ -4,6 +4,7 @@ import '../providers/card_scan_provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../navigation/home_shell.dart';
+import '../../../shared/utils/status_bar_style.dart';
 
 class ScanResultScreen extends StatefulWidget {
   const ScanResultScreen({super.key});
@@ -108,6 +109,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        // cf. statusBarStyleFor() : sans lui, Flutter estime la barre de
+        // statut à partir du RGB de ce fond transparent (0,0,0) et impose
+        // des icônes blanches invisibles en thème clair.
+        systemOverlayStyle: statusBarStyleFor(context),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_rounded, color: textColor),

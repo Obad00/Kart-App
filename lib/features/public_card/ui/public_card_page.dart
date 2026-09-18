@@ -20,6 +20,7 @@ import '../../contacts/providers/contacts_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../explore/models/explore_user.dart';
+import '../../../shared/utils/status_bar_style.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../../shared/widgets/expandable_text.dart';
 
@@ -366,6 +367,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         // le web, sans geste natif "retour" comme sur mobile.
         appBar: AppBar(
           backgroundColor: Colors.transparent,
+          systemOverlayStyle: statusBarStyleFor(context),
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
@@ -384,6 +386,7 @@ class _PublicCardPageState extends State<PublicCardPage>
         backgroundColor: backgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
+          systemOverlayStyle: statusBarStyleFor(context),
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
@@ -433,6 +436,7 @@ class _PublicCardPageState extends State<PublicCardPage>
               pinned: true,
               backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
+              systemOverlayStyle: statusBarStyleFor(context),
               elevation: 0,
               scrolledUnderElevation: 0,
               flexibleSpace: ClipRect(

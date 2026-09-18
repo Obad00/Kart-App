@@ -42,6 +42,7 @@ import '../../profile_completion/providers/profile_completion_provider.dart';
 import '../../profile_completion/providers/candidate_skills_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
+import '../../../shared/utils/status_bar_style.dart';
 
 class ProfilePage extends StatefulWidget {
   // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
@@ -199,6 +200,7 @@ class _ProfilePageState extends State<ProfilePage>
           pinned: true,
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
+          systemOverlayStyle: statusBarStyleFor(context),
           elevation: 0,
           scrolledUnderElevation: 0,
           flexibleSpace: ClipRect(

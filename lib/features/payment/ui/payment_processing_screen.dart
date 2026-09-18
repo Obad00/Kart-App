@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -94,6 +95,10 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        // Fond de cet écran toujours sombre (pas adaptatif au thème,
+        // contrairement à statusBarStyleFor()) — icônes de barre de statut
+        // toujours claires en conséquence.
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Colors.white),

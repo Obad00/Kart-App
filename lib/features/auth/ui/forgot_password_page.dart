@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/utils/status_bar_style.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -57,6 +58,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        systemOverlayStyle: statusBarStyleFor(context),
         elevation: 0,
         iconTheme: IconThemeData(color: colors.onSurface),
       ),

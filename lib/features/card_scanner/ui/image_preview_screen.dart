@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/card_scan_provider.dart';
+import '../../../shared/utils/status_bar_style.dart';
 
 class ImagePreviewScreen extends StatefulWidget {
   const ImagePreviewScreen({super.key});
@@ -55,6 +56,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        systemOverlayStyle: statusBarStyleFor(context),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_rounded, color: textColor),
