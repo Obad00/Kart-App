@@ -32,6 +32,22 @@ class CompanyCommunityService {
     return (participants: participants, stats: stats);
   }
 
+  /// Correction manuelle présent/absent — refusée par le backend tant que
+  /// l'événement n'est pas terminé (cf. EventController::
+  /// updateParticipantPresence()).
+  Future<bool> setParticipantPresence(
+    int eventId,
+    int participantId,
+    bool present,
+  ) async {
+    final response = await ApiClient.dio.patch(
+      '/events/$eventId/participants/$participantId/presence',
+      data: {'present': present},
+    );
+    final participant = response.data['participant'] as Map<String, dynamic>?;
+    return participant?['isPresent'] as bool? ?? present;
+  }
+
   /// "Toute personne rattachée à cette entreprise" — 403 silencieux si le
   /// compte n'est pas owner/admin ou si l'entreprise n'est pas sur le plan
   /// enterprise (même comportement que CompanyProvider.loadMembers(), déjà

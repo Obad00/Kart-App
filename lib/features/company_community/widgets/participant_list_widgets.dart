@@ -21,6 +21,13 @@ class ParticipantListTile extends StatelessWidget {
   // pas le sujet) — absent plutôt qu'affiché à moitié.
   final bool? isPresent;
   final bool? hasAccount;
+  // Non-null uniquement quand l'événement est terminé ET que le viewer est
+  // collaborateur/admin de l'entreprise organisatrice — remonté côté
+  // produit : corriger manuellement une présence oubliée/erronée au scan,
+  // mais seulement une fois le pointage jour J clos (cf.
+  // EventController::updateParticipantPresence() côté backend, qui refuse
+  // ce changement tant que l'événement est en cours).
+  final VoidCallback? onTogglePresence;
 
   const ParticipantListTile({
     super.key,
@@ -29,6 +36,7 @@ class ParticipantListTile extends StatelessWidget {
     this.onTap,
     this.isPresent,
     this.hasAccount,
+    this.onTogglePresence,
   });
 
   @override
@@ -95,6 +103,7 @@ class ParticipantListTile extends StatelessWidget {
                           ? Icons.check_circle_rounded
                           : Icons.cancel_rounded,
                       color: isPresent! ? Colors.green : Colors.grey,
+                      onTap: onTogglePresence,
                     ),
                   if (isPresent != null && hasAccount != null)
                     const SizedBox(height: 4),
@@ -121,17 +130,23 @@ class ParticipantBadge extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  // Non-null uniquement pour le badge "Présent/Absent" d'un collaborateur
+  // sur un événement terminé (cf. ParticipantListTile.onTogglePresence) —
+  // le petit crayon signale que ce badge-là, contrairement aux autres, est
+  // une action et pas qu'une information.
+  final VoidCallback? onTap;
 
   const ParticipantBadge({
     super.key,
     required this.label,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
@@ -147,8 +162,20 @@ class ParticipantBadge extends StatelessWidget {
             style: TextStyle(
                 fontSize: 10.5, fontWeight: FontWeight.w700, color: color),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: 3),
+            Icon(Icons.edit_rounded, size: 10, color: color.withValues(alpha: 0.7)),
+          ],
         ],
       ),
+    );
+
+    if (onTap == null) return badge;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: badge,
     );
   }
 }

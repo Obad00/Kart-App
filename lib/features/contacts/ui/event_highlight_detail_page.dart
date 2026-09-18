@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/ui/event_participant_scan_page.dart';
 import '../../company_community/widgets/participant_list_widgets.dart';
@@ -100,6 +101,46 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     );
   }
 
+  /// Bascule présent/absent — le backend refuse tant que l'événement n'est
+  /// pas terminé (cf. EventController::updateParticipantPresence()), donc
+  /// ce badge n'est rendu tappable que dans ce cas (voir build() plus bas).
+  /// Optimiste (met à jour la ligne immédiatement) : ce n'est qu'une
+  /// correction ponctuelle, pas une action qui a besoin d'être confirmée
+  /// visuellement par un aller-retour réseau perceptible.
+  Future<void> _toggleAttendeePresence(ExploreUser user) async {
+    final participantId = user.eventParticipantId;
+    if (participantId == null) return;
+    final next = !(user.isPresent ?? false);
+
+    setState(() {
+      _attendees = _attendees
+          .map((a) => a.id == user.id ? a.copyWith(isPresent: next) : a)
+          .toList();
+    });
+
+    try {
+      await CardService.setEventParticipantPresence(
+        widget.eventId,
+        participantId,
+        next,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      // Retour à l'état précédent : la mise à jour optimiste ne doit pas
+      // laisser croire qu'un changement a eu lieu si le serveur l'a refusé.
+      setState(() {
+        _attendees = _attendees
+            .map((a) => a.id == user.id ? a.copyWith(isPresent: !next) : a)
+            .toList();
+      });
+      FeedbackOverlay.showError(
+        context,
+        title: 'Erreur',
+        subtitle: 'Impossible de mettre à jour la présence.',
+      );
+    }
+  }
+
   static const _frMonths = [
     'janvier',
     'février',
@@ -128,18 +169,23 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     return "${date.day} $month ${date.year} à ${hour}h$minute";
   }
 
-  /// Icône "scanner les participants" — visible uniquement pour un
-  /// collaborateur de l'entreprise qui a créé CET événement
-  /// (event.company_id === son company_id), pas pour un participant
-  /// lambda : c'est ce contexte-là qui lève toute ambiguïté avec le scan
-  /// habituel (carte → ajout aux contacts).
-  bool _canScanParticipants(BuildContext context) {
+  /// Collaborateur/admin de l'entreprise qui a créé CET événement
+  /// (event.company_id === son company_id) — même calcul que le backend
+  /// (EventController::attendees()), qui conditionne déjà l'envoi de
+  /// isPresent/email/phone à ce même test. N'importe quel company_role
+  /// (pas seulement owner/admin) : remonté côté produit, "admin OU membre
+  /// de l'entreprise" doit voir la présence, pas seulement l'admin.
+  bool _isCompanyStaff(BuildContext context) {
     final companyId = _event?['company_id'];
     final userCompanyId = context.read<AuthProvider>().user?.companyId;
-    return companyId != null &&
-        userCompanyId != null &&
-        companyId == userCompanyId &&
-        !_eventHasEnded();
+    return companyId != null && userCompanyId != null && companyId == userCompanyId;
+  }
+
+  /// Icône "scanner les participants" — même condition que ci-dessus, plus
+  /// événement pas encore terminé : c'est ce contexte-là qui lève toute
+  /// ambiguïté avec le scan habituel (carte → ajout aux contacts).
+  bool _canScanParticipants(BuildContext context) {
+    return _isCompanyStaff(context) && !_eventHasEnded();
   }
 
   /// Un événement terminé n'a plus besoin d'être scanné — plus personne
@@ -164,7 +210,12 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
           eventName: event['name'] as String? ?? widget.fallbackName,
         ),
       ),
-    );
+    ).then((_) {
+      // Le scan met à jour la présence côté serveur pendant qu'on est sur
+      // l'écran caméra — sans ce rechargement, il fallait quitter puis
+      // revenir sur le highlight pour voir le participant scanné apparaître.
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -226,18 +277,30 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
                       // Même ParticipantListTile/ParticipantDetailSheet que
                       // "Ma communauté" (remonté côté produit : les deux
                       // listes de participants avaient chacune leur propre
-                      // design) — sans présence (non pertinente ici) et
-                      // sans mail/téléphone pour qui n'est pas
-                      // collaborateur/admin de l'entreprise organisatrice :
-                      // le backend ne les envoie tout simplement pas dans
-                      // ce cas (cf. EventController::attendees()).
+                      // design). Présence + mail/téléphone restent absents
+                      // (isPresent/email/phone valent alors null) pour qui
+                      // n'est pas collaborateur/admin de l'entreprise
+                      // organisatrice — le backend ne les envoie tout
+                      // simplement pas dans ce cas (cf.
+                      // EventController::attendees()), donc rien à changer
+                      // pour un participant lambda ici.
                       ..._attendees.map(
                         (user) => ParticipantListTile(
                           displayName: user.name,
                           subtitle: [user.jobTitle, user.company]
                               .where((s) => (s ?? '').isNotEmpty)
                               .join(' · '),
+                          isPresent: user.isPresent,
                           onTap: () => _openAttendeeCard(user),
+                          // Correction manuelle seulement une fois
+                          // l'événement terminé — avant, le backend la
+                          // refuse (422) et le scan reste la seule source
+                          // de vérité pendant l'événement.
+                          onTogglePresence: user.isPresent != null &&
+                                  user.eventParticipantId != null &&
+                                  _eventHasEnded()
+                              ? () => _toggleAttendeePresence(user)
+                              : null,
                         ),
                       ),
                     ],

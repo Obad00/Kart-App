@@ -201,6 +201,9 @@ class _CompanyEventParticipantsPageState
               isPresent: p.isPresent,
               hasAccount: p.hasAccount,
               onTap: () => _openParticipantSheet(p),
+              onTogglePresence: widget.eventHasEnded
+                  ? () => _toggleParticipantPresence(p)
+                  : null,
             ),
           ),
       ],
@@ -264,6 +267,38 @@ class _CompanyEventParticipantsPageState
         ],
       ],
     );
+  }
+
+  /// Correction manuelle présent/absent — uniquement une fois l'événement
+  /// terminé (widget.eventHasEnded), le backend refusant sinon (422, cf.
+  /// EventController::updateParticipantPresence()) : avant la fin, le scan
+  /// jour J reste la seule source de vérité. Optimiste, avec retour en
+  /// arrière si le serveur refuse — même logique que côté highlight
+  /// d'événement (cf. EventHighlightDetailPage._toggleAttendeePresence()).
+  Future<void> _toggleParticipantPresence(EventParticipantSummary p) async {
+    final next = !p.isPresent;
+
+    setState(() {
+      _participants = _participants
+          .map((x) => x.id == p.id ? x.copyWith(isPresent: next) : x)
+          .toList();
+    });
+
+    try {
+      await _service.setParticipantPresence(widget.eventId, p.id, next);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _participants = _participants
+            .map((x) => x.id == p.id ? x.copyWith(isPresent: !next) : x)
+            .toList();
+      });
+      FeedbackOverlay.showError(
+        context,
+        title: 'Erreur',
+        subtitle: 'Impossible de mettre à jour la présence.',
+      );
+    }
   }
 
   /// Partage le lien d'inscription publique via la feuille de partage du

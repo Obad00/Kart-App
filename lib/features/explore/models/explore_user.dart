@@ -18,6 +18,13 @@ class ExploreUser {
   // Présent seulement quand connectionStatus != none — permet d'accepter/
   // refuser directement dans l'app (pas seulement depuis le mail).
   final int? connectionRequestId;
+  // Présence jour J + id EventParticipant associé — renseignés UNIQUEMENT
+  // par EventController::attendees() pour un collaborateur/admin de
+  // l'entreprise organisatrice (jamais pour un participant lambda, ni via
+  // ExploreController::index()) — cf. commentaire email/phone ci-dessus,
+  // même logique de confidentialité côté backend.
+  final bool? isPresent;
+  final int? eventParticipantId;
   // 0-100, même calcul que le Kart Score du profil (cf. CompletionHelper)
   // — le backend trie déjà l'annuaire par score décroissant ; ce champ ne
   // sert ici qu'à afficher le badge "Profil complet" (>= 90).
@@ -38,6 +45,8 @@ class ExploreUser {
     this.phone,
     this.connectionStatus = ConnectionStatus.none,
     this.connectionRequestId,
+    this.isPresent,
+    this.eventParticipantId,
     this.completionScore = 0,
     this.isNew = false,
   });
@@ -58,6 +67,10 @@ class ExploreUser {
       connectionStatus: _statusFromJson(json['connectionStatus']),
       connectionRequestId: json['connectionRequestId'] != null
           ? int.tryParse(json['connectionRequestId'].toString())
+          : null,
+      isPresent: json['isPresent'] as bool?,
+      eventParticipantId: json['eventParticipantId'] != null
+          ? int.tryParse(json['eventParticipantId'].toString())
           : null,
       completionScore:
           int.tryParse(json['completionScore']?.toString() ?? '') ?? 0,
@@ -81,6 +94,7 @@ class ExploreUser {
   ExploreUser copyWith({
     ConnectionStatus? connectionStatus,
     int? connectionRequestId,
+    bool? isPresent,
   }) {
     return ExploreUser(
       id: id,
@@ -94,6 +108,8 @@ class ExploreUser {
       phone: phone,
       connectionStatus: connectionStatus ?? this.connectionStatus,
       connectionRequestId: connectionRequestId ?? this.connectionRequestId,
+      isPresent: isPresent ?? this.isPresent,
+      eventParticipantId: eventParticipantId,
       completionScore: completionScore,
       isNew: isNew,
     );
@@ -115,6 +131,8 @@ class ExploreUser {
       phone: phone,
       connectionStatus: ConnectionStatus.none,
       connectionRequestId: null,
+      isPresent: isPresent,
+      eventParticipantId: eventParticipantId,
       completionScore: completionScore,
       isNew: isNew,
     );

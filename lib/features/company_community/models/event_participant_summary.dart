@@ -75,4 +75,24 @@ class EventParticipantSummary {
       cardSlug: digitalCard?['slug'] as String?,
     );
   }
+
+  EventParticipantSummary copyWith({bool? isPresent}) {
+    return EventParticipantSummary(
+      id: id,
+      displayName: displayName,
+      email: email,
+      jobTitle: jobTitle,
+      company: company,
+      avatar: avatar,
+      hasAccount: hasAccount,
+      isPresent: isPresent ?? this.isPresent,
+      isWalkIn: isWalkIn,
+      registeredAt: registeredAt,
+      phone: phone,
+      userId: userId,
+      connectionStatus: connectionStatus,
+      connectionRequestId: connectionRequestId,
+      cardSlug: cardSlug,
+    );
+  }
 }

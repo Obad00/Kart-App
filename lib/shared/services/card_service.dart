@@ -368,6 +368,28 @@ class CardService {
     }
   }
 
+  /// Marque manuellement un participant présent/absent — uniquement
+  /// possible une fois l'événement terminé côté backend (avant, seul le
+  /// scan de carte fait foi, cf. EventController::updateParticipantPresence()),
+  /// réservé aux collaborateurs/admin de l'entreprise organisatrice.
+  static Future<bool> setEventParticipantPresence(
+    int eventId,
+    int participantId,
+    bool present,
+  ) async {
+    try {
+      final response = await ApiClient.dio.patch(
+        '/events/$eventId/participants/$participantId/presence',
+        data: {'present': present},
+      );
+      final participant = response.data['participant'] as Map<String, dynamic>?;
+      return participant?['isPresent'] as bool? ?? present;
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
   /// Enregistre un partage de carte avec le canal utilisé
   /// [channel] : whatsapp, email, sms, linkedin, copy, other
   /// [message] : Le message personnalisé envoyé (optionnel)
