@@ -162,6 +162,13 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
   }
 }
 
+// Container/Material personnalisé, plus le ChoiceChip Material d'origine
+// — remonté côté produit ("le contenu est collé/coupé en dessous dans
+// chaque puce") : ChoiceChip applique son propre padding vertical interne
+// (asymétrique une fois combiné à sa coche de sélection), différent de
+// celui des autres puces de l'app (cf. _CategoryChip dans explore_page.dart,
+// dont ce widget reprend maintenant exactement le patron : Material +
+// InkWell + Padding symétrique 14/10, sans coche).
 class _StatusChip extends StatelessWidget {
   final String label;
   final String status;
@@ -174,21 +181,29 @@ class _StatusChip extends StatelessWidget {
     final active = provider.myRequestsStatusFilter == status;
     final colors = Theme.of(context).colorScheme;
 
-    return ChoiceChip(
-      label: Text(label),
-      selected: active,
-      onSelected: (_) {
-        HapticFeedback.selectionClick();
-        context.read<ExploreProvider>().loadMyRequests(status: status);
-      },
-      labelStyle: TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w600,
-        color: active ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+    return Material(
+      color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          context.read<ExploreProvider>().loadMyRequests(status: status);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: active
+                  ? Colors.white
+                  : colors.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
       ),
-      selectedColor: _themeBlue,
-      backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-      side: BorderSide.none,
     );
   }
 }
