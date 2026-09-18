@@ -246,23 +246,27 @@ class ParticipantDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    // padding bottom réduit (16, pas 24) : combiné à l'espace ajouté par
-    // SafeArea (bord de geste iPhone), 24 laissait un vide visible sous le
-    // dernier élément — remonté côté produit.
-    //
+    // Le bord de geste (home indicator) d'un iPhone récent réserve déjà
+    // ~34px en bas — un padding fixe de 16 EN PLUS de ça doublait l'espace
+    // sous le dernier élément (mesuré : le vide persistait même après avoir
+    // réduit ce padding, cf. commits précédents, parce que ce n'était pas
+    // lui le souci). Le padding réel appliqué est donc le PLUS GRAND des
+    // deux (jamais la somme) : au moins 16 sur un appareil sans bord de
+    // geste, jamais plus que ce que l'OS réserve déjà sur les autres.
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = bottomInset > 16 ? bottomInset : 16.0;
+
     // Container plein (colors.surface), pas GlassSheet (verre dépoli) —
     // remonté côté produit : "le même design que voir tout", qui utilise un
     // fond plein classique (cf. PublicCardPage._showAllExperiences()), pas
     // l'effet de flou utilisé ailleurs pour les popups.
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, bottomPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,10 +388,13 @@ class ParticipantDetailSheet extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
+
+
+
+
 
 class _SheetInfoRow extends StatelessWidget {
   final IconData icon;

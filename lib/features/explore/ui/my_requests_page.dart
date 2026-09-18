@@ -31,7 +31,11 @@ class MyRequestsPage extends StatefulWidget {
 }
 
 class _MyRequestsPageState extends State<MyRequestsPage> {
-  static const double _statusChipsRowHeight = 40;
+  // 44 (pas 40), même hauteur que les puces de catégorie d'Explorer
+  // (_chipsRowHeight) — marge de sécurité pour le texte d'une puce
+  // (padding interne 10+10, cf. _StatusChip), plutôt qu'une valeur qui se
+  // révèle tout juste suffisante en pratique.
+  static const double _statusChipsRowHeight = 44;
 
   @override
   void initState() {
@@ -80,16 +84,27 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
                     blurBackground: true,
                     child: Column(
                       children: [
-                        SizedBox(height: topPadding),
+                        SizedBox(height: topPadding + 12),
                         // ListView horizontal (pas un Row figé) : sur un
                         // écran étroit, les 4 puces dépassaient la largeur
                         // disponible et "Refusées" se retrouvait coupée à
                         // droite — remonté côté produit. Même motif que les
                         // puces de catégorie d'Explorer (_buildCategoryChips).
+                        //
+                        // padding horizontal SEULEMENT (pas vertical) : ce
+                        // ListView est déjà strictement borné à
+                        // _statusChipsRowHeight par le SizedBox ci-dessous —
+                        // lui ajouter EN PLUS un padding vertical (12+4=16)
+                        // ne laissait quasiment plus de place aux puces
+                        // elles-mêmes (padding interne 10+10) pour leur
+                        // propre texte, qui se retrouvait rogné à
+                        // l'invisible — remonté côté produit avec capture
+                        // à l'appui ("je ne vois plus le contenu des puces").
                         SizedBox(
                           height: _statusChipsRowHeight,
                           child: ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             scrollDirection: Axis.horizontal,
                             children: [
                               _StatusChip(label: 'Toutes', status: 'all'),
