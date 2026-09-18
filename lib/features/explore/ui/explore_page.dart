@@ -586,6 +586,13 @@ class _ExplorePageState extends State<ExplorePage> {
               child: RefreshIndicator(
                 onRefresh: _handleRefresh,
                 color: _themeBlue,
+                // Sans edgeOffset, l'indicateur apparaît au tout début du
+                // scrollable (y=0) — masqué/coupé par le GlassAppBar posé
+                // par-dessus en Positioned (remonté côté produit : "le
+                // loader ne sort pas bien" en tirant vers le bas). Décalé
+                // de la hauteur de la barre pour apparaître pleinement
+                // visible juste en dessous, comme le contenu lui-même.
+                edgeOffset: topPadding,
                 child: _buildScrollable(topPadding),
               ),
             ),
@@ -858,8 +865,15 @@ class _ExplorePageState extends State<ExplorePage> {
                   scrollDirection: Axis.horizontal,
                   itemCount: preview.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, index) =>
-                      ExploreProfileCard(user: preview[index]),
+                  itemBuilder: (context, index) => ExploreProfileCard(
+                    user: preview[index],
+                    // Sans lui, envoyer/annuler une demande depuis la
+                    // fiche détail d'un profil de CE carrousel ne se
+                    // répercutait jamais sur sa carte ici au retour, sauf
+                    // à relancer complètement l'app (remonté côté produit,
+                    // captures à l'appui) — cf. ExploreProfileCard.
+                    removeFrom: provider,
+                  ),
                 ),
               ),
             ],

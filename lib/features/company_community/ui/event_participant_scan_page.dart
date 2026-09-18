@@ -282,36 +282,40 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const Spacer(),
-                      if (!_showingQr)
-                        ValueListenableBuilder<MobileScannerState>(
-                          valueListenable: _scannerController,
-                          builder: (context, state, child) {
-                            final torchOn = state.torchState == TorchState.on;
-                            return IconButton(
-                              icon: Icon(
-                                torchOn ? Icons.flash_on : Icons.flash_off,
-                                color: Colors.white,
-                              ),
-                              onPressed: () => _scannerController.toggleTorch(),
-                            );
-                          },
-                        ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const SizedBox(height: 4),
-                  _buildModeToggle(),
+                  const Spacer(),
+                  if (!_showingQr)
+                    ValueListenableBuilder<MobileScannerState>(
+                      valueListenable: _scannerController,
+                      builder: (context, state, child) {
+                        final torchOn = state.torchState == TorchState.on;
+                        return IconButton(
+                          icon: Icon(
+                            torchOn ? Icons.flash_on : Icons.flash_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => _scannerController.toggleTorch(),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
+          ),
+          // En dessous du carré de scan, comme le sélecteur de mode de
+          // l'écran de scan habituel (card_scanner_screen.dart) — remonté
+          // côté produit : la bascule était au-dessus, pas "conforme" à
+          // cette référence-là.
+          Positioned(
+            bottom: 40,
+            left: 20,
+            right: 20,
+            child: Center(child: _buildModeToggle()),
           ),
           Positioned(
             top: 140,

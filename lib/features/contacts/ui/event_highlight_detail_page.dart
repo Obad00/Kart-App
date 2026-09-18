@@ -8,7 +8,6 @@ import '../../auth/providers/auth_provider.dart';
 import '../../company_community/ui/event_participant_scan_page.dart';
 import '../../company_community/widgets/participant_list_widgets.dart';
 import '../../explore/models/explore_user.dart';
-import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
@@ -76,27 +75,44 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     }
   }
 
-  /// Ouvre la MÊME carte détail que "voir tout" dans Explorer — remonté
-  /// côté produit : le détail d'un participant doit être "conforme" à ce
-  /// design-là, pas une fiche maison. Un attendee a toujours une carte
-  /// publique (attendees() ne renvoie que des digitalCard.is_public=true),
-  /// donc cardSlug est toujours renseigné ici.
+  /// Fiche légère (identité + coordonnées si staff + connexion), pas la
+  /// carte publique complète — remonté côté produit : la fiche complète
+  /// (stats, réseaux sociaux, expériences) était "trop chargée" pour ce
+  /// simple aperçu depuis une liste de participants d'événement, un besoin
+  /// différent de "voir tout"/PublicCardPage ailleurs dans l'app.
+  String _statusToString(ConnectionStatus status) {
+    switch (status) {
+      case ConnectionStatus.pendingSent:
+        return 'pending_sent';
+      case ConnectionStatus.pendingReceived:
+        return 'pending_received';
+      case ConnectionStatus.contact:
+        return 'contact';
+      case ConnectionStatus.none:
+        return 'none';
+    }
+  }
+
   void _openAttendeeCard(ExploreUser user) {
-    final slug = user.cardSlug;
-    if (slug == null || slug.isEmpty) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PublicCardPage(
-          slug: slug,
-          initialConnectionStatus: user.connectionStatus,
-          initialConnectionRequestId: user.connectionRequestId,
-          // Coordonnées visibles uniquement si le backend les a envoyées
-          // (collaborateur/admin de l'entreprise organisatrice) — cf.
-          // EventController::attendees().
-          organizerContactEmail: user.email,
-          organizerContactPhone: user.phone,
-        ),
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ParticipantDetailSheet(
+        displayName: user.name,
+        subtitle: [user.jobTitle, user.company]
+            .where((s) => (s ?? '').isNotEmpty)
+            .join(' · '),
+        // Coordonnées visibles uniquement si le backend les a envoyées
+        // (collaborateur/admin de l'entreprise organisatrice) — cf.
+        // EventController::attendees().
+        email: user.email,
+        phone: user.phone,
+        isPresent: user.isPresent,
+        userId: user.id,
+        connectionStatus: _statusToString(user.connectionStatus),
+        connectionRequestId: user.connectionRequestId,
+        onResolved: _load,
       ),
     );
   }

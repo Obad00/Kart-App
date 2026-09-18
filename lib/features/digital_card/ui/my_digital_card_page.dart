@@ -13,6 +13,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
@@ -243,12 +244,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     );
                   }
 
-                  if (!state.isReady && state.status != CardStatus.noCard) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
                   if (state.status == CardStatus.noCard) {
                     return Center(
                       child: Showcase(
@@ -291,9 +286,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     );
                   }
 
-                  if (!state.hasQrCode) {
+                  // Un seul loader pour toute cette phase (résumé ET QR),
+                  // pas deux successifs — isReady n'est vrai qu'une fois
+                  // les deux arrivés (cf. CardProvider.isReady).
+                  if (!state.isReady) {
                     return const Center(
-                      child: CircularProgressIndicator(),
+                      child: AppLoader(label: 'Chargement de votre carte...'),
                     );
                   }
 

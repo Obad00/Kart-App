@@ -114,8 +114,16 @@ class _SplashScreenState extends State<SplashScreen>
     // Attendre que l'auth provider ait terminé son initialisation
     await auth.waitForInit();
 
-    // Petit délai pour une transition fluide
-    await Future.delayed(const Duration(milliseconds: 150));
+    // Remonté côté produit : sur une connexion lente, waitForInit() peut ne
+    // résoudre qu'APRÈS la fin de l'animation du splash (déjà écoulée à ce
+    // stade, cf. AnimationStatus.completed qui déclenche cette méthode) —
+    // le nom de la personne connectée, affiché dès que auth.user devient
+    // non-null, n'avait alors que 150ms à l'écran avant de basculer dans
+    // l'app. Porté à 900ms pour laisser le temps de le lire, quelle que
+    // soit la vitesse du réseau (sur une connexion rapide, le nom est déjà
+    // visible depuis un moment à ce point — ce délai ne fait qu'ajouter un
+    // peu de respiration, jamais de sensation de lenteur perceptible).
+    await Future.delayed(const Duration(milliseconds: 900));
 
     if (!mounted) return;
 

@@ -25,11 +25,14 @@ class HighlightBar extends StatelessWidget {
 
     final Color companyColor = _parseColor(cardProvider.companyPrimaryColor);
 
+    // Pas de spinner ici — remonté côté produit : "Ma carte" en montrait
+    // déjà un pour son propre chargement (QR/résumé), et celui-ci
+    // apparaissait EN MÊME TEMPS un peu plus haut sur le même écran (deux
+    // loaders visibles simultanément au lieu d'un seul pour toute la
+    // page). Un espace vide de même hauteur le temps du chargement évite
+    // ce doublon sans décaler le reste de la mise en page.
     if (provider.isLoading) {
-      return const SizedBox(
-        height: 96,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 96);
     }
 
     return SizedBox(
@@ -189,10 +192,17 @@ class _HighlightItem extends StatelessWidget {
                         : inactiveBorderColor,
                     width: 2,
                   ),
+                  // Alpha réduit en thème clair — remonté côté produit : à
+                  // 0.4 sur fond blanc, l'ombre ressortait bien plus lourde
+                  // qu'en thème sombre (où elle se fond davantage dans
+                  // l'arrière-plan déjà foncé).
                   boxShadow: highlight.isActive && isCompanyUser
                       ? [
                           BoxShadow(
-                            color: accentColor.withValues(alpha: 0.4),
+                            color: accentColor.withValues(
+                                alpha: colors.brightness == Brightness.dark
+                                    ? 0.4
+                                    : 0.2),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
