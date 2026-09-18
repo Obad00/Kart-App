@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -93,14 +94,47 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       final cardProvider = context.read<CardProvider>();
       final highlightProvider = context.read<HighlightProvider>();
 
-      await cardProvider.loadCardSummary();
+      // idle : rien n'a encore été déclenché, on s'en charge nous-mêmes
+      // (comportement historique). loading : le splash a déjà démarré ce
+      // chargement en arrière-plan pendant sa propre animation (cf.
+      // SplashScreen._preloadHomeData()) — on attend juste sa résolution
+      // au lieu de relancer un second appel par-dessus, remonté côté
+      // produit : "Ma carte" ne devrait pas re-charger ce que le splash a
+      // déjà préchauffé.
+      if (cardProvider.status == CardStatus.idle) {
+        await cardProvider.loadCardSummary();
+      } else if (cardProvider.status == CardStatus.loading) {
+        await _waitForCardStatusSettled(cardProvider);
+      }
+
+      if (!mounted) return;
 
       if (cardProvider.status == CardStatus.hasCard) {
-        await cardProvider.loadMyCardQr();
-        await highlightProvider.loadHighlights();
+        if (!cardProvider.hasQrCode) {
+          await cardProvider.loadMyCardQr();
+        }
+        if (highlightProvider.highlights.isEmpty &&
+            !highlightProvider.isLoading) {
+          await highlightProvider.loadHighlights();
+        }
         await _maybePromptJobCompany(cardProvider);
       }
     });
+  }
+
+  Future<void> _waitForCardStatusSettled(CardProvider provider) {
+    if (provider.status != CardStatus.loading) return Future.value();
+
+    final completer = Completer<void>();
+    void listener() {
+      if (provider.status != CardStatus.loading) {
+        provider.removeListener(listener);
+        if (!completer.isCompleted) completer.complete();
+      }
+    }
+
+    provider.addListener(listener);
+    return completer.future;
   }
 
   /// Popup "Complétez poste & entreprise" — affiché une seule fois, quelques

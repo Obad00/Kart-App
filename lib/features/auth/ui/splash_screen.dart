@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
+import '../../contacts/providers/highlight_provider.dart';
+import '../../digital_card/providers/card_provider.dart';
 
 // Import destinations so we can use a custom animated transition
 import 'login_page.dart';
@@ -114,6 +116,20 @@ class _SplashScreenState extends State<SplashScreen>
     // Attendre que l'auth provider ait terminé son initialisation
     await auth.waitForInit();
 
+    // Précharge la carte + les highlights PENDANT le splash plutôt que
+    // d'attendre l'arrivée sur "Ma carte" pour les demander — remonté côté
+    // produit : à chaque retour dans l'app, "Ma carte" affichait son propre
+    // loader juste après celui du splash, alors que ce temps d'attente
+    // (nom affiché encore quelques centaines de ms, transition de
+    // navigation) peut déjà servir à précharger ces données. Volontairement
+    // PAS attendu (fire-and-forget) : il ne s'agit que de préchauffer le
+    // cache des providers, pas de retarder l'entrée dans l'app si le réseau
+    // est lent — MyDigitalCardPage affichera son loader normalement si ce
+    // n'est pas encore prêt à son tour (cf. son propre initState()).
+    if (auth.isAuthenticated) {
+      _preloadHomeData();
+    }
+
     // Remonté côté produit : sur une connexion lente, waitForInit() peut ne
     // résoudre qu'APRÈS la fin de l'animation du splash (déjà écoulée à ce
     // stade, cf. AnimationStatus.completed qui déclenche cette méthode) —
@@ -148,6 +164,25 @@ class _SplashScreenState extends State<SplashScreen>
         auth.isAuthenticated ? const HomeShell() : const LoginPage();
 
     Navigator.of(context).pushReplacement(_createRoute(destinationPage));
+  }
+
+  /// Fire-and-forget : ne bloque jamais la navigation, juste un
+  /// préchauffage. idle uniquement — si un autre écran (ou un précédent
+  /// appel) a déjà déclenché ce chargement, inutile de le relancer par-
+  /// dessus (cf. MyDigitalCardPage.initState(), qui applique la même garde
+  /// dans l'autre sens pour ne jamais re-déclencher ce que ceci a déjà mis
+  /// en route).
+  void _preloadHomeData() {
+    final cardProvider = context.read<CardProvider>();
+    final highlightProvider = context.read<HighlightProvider>();
+
+    if (cardProvider.status != CardStatus.idle) return;
+
+    cardProvider.loadCardSummary().then((_) {
+      if (cardProvider.status != CardStatus.hasCard) return;
+      cardProvider.loadMyCardQr();
+      highlightProvider.loadHighlights();
+    });
   }
 
   @override

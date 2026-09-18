@@ -34,20 +34,27 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
       return Container(color: colors.surface, child: child);
     }
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
-            border: Border(
-              bottom: BorderSide(
-                color: colors.onSurface.withValues(alpha: 0.06),
-                width: 0.5,
+    // RepaintBoundary : isole ce flou dans sa propre couche de composition
+    // — remonté côté produit comme un rognage visuel au bord d'un contenu
+    // défilant HORIZONTALEMENT sous ce bandeau flouté (chips de "Mes
+    // demandes"), jamais reproduit en rendu contrôlé. Même parade que pour
+    // GlassSheet (cf. son commentaire), tentative sans coût perceptible ici.
+    return RepaintBoundary(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+              border: Border(
+                bottom: BorderSide(
+                  color: colors.onSurface.withValues(alpha: 0.06),
+                  width: 0.5,
+                ),
               ),
             ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );
