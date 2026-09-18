@@ -27,17 +27,27 @@ class GlassSheet extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
-            borderRadius: borderRadius,
-            border: Border.all(color: borderColor ?? colors.outline),
+    // RepaintBoundary : isole ce flou (BackdropFilter) + le texte qu'il
+    // recouvre dans sa propre couche de composition — remonté côté produit
+    // comme un artefact visuel jamais reproduit ici en rendu contrôlé
+    // (golden test, même thème/police réels) : sur un device précis, un
+    // flou composé directement avec du texte peut dans certains cas laisser
+    // un liseré résiduel à la limite d'une passe de rendu. Isoler la couche
+    // est la parade standard pour ce genre d'artefact, sans coût perceptible
+    // ici (le contenu ne change pas à chaque frame).
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
+              borderRadius: borderRadius,
+              border: Border.all(color: borderColor ?? colors.outline),
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );
