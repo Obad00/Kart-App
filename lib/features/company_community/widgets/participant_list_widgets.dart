@@ -28,6 +28,13 @@ class ParticipantListTile extends StatelessWidget {
   // EventController::updateParticipantPresence() côté backend, qui refuse
   // ce changement tant que l'événement est en cours).
   final VoidCallback? onTogglePresence;
+  // "Absent" n'a de sens qu'une fois l'événement terminé — tant qu'il est
+  // encore en cours, quelqu'un peut très bien arriver plus tard dans la
+  // journée. "Pas encore arrivé·e" (même libellé que ParticipantDetailSheet
+  // ci-dessous) le temps que l'événement ne soit pas fini — remonté côté
+  // produit : "Absent" affiché en pleine journée pendant l'événement
+  // laissait croire à tort que la personne ne viendrait plus du tout.
+  final bool eventHasEnded;
 
   const ParticipantListTile({
     super.key,
@@ -37,6 +44,7 @@ class ParticipantListTile extends StatelessWidget {
     this.isPresent,
     this.hasAccount,
     this.onTogglePresence,
+    this.eventHasEnded = true,
   });
 
   @override
@@ -98,11 +106,17 @@ class ParticipantListTile extends StatelessWidget {
                 children: [
                   if (isPresent != null)
                     ParticipantBadge(
-                      label: isPresent! ? 'Présent' : 'Absent',
+                      label: isPresent!
+                          ? 'Présent'
+                          : (eventHasEnded ? 'Absent' : 'Pas encore arrivé·e'),
                       icon: isPresent!
                           ? Icons.check_circle_rounded
-                          : Icons.cancel_rounded,
-                      color: isPresent! ? Colors.green : Colors.grey,
+                          : (eventHasEnded
+                              ? Icons.cancel_rounded
+                              : Icons.hourglass_empty_rounded),
+                      color: isPresent!
+                          ? Colors.green
+                          : (eventHasEnded ? Colors.grey : Colors.amber.shade700),
                       onTap: onTogglePresence,
                     ),
                   if (isPresent != null && hasAccount != null)
@@ -233,12 +247,15 @@ class ParticipantDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
+    // padding bottom réduit (16, pas 24) : combiné à l'espace ajouté par
+    // SafeArea (bord de geste iPhone), 24 laissait un vide visible sous le
+    // dernier élément — remonté côté produit.
     return SafeArea(
       top: false,
       child: GlassSheet(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

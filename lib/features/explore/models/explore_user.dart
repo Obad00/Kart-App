@@ -26,9 +26,16 @@ class ExploreUser {
   final bool? isPresent;
   final int? eventParticipantId;
   // 0-100, même calcul que le Kart Score du profil (cf. CompletionHelper)
-  // — le backend trie déjà l'annuaire par score décroissant ; ce champ ne
-  // sert ici qu'à afficher le badge "Profil complet" (>= 90).
+  // — le backend trie déjà l'annuaire par score décroissant.
   final int completionScore;
+  // Badge "Certifié" — calculé côté backend (ExploreController::
+  // isCertifiedProfile()) : document professionnel vérifié OU sections du
+  // profil toutes couvertes + score >= 85. Remonté côté produit : un
+  // ancien seuil local (completionScore >= 90) pouvait diverger de la
+  // vraie règle de certification, laissant des profils listés dans
+  // "Profils certifiés" sans le badge ✓ à côté de leur nom — une seule
+  // source de vérité désormais.
+  final bool isCertified;
   // Inscrit il y a 14 jours ou moins (cf. ExploreController::index) —
   // badge "Nouveau" sur "Nouveaux profils sur KART".
   final bool isNew;
@@ -48,10 +55,11 @@ class ExploreUser {
     this.isPresent,
     this.eventParticipantId,
     this.completionScore = 0,
+    this.isCertified = false,
     this.isNew = false,
   });
 
-  bool get hasCompleteProfile => completionScore >= 90;
+  bool get hasCompleteProfile => isCertified;
 
   factory ExploreUser.fromJson(Map<String, dynamic> json) {
     return ExploreUser(
@@ -74,6 +82,7 @@ class ExploreUser {
           : null,
       completionScore:
           int.tryParse(json['completionScore']?.toString() ?? '') ?? 0,
+      isCertified: json['isCertified'] == true,
       isNew: json['isNew'] == true,
     );
   }
@@ -111,6 +120,7 @@ class ExploreUser {
       isPresent: isPresent ?? this.isPresent,
       eventParticipantId: eventParticipantId,
       completionScore: completionScore,
+      isCertified: isCertified,
       isNew: isNew,
     );
   }
@@ -134,6 +144,7 @@ class ExploreUser {
       isPresent: isPresent,
       eventParticipantId: eventParticipantId,
       completionScore: completionScore,
+      isCertified: isCertified,
       isNew: isNew,
     );
   }

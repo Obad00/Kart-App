@@ -168,47 +168,54 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
     }
   }
 
-  Widget _buildModeToggle() {
+  Widget _buildModeToggle(Color overlayColor) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: overlayColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildModeChip('Scanner', Icons.qr_code_scanner_rounded, !_showingQr,
-              () => _toggleMode(false)),
-          _buildModeChip(
-              'Mon QR', Icons.qr_code_2_rounded, _showingQr, () => _toggleMode(true)),
+              () => _toggleMode(false), overlayColor),
+          _buildModeChip('Mon QR', Icons.qr_code_2_rounded, _showingQr,
+              () => _toggleMode(true), overlayColor),
         ],
       ),
     );
   }
 
-  Widget _buildModeChip(
-      String label, IconData icon, bool selected, VoidCallback onTap) {
+  Widget _buildModeChip(String label, IconData icon, bool selected,
+      VoidCallback onTap, Color overlayColor) {
+    // Le fond de la puce sélectionnée reste blanc quel que soit le thème
+    // (contraste garanti avec l'icône/texte noirs) — seule la puce NON
+    // sélectionnée doit s'adapter, sans quoi son texte devenait invisible
+    // (blanc sur blanc) une fois "Mon QR" adapté au mode clair.
+    final selectedBg = selected ? Colors.white : Colors.transparent;
+    final selectedFg = selected ? Colors.black : overlayColor;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selectedBg,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 15, color: selected ? Colors.black : Colors.white),
+            Icon(icon, size: 15, color: selectedFg),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: selected ? Colors.black : Colors.white,
+                color: selectedFg,
               ),
             ),
           ],
@@ -221,16 +228,16 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
   /// l'accueil côté CRM (EventController::qrCode()), pour qu'un
   /// collaborateur puisse aussi le montrer directement depuis son
   /// téléphone. Carte blanche : un QR sombre sur fond sombre ne scanne pas.
-  Widget _buildQrView() {
+  Widget _buildQrView(Color overlayColor) {
     if (_loadingQr) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return Center(child: CircularProgressIndicator(color: overlayColor));
     }
     if (_qrError != null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_qrError!, style: const TextStyle(color: Colors.white)),
+            Text(_qrError!, style: TextStyle(color: overlayColor)),
             const SizedBox(height: 12),
             TextButton(
               onPressed: _loadEventQr,
@@ -242,12 +249,22 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
     }
     if (_eventQrSvg == null) return const SizedBox.shrink();
 
+    // Ombre portée : sans elle, la carte blanche du QR se fondait dans un
+    // arrière-plan lui-même blanc une fois "Mon QR" adapté au mode clair
+    // (remonté côté produit), sans plus aucun contraste pour la délimiter.
     return Center(
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: SizedBox(
           width: 220,
@@ -260,12 +277,22 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
 
   @override
   Widget build(BuildContext context) {
+    // La caméra reste toujours sombre (le flux vidéo occupe déjà tout
+    // l'arrière-plan, les icônes blanches y ressortent) — seul "Mon QR",
+    // un simple affichage statique sans caméra, doit s'adapter au thème de
+    // l'app. Remonté côté produit : cet onglet restait forcé en noir même
+    // en thème clair.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final adaptToLight = _showingQr && !isDark;
+    final scaffoldBg = adaptToLight ? Colors.white : Colors.black;
+    final overlayColor = adaptToLight ? Colors.black87 : Colors.white;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scaffoldBg,
       body: Stack(
         children: [
           if (_showingQr)
-            _buildQrView()
+            _buildQrView(overlayColor)
           else ...[
             MobileScanner(controller: _scannerController, onDetect: _onDetect),
             Center(
@@ -285,7 +312,7 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: overlayColor),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const Spacer(),
@@ -315,7 +342,7 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
             bottom: 40,
             left: 20,
             right: 20,
-            child: Center(child: _buildModeToggle()),
+            child: Center(child: _buildModeToggle(overlayColor)),
           ),
           Positioned(
             top: 140,
@@ -326,8 +353,8 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
                 Text(
                   widget.eventName,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: overlayColor,
                     fontFamily: 'Syne',
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
@@ -340,7 +367,7 @@ class _EventParticipantScanPageState extends State<EventParticipantScanPage> {
                       : 'Scannez la carte personnelle de chaque participant',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.75),
+                    color: overlayColor.withValues(alpha: 0.75),
                     fontSize: 13.5,
                   ),
                 ),

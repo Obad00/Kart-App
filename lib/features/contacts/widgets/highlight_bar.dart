@@ -192,9 +192,10 @@ class _HighlightItem extends StatelessWidget {
                         : inactiveBorderColor,
                     width: 2,
                   ),
-                  // Alpha réduit en thème clair — remonté côté produit : à
-                  // 0.4 sur fond blanc, l'ombre ressortait bien plus lourde
-                  // qu'en thème sombre (où elle se fond davantage dans
+                  // Alpha/rayon réduits en thème clair — remonté côté
+                  // produit une seconde fois ("vraiment le diminuer") :
+                  // même à 0.2, l'ombre restait bien plus lourde qu'en
+                  // thème sombre (où elle se fond davantage dans
                   // l'arrière-plan déjà foncé).
                   boxShadow: highlight.isActive && isCompanyUser
                       ? [
@@ -202,9 +203,11 @@ class _HighlightItem extends StatelessWidget {
                             color: accentColor.withValues(
                                 alpha: colors.brightness == Brightness.dark
                                     ? 0.4
-                                    : 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                                    : 0.1),
+                            blurRadius: colors.brightness == Brightness.dark
+                                ? 12
+                                : 6,
+                            offset: const Offset(0, 2),
                           ),
                         ]
                       : null,

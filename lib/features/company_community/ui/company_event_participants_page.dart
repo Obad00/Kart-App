@@ -198,6 +198,7 @@ class _CompanyEventParticipantsPageState
                   .join(' · '),
               isPresent: p.isPresent,
               hasAccount: p.hasAccount,
+              eventHasEnded: widget.eventHasEnded,
               onTap: () => _openParticipantSheet(p),
               onTogglePresence: widget.eventHasEnded
                   ? () => _toggleParticipantPresence(p)

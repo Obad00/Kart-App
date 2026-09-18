@@ -307,6 +307,7 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
                               .where((s) => (s ?? '').isNotEmpty)
                               .join(' · '),
                           isPresent: user.isPresent,
+                          eventHasEnded: _eventHasEnded(),
                           onTap: () => _openAttendeeCard(user),
                           // Correction manuelle seulement une fois
                           // l'événement terminé — avant, le backend la
