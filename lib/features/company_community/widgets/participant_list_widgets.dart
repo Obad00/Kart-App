@@ -382,30 +382,39 @@ class _SheetInfoRow extends StatelessWidget {
 
     final colors = Theme.of(context).colorScheme;
 
+    // Label au-dessus, valeur en dessous plutôt que côte à côte sur une
+    // seule ligne — remonté côté produit : un email un peu long (souvent
+    // sans espace où couper) se faisait tronquer avec l'ancien layout en
+    // ligne (Flexible + ellipsis dans l'espace restreint après le label),
+    // au lieu de simplement passer à la ligne suivante.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 17, color: colors.onSurface.withValues(alpha: 0.45)),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: colors.onSurface.withValues(alpha: 0.5),
-            ),
+          Row(
+            children: [
+              Icon(icon, size: 15, color: colors.onSurface.withValues(alpha: 0.45)),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: colors.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          Flexible(
+          const SizedBox(height: 3),
+          Padding(
+            padding: const EdgeInsets.only(left: 23),
             child: Text(
               value!,
-              textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 13.5,
                 fontWeight: FontWeight.w600,
                 color: colors.onSurface,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
