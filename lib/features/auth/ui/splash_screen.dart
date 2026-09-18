@@ -95,11 +95,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (alreadyShownIntro) {
       // Un simple flash de marque, pas toute l'intro — cf. commentaire sur
-      // _hasShownIntroKey. 1600ms (pas 900) : le nom de la personne
-      // connectée ne s'affiche qu'une fois /me résolu (après le tout début
-      // de l'anim), à 900ms il ne restait quasiment plus de temps pour le
-      // lire — remonté côté produit ("on voit à peine le nom").
-      _animationController.duration = const Duration(milliseconds: 1600);
+      // _hasShownIntroKey. 2600ms (pas 900, ni 1600 : encore insuffisant
+      // d'après le retour produit) : le nom de la personne connectée ne
+      // s'affiche qu'une fois /me résolu (après le tout début de l'anim),
+      // il fallait largement plus de marge pour avoir le temps de le lire.
+      _animationController.duration = const Duration(milliseconds: 2600);
     } else {
       await prefs.setBool(_hasShownIntroKey, true);
     }
@@ -464,45 +464,63 @@ class _SplashKartCardState extends State<_SplashKartCard>
                             child: _KartMark(),
                           ),
                           const Spacer(),
-                          Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Syne',
-                              color: Colors.white,
-                              fontSize: 23,
-                              height: 1.12,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.4,
+                          // AnimatedSwitcher : "KART" -> le vrai nom
+                          // arrivait d'un coup dès que /me résolvait,
+                          // perçu comme un flash plutôt qu'une apparition —
+                          // un fondu de 400ms adoucit ce changement, sur
+                          // toute la durée où le nom reste affiché.
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Text(
+                              title,
+                              key: ValueKey(title),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Syne',
+                                color: Colors.white,
+                                fontSize: 23,
+                                height: 1.12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 7),
-                          Text(
-                            subtitle,
-                            // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
-                            // ne tient pas sur une seule à cet interlettrage et
-                            // ressortait tronqué ("PROFESSIONNELL…").
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Syne',
-                              color: Colors.white.withValues(alpha: 0.45),
-                              fontSize: 9.5,
-                              height: 1.5,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 1.6,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Text(
+                              subtitle,
+                              key: ValueKey(subtitle),
+                              // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
+                              // ne tient pas sur une seule à cet
+                              // interlettrage et ressortait tronqué
+                              // ("PROFESSIONNELL…").
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Syne',
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 9.5,
+                                height: 1.5,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.6,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 22),
-                          Text(
-                            footer,
-                            style: TextStyle(
-                              fontFamily: 'Syne',
-                              color: Colors.white.withValues(alpha: 0.3),
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 1.6,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Text(
+                              footer,
+                              key: ValueKey(footer),
+                              style: TextStyle(
+                                fontFamily: 'Syne',
+                                color: Colors.white.withValues(alpha: 0.3),
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.6,
+                              ),
                             ),
                           ),
                         ],

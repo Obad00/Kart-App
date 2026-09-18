@@ -7,6 +7,7 @@ import '../providers/connection_badge_provider.dart';
 import '../providers/explore_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../public_card/ui/public_card_page.dart';
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
@@ -80,9 +81,16 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
                     child: Column(
                       children: [
                         SizedBox(height: topPadding),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                          child: Row(
+                        // ListView horizontal (pas un Row figé) : sur un
+                        // écran étroit, les 4 puces dépassaient la largeur
+                        // disponible et "Refusées" se retrouvait coupée à
+                        // droite — remonté côté produit. Même motif que les
+                        // puces de catégorie d'Explorer (_buildCategoryChips).
+                        SizedBox(
+                          height: _statusChipsRowHeight,
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                            scrollDirection: Axis.horizontal,
                             children: [
                               _StatusChip(label: 'Toutes', status: 'all'),
                               const SizedBox(width: 8),
@@ -106,7 +114,7 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
                     if (provider.isLoadingMyRequests) {
                       return const SliverFillRemaining(
                         hasScrollBody: false,
-                        child: Center(child: CircularProgressIndicator()),
+                        child: AppLoader(label: 'Chargement de vos demandes...'),
                       );
                     }
 

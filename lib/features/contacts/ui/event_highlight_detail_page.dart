@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
@@ -6,7 +7,9 @@ import '../../auth/providers/auth_provider.dart';
 import '../../company_community/ui/event_participant_scan_page.dart';
 import '../../company_community/widgets/participant_list_widgets.dart';
 import '../../explore/models/explore_user.dart';
+import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/services/card_service.dart';
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
 
@@ -72,34 +75,27 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
     }
   }
 
-  void _removeAttendee(int userId) {
-    setState(() => _attendees.removeWhere((u) => u.id == userId));
-  }
-
-  /// Fiche d'un participant — identique à celle de "Ma communauté" (cf.
-  /// ParticipantDetailSheet), sans présence, et sans mail/téléphone quand
-  /// le backend ne les a pas envoyés (participant lambda, pas staff).
-  void _openAttendeeSheet(ExploreUser user) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => ParticipantDetailSheet(
-        displayName: user.name,
-        subtitle: [user.jobTitle, user.company]
-            .where((s) => (s ?? '').isNotEmpty)
-            .join(' · '),
-        email: user.email,
-        phone: user.phone,
-        userId: user.id,
-        connectionStatus: switch (user.connectionStatus) {
-          ConnectionStatus.pendingSent => 'pending_sent',
-          ConnectionStatus.pendingReceived => 'pending_received',
-          ConnectionStatus.contact => 'contact',
-          ConnectionStatus.none => 'none',
-        },
-        connectionRequestId: user.connectionRequestId,
-        onResolved: () => _removeAttendee(user.id),
+  /// Ouvre la MÊME carte détail que "voir tout" dans Explorer — remonté
+  /// côté produit : le détail d'un participant doit être "conforme" à ce
+  /// design-là, pas une fiche maison. Un attendee a toujours une carte
+  /// publique (attendees() ne renvoie que des digitalCard.is_public=true),
+  /// donc cardSlug est toujours renseigné ici.
+  void _openAttendeeCard(ExploreUser user) {
+    final slug = user.cardSlug;
+    if (slug == null || slug.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PublicCardPage(
+          slug: slug,
+          initialConnectionStatus: user.connectionStatus,
+          initialConnectionRequestId: user.connectionRequestId,
+          // Coordonnées visibles uniquement si le backend les a envoyées
+          // (collaborateur/admin de l'entreprise organisatrice) — cf.
+          // EventController::attendees().
+          organizerContactEmail: user.email,
+          organizerContactPhone: user.phone,
+        ),
       ),
     );
   }
@@ -195,7 +191,7 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
       extendBodyBehindAppBar: true,
       appBar: appBar,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader(label: "Chargement de l'événement...")
           : _error != null
               ? _buildError()
               : RefreshIndicator(
@@ -241,7 +237,7 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
                           subtitle: [user.jobTitle, user.company]
                               .where((s) => (s ?? '').isNotEmpty)
                               .join(' · '),
-                          onTap: () => _openAttendeeSheet(user),
+                          onTap: () => _openAttendeeCard(user),
                         ),
                       ),
                     ],
@@ -324,12 +320,30 @@ class _EventInfoCard extends StatelessWidget {
             if (imageUrl != null && imageUrl.isNotEmpty)
               AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.network(
-                  imageUrl,
+                // CachedNetworkImage (pas Image.network) : l'affiche était
+                // retéléchargée en entier à chaque ouverture du highlight,
+                // d'où l'impression qu'elle "tarde à venir" — remonté côté
+                // produit. Un placeholder shimmer comble l'attente au
+                // premier chargement au lieu d'un bloc vide.
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
                   fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white54),
+                      ),
+                    ),
+                  ),
                   // Une affiche qui ne charge pas (réseau, image supprimée
                   // côté serveur) ne doit pas casser le reste de la fiche.
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
             Padding(

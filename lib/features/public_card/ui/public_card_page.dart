@@ -45,12 +45,23 @@ class PublicCardPage extends StatefulWidget {
   final ConnectionStatus? initialConnectionStatus;
   final int? initialConnectionRequestId;
 
+  /// Coordonnées visibles UNIQUEMENT parce que le viewer est
+  /// collaborateur/admin de l'entreprise organisatrice d'un événement où
+  /// cette personne est inscrite (cf. EventController::attendees(), qui ne
+  /// les envoie que dans ce cas précis) — jamais celles, publiques ou non,
+  /// de la carte elle-même. `null` : rien à ajouter, la carte se comporte
+  /// exactement comme partout ailleurs dans l'app (Explorer, "voir tout"...).
+  final String? organizerContactEmail;
+  final String? organizerContactPhone;
+
   const PublicCardPage({
     super.key,
     required this.slug,
     this.contactId,
     this.initialConnectionStatus,
     this.initialConnectionRequestId,
+    this.organizerContactEmail,
+    this.organizerContactPhone,
   });
 
   @override
@@ -648,6 +659,11 @@ class _PublicCardPageState extends State<PublicCardPage>
               ],
             ),
           ),
+          if (widget.organizerContactEmail != null ||
+              widget.organizerContactPhone != null) ...[
+            const SizedBox(height: 18),
+            _buildOrganizerContactBlock(colors),
+          ],
           const SizedBox(height: 18),
           // Contacter/Partager directement depuis la carte publique n'est
           // proposé que si ce profil est déjà un contact (scanné, ou
@@ -731,6 +747,71 @@ class _PublicCardPageState extends State<PublicCardPage>
     if (earliestStart == null) return 0;
     final days = DateTime.now().difference(earliestStart).inDays;
     return days <= 0 ? 0 : (days / 365).round();
+  }
+
+  /// Bloc "coordonnées organisateur" — n'apparaît que pour un
+  /// collaborateur/admin consultant la carte d'un inscrit à SON événement
+  /// (cf. organizerContactEmail/Phone). Distinct des champs publics de la
+  /// carte (activated_fields, gérés par le propriétaire) : ces coordonnées
+  /// viennent de son compte, pas de ce qu'il a choisi de rendre public.
+  Widget _buildOrganizerContactBlock(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _accentColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.badge_outlined, size: 15, color: _accentColor),
+              const SizedBox(width: 6),
+              Text(
+                'Visible en tant qu\'organisateur',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: _accentColor,
+                ),
+              ),
+            ],
+          ),
+          if (widget.organizerContactEmail != null) ...[
+            const SizedBox(height: 8),
+            _organizerContactLine(
+                Icons.mail_outline_rounded, widget.organizerContactEmail!),
+          ],
+          if (widget.organizerContactPhone != null) ...[
+            const SizedBox(height: 6),
+            _organizerContactLine(
+                Icons.phone_outlined, widget.organizerContactPhone!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _organizerContactLine(IconData icon, String value) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: colors.onSurface.withValues(alpha: 0.5)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildCallToActions({

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/explore_provider.dart';
 import '../widgets/explore_user_row.dart';
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 
@@ -63,7 +64,7 @@ class _AllProfilesPageState extends State<AllProfilesPage> {
                 if (provider.isLoading) {
                   return Padding(
                     padding: EdgeInsets.only(top: topPadding),
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: const AppLoader(label: 'Chargement des profils...'),
                   );
                 }
 

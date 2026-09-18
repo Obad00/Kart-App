@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../../explore/models/explore_user.dart' show ConnectionStatus;
+import '../../public_card/ui/public_card_page.dart';
 import '../models/event_participant_summary.dart';
 import '../services/company_community_service.dart';
 import '../widgets/participant_list_widgets.dart';
@@ -149,7 +152,7 @@ class _CompanyEventParticipantsPageState
     if (_isLoading) {
       return Padding(
         padding: EdgeInsets.only(top: topPadding),
-        child: const Center(child: CircularProgressIndicator()),
+        child: const AppLoader(label: 'Chargement des participants...'),
       );
     }
 
@@ -284,11 +287,45 @@ class _CompanyEventParticipantsPageState
     }
   }
 
-  /// Fiche d'un inscrit : ses coordonnées (mail/téléphone) et de quoi se
-  /// mettre en relation avec lui comme partout ailleurs dans Explorer —
-  /// remonté côté produit : la liste seule ne permettait ni de voir ces
-  /// informations ni de "se connecter à eux".
+  /// Ouvre la MÊME carte détail que "voir tout" dans Explorer — remonté
+  /// côté produit ("conforme au même design"). Coordonnées ajoutées en tant
+  /// qu'organisateur (visibles ici sans condition : ce service n'est
+  /// atteignable que par un collaborateur/admin, cf. "Ma communauté").
+  /// Repli sur l'ancienne fiche (ParticipantDetailSheet) seulement quand il
+  /// n'existe pas de carte publique à ouvrir (walk-in sans compte, ou
+  /// compte sans carte encore rendue publique) — la seule situation où
+  /// "voir tout" n'a tout simplement rien d'équivalent à proposer.
+  ConnectionStatus _statusFrom(String status) {
+    switch (status) {
+      case 'pending_sent':
+        return ConnectionStatus.pendingSent;
+      case 'pending_received':
+        return ConnectionStatus.pendingReceived;
+      case 'contact':
+        return ConnectionStatus.contact;
+      default:
+        return ConnectionStatus.none;
+    }
+  }
+
   void _openParticipantSheet(EventParticipantSummary participant) {
+    final slug = participant.cardSlug;
+    if (slug != null && slug.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PublicCardPage(
+            slug: slug,
+            initialConnectionStatus: _statusFrom(participant.connectionStatus),
+            initialConnectionRequestId: participant.connectionRequestId,
+            organizerContactEmail: participant.email,
+            organizerContactPhone: participant.phone,
+          ),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../models/company_event_summary.dart';
 import '../services/company_community_service.dart';
@@ -65,7 +66,7 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
             child: _isLoading
                 ? Padding(
                     padding: EdgeInsets.only(top: topPadding),
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: const AppLoader(label: 'Chargement de vos événements...'),
                   )
                 : _buildBody(colors, topPadding),
           ),

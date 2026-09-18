@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -68,12 +69,12 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
                           if (_logoUrl(company) != null) ...[
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                _logoUrl(company)!,
+                              child: CachedNetworkImage(
+                                imageUrl: _logoUrl(company)!,
                                 width: 56,
                                 height: 56,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Icon(
+                                errorWidget: (_, __, ___) => Icon(
                                   Icons.business_rounded,
                                   size: 40,
                                   color: colors.onSurface.withValues(alpha: 0.4),
