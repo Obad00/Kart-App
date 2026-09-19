@@ -1237,7 +1237,14 @@ class _CategoryChip extends StatelessWidget {
 
     return Material(
       color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(999),
+      // Même contour que le bouton "Se connecter" (cf. ConnectActionButton /
+      // _SlideToConnectButton) — remonté côté produit : les puces n'avaient
+      // aucun trait avant, ce qui les faisait paraître à part du reste des
+      // contrôles de l'app.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () {
@@ -1299,7 +1306,9 @@ class _FilterChip extends StatelessWidget {
       ),
       selectedColor: _themeBlue,
       backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-      side: BorderSide.none,
+      // Même contour que le bouton "Se connecter" (cf. _CategoryChip
+      // ci-dessus, même correctif) — avant, ce chip n'avait aucun trait.
+      side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
     );
   }
 }

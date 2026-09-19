@@ -198,7 +198,12 @@ class _StatusChip extends StatelessWidget {
 
     return Material(
       color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(999),
+      // Même contour que le bouton "Se connecter" et que les puces
+      // d'Explorer (cf. _CategoryChip) — homogénéité demandée côté produit.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () {

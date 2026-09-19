@@ -348,7 +348,11 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.15)),
+          // 0.3 plutôt que 0.15 : même intensité de trait que le bouton
+          // "Se connecter" et les puces d'Explorer/Mes demandes — la
+          // couleur reste propre à chaque catégorie (Matchs/Aimées/
+          // Passées/Sauvées), seule l'épaisseur perçue du contour s'aligne.
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
