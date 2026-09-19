@@ -182,10 +182,10 @@ class ExploreProvider extends SafeChangeNotifier {
     notifyListeners();
   }
 
-  /// Répond à une demande reçue depuis l'onglet "Mes demandes" — met à
-  /// jour son statut localement au lieu de la faire disparaître (utile ici
-  /// pour voir tout de suite le résultat, contrairement à la liste de
-  /// découverte).
+  /// Répond à une demande reçue depuis l'onglet "Mes demandes" — met à jour
+  /// son statut localement DANS CETTE LISTE au lieu de la faire disparaître
+  /// (utile ici pour voir tout de suite le résultat), mais retire bien le
+  /// profil correspondant de la liste de découverte Explorer (voir plus bas).
   ///
   /// Retourne un message d'erreur en cas d'échec (à afficher par l'appelant,
   /// ex: SnackBar) ou `null` en cas de succès — sans ça, un échec réseau/
@@ -218,13 +218,16 @@ class ExploreProvider extends SafeChangeNotifier {
         })
         .toList();
 
-    // Sans ça, accepter/refuser ici ne se répercutait pas sur le bouton de
-    // ce profil dans la liste Explorer (deux états locaux distincts) tant
-    // que l'app n'était pas relancée — même bug que ConnectActionButton.
-    // ConnectionStatus.none dans les deux cas pour rester cohérent avec
-    // ConnectActionButton._respond(), qui fait de même après resolution.
+    // Sans ça, accepter/refuser ici ne se répercutait pas sur la liste
+    // Explorer (l'app devait être relancée pour que le profil en disparaisse)
+    // — même correctif que ConnectActionButton._respond(), qui retire déjà
+    // la carte de la liste via onResolved/removeUserLocally dans les deux
+    // cas (accepter ET refuser) quand la résolution se fait depuis cette
+    // liste-là. Accepter crée un contact — le backend exclut déjà les
+    // contacts de /api/explore, donc le profil n'y réapparaîtra pas même
+    // après un vrai rafraîchissement.
     if (otherUser != null) {
-      updateUserConnection(otherUser!.id, ConnectionStatus.none, null);
+      removeUserLocally(otherUser!.id);
     }
 
     notifyListeners();

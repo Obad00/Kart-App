@@ -415,9 +415,12 @@ class _SplashKartCardState extends State<_SplashKartCard>
     final title = user == null ? 'KART' : user.fullName.trim().toUpperCase();
     final subtitle = user?.company?.name.toUpperCase() ??
         'IDENTITÉ PROFESSIONNELLE DIGITALE';
-    final footer = user == null
-        ? 'PRÊTE EN QUELQUES SECONDES'
-        : 'ID ${user.id.toString().padLeft(10, '0')}';
+    // Affichait avant l'ID interne (base de données) du compte connecté —
+    // une donnée technique jamais destinée à être vue, et qui n'a rien à
+    // faire visible publiquement (capture d'écran, épaule furtive...).
+    // Remplacé par une mention neutre, sans aucune information exploitable.
+    final footer =
+        user == null ? 'PRÊTE EN QUELQUES SECONDES' : 'MEMBRE VÉRIFIÉ';
 
     return AnimatedBuilder(
       animation: _swingAnimation,
@@ -689,9 +692,11 @@ class _LanyardStrap extends StatelessWidget {
   }
 }
 
-/// Marque KART en haut à droite de la carte : le "K" de la marque dans sa
-/// pastille, à la place du disque rayé du visuel de référence (qui est le
-/// logo d'une autre marque).
+/// Pastille en haut à droite de la carte, à la place du disque rayé du
+/// visuel de référence (qui est le logo d'une autre marque). Affichait
+/// avant un simple "K" — redondant avec le nom "KART" déjà affiché sur la
+/// carte. Une icône "sans contact" à la place : cohérent avec l'usage
+/// réel de la carte (la présenter/scanner), sans répéter la marque.
 class _KartMark extends StatelessWidget {
   const _KartMark();
 
@@ -705,15 +710,10 @@ class _KartMark extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: const Text(
-        'K',
-        style: TextStyle(
-          fontFamily: 'Syne',
-          fontSize: 22,
-          height: 1,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF07070A),
-        ),
+      child: const Icon(
+        Icons.contactless_rounded,
+        size: 20,
+        color: Color(0xFF07070A),
       ),
     );
   }

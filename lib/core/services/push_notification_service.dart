@@ -320,7 +320,12 @@ class PushNotificationService {
           break;
 
         case 'jobmatch_new_match':
-          // Nouvelle candidature (côté recruteur) — tableau de bord Matchs.
+        case 'jobmatch_new_interest':
+          // Nouvelle candidature — match complet ou simple "j'aime" du
+          // candidat (côté recruteur) — même tableau de bord Matchs. Ce
+          // second type existe côté backend (JobMatchController::swipe())
+          // sans jamais avoir été géré ici : le tap sur la notification ne
+          // faisait rien.
           navigator.pushNamedAndRemoveUntil(
             '/home',
             (route) => false,
