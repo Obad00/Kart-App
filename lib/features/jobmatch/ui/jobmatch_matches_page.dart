@@ -247,24 +247,27 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
               child: Container(
                 height: 40,
                 padding: const EdgeInsets.all(4),
+                // 8 (coin M3 par défaut, comme les puces de Contacts/Explorer)
+                // plutôt que 999 — ce bandeau était en pilule complète,
+                // trop arrondi par rapport au reste de l'app.
                 decoration: BoxDecoration(
                   color: colors.onSurface.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
                     color: _accentBlue,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  splashBorderRadius: BorderRadius.circular(999),
+                  splashBorderRadius: BorderRadius.circular(6),
                   labelColor: Colors.white,
                   unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
                   // 11.5 plutôt que 13 : avec le 4e onglet (Sauvegardées),
                   // "Sauvées" à la taille d'origine tronquait/débordait
-                  // dans la pilule à largeur égale.
+                  // dans des onglets à largeur égale.
                   labelStyle: const TextStyle(
                       fontSize: 11.5, fontWeight: FontWeight.w700),
                   unselectedLabelStyle: const TextStyle(

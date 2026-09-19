@@ -1241,12 +1241,16 @@ class _CategoryChip extends StatelessWidget {
       // _SlideToConnectButton) — remonté côté produit : les puces n'avaient
       // aucun trait avant, ce qui les faisait paraître à part du reste des
       // contrôles de l'app.
+      // 8 (coin M3 par défaut, cf. Contacts qui n'impose aucun shape et
+      // hérite donc de ce rendu) plutôt que 999 : ces puces étaient bien
+      // plus arrondies (pilule complète) que celles de Contacts, alors
+      // qu'elles doivent se ressembler.
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           HapticFeedback.selectionClick();
           onTap();
