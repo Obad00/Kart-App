@@ -505,9 +505,9 @@ class _SplashKartCardState extends State<_SplashKartCard>
                           // La perforation n'est plus ici : elle est
                           // positionnée au bord haut de la carte, avec
                           // l'anneau exactement par-dessus (cf. plus bas).
-                          const Align(
+                          Align(
                             alignment: Alignment.topRight,
-                            child: _KartMark(),
+                            child: _KartMark(isConnected: user != null),
                           ),
                           const Spacer(),
                           // AnimatedSwitcher : "KART" -> le vrai nom
@@ -692,28 +692,53 @@ class _LanyardStrap extends StatelessWidget {
   }
 }
 
-/// Pastille en haut à droite de la carte, à la place du disque rayé du
-/// visuel de référence (qui est le logo d'une autre marque). Affichait
-/// avant un simple "K" — redondant avec le nom "KART" déjà affiché sur la
-/// carte. Une icône "sans contact" à la place : cohérent avec l'usage
-/// réel de la carte (la présenter/scanner), sans répéter la marque.
+/// Marque KART en haut à droite de la carte, dans sa pastille, à la place
+/// du disque rayé du visuel de référence (qui est le logo d'une autre
+/// marque). Le titre de la carte affiche "KART" tant que personne n'est
+/// connecté, puis bascule sur le nom de la personne une fois l'auth
+/// résolue (cf. AnimatedSwitcher plus bas) — la marque "KART" disparaît
+/// alors du reste de la carte. Pour ne pas la perdre complètement, la
+/// pastille affiche donc "K" (compact, pas redondant avec le titre "KART"
+/// encore visible) avant connexion, puis "KART" en toutes lettres une fois
+/// connecté.
 class _KartMark extends StatelessWidget {
-  const _KartMark();
+  const _KartMark({required this.isConnected});
+
+  final bool isConnected;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 34,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
       height: 34,
+      width: isConnected ? null : 34,
+      padding: isConnected
+          ? const EdgeInsets.symmetric(horizontal: 10)
+          : EdgeInsets.zero,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
       ),
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.contactless_rounded,
-        size: 20,
-        color: Color(0xFF07070A),
+      // Center(widthFactor/heightFactor: 1) plutôt que Container.alignment :
+      // avec une largeur libre (cas "KART"), Container.alignment s'étend à
+      // toute la largeur disponible dès que l'axe est borné (même non
+      // serré) — c'est exactement ce qui arrive ici, la pastille reçoit une
+      // largeur "libre mais bornée" par la carte qui la contient. Les
+      // facteurs forcent le repli sur la taille du texte dans tous les cas.
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          isConnected ? 'KART' : 'K',
+          style: TextStyle(
+            fontFamily: 'Syne',
+            fontSize: isConnected ? 14 : 22,
+            height: 1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: isConnected ? 0.5 : 0,
+            color: const Color(0xFF07070A),
+          ),
+        ),
       ),
     );
   }
