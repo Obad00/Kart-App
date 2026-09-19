@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../../shared/utils/session_reset.dart';
@@ -316,6 +317,11 @@ class _ProfileDropdownButton extends StatelessWidget {
     if (confirm && currentContext.mounted) {
       await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
+        FeedbackOverlay.showSuccess(
+          currentContext,
+          title: 'Déconnexion réussie',
+          subtitle: 'À bientôt sur KART !',
+        );
         Navigator.of(currentContext)
             .pushNamedAndRemoveUntil('/login', (_) => false);
       }

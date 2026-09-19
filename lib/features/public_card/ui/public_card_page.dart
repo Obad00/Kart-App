@@ -604,7 +604,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                           fontWeight: FontWeight.w500,
                           color: _accentColor,
                         ),
-                        maxLines: 1,
+                        // 2 lignes plutôt que la troncature à 1 ligne — même
+                        // correctif que pour le nom juste au-dessus, un
+                        // intitulé de poste un peu long était coupé par "...".
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],

@@ -379,8 +379,13 @@ class _SlideToConnectButtonState extends State<_SlideToConnectButton>
     // Piste volontairement plus étroite que la carte (pas toute la largeur)
     // — un slider aussi large que le bouton "Voir la carte" d'avant donnait
     // l'impression d'un gros bouton plein plutôt que d'un geste ponctuel.
+    // Alignment.center (pas centerLeft) : le seul appelant (PublicCardPage)
+    // enveloppe déjà ce widget dans un Center, mais un Align sans
+    // widthFactor s'étend à toute la largeur disponible dès que l'axe est
+    // borné — ce Center-là n'avait donc aucun effet visible, le bouton
+    // restait collé à gauche.
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: FractionallySizedBox(
         widthFactor: 0.68,
         child: SizedBox(

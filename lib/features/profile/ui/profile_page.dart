@@ -1854,6 +1854,11 @@ class _ProfilePageState extends State<ProfilePage>
     if (confirm && currentContext.mounted) {
       await logoutAndResetSession(currentContext);
       if (currentContext.mounted) {
+        FeedbackOverlay.showSuccess(
+          currentContext,
+          title: 'Déconnexion réussie',
+          subtitle: 'À bientôt sur KART !',
+        );
         Navigator.of(currentContext)
             .pushNamedAndRemoveUntil('/login', (_) => false);
       }
