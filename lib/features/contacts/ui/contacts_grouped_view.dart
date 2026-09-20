@@ -709,7 +709,9 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
               ),
               selectedColor: _themeBlue,
               backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-              side: BorderSide.none,
+              // Même contour que les puces d'Explorer/Mes demandes —
+              // homogénéité demandée côté produit.
+              side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
             );
           }
 
@@ -729,7 +731,9 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
             ),
             selectedColor: _themeBlue,
             backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-            side: BorderSide.none,
+            // Même contour que les puces d'Explorer/Mes demandes —
+            // homogénéité demandée côté produit.
+            side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
           );
         },
       ),

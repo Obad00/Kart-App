@@ -251,16 +251,30 @@ class _SplashScreenState extends State<SplashScreen>
             // en l'air. Expanded (hors du FittedBox, qui ne peut pas
             // contenir de widget flexible) pour s'étirer sur toute la
             // hauteur restante, quelle que soit la taille de l'écran.
-            child: Column(
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: const [_LanyardStrapFiller()],
-                  ),
-                ),
-                Padding(
+            //
+            // LayoutBuilder + ConstrainedBox(maxHeight) : un Column donne
+            // à son enfant NON flexible une hauteur maximale INFINIE sur
+            // l'axe principal (c'est ce qui lui permet de calculer combien
+            // il reste pour Expanded) — sans le recontraindre nous-mêmes
+            // ici, le FittedBox scaleDown ne voit jamais de limite et ne se
+            // réduit donc plus jamais, d'où l'overflow RenderFlex constaté
+            // (regression introduite par ce Column, absente avant quand
+            // le FittedBox était sous un Center, qui borne son enfant).
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: const [_LanyardStrapFiller()],
+                      ),
+                    ),
+                    ConstrainedBox(
+                      constraints:
+                          BoxConstraints(maxHeight: constraints.maxHeight),
+                      child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -351,8 +365,11 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                 ),
-              ),
-              ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
