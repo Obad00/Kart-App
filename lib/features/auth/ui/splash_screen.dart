@@ -244,8 +244,23 @@ class _SplashScreenState extends State<SplashScreen>
             // parade que la card JobMatch. mainAxisSize.min est
             // indispensable ici : sans lui, la colonne réclame une hauteur
             // infinie dans le FittedBox.
-            child: Center(
-              child: Padding(
+            //
+            // Le cordon continue désormais jusqu'en haut de l'écran, au
+            // lieu de s'arrêter net avec du vide au-dessus : un vrai
+            // cordon de badge continue derrière le cou, il ne flotte pas
+            // en l'air. Expanded (hors du FittedBox, qui ne peut pas
+            // contenir de widget flexible) pour s'étirer sur toute la
+            // hauteur restante, quelle que soit la taille de l'écran.
+            child: Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: const [_LanyardStrapFiller()],
+                  ),
+                ),
+                Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -337,6 +352,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
+              ],
             ),
           ),
         ],
@@ -610,6 +626,34 @@ class _SplashKartCardState extends State<_SplashKartCard>
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Segment de cordon uni, sans motif, qui s'étire du haut de l'écran
+/// jusqu'au segment fixe de _LanyardStrap (lequel, lui, porte le motif
+/// "KART" et est dimensionné par son contenu à l'intérieur du FittedBox —
+/// il ne peut donc pas être flexible). Même dégradé/bordure que ce
+/// segment fixe pour que la jonction soit invisible.
+class _LanyardStrapFiller extends StatelessWidget {
+  const _LanyardStrapFiller();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.symmetric(
+          vertical: BorderSide(
+            color: Colors.white.withValues(alpha: 0.07),
+          ),
+        ),
       ),
     );
   }
