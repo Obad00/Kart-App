@@ -669,11 +669,11 @@ class _SplashKartCardState extends State<_SplashKartCard>
   }
 }
 
-/// Segment de cordon uni, sans motif, qui s'étire du haut de l'écran
-/// jusqu'au segment fixe de _LanyardStrap (lequel, lui, porte le motif
-/// "KART" et est dimensionné par son contenu à l'intérieur du FittedBox —
-/// il ne peut donc pas être flexible). Même dégradé/bordure que ce
-/// segment fixe pour que la jonction soit invisible.
+/// Segment de cordon qui s'étire du haut de l'écran jusqu'au segment fixe
+/// de _LanyardStrap (lequel, lui, porte les 2 premiers motifs "KART" et
+/// est dimensionné par son contenu à l'intérieur du FittedBox — il ne peut
+/// donc pas être flexible). Même couleur/bordure que ce segment fixe pour
+/// que la jonction soit invisible, plus une 3e répétition de la marque.
 class _LanyardStrapFiller extends StatelessWidget {
   const _LanyardStrapFiller();
 
@@ -681,15 +681,38 @@ class _LanyardStrapFiller extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 46,
+      // Couleur unie (pas de dégradé) : un dégradé calculé par widget
+      // recommence à zéro à chaque Container — avec ce segment et
+      // _LanyardStrap juste en dessous DEUX widgets distincts, leurs
+      // dégradés respectifs ne se raccordaient jamais en un point commun,
+      // ce qui créait une vraie cassure de luminosité visible à la
+      // jonction ("le cordon est coupé"). Une couleur unie élimine le
+      // risque quel que soit le découpage.
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFF0E0E11),
         border: Border.symmetric(
           vertical: BorderSide(
             color: Colors.white.withValues(alpha: 0.07),
+          ),
+        ),
+      ),
+      // Troisième répétition de la marque : ce segment étiré jusqu'en
+      // haut de l'écran est maintenant assez long pour en accueillir une,
+      // en plus des deux déjà sur le segment fixe juste en dessous.
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: RotatedBox(
+          quarterTurns: 3,
+          child: Text(
+            'KART',
+            style: TextStyle(
+              fontFamily: 'Syne',
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+              color: Colors.white.withValues(alpha: 0.62),
+            ),
           ),
         ),
       ),
@@ -714,12 +737,11 @@ class _LanyardStrap extends StatelessWidget {
       children: [
         Container(
           width: 46,
+          // Couleur unie, comme _LanyardStrapFiller juste au-dessus — même
+          // raison : un dégradé par widget ne se raccorde jamais avec
+          // celui du voisin à la jonction des deux segments.
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF131316), Color(0xFF0A0A0C)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: const Color(0xFF0E0E11),
             border: Border.symmetric(
               vertical: BorderSide(
                 color: Colors.white.withValues(alpha: 0.07),
