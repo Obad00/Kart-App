@@ -275,156 +275,166 @@ class _SplashScreenState extends State<SplashScreen>
       // qui borne ensuite le FittedBox de façon fiable.
       body: LayoutBuilder(
         builder: (context, outerConstraints) {
-          return Stack(
-            children: [
-              // Le segment de cordon libre déborde volontairement hors de
-              // la SafeArea (remonté côté produit : le cordon s'arrêtait
-              // encore net juste sous la barre de statut) — un vrai cordon
-              // de badge continue derrière le cou, jusqu'au bord de l'écran,
-              // pas juste jusqu'au bord de la zone sûre. Sans risque pour la
-              // lisibilité : icônes de la barre de statut sur les bords,
-              // cordon étroit (46) et centré, aucun chevauchement.
-              Column(
-                children: [
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final height = constraints.maxHeight;
-                        if (_fillerHeight.value != height) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) _fillerHeight.value = height;
-                          });
-                        }
-                        return AnimatedBuilder(
-                          animation: Listenable.merge(
-                              [_swingAnimation, _cardAnimation]),
-                          // Pivot : le haut de l'écran, donc le haut de ce
-                          // segment.
-                          builder: (context, child) => Transform.rotate(
-                            angle:
-                                _lanyardAngle(_swingAnimation, _cardAnimation),
-                            alignment: Alignment.topCenter,
-                            child: child,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: const [_LanyardStrapFiller()],
-                          ),
-                        );
-                      },
+          // ClipRect : le cordon déborde volontairement au-dessus de sa zone (cf.
+          // _LanyardStrapFiller.head) pour couvrir le coin de son bord haut
+          // incliné. Sans ce clip, ce débord se peignait PAR-DESSUS le
+          // bandeau "hors ligne" posé juste au-dessus du splash (cf.
+          // OfflineBanner, main.dart) et masquait son texte — avec, le
+          // cordon démarre sous le bandeau, qui reste entièrement lisible.
+          return ClipRect(
+            child: Stack(
+              children: [
+                // Le segment de cordon libre déborde volontairement hors de
+                // la SafeArea (remonté côté produit : le cordon s'arrêtait
+                // encore net juste sous la barre de statut) — un vrai cordon
+                // de badge continue derrière le cou, jusqu'au bord de l'écran,
+                // pas juste jusqu'au bord de la zone sûre. Sans risque pour la
+                // lisibilité : icônes de la barre de statut sur les bords,
+                // cordon étroit (46) et centré, aucun chevauchement.
+                Column(
+                  children: [
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final height = constraints.maxHeight;
+                          if (_fillerHeight.value != height) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _fillerHeight.value = height;
+                            });
+                          }
+                          return AnimatedBuilder(
+                            animation: Listenable.merge(
+                                [_swingAnimation, _cardAnimation]),
+                            // Pivot : le haut de l'écran, donc le haut de ce
+                            // segment.
+                            builder: (context, child) => Transform.rotate(
+                              angle: _lanyardAngle(
+                                  _swingAnimation, _cardAnimation),
+                              alignment: Alignment.topCenter,
+                              child: child,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: const [_LanyardStrapFiller()],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  // ConstrainedBox EN DEHORS de SafeArea (pas dedans) :
-                  // un Column donne à son enfant NON flexible une hauteur
-                  // maximale INFINIE sur l'axe principal (c'est ce qui lui
-                  // permet de calculer combien il reste pour Expanded) —
-                  // sans le recontraindre nous-mêmes ici, le FittedBox
-                  // scaleDown ne voit jamais de limite et ne se réduit
-                  // donc plus jamais, d'où l'overflow RenderFlex déjà
-                  // constaté une fois avec ce Column. En la mettant à
-                  // l'extérieur de SafeArea, celle-ci retire ensuite
-                  // elle-même son propre inset bas (encoche/barre de
-                  // geste) de cette valeur déjà bornée, sans qu'on ait à
-                  // le recalculer à la main.
-                  ConstrainedBox(
-                    constraints:
-                        BoxConstraints(maxHeight: outerConstraints.maxHeight),
-                    // top: false — seul le bas doit encore être respecté
-                    // ici, le haut est géré par le cordon libre juste
-                    // au-dessus (qui, lui, déborde volontairement de la
-                    // zone sûre).
-                    child: SafeArea(
-                      top: false,
-                      // FittedBox(scaleDown) : sur un écran court (fenêtre
-                      // web redimensionnée, petit téléphone en paysage),
-                      // la colonne cordon + carte + wordmark + tagline
-                      // dépassait la hauteur disponible et déclenchait un
-                      // RenderFlex overflow. Elle se réduit
-                      // proportionnellement au lieu d'être coupée — même
-                      // parade que la card JobMatch. mainAxisSize.min est
-                      // indispensable ici : sans lui, la colonne réclame
-                      // une hauteur infinie dans le FittedBox.
-                      child: Padding(
-                        // Seulement en bas désormais (pas en haut) : ce padding
-                        // de 16 en haut créait un vrai décalage visible — un
-                        // interstice net entre le cordon (segment libre juste
-                        // au-dessus) et le motif "KART" du segment fixe, signalé
-                        // comme "le cordon est coupé" sur un appareil réel
-                        // (surtout visible en mode clair, où l'interstice tranche
-                        // en blanc au milieu du cordon noir).
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Carte KART suspendue à son cordon (cf. visuel de
-                              // référence fourni) : carte noire mate, marque en haut à
-                              // droite, nom de la personne connectée en bas à gauche.
-                              _SplashKartCard(
-                                isDark: isDark,
-                                appear: _cardAnimation,
-                                glow: _glowAnimation,
-                                swing: _swingAnimation,
-                                fillerHeight: _fillerHeight,
-                              ),
+                    // ConstrainedBox EN DEHORS de SafeArea (pas dedans) :
+                    // un Column donne à son enfant NON flexible une hauteur
+                    // maximale INFINIE sur l'axe principal (c'est ce qui lui
+                    // permet de calculer combien il reste pour Expanded) —
+                    // sans le recontraindre nous-mêmes ici, le FittedBox
+                    // scaleDown ne voit jamais de limite et ne se réduit
+                    // donc plus jamais, d'où l'overflow RenderFlex déjà
+                    // constaté une fois avec ce Column. En la mettant à
+                    // l'extérieur de SafeArea, celle-ci retire ensuite
+                    // elle-même son propre inset bas (encoche/barre de
+                    // geste) de cette valeur déjà bornée, sans qu'on ait à
+                    // le recalculer à la main.
+                    ConstrainedBox(
+                      constraints:
+                          BoxConstraints(maxHeight: outerConstraints.maxHeight),
+                      // top: false — seul le bas doit encore être respecté
+                      // ici, le haut est géré par le cordon libre juste
+                      // au-dessus (qui, lui, déborde volontairement de la
+                      // zone sûre).
+                      child: SafeArea(
+                        top: false,
+                        // FittedBox(scaleDown) : sur un écran court (fenêtre
+                        // web redimensionnée, petit téléphone en paysage),
+                        // la colonne cordon + carte + wordmark + tagline
+                        // dépassait la hauteur disponible et déclenchait un
+                        // RenderFlex overflow. Elle se réduit
+                        // proportionnellement au lieu d'être coupée — même
+                        // parade que la card JobMatch. mainAxisSize.min est
+                        // indispensable ici : sans lui, la colonne réclame
+                        // une hauteur infinie dans le FittedBox.
+                        child: Padding(
+                          // Seulement en bas désormais (pas en haut) : ce padding
+                          // de 16 en haut créait un vrai décalage visible — un
+                          // interstice net entre le cordon (segment libre juste
+                          // au-dessus) et le motif "KART" du segment fixe, signalé
+                          // comme "le cordon est coupé" sur un appareil réel
+                          // (surtout visible en mode clair, où l'interstice tranche
+                          // en blanc au milieu du cordon noir).
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Carte KART suspendue à son cordon (cf. visuel de
+                                // référence fourni) : carte noire mate, marque en haut à
+                                // droite, nom de la personne connectée en bas à gauche.
+                                _SplashKartCard(
+                                  isDark: isDark,
+                                  appear: _cardAnimation,
+                                  glow: _glowAnimation,
+                                  swing: _swingAnimation,
+                                  fillerHeight: _fillerHeight,
+                                ),
 
-                              // Ni wordmark ni trait décoratif sous la carte : le
-                              // nom de la marque est déjà sur la carte ET sur le
-                              // cordon, le réécrire en grand juste en dessous
-                              // faisait triplon et éloignait du visuel de
-                              // référence, qui ne montre que le porte-badge.
-                              const SizedBox(height: 34),
+                                // Ni wordmark ni trait décoratif sous la carte : le
+                                // nom de la marque est déjà sur la carte ET sur le
+                                // cordon, le réécrire en grand juste en dessous
+                                // faisait triplon et éloignait du visuel de
+                                // référence, qui ne montre que le porte-badge.
+                                const SizedBox(height: 34),
 
-                              FadeTransition(
-                                opacity: _fadeAnimation,
-                                // Largeur bornée : c'est l'élément le plus large de
-                                // la colonne, donc celui qui pilote la réduction du
-                                // FittedBox — sans borne, il touche les deux bords
-                                // sur un téléphone étroit.
-                                child: SizedBox(
-                                  width: 250,
-                                  child: Text(
-                                    'Le réseau qui tient dans une carte.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Syne',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: foreground.withValues(alpha: 0.55),
+                                FadeTransition(
+                                  opacity: _fadeAnimation,
+                                  // Largeur bornée : c'est l'élément le plus large de
+                                  // la colonne, donc celui qui pilote la réduction du
+                                  // FittedBox — sans borne, il touche les deux bords
+                                  // sur un téléphone étroit.
+                                  child: SizedBox(
+                                    width: 250,
+                                    child: Text(
+                                      'Le réseau qui tient dans une carte.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Syne',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            foreground.withValues(alpha: 0.55),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
 
-                              const SizedBox(height: 48),
+                                const SizedBox(height: 48),
 
-                              // Loader premium discret
-                              FadeTransition(
-                                opacity: _fadeAnimation,
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: AnimatedBuilder(
-                                    animation: _loaderController,
-                                    builder: (context, _) => CustomPaint(
-                                      painter: PremiumLoaderPainter(
-                                          _loaderController.value, foreground),
+                                // Loader premium discret
+                                FadeTransition(
+                                  opacity: _fadeAnimation,
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: AnimatedBuilder(
+                                      animation: _loaderController,
+                                      builder: (context, _) => CustomPaint(
+                                        painter: PremiumLoaderPainter(
+                                            _loaderController.value,
+                                            foreground),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           );
         },
       ),
