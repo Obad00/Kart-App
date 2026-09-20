@@ -289,103 +289,77 @@ class _SplashScreenState extends State<SplashScreen>
                       // indispensable ici : sans lui, la colonne réclame
                       // une hauteur infinie dans le FittedBox.
                       child: Padding(
-                // Seulement en bas désormais (pas en haut) : ce padding
-                // de 16 en haut créait un vrai décalage visible — un
-                // interstice net entre le cordon (segment libre juste
-                // au-dessus) et le motif "KART" du segment fixe, signalé
-                // comme "le cordon est coupé" sur un appareil réel
-                // (surtout visible en mode clair, où l'interstice tranche
-                // en blanc au milieu du cordon noir).
-                padding: const EdgeInsets.only(bottom: 16),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Carte KART suspendue à son cordon (cf. visuel de
-                      // référence fourni) : carte noire mate, marque en haut à
-                      // droite, nom de la personne connectée en bas à gauche.
-                      AnimatedBuilder(
-                        animation: _cardAnimation,
-                        builder: (context, child) {
-                          // Entrée : le porte-badge DESCEND et se pose au
-                          // bout de son cordon (la courbe easeOutBack du
-                          // contrôleur donne le petit rebond d'arrivée),
-                          // au lieu d'un simple grossissement sur place.
-                          final t = _cardAnimation.value;
-                          return Opacity(
-                            opacity: t.clamp(0.0, 1.0),
-                            child: Transform.translate(
-                              offset: Offset(0, -46 * (1 - t)),
-                              child: Transform.scale(
-                                scale: 0.94 + (0.06 * t),
-                                child: child,
+                        // Seulement en bas désormais (pas en haut) : ce padding
+                        // de 16 en haut créait un vrai décalage visible — un
+                        // interstice net entre le cordon (segment libre juste
+                        // au-dessus) et le motif "KART" du segment fixe, signalé
+                        // comme "le cordon est coupé" sur un appareil réel
+                        // (surtout visible en mode clair, où l'interstice tranche
+                        // en blanc au milieu du cordon noir).
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Carte KART suspendue à son cordon (cf. visuel de
+                              // référence fourni) : carte noire mate, marque en haut à
+                              // droite, nom de la personne connectée en bas à gauche.
+                              _SplashKartCard(
+                                isDark: isDark,
+                                appear: _cardAnimation,
+                                glow: _glowAnimation,
                               ),
-                            ),
-                          );
-                        },
-                        child: AnimatedBuilder(
-                          animation: _glowAnimation,
-                          builder: (context, child) => Opacity(
-                            // Simple montée en présence : le halo bleu d'avant
-                            // dessinait un bloc coloré derrière le cordon, à
-                            // l'opposé du visuel de référence (noir intégral).
-                            opacity: 0.35 + (0.65 * _glowAnimation.value),
-                            child: child,
-                          ),
-                          child: _SplashKartCard(isDark: isDark),
-                        ),
-                      ),
 
-                      // Ni wordmark ni trait décoratif sous la carte : le
-                      // nom de la marque est déjà sur la carte ET sur le
-                      // cordon, le réécrire en grand juste en dessous
-                      // faisait triplon et éloignait du visuel de
-                      // référence, qui ne montre que le porte-badge.
-                      const SizedBox(height: 34),
+                              // Ni wordmark ni trait décoratif sous la carte : le
+                              // nom de la marque est déjà sur la carte ET sur le
+                              // cordon, le réécrire en grand juste en dessous
+                              // faisait triplon et éloignait du visuel de
+                              // référence, qui ne montre que le porte-badge.
+                              const SizedBox(height: 34),
 
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        // Largeur bornée : c'est l'élément le plus large de
-                        // la colonne, donc celui qui pilote la réduction du
-                        // FittedBox — sans borne, il touche les deux bords
-                        // sur un téléphone étroit.
-                        child: SizedBox(
-                          width: 250,
-                          child: Text(
-                            'Le réseau qui tient dans une carte.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Syne',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: foreground.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ),
-                      ),
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                // Largeur bornée : c'est l'élément le plus large de
+                                // la colonne, donc celui qui pilote la réduction du
+                                // FittedBox — sans borne, il touche les deux bords
+                                // sur un téléphone étroit.
+                                child: SizedBox(
+                                  width: 250,
+                                  child: Text(
+                                    'Le réseau qui tient dans une carte.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Syne',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: foreground.withValues(alpha: 0.55),
+                                    ),
+                                  ),
+                                ),
+                              ),
 
-                      const SizedBox(height: 48),
+                              const SizedBox(height: 48),
 
-                      // Loader premium discret
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: AnimatedBuilder(
-                            animation: _loaderController,
-                            builder: (context, _) => CustomPaint(
-                              painter: PremiumLoaderPainter(
-                                  _loaderController.value, foreground),
-                            ),
+                              // Loader premium discret
+                              FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: AnimatedBuilder(
+                                    animation: _loaderController,
+                                    builder: (context, _) => CustomPaint(
+                                      painter: PremiumLoaderPainter(
+                                          _loaderController.value, foreground),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
                       ),
                     ),
                   ),
@@ -410,7 +384,17 @@ class _SplashKartCard extends StatefulWidget {
   /// carte paraît découpée sur le fond clair.
   final bool isDark;
 
-  const _SplashKartCard({required this.isDark});
+  /// Entrée du porte-badge (0 → 1, avec le rebond de easeOutBack) et montée
+  /// en présence : animent le mousqueton et la carte, JAMAIS le cordon —
+  /// celui-ci doit rester exactement raccordé au segment fixe au-dessus.
+  final Animation<double> appear;
+  final Animation<double> glow;
+
+  const _SplashKartCard({
+    required this.isDark,
+    required this.appear,
+    required this.glow,
+  });
 
   @override
   State<_SplashKartCard> createState() => _SplashKartCardState();
@@ -422,6 +406,9 @@ const double _cardTopInset = 11;
 const double _holeSize = 13;
 const double _ringSize = 23;
 const double _holeCenterY = _cardTopInset + 10;
+const double _ringStroke = 2.4;
+const double _stemWidth = 5;
+const Color _stemColor = Color(0xFF232327);
 
 class _SplashKartCardState extends State<_SplashKartCard>
     with TickerProviderStateMixin {
@@ -443,7 +430,10 @@ class _SplashKartCardState extends State<_SplashKartCard>
       duration: const Duration(milliseconds: 4200),
     )..repeat(reverse: true);
 
-    _swingAnimation = Tween<double>(begin: -0.028, end: 0.028).animate(
+    // Le pivot est désormais le mousqueton (et non plus le haut du cordon,
+    // devenu fixe) : bras de levier plus court, d'où une amplitude relevée
+    // pour garder le même débattement latéral de la carte.
+    _swingAnimation = Tween<double>(begin: -0.04, end: 0.04).animate(
       CurvedAnimation(parent: _swingController, curve: Curves.easeInOutSine),
     );
 
@@ -476,195 +466,244 @@ class _SplashKartCardState extends State<_SplashKartCard>
     final footer =
         user == null ? 'PRÊTE EN QUELQUES SECONDES' : 'MEMBRE VÉRIFIÉ';
 
-    return AnimatedBuilder(
-      animation: _swingAnimation,
-      // alignment.topCenter : la rotation se fait autour de l'attache,
-      // comme un vrai badge au bout de son cordon.
-      builder: (context, child) => Transform.rotate(
-        angle: _swingAnimation.value,
-        alignment: Alignment.topCenter,
-        child: child,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _LanyardStrap(),
-          // Stack (et non Column) : sur le visuel de référence l'anneau
-          // TRAVERSE la perforation, il est donc à cheval sur le bord
-          // supérieur de la carte, pas posé au-dessus.
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: _cardTopInset),
-                width: 236,
-                height: 342,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF121214), Color(0xFF050506)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Cordon statique et opaque : il prolonge le segment fixe du haut de
+        // l'écran (_LanyardStrapFiller) sans jamais bouger, osciller ni
+        // s'estomper par rapport à lui — c'est ce qui laissait apparaître un
+        // trait clair à la jonction des deux segments.
+        //
+        // Décalé de 1px vers le haut : les deux segments ont la même couleur,
+        // mais à une position fractionnaire leur bord commun est anti-crénelé
+        // et laisse un fil de lumière — le recouvrement l'élimine.
+        Transform.translate(
+          offset: const Offset(0, -1),
+          child: const _LanyardStrap(),
+        ),
+        AnimatedBuilder(
+          animation:
+              Listenable.merge([widget.appear, widget.glow, _swingAnimation]),
+          builder: (context, child) {
+            // Entrée : le porte-badge DESCEND et se pose au bout de son
+            // cordon (la courbe easeOutBack donne le petit rebond
+            // d'arrivée), au lieu d'un simple grossissement sur place.
+            final t = widget.appear.value;
+            return Opacity(
+              opacity: t.clamp(0.0, 1.0) * (0.35 + 0.65 * widget.glow.value),
+              child: Transform.translate(
+                // -2 : le mousqueton mord sur le bas du cordon, pour qu'aucun
+                // interstice ne s'ouvre entre les deux pendant le balancement.
+                offset: Offset(0, -2 - 46 * (1 - t)),
+                child: Transform.scale(
+                  scale: 0.94 + (0.06 * t),
+                  alignment: Alignment.topCenter,
+                  // La rotation se fait autour de l'attache, comme un vrai
+                  // badge au bout de son cordon.
+                  child: Transform.rotate(
+                    angle: _swingAnimation.value,
+                    alignment: Alignment.topCenter,
+                    child: child,
                   ),
-                  borderRadius: BorderRadius.circular(18),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.07)),
-                  // Deux ombres superposées : une large et très diffuse pour
-                  // la profondeur, une courte au contact. Une seule ombre
-                  // marquée dessinait une barre grise nette sous la carte
-                  // plutôt qu'une ombre portée.
-                  boxShadow: widget.isDark
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.16),
-                            blurRadius: 44,
-                            spreadRadius: -6,
-                            offset: const Offset(0, 22),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.10),
-                            blurRadius: 10,
-                            spreadRadius: -4,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
                 ),
-                child: Stack(
-                  children: [
-                    // Arcs concentriques dans l'angle bas-droit, très peu
-                    // contrastés — la texture du visuel de référence.
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: CustomPaint(painter: const _CornerArcsPainter()),
+              ),
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _LanyardClip(),
+              // Stack (et non Column) : sur le visuel de référence l'anneau
+              // TRAVERSE la perforation, il est donc à cheval sur le bord
+              // supérieur de la carte, pas posé au-dessus.
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: _cardTopInset),
+                    width: 236,
+                    height: 342,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF121214), Color(0xFF050506)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.07)),
+                      // Deux ombres superposées : une large et très diffuse pour
+                      // la profondeur, une courte au contact. Une seule ombre
+                      // marquée dessinait une barre grise nette sous la carte
+                      // plutôt qu'une ombre portée.
+                      boxShadow: widget.isDark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.16),
+                                blurRadius: 44,
+                                spreadRadius: -6,
+                                offset: const Offset(0, 22),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.10),
+                                blurRadius: 10,
+                                spreadRadius: -4,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                    ),
+                    child: Stack(
+                      children: [
+                        // Arcs concentriques dans l'angle bas-droit, très peu
+                        // contrastés — la texture du visuel de référence.
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: CustomPaint(
+                                painter: const _CornerArcsPainter()),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: AnimatedBuilder(
+                              animation: _sheenController,
+                              builder: (context, _) => CustomPaint(
+                                painter: _SheenPainter(_sheenController.value),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // La perforation n'est plus ici : elle est
+                              // positionnée au bord haut de la carte, avec
+                              // l'anneau exactement par-dessus (cf. plus bas).
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: _KartMark(isConnected: user != null),
+                              ),
+                              const Spacer(),
+                              // AnimatedSwitcher : "KART" -> le vrai nom
+                              // arrivait d'un coup dès que /me résolvait,
+                              // perçu comme un flash plutôt qu'une apparition —
+                              // un fondu de 400ms adoucit ce changement, sur
+                              // toute la durée où le nom reste affiché.
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 400),
+                                child: Text(
+                                  title,
+                                  key: ValueKey(title),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Syne',
+                                    color: Colors.white,
+                                    fontSize: 23,
+                                    height: 1.12,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 400),
+                                child: Text(
+                                  subtitle,
+                                  key: ValueKey(subtitle),
+                                  // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
+                                  // ne tient pas sur une seule à cet
+                                  // interlettrage et ressortait tronqué
+                                  // ("PROFESSIONNELL…").
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Syne',
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 9.5,
+                                    height: 1.5,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 1.6,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 400),
+                                child: Text(
+                                  footer,
+                                  key: ValueKey(footer),
+                                  style: TextStyle(
+                                    fontFamily: 'Syne',
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 1.6,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Prolonge la tige du mousqueton jusqu'à l'anneau : sans elle,
+                  // il restait ~10px vides entre le bas de la tige et l'anneau
+                  // (la carte est décalée de _cardTopInset sous le Stack).
+                  // Dessinée avant l'anneau, qui la recouvre.
+                  const Positioned(
+                    top: -1,
+                    child: SizedBox(
+                      width: _stemWidth,
+                      height: 1 + _holeCenterY - _ringSize / 2 + _ringStroke,
+                      child: ColoredBox(color: _stemColor),
+                    ),
+                  ),
+                  // Perforation de la carte, puis anneau EXACTEMENT centré
+                  // dessus : c'est ce qui donne l'impression que l'anneau
+                  // traverse le trou, au lieu d'être posé au-dessus.
+                  // _holeCenterY est partagé par les deux, il ne peut donc pas
+                  // y avoir de décalage.
+                  Positioned(
+                    top: _holeCenterY - _holeSize / 2,
+                    child: Container(
+                      width: _holeSize,
+                      height: _holeSize,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF020203),
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: AnimatedBuilder(
-                          animation: _sheenController,
-                          builder: (context, _) => CustomPaint(
-                            painter: _SheenPainter(_sheenController.value),
-                          ),
+                  ),
+                  Positioned(
+                    top: _holeCenterY - _ringSize / 2,
+                    child: Container(
+                      width: _ringSize,
+                      height: _ringSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.isDark
+                              ? Colors.white.withValues(alpha: 0.5)
+                              : Colors.black.withValues(alpha: 0.55),
+                          width: _ringStroke,
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // La perforation n'est plus ici : elle est
-                          // positionnée au bord haut de la carte, avec
-                          // l'anneau exactement par-dessus (cf. plus bas).
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: _KartMark(isConnected: user != null),
-                          ),
-                          const Spacer(),
-                          // AnimatedSwitcher : "KART" -> le vrai nom
-                          // arrivait d'un coup dès que /me résolvait,
-                          // perçu comme un flash plutôt qu'une apparition —
-                          // un fondu de 400ms adoucit ce changement, sur
-                          // toute la durée où le nom reste affiché.
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 400),
-                            child: Text(
-                              title,
-                              key: ValueKey(title),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Syne',
-                                color: Colors.white,
-                                fontSize: 23,
-                                height: 1.12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 400),
-                            child: Text(
-                              subtitle,
-                              key: ValueKey(subtitle),
-                              // 2 lignes : "IDENTITÉ PROFESSIONNELLE DIGITALE"
-                              // ne tient pas sur une seule à cet
-                              // interlettrage et ressortait tronqué
-                              // ("PROFESSIONNELL…").
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'Syne',
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 9.5,
-                                height: 1.5,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 1.6,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 400),
-                            child: Text(
-                              footer,
-                              key: ValueKey(footer),
-                              style: TextStyle(
-                                fontFamily: 'Syne',
-                                color: Colors.white.withValues(alpha: 0.3),
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 1.6,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Perforation de la carte, puis anneau EXACTEMENT centré
-              // dessus : c'est ce qui donne l'impression que l'anneau
-              // traverse le trou, au lieu d'être posé au-dessus.
-              // _holeCenterY est partagé par les deux, il ne peut donc pas
-              // y avoir de décalage.
-              Positioned(
-                top: _holeCenterY - _holeSize / 2,
-                child: Container(
-                  width: _holeSize,
-                  height: _holeSize,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF020203),
-                    shape: BoxShape.circle,
                   ),
-                ),
-              ),
-              Positioned(
-                top: _holeCenterY - _ringSize / 2,
-                child: Container(
-                  width: _ringSize,
-                  height: _ringSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: widget.isDark
-                          ? Colors.white.withValues(alpha: 0.5)
-                          : Colors.black.withValues(alpha: 0.55),
-                      width: 2.4,
-                    ),
-                  ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -720,59 +759,67 @@ class _LanyardStrapFiller extends StatelessWidget {
   }
 }
 
-/// Cordon + mousqueton au-dessus de la carte, avec le nom de la marque
-/// répété dessus comme sur le visuel de référence.
+/// Cordon au-dessus du mousqueton, avec le nom de la marque répété dessus
+/// comme sur le visuel de référence.
 class _LanyardStrap extends StatelessWidget {
   const _LanyardStrap();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Container(
+      width: 46,
+      // Couleur unie, comme _LanyardStrapFiller juste au-dessus — même
+      // raison : un dégradé par widget ne se raccorde jamais avec celui du
+      // voisin à la jonction des deux segments.
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0E11),
+        border: Border.symmetric(
+          vertical: BorderSide(
+            color: Colors.white.withValues(alpha: 0.07),
+          ),
+        ),
+      ),
       // AUCUNE hauteur fixe ici, et mainAxisSize.min : la sangle est
       // dimensionnée PAR son texte. Une hauteur en dur calée à la main
       // débordait dès que la police réelle (Syne) rendait les libellés
       // tournés plus hauts que dans mes essais — RenderFlex overflow
       // visible sur l'appareil mais pas en test, faute de la vraie police.
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 46,
-          // Couleur unie, comme _LanyardStrapFiller juste au-dessus — même
-          // raison : un dégradé par widget ne se raccorde jamais avec
-          // celui du voisin à la jonction des deux segments.
-          decoration: BoxDecoration(
-            color: const Color(0xFF0E0E11),
-            border: Border.symmetric(
-              vertical: BorderSide(
-                color: Colors.white.withValues(alpha: 0.07),
-              ),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(
-              2,
-              (_) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Text(
-                    'KART',
-                    style: TextStyle(
-                      fontFamily: 'Syne',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3,
-                      color: Colors.white.withValues(alpha: 0.62),
-                    ),
-                  ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          2,
+          (_) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                'KART',
+                style: TextStyle(
+                  fontFamily: 'Syne',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 3,
+                  color: Colors.white.withValues(alpha: 0.62),
                 ),
               ),
             ),
           ),
         ),
-        // Mousqueton : le corps métallique, puis la tige qui descend vers
-        // l'anneau (lequel traverse la perforation, cf. _SplashKartCard).
+      ),
+    );
+  }
+}
+
+/// Mousqueton : le corps métallique, puis la tige qui descend vers l'anneau
+/// (lequel traverse la perforation, cf. _SplashKartCard).
+class _LanyardClip extends StatelessWidget {
+  const _LanyardClip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Container(
           width: 28,
           height: 14,
@@ -787,9 +834,9 @@ class _LanyardStrap extends StatelessWidget {
           ),
         ),
         Container(
-          width: 5,
+          width: _stemWidth,
           height: 9,
-          color: const Color(0xFF232327),
+          color: _stemColor,
         ),
       ],
     );
