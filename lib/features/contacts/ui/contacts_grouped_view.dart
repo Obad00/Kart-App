@@ -685,11 +685,14 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
     if (highlights.isEmpty) return const SizedBox.shrink();
 
-    // 44 (pas 40) avec un padding uniquement horizontal : même piège que
-    // "Mes demandes" avant son correctif — un padding vertical à l'intérieur
-    // d'une hauteur trop juste écrasait presque le texte des puces.
+    // 36 (pas 40/44) avec un padding uniquement horizontal : vérifié par
+    // mesure avec la vraie police Syne que le texte tient pile dedans —
+    // une hauteur trop juste combinée à un padding vertical du ListView
+    // écrasait presque le texte des puces (cf. "Mes demandes" avant son
+    // correctif), mais le padding vertical du ListView est le vrai
+    // coupable, pas la hauteur en elle-même.
     return SizedBox(
-      height: 44,
+      height: 36,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,

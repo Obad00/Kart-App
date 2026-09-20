@@ -613,7 +613,11 @@ class _ExplorePageState extends State<ExplorePage> {
   // : 58 était trop juste et provoquait un débordement dans l'en-tête
   // épinglé dès que le champ dépassait de quelques pixels. Marge +6.
   static const double _searchBarHeight = 64;
-  static const double _chipsRowHeight = 44;
+  // 36 (pas 44) : vérifié par mesure avec la vraie police Syne que le
+  // texte des puces (padding vertical 10 dans FilterPillChip) tient
+  // pile dedans sans être rogné — 44 laissait trop d'air, jugé "trop
+  // grand" côté produit.
+  static const double _chipsRowHeight = 36;
 
   Widget _buildScrollable(double topPadding) {
     return CustomScrollView(

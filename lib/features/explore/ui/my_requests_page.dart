@@ -33,7 +33,10 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
   // (_chipsRowHeight) — marge de sécurité pour le texte d'une puce
   // (padding interne 10+10, cf. _StatusChip), plutôt qu'une valeur qui se
   // révèle tout juste suffisante en pratique.
-  static const double _statusChipsRowHeight = 44;
+  // 36 (pas 44) : vérifié par mesure avec la vraie police Syne que le
+  // texte des puces tient pile dedans sans être rogné — 44 laissait trop
+  // d'air, jugé "trop grand" côté produit.
+  static const double _statusChipsRowHeight = 36;
 
   @override
   void initState() {
