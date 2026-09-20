@@ -275,7 +275,14 @@ class _SplashScreenState extends State<SplashScreen>
                       constraints:
                           BoxConstraints(maxHeight: constraints.maxHeight),
                       child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                // Seulement en bas désormais (pas en haut) : ce padding
+                // de 16 en haut créait un vrai décalage visible — un
+                // interstice net entre le cordon (segment libre juste
+                // au-dessus) et le motif "KART" du segment fixe, signalé
+                // comme "le cordon est coupé" sur un appareil réel
+                // (surtout visible en mode clair, où l'interstice tranche
+                // en blanc au milieu du cordon noir).
+                padding: const EdgeInsets.only(bottom: 16),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Column(
