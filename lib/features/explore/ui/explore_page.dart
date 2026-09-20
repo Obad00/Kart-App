@@ -724,8 +724,13 @@ class _ExplorePageState extends State<ExplorePage> {
   Widget _buildCategoryChips() {
     return SizedBox(
       height: _chipsRowHeight,
+      // Horizontal seulement (pas de padding vertical) : même piège que
+      // "Mes demandes"/Contacts avant leur correctif — un padding vertical
+      // à l'intérieur d'une hauteur fixe rognait la puce sur les 44px
+      // pourtant déjà prévus pour elle, la rendant visiblement plus petite
+      // (moins de padding perçu) que les puces des autres pages.
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         children: [
           _CategoryChip(
