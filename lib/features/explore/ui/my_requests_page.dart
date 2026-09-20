@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/connection_request_item.dart';
 import '../models/explore_user.dart' show ConnectionStatus;
@@ -8,11 +7,10 @@ import '../providers/explore_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import '../../public_card/ui/public_card_page.dart';
 import '../../../shared/widgets/app_loader.dart';
+import '../../../shared/widgets/filter_pill_chip.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
-
-const _themeBlue = Color(0xFF3B82F6);
 
 /// "Mes demandes" — accepter/refuser une demande de connexion reçue,
 /// suivre celles envoyées. Anciennement un onglet de la page Explorer
@@ -190,43 +188,18 @@ class _StatusChip extends StatelessWidget {
 
   const _StatusChip({required this.label, required this.status});
 
+  // Widget partagé (lib/shared/widgets/filter_pill_chip.dart) — un seul
+  // point de vérité pour l'apparence de toutes les puces de filtre/onglet
+  // de l'app (Explorer, Mes demandes, Contacts...).
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExploreProvider>();
     final active = provider.myRequestsStatusFilter == status;
-    final colors = Theme.of(context).colorScheme;
 
-    return Material(
-      color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
-      // Même contour que le bouton "Se connecter" et que les puces
-      // d'Explorer (cf. _CategoryChip) — homogénéité demandée côté produit.
-      // 8 (coin M3 par défaut, comme les puces de Contacts) plutôt que 999 —
-      // ces puces étaient trop arrondies (pilule complète) par rapport à
-      // celles de Contacts.
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          context.read<ExploreProvider>().loadMyRequests(status: status);
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: active
-                  ? Colors.white
-                  : colors.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-        ),
-      ),
+    return FilterPillChip(
+      label: label,
+      active: active,
+      onTap: () => context.read<ExploreProvider>().loadMyRequests(status: status),
     );
   }
 }

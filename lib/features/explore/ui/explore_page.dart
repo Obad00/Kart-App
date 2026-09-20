@@ -8,6 +8,7 @@ import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../shared/widgets/filter_pill_chip.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/providers/company_events_provider.dart';
 import '../../company_community/services/company_community_service.dart';
@@ -1231,56 +1232,13 @@ class _CategoryChip extends StatelessWidget {
     required this.onTap,
   });
 
+  // Widget partagé (lib/shared/widgets/filter_pill_chip.dart) — un seul
+  // point de vérité pour l'apparence de toutes les puces de filtre/onglet
+  // de l'app (Explorer, Mes demandes, Contacts...), pour ne plus jamais
+  // avoir à rattraper les mêmes couleurs/contours à la main page par page.
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Material(
-      color: active ? _themeBlue : colors.onSurface.withValues(alpha: 0.06),
-      // Même contour que le bouton "Se connecter" (cf. ConnectActionButton /
-      // _SlideToConnectButton) — remonté côté produit : les puces n'avaient
-      // aucun trait avant, ce qui les faisait paraître à part du reste des
-      // contrôles de l'app.
-      // 8 (coin M3 par défaut, cf. Contacts qui n'impose aucun shape et
-      // hérite donc de ce rendu) plutôt que 999 : ces puces étaient bien
-      // plus arrondies (pilule complète) que celles de Contacts, alors
-      // qu'elles doivent se ressembler.
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon,
-                  size: 16,
-                  color: active
-                      ? Colors.white
-                      : colors.onSurface.withValues(alpha: 0.6)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: active
-                      ? Colors.white
-                      : colors.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return FilterPillChip(label: label, icon: icon, active: active, onTap: onTap);
   }
 }
 

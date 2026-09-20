@@ -13,6 +13,7 @@ import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../shared/widgets/filter_pill_chip.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../navigation/home_shell.dart';
@@ -684,56 +685,33 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
     if (highlights.isEmpty) return const SizedBox.shrink();
 
-    final colors = Theme.of(context).colorScheme;
-
+    // 44 (pas 40) avec un padding uniquement horizontal : même piège que
+    // "Mes demandes" avant son correctif — un padding vertical à l'intérieur
+    // d'une hauteur trop juste écrasait presque le texte des puces.
     return SizedBox(
-      height: 40,
+      height: 44,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: highlights.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
             final active = _highlightFilterId == null;
-            return ChoiceChip(
-              label: const Text('Tous highlights'),
-              selected: active,
-              onSelected: (_) => setState(() => _highlightFilterId = null),
-              labelStyle: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: active
-                    ? Colors.white
-                    : colors.onSurface.withValues(alpha: 0.7),
-              ),
-              selectedColor: _themeBlue,
-              backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-              // Même contour que les puces d'Explorer/Mes demandes —
-              // homogénéité demandée côté produit.
-              side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
+            return FilterPillChip(
+              label: 'Tous highlights',
+              active: active,
+              onTap: () => setState(() => _highlightFilterId = null),
             );
           }
 
           final highlight = highlights[index - 1];
           final active = _highlightFilterId == highlight.id;
-          return ChoiceChip(
-            label: Text(highlight.name),
-            selected: active,
-            onSelected: (_) => setState(
+          return FilterPillChip(
+            label: highlight.name,
+            active: active,
+            onTap: () => setState(
                 () => _highlightFilterId = active ? null : highlight.id),
-            labelStyle: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: active
-                  ? Colors.white
-                  : colors.onSurface.withValues(alpha: 0.7),
-            ),
-            selectedColor: _themeBlue,
-            backgroundColor: colors.onSurface.withValues(alpha: 0.06),
-            // Même contour que les puces d'Explorer/Mes demandes —
-            // homogénéité demandée côté produit.
-            side: BorderSide(color: _themeBlue.withValues(alpha: 0.3)),
           );
         },
       ),

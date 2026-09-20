@@ -233,47 +233,61 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF07070A) : const Color(0xFFF4F5F7),
-      body: Stack(
-        children: [
-          SafeArea(
-            // FittedBox(scaleDown) : sur un écran court (fenêtre web
-            // redimensionnée, petit téléphone en paysage), la colonne
-            // cordon + carte + wordmark + tagline dépassait la hauteur
-            // disponible et déclenchait un RenderFlex overflow. Elle se
-            // réduit proportionnellement au lieu d'être coupée — même
-            // parade que la card JobMatch. mainAxisSize.min est
-            // indispensable ici : sans lui, la colonne réclame une hauteur
-            // infinie dans le FittedBox.
-            //
-            // Le cordon continue désormais jusqu'en haut de l'écran, au
-            // lieu de s'arrêter net avec du vide au-dessus : un vrai
-            // cordon de badge continue derrière le cou, il ne flotte pas
-            // en l'air. Expanded (hors du FittedBox, qui ne peut pas
-            // contenir de widget flexible) pour s'étirer sur toute la
-            // hauteur restante, quelle que soit la taille de l'écran.
-            //
-            // LayoutBuilder + ConstrainedBox(maxHeight) : un Column donne
-            // à son enfant NON flexible une hauteur maximale INFINIE sur
-            // l'axe principal (c'est ce qui lui permet de calculer combien
-            // il reste pour Expanded) — sans le recontraindre nous-mêmes
-            // ici, le FittedBox scaleDown ne voit jamais de limite et ne se
-            // réduit donc plus jamais, d'où l'overflow RenderFlex constaté
-            // (regression introduite par ce Column, absente avant quand
-            // le FittedBox était sous un Center, qui borne son enfant).
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: const [_LanyardStrapFiller()],
-                      ),
+      // LayoutBuilder ici (pas plus bas) : capture la hauteur TOTALE de
+      // l'écran avant que quoi que ce soit (Column, SafeArea) ne la
+      // recontraigne ou ne l'agrandisse à l'infini pour son enfant non
+      // flexible (cf. plus bas) — c'est cette valeur, prise à la source,
+      // qui borne ensuite le FittedBox de façon fiable.
+      body: LayoutBuilder(
+        builder: (context, outerConstraints) {
+          return Stack(
+            children: [
+              // Le segment de cordon libre déborde volontairement hors de
+              // la SafeArea (remonté côté produit : le cordon s'arrêtait
+              // encore net juste sous la barre de statut) — un vrai cordon
+              // de badge continue derrière le cou, jusqu'au bord de l'écran,
+              // pas juste jusqu'au bord de la zone sûre. Sans risque pour la
+              // lisibilité : icônes de la barre de statut sur les bords,
+              // cordon étroit (46) et centré, aucun chevauchement.
+              Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: const [_LanyardStrapFiller()],
                     ),
-                    ConstrainedBox(
-                      constraints:
-                          BoxConstraints(maxHeight: constraints.maxHeight),
+                  ),
+                  // ConstrainedBox EN DEHORS de SafeArea (pas dedans) :
+                  // un Column donne à son enfant NON flexible une hauteur
+                  // maximale INFINIE sur l'axe principal (c'est ce qui lui
+                  // permet de calculer combien il reste pour Expanded) —
+                  // sans le recontraindre nous-mêmes ici, le FittedBox
+                  // scaleDown ne voit jamais de limite et ne se réduit
+                  // donc plus jamais, d'où l'overflow RenderFlex déjà
+                  // constaté une fois avec ce Column. En la mettant à
+                  // l'extérieur de SafeArea, celle-ci retire ensuite
+                  // elle-même son propre inset bas (encoche/barre de
+                  // geste) de cette valeur déjà bornée, sans qu'on ait à
+                  // le recalculer à la main.
+                  ConstrainedBox(
+                    constraints:
+                        BoxConstraints(maxHeight: outerConstraints.maxHeight),
+                    // top: false — seul le bas doit encore être respecté
+                    // ici, le haut est géré par le cordon libre juste
+                    // au-dessus (qui, lui, déborde volontairement de la
+                    // zone sûre).
+                    child: SafeArea(
+                      top: false,
+                      // FittedBox(scaleDown) : sur un écran court (fenêtre
+                      // web redimensionnée, petit téléphone en paysage),
+                      // la colonne cordon + carte + wordmark + tagline
+                      // dépassait la hauteur disponible et déclenchait un
+                      // RenderFlex overflow. Elle se réduit
+                      // proportionnellement au lieu d'être coupée — même
+                      // parade que la card JobMatch. mainAxisSize.min est
+                      // indispensable ici : sans lui, la colonne réclame
+                      // une hauteur infinie dans le FittedBox.
                       child: Padding(
                 // Seulement en bas désormais (pas en haut) : ce padding
                 // de 16 en haut créait un vrai décalage visible — un
@@ -374,12 +388,12 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                       ),
                     ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
