@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
@@ -10,6 +11,11 @@ import '../../digital_card/providers/card_provider.dart';
 import 'login_page.dart';
 import '../../navigation/home_shell.dart';
 import '../../plans/ui/plan_selection_page.dart';
+
+/// Angle du balancement du cordon entier. Il s'amorce avec l'arrivée du
+/// badge : pendant la descente d'entrée il n'oscille pas encore.
+double _lanyardAngle(Animation<double> swing, Animation<double> appear) =>
+    swing.value * appear.value.clamp(0.0, 1.0);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,6 +35,19 @@ class _SplashScreenState extends State<SplashScreen>
   // fois (0 → 1 puis s'arrête), donc passer directement sa valeur au
   // loader figeait les 3 points au lieu de les faire tourner.
   late final AnimationController _loaderController;
+
+  // Balancement du cordon ENTIER : le segment fixe du haut de l'écran et le
+  // bloc cordon + mousqueton + carte pivotent ensemble, d'un seul corps
+  // rigide, autour du même point (le haut de l'écran) — un vrai cordon
+  // accroché au sommet, pas seulement sa partie basse. Le contrôleur vit
+  // donc ici, au niveau de l'écran, et non plus dans la carte.
+  late final AnimationController _swingController;
+  late final Animation<double> _swingAnimation;
+
+  // Hauteur du segment fixe = distance entre le haut de l'écran (le pivot)
+  // et le haut du bloc cordon + carte. Mesurée par le LayoutBuilder du
+  // segment fixe, pour que le bloc pivote autour du même point que lui.
+  final ValueNotifier<double> _fillerHeight = ValueNotifier<double>(0);
 
   // La grande animation façon "intro de marque" n'a de sens qu'au tout
   // premier lancement après installation. Le système d'exploitation tue le
@@ -80,6 +99,20 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1100),
       vsync: this,
     )..repeat();
+
+    // Un aller simple en 1,5s : le splash ne dure que 2,6 à 3,8s, un
+    // balancement plus lent ne se voyait quasiment pas.
+    _swingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    // ±0,045 rad (~2,6°) autour du haut de l'écran : sur un téléphone de
+    // 844pt, ~8px de débattement latéral à la jonction, ~15px au mousqueton
+    // et ~30px au bas de la carte.
+    _swingAnimation = Tween<double>(begin: -0.045, end: 0.045).animate(
+      CurvedAnimation(parent: _swingController, curve: Curves.easeInOutSine),
+    );
 
     // When the splash animation completes, wait for auth initialization then navigate
     _animationController.addStatusListener((status) {
@@ -189,6 +222,8 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _animationController.dispose();
     _loaderController.dispose();
+    _swingController.dispose();
+    _fillerHeight.dispose();
     super.dispose();
   }
 
@@ -252,10 +287,32 @@ class _SplashScreenState extends State<SplashScreen>
               Column(
                 children: [
                   Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: const [_LanyardStrapFiller()],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final height = constraints.maxHeight;
+                        if (_fillerHeight.value != height) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) _fillerHeight.value = height;
+                          });
+                        }
+                        return AnimatedBuilder(
+                          animation: Listenable.merge(
+                              [_swingAnimation, _cardAnimation]),
+                          // Pivot : le haut de l'écran, donc le haut de ce
+                          // segment.
+                          builder: (context, child) => Transform.rotate(
+                            angle:
+                                _lanyardAngle(_swingAnimation, _cardAnimation),
+                            alignment: Alignment.topCenter,
+                            child: child,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: const [_LanyardStrapFiller()],
+                          ),
+                        );
+                      },
                     ),
                   ),
                   // ConstrainedBox EN DEHORS de SafeArea (pas dedans) :
@@ -310,6 +367,8 @@ class _SplashScreenState extends State<SplashScreen>
                                 isDark: isDark,
                                 appear: _cardAnimation,
                                 glow: _glowAnimation,
+                                swing: _swingAnimation,
+                                fillerHeight: _fillerHeight,
                               ),
 
                               // Ni wordmark ni trait décoratif sous la carte : le
@@ -390,10 +449,17 @@ class _SplashKartCard extends StatefulWidget {
   final Animation<double> appear;
   final Animation<double> glow;
 
+  /// Balancement (partagé avec le segment fixe du haut, cf.
+  /// _SplashScreenState) et hauteur de ce segment, distance jusqu'au pivot.
+  final Animation<double> swing;
+  final ValueListenable<double> fillerHeight;
+
   const _SplashKartCard({
     required this.isDark,
     required this.appear,
     required this.glow,
+    required this.swing,
+    required this.fillerHeight,
   });
 
   @override
@@ -412,12 +478,6 @@ const Color _stemColor = Color(0xFF232327);
 
 class _SplashKartCardState extends State<_SplashKartCard>
     with TickerProviderStateMixin {
-  // Balancement : un badge pendu à un cordon oscille autour de son anneau.
-  // Remplace l'ancien flottement vertical, qui faisait léviter la carte
-  // sans rapport avec l'objet.
-  late final AnimationController _swingController;
-  late final Animation<double> _swingAnimation;
-
   // Reflet qui balaie la surface — la carte est noire brillante sur le
   // visuel de référence ; sans ce passage de lumière elle paraît éteinte.
   late final AnimationController _sheenController;
@@ -425,15 +485,6 @@ class _SplashKartCardState extends State<_SplashKartCard>
   @override
   void initState() {
     super.initState();
-    _swingController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 4200),
-    )..repeat(reverse: true);
-
-    _swingAnimation = Tween<double>(begin: -0.028, end: 0.028).animate(
-      CurvedAnimation(parent: _swingController, curve: Curves.easeInOutSine),
-    );
-
     _sheenController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
@@ -442,7 +493,6 @@ class _SplashKartCardState extends State<_SplashKartCard>
 
   @override
   void dispose() {
-    _swingController.dispose();
     _sheenController.dispose();
     super.dispose();
   }
@@ -464,21 +514,22 @@ class _SplashKartCardState extends State<_SplashKartCard>
         user == null ? 'PRÊTE EN QUELQUES SECONDES' : 'MEMBRE VÉRIFIÉ';
 
     return AnimatedBuilder(
-      animation: Listenable.merge([widget.appear, _swingAnimation]),
-      // Cordon, mousqueton et carte bougent ENSEMBLE, d'un seul bloc rigide.
-      builder: (context, child) => Transform.translate(
-        // Entrée : le porte-badge DESCEND et se pose au bout de son cordon
-        // (la courbe easeOutBack donne le petit rebond d'arrivée), au lieu
-        // d'un simple grossissement sur place.
-        offset: Offset(0, -46 * (1 - widget.appear.value)),
-        // La rotation se fait autour du haut du cordon, comme un vrai badge
-        // pendu à son cou.
-        child: Transform.rotate(
-          // Le balancement s'amorce avec l'arrivée : pendant la descente le
-          // badge n'oscille pas encore (sinon le haut du cordon, décalé, se
-          // désaxerait du segment fixe).
-          angle: _swingAnimation.value * widget.appear.value.clamp(0.0, 1.0),
-          alignment: Alignment.topCenter,
+      animation:
+          Listenable.merge([widget.appear, widget.swing, widget.fillerHeight]),
+      // Cordon, mousqueton et carte bougent ENSEMBLE, d'un seul bloc rigide,
+      // et ce bloc pivote autour du HAUT DE L'ÉCRAN (le même point que le
+      // segment fixe au-dessus) : `origin` remonte le pivot de la hauteur de
+      // ce segment. La rotation est l'enveloppe EXTÉRIEURE, la descente
+      // d'entrée est à l'intérieur : sinon le pivot descendrait avec elle.
+      builder: (context, child) => Transform.rotate(
+        angle: _lanyardAngle(widget.swing, widget.appear),
+        alignment: Alignment.topCenter,
+        origin: Offset(0, -widget.fillerHeight.value),
+        child: Transform.translate(
+          // Entrée : le porte-badge DESCEND et se pose au bout de son cordon
+          // (la courbe easeOutBack donne le petit rebond d'arrivée), au lieu
+          // d'un simple grossissement sur place.
+          offset: Offset(0, -46 * (1 - widget.appear.value)),
           child: child,
         ),
       ),
@@ -717,44 +768,65 @@ class _SplashKartCardState extends State<_SplashKartCard>
 class _LanyardStrapFiller extends StatelessWidget {
   const _LanyardStrapFiller();
 
+  /// Hauteur dont le segment déborde AU-DESSUS de l'écran : il pivote autour
+  /// du haut de l'écran avec le reste du cordon, et son bord supérieur
+  /// incliné laisserait sinon apparaître un coin clair (~1px) sous la barre
+  /// de statut.
+  static const double head = 40;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 46,
-      // Couleur unie (pas de dégradé) : un dégradé calculé par widget
-      // recommence à zéro à chaque Container — avec ce segment et
-      // _LanyardStrap juste en dessous DEUX widgets distincts, leurs
-      // dégradés respectifs ne se raccordaient jamais en un point commun,
-      // ce qui créait une vraie cassure de luminosité visible à la
-      // jonction ("le cordon est coupé"). Une couleur unie élimine le
-      // risque quel que soit le découpage.
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E11),
-        border: Border.symmetric(
-          vertical: BorderSide(
-            color: Colors.white.withValues(alpha: 0.07),
-          ),
-        ),
-      ),
-      // Troisième répétition de la marque : ce segment étiré jusqu'en
-      // haut de l'écran est maintenant assez long pour en accueillir une,
-      // en plus des deux déjà sur le segment fixe juste en dessous.
-      alignment: Alignment.center,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: RotatedBox(
-          quarterTurns: 3,
-          child: Text(
-            'KART',
-            style: TextStyle(
-              fontFamily: 'Syne',
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
-              color: Colors.white.withValues(alpha: 0.62),
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -head,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: DecoratedBox(
+              // Couleur unie (pas de dégradé) : un dégradé calculé par widget
+              // recommence à zéro à chaque Container — avec ce segment et
+              // _LanyardStrap juste en dessous DEUX widgets distincts, leurs
+              // dégradés respectifs ne se raccordaient jamais en un point
+              // commun, ce qui créait une vraie cassure de luminosité
+              // visible à la jonction ("le cordon est coupé"). Une couleur
+              // unie élimine le risque quel que soit le découpage.
+              decoration: BoxDecoration(
+                color: const Color(0xFF0E0E11),
+                border: Border.symmetric(
+                  vertical: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
+          // Troisième répétition de la marque : ce segment étiré jusqu'en
+          // haut de l'écran est maintenant assez long pour en accueillir
+          // une, en plus des deux déjà sur le segment fixe juste en dessous.
+          Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  'KART',
+                  style: TextStyle(
+                    fontFamily: 'Syne',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 3,
+                    color: Colors.white.withValues(alpha: 0.62),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -766,11 +838,12 @@ class _LanyardStrap extends StatelessWidget {
   const _LanyardStrap();
 
   /// Hauteur dont le cordon déborde au-dessus de lui-même, derrière le
-  /// segment fixe : couvre le rebond d'arrivée (jusqu'à ~5px) et l'inclinaison
-  /// du balancement (< 1px), les deux seuls mouvements qui décollent le haut
-  /// du cordon du segment fixe. Assez court pour que le décalage latéral dû à
-  /// la rotation reste imperceptible (~0,3px).
-  static const double bleed = 12;
+  /// segment fixe : couvre le rebond d'arrivée (jusqu'à ~5px) et le bord
+  /// commun des deux segments, qui, tourné par le balancement, est
+  /// anti-crénelé et laisserait sinon un fil clair. Le segment fixe et le
+  /// cordon pivotent d'un seul corps autour du même point : aucun décalage
+  /// latéral entre eux.
+  static const double bleed = 10;
 
   @override
   Widget build(BuildContext context) {
