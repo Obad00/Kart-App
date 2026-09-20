@@ -771,10 +771,12 @@ class _SplashKartCardState extends State<_SplashKartCard>
 }
 
 /// Segment de cordon qui s'étire du haut de l'écran jusqu'au segment fixe
-/// de _LanyardStrap (lequel, lui, porte les 2 premiers motifs "KART" et
-/// est dimensionné par son contenu à l'intérieur du FittedBox — il ne peut
-/// donc pas être flexible). Même couleur/bordure que ce segment fixe pour
-/// que la jonction soit invisible, plus une 3e répétition de la marque.
+/// de _LanyardStrap. Même couleur/bordure que ce segment fixe pour que la
+/// jonction soit invisible, et mêmes libellés "KART" (cf. _LanyardLabel),
+/// empilés depuis le BAS : le pas est donc identique sur tout le cordon,
+/// jonction comprise, quelle que soit la hauteur de ce segment (variable
+/// selon l'écran) — un seul libellé centré dans une hauteur libre laissait
+/// des écarts inégaux avec ceux du segment fixe.
 class _LanyardStrapFiller extends StatelessWidget {
   const _LanyardStrapFiller();
 
@@ -815,28 +817,57 @@ class _LanyardStrapFiller extends StatelessWidget {
               ),
             ),
           ),
-          // Troisième répétition de la marque : ce segment étiré jusqu'en
-          // haut de l'écran est maintenant assez long pour en accueillir
-          // une, en plus des deux déjà sur le segment fixe juste en dessous.
-          Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  'KART',
-                  style: TextStyle(
-                    fontFamily: 'Syne',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3,
-                    color: Colors.white.withValues(alpha: 0.62),
+          // Libellés alignés sur le bas, rognés en haut : le cordon
+          // continue au-delà de l'écran (ou sous le bandeau "hors ligne"),
+          // un libellé coupé en haut est donc naturel.
+          ClipRect(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Nombre volontairement large (le plus petit pas possible
+                // est bien supérieur à 50px) : l'excédent est rogné.
+                final count = (constraints.maxHeight / 50).ceil() + 1;
+                return OverflowBox(
+                  alignment: Alignment.bottomCenter,
+                  minHeight: 0,
+                  maxHeight: double.infinity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      count,
+                      (_) => const _LanyardLabel(),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Un libellé "KART" du cordon : la même brique pour le segment du haut et
+/// le segment fixe, donc le même pas partout.
+class _LanyardLabel extends StatelessWidget {
+  const _LanyardLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: RotatedBox(
+        quarterTurns: 3,
+        child: Text(
+          'KART',
+          style: TextStyle(
+            fontFamily: 'Syne',
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 3,
+            color: Colors.white.withValues(alpha: 0.62),
+          ),
+        ),
       ),
     );
   }
@@ -891,25 +922,7 @@ class _LanyardStrap extends StatelessWidget {
           width: 46,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(
-              2,
-              (_) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Text(
-                    'KART',
-                    style: TextStyle(
-                      fontFamily: 'Syne',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3,
-                      color: Colors.white.withValues(alpha: 0.62),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            children: List.generate(2, (_) => const _LanyardLabel()),
           ),
         ),
       ],
