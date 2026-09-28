@@ -4,4 +4,12 @@
          splash Flutter (SplashScreen) pour un enchaînement invisible.
          La variante sombre est dans values-night/colors.xml. -->
     <color name="launch_background">#F4F5F7</color>
+    <!-- Fond de la couche arrière de l'icône adaptative de l'app (mipmap-
+         anydpi-v26/ic_launcher.xml), superposé par ic_launcher_foreground.
+         Sans rapport avec launch_background ci-dessus : celle-ci ne suit pas
+         le thème du système, une icône d'app est fixe. Supprimée par erreur
+         dans b0af2f8 (confondue avec launch_background lors du renommage),
+         ce qui cassait le build release (AAPT: resource linking failed).
+         Valeur alignée sur adaptive_icon_background dans pubspec.yaml. -->
+    <color name="ic_launcher_background">#1A1A1A</color>
 </resources>

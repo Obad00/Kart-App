@@ -52,13 +52,17 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            // Désactivé temporairement pour debug - réactiver pour production
-            isMinifyEnabled = false
-            isShrinkResources = false
-            // proguardFiles(
-            //     getDefaultProguardFile("proguard-android-optimize.txt"),
-            //     "proguard-rules.pro"
-            // )
+            // Réactivé pour la production (cf. Play Console App Bundle
+            // Explorer : "DEX code optimization: Low", "R8 configuration: -"
+            // tant que c'était désactivé). Règles de conservation dans
+            // proguard-rules.pro pour les plugins natifs sensibles à R8
+            // (Firebase, ML Kit du scanner, uCrop, WebView...).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
