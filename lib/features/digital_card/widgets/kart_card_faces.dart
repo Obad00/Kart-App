@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -22,30 +24,51 @@ class KartCardSurface extends StatelessWidget {
   final Widget child;
   final bool withShadow;
 
+  /// Couleur qui teinte le fond (cf. KartCardData.tint) ; null = noir mat.
+  final Color? tint;
+
   const KartCardSurface({
     super.key,
     required this.width,
     required this.child,
     this.withShadow = true,
+    this.tint,
   });
 
   static const double radius = 20;
+
+  /// Nuance sombre de [color] à la luminosité [lightness] : garde la teinte,
+  /// plafonne la saturation — une couleur vive (jaune, cyan...) donne ainsi
+  /// un fond sombre élégant sur lequel le texte clair reste lisible.
+  static Color _shade(Color color, double lightness) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withSaturation(math.min(hsl.saturation, 0.55))
+        .withLightness(lightness)
+        .toColor();
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = KartTokens.of(context);
     final shape = BorderRadius.circular(radius);
 
+    // Sans couleur choisie : noir mat (tokens). Avec : mêmes reliefs métal,
+    // dans une nuance sombre de la couleur.
+    final base = tint == null ? t.cardBlack : _shade(tint!, 0.13);
+    final sheen = tint == null ? t.cardSheen : _shade(tint!, 0.20);
+    final deep = tint == null ? t.cardDeep : _shade(tint!, 0.07);
+
     return Container(
       width: width,
       height: width * kartCardAspect,
       decoration: BoxDecoration(
-        color: t.cardBlack,
+        color: base,
         // Effet métal : très léger dégradé diagonal, sans reflet brillant.
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [t.cardSheen, t.cardBlack, t.cardDeep],
+          colors: [sheen, base, deep],
           stops: const [0.0, 0.45, 1.0],
         ),
         borderRadius: shape,
@@ -65,7 +88,7 @@ class KartCardSurface extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            BrushedTexture(lightStroke: t.onCard, darkStroke: t.cardBlack),
+            BrushedTexture(lightStroke: t.onCard, darkStroke: base),
             // Filigrane "K" très discret, entier, en bas à droite.
             Positioned(
               right: width * 0.05,
@@ -135,6 +158,7 @@ class KartCardQrFace extends StatelessWidget {
 
     final face = KartCardSurface(
       width: width,
+      tint: data.tint,
       child: Padding(
         padding: EdgeInsets.all(24 * s),
         child: Column(
@@ -244,6 +268,7 @@ class KartCardInfoFace extends StatelessWidget {
 
     return KartCardSurface(
       width: width,
+      tint: data.tint,
       child: Padding(
         padding: EdgeInsets.all(24 * s),
         child: Column(

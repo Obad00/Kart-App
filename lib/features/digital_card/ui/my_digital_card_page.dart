@@ -20,6 +20,7 @@ import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/coming_soon_sheet.dart';
+import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -267,7 +268,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final card = context.watch<CardProvider>();
 
     final user = auth.user;
 
@@ -277,11 +277,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
     final initials = getInitials(fullName);
 
-    final firstName = user?.firstname.trim() ?? '';
-
-    final subtitle = card.status == CardStatus.noCard
-        ? 'Créez votre carte pour commencer'
-        : 'Votre carte est prête à être partagée';
 
     final topInset = MediaQuery.of(context).padding.top;
 
@@ -326,8 +321,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                   child: CardHeader(
                     initials: initials,
                     fullName: fullName,
-                    firstName: firstName,
-                    subtitle: subtitle,
                     onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
                   ),
                 ),
@@ -483,6 +476,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           phone: state.phone,
           email: state.email,
           city: state.city,
+          // Couleur de la carte : celle de l'entreprise, sinon la couleur
+          // d'accent choisie dans "Personnaliser ma carte", sinon noir mat.
+          tint: CompanyColorHelper.parseHex(state.companyPrimaryColor) ??
+              CompanyColorHelper.parseHex(state.accentColor),
         );
 
         final cardWidth =

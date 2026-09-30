@@ -11,70 +11,31 @@ import '../../../shared/utils/session_reset.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../../auth/providers/auth_provider.dart';
 
+/// En-tête de l'écran Carte : photo (menu du profil) à gauche, bouton menu
+/// (CRM) à droite. Ni nom ni titre ici : le nom est déjà affiché en grand
+/// sur la carte juste en dessous.
 class CardHeader extends StatelessWidget {
   final String initials;
   final String fullName;
-  final String firstName;
-  final String subtitle;
   final VoidCallback? onLeadsTap;
 
   const CardHeader({
     super.key,
     required this.initials,
     required this.fullName,
-    required this.firstName,
-    required this.subtitle,
     this.onLeadsTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final t = KartTokens.of(context);
-
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Photo de profil (menu déroulant du profil) à gauche
         _ProfileDropdownButton(
           initials: initials,
           fullName: fullName,
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Prénoms longs : le texte se réduit pour tenir sur une ligne
-              // au lieu d'être coupé par "…".
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  firstName.isNotEmpty ? 'Bonjour $firstName' : 'Bonjour',
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: t.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                // 2 lignes : sur petit écran (iPhone SE), une seule ligne
-                // coupait la phrase en plein mot.
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: t.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
         // Bouton menu à droite - ouvre le CRM
         _MenuLines(onTap: onLeadsTap),
       ],
@@ -184,8 +145,8 @@ class _ProfileDropdownButton extends StatelessWidget {
         ),
       ],
       child: Container(
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: brand.withValues(alpha: 0.1),
@@ -213,7 +174,7 @@ class _ProfileDropdownButton extends StatelessWidget {
                 style: TextStyle(
                   color: brand,
                   fontWeight: FontWeight.w700,
-                  fontSize: 18,
+                  fontSize: 16,
                 ),
               ),
             ),
