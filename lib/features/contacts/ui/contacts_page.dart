@@ -52,7 +52,11 @@ class _ContactsPageState extends State<ContactsPage> {
     // (Positioned + BottomNavMetrics) plutôt que via bottom:true, car la
     // barre d'actions ci-dessous doit se placer au-dessus de la pilule de
     // nav flottante, pas seulement au-dessus de la safe area matérielle.
+    // top:false : l'en-tête en verre de ContactsGroupedView couvre lui-même
+    // la barre d'état (StickyHeaderDelegate.topInset), comme les autres
+    // onglets — sinon cette zone restait une bande opaque au scroll.
     return SafeArea(
+      top: false,
       bottom: false,
       child: Stack(
         children: [

@@ -13,25 +13,36 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final bool blurBackground;
 
+  /// Hauteur de la barre d'état à couvrir au-dessus de [child] (0 par
+  /// défaut). Pour une page sans SafeArea en haut : le verre s'étend alors
+  /// jusque derrière l'heure/la batterie, et le contenu y défile dessous au
+  /// lieu d'être coupé net sous une bande opaque.
+  final double topInset;
+
   StickyHeaderDelegate({
     required this.height,
     required this.child,
     this.blurBackground = false,
+    this.topInset = 0,
   });
 
   @override
-  double get minExtent => height;
+  double get minExtent => height + topInset;
 
   @override
-  double get maxExtent => height;
+  double get maxExtent => height + topInset;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final content = topInset == 0
+        ? child
+        : Padding(padding: EdgeInsets.only(top: topInset), child: child);
+
     if (!blurBackground) {
-      return Container(color: colors.surface, child: child);
+      return Container(color: colors.surface, child: content);
     }
 
     // RepaintBoundary : isole ce flou dans sa propre couche de composition
@@ -53,7 +64,7 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
                 ),
               ),
             ),
-            child: child,
+            child: content,
           ),
         ),
       ),
@@ -64,6 +75,7 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant StickyHeaderDelegate oldDelegate) {
     return oldDelegate.height != height ||
         oldDelegate.child != child ||
-        oldDelegate.blurBackground != blurBackground;
+        oldDelegate.blurBackground != blurBackground ||
+        oldDelegate.topInset != topInset;
   }
 }
