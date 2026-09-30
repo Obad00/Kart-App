@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/highlight_provider.dart';
+import '../models/highlight_icons.dart';
 import '../models/highlight_model.dart';
 import '../ui/event_highlight_detail_page.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
+import '../../../core/theme/kart_tokens.dart';
+
+/// Diamètre des cercles de la barre (catégories) et hauteur de la barre.
+const double _circleSize = 64;
+const double _barHeight = 100;
 
 class HighlightBar extends StatelessWidget {
   const HighlightBar({super.key});
@@ -32,16 +38,16 @@ class HighlightBar extends StatelessWidget {
     // page). Un espace vide de même hauteur le temps du chargement évite
     // ce doublon sans décaler le reste de la mise en page.
     if (provider.isLoading) {
-      return const SizedBox(height: 96);
+      return const SizedBox(height: _barHeight);
     }
 
     return SizedBox(
-      height: 96,
+      height: _barHeight,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         scrollDirection: Axis.horizontal,
         itemCount: provider.highlights.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        separatorBuilder: (_, __) => const SizedBox(width: 18),
         itemBuilder: (_, index) {
           if (index == 0) {
             return _AddHighlightButton(
@@ -88,25 +94,27 @@ class _HighlightItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.read<HighlightProvider>();
     final colors = Theme.of(context).colorScheme;
+    final t = KartTokens.of(context);
 
     // Créer les couleurs du gradient basées sur la couleur de l'entreprise
-    final Color gradientStart = isCompanyUser
-        ? accentColor
-        : const Color(0xFFE1306C); // Rose Instagram par défaut
+    final Color gradientStart =
+        isCompanyUser ? accentColor : t.categoryGradientStart;
     final Color gradientEnd = isCompanyUser
         ? HSLColor.fromColor(accentColor)
             .withLightness((HSLColor.fromColor(accentColor).lightness + 0.15)
                 .clamp(0.0, 1.0))
             .toColor()
-        : const Color(0xFFF77737); // Orange Instagram par défaut
+        : t.categoryGradientEnd;
 
-    // Couleur de fond adaptée au thème
-    final Color backgroundColor = colors.surface;
+    // Libellé et contenu du cercle actif
+    final Color activeColor =
+        isCompanyUser ? accentColor : t.categoryActiveLabel;
 
     // Couleur de bordure pour les highlights inactifs
-    final Color inactiveBorderColor = isCompanyUser
-        ? accentColor.withValues(alpha: 0.3)
-        : colors.onSurface.withValues(alpha: 0.2);
+    final Color inactiveBorderColor =
+        isCompanyUser ? accentColor.withValues(alpha: 0.3) : t.softBorder;
+
+    final IconData? icon = HighlightIcons.of(highlight.icon);
 
     return GestureDetector(
       onLongPress: () {
@@ -175,8 +183,8 @@ class _HighlightItem extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 62,
-                height: 62,
+                width: _circleSize,
+                height: _circleSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: highlight.isActive
@@ -186,12 +194,9 @@ class _HighlightItem extends StatelessWidget {
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  border: Border.all(
-                    color: highlight.isActive
-                        ? Colors.transparent
-                        : inactiveBorderColor,
-                    width: 2,
-                  ),
+                  border: highlight.isActive
+                      ? null
+                      : Border.all(color: inactiveBorderColor, width: 1.5),
                   // Alpha/rayon réduits en thème clair — remonté côté
                   // produit une seconde fois ("vraiment le diminuer") :
                   // même à 0.2, l'ombre restait bien plus lourde qu'en
@@ -212,22 +217,41 @@ class _HighlightItem extends StatelessWidget {
                         ]
                       : null,
                 ),
-                padding: const EdgeInsets.all(3),
+                // Anneau dégradé + fin liseré couleur de page entre
+                // l'anneau et le cercle (style "stories").
+                padding: EdgeInsets.all(highlight.isActive ? 2.5 : 0),
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: backgroundColor,
+                    color: t.pageBackground,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    highlight.name[0].toUpperCase(),
-                    style: TextStyle(
-                      color: highlight.isActive
-                          ? (isCompanyUser ? accentColor : gradientStart)
-                          : colors.onSurface.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                  padding: EdgeInsets.all(highlight.isActive ? 2.5 : 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: t.softFill,
                     ),
+                    alignment: Alignment.center,
+                    child: icon != null
+                        ? Icon(
+                            icon,
+                            size: 26,
+                            color: highlight.isActive
+                                ? activeColor
+                                : t.textSecondary,
+                          )
+                        : Text(
+                            highlight.name.isNotEmpty
+                                ? highlight.name[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: highlight.isActive
+                                  ? activeColor
+                                  : t.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -241,57 +265,58 @@ class _HighlightItem extends StatelessWidget {
               // l'on n'est que participant.
               if (highlight.isActive && !highlight.isCompanyEvent)
                 Positioned(
-                  top: -2,
-                  right: -2,
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _openCreateHighlightModal(
-                          context, accentColor, isCompanyUser,
-                          existing: highlight);
-                    },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: colors.surface, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.edit_rounded,
-                        size: 12,
-                        color: isCompanyUser
-                            ? accentColor
-                            : colors.onSurface.withValues(alpha: 0.7),
+                  top: -4,
+                  right: -4,
+                  child: Semantics(
+                    button: true,
+                    label: 'Modifier ${highlight.name}',
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _openCreateHighlightModal(
+                            context, accentColor, isCompanyUser,
+                            existing: highlight);
+                      },
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: t.sheetBackground,
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: t.pageBackground, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: t.cardShadow,
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.edit_rounded,
+                          size: 13,
+                          color: t.textPrimary,
+                        ),
                       ),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           SizedBox(
-            width: 70,
+            width: _circleSize + 16,
             child: Text(
               highlight.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
-                color: highlight.isActive
-                    ? (isCompanyUser ? accentColor : gradientStart)
-                    : colors.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+                color: highlight.isActive ? activeColor : t.textSecondary,
                 fontWeight:
-                    highlight.isActive ? FontWeight.w600 : FontWeight.normal,
+                    highlight.isActive ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ),
@@ -312,52 +337,56 @@ class _AddHighlightButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final t = KartTokens.of(context);
 
     // Couleur de bordure adaptée
-    final borderColor = isCompanyUser
-        ? accentColor.withValues(alpha: 0.5)
-        : colors.onSurface.withValues(alpha: 0.2);
+    final borderColor =
+        isCompanyUser ? accentColor.withValues(alpha: 0.5) : t.softBorder;
 
     // Couleur de fond
-    final bgColor = isCompanyUser
-        ? accentColor.withValues(alpha: 0.1)
-        : colors.onSurface.withValues(alpha: 0.05);
+    final bgColor =
+        isCompanyUser ? accentColor.withValues(alpha: 0.1) : t.softFill;
 
     // Couleur de l'icône et du texte
-    final contentColor =
-        isCompanyUser ? accentColor : colors.onSurface.withValues(alpha: 0.6);
+    final contentColor = isCompanyUser ? accentColor : t.textSecondary;
 
-    return GestureDetector(
-      onTap: () =>
-          _openCreateHighlightModal(context, accentColor, isCompanyUser),
-      child: Column(
-        children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: borderColor,
-                width: 1.5,
+    return Semantics(
+      button: true,
+      label: 'Nouveau highlight',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () =>
+            _openCreateHighlightModal(context, accentColor, isCompanyUser),
+        child: Column(
+          children: [
+            Container(
+              width: _circleSize,
+              height: _circleSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: borderColor,
+                  width: 1.5,
+                ),
+                color: bgColor,
               ),
-              color: bgColor,
+              child: Icon(
+                Icons.add_rounded,
+                size: 30,
+                color: contentColor,
+              ),
             ),
-            child: Icon(
-              Icons.add,
-              color: contentColor,
+            const SizedBox(height: 8),
+            Text(
+              'Nouveau',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: contentColor,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Nouveau',
-            style: TextStyle(
-              fontSize: 11,
-              color: contentColor,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -409,6 +438,9 @@ class _CreateHighlightSheet extends StatefulWidget {
 class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
   bool _isLoading = false;
 
+  // Icône choisie (clé HighlightIcons) ; null = initiale du nom.
+  late String? _icon = widget.existing?.icon;
+
   Future<void> _submit() async {
     final name = widget.controller.text.trim();
     if (name.isEmpty || _isLoading) return;
@@ -421,9 +453,9 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
 
     try {
       if (widget.existing != null) {
-        await provider.updateHighlight(widget.existing!, name);
+        await provider.updateHighlight(widget.existing!, name, icon: _icon);
       } else {
-        await provider.createHighlight(name);
+        await provider.createHighlight(name, icon: _icon);
       }
       if (navigator.mounted) {
         navigator.pop();
@@ -446,8 +478,10 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final t = KartTokens.of(context);
+    final bgColor = t.sheetBackground;
+    final textColor = t.textPrimary;
+    final choiceColor = widget.isCompanyUser ? widget.accentColor : t.activeBlue;
 
     return Container(
       decoration: BoxDecoration(
@@ -548,22 +582,71 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Text(
+              'Icône (facultatif)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Sans icône, l'initiale du nom est affichée.",
+              style: TextStyle(fontSize: 12, color: t.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: widget.controller,
+              builder: (context, value, _) {
+                final name = value.text.trim();
+                return Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _IconChoice(
+                      selected: _icon == null,
+                      color: choiceColor,
+                      semanticLabel: 'Aucune icône (initiale)',
+                      onTap: () => setState(() => _icon = null),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'A',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    for (final entry in HighlightIcons.all.entries)
+                      _IconChoice(
+                        selected: _icon == entry.key,
+                        color: choiceColor,
+                        semanticLabel: 'Icône ${entry.key}',
+                        onTap: () => setState(() => _icon = entry.key),
+                        child: Icon(entry.value, size: 22),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.isCompanyUser
                       ? widget.accentColor
-                      : const Color(0xFF3B82F6),
-                  foregroundColor: Colors.white,
+                      : t.activeBlue,
+                  foregroundColor:
+                      widget.isCompanyUser ? Colors.white : t.onActiveBlue,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   disabledBackgroundColor: (widget.isCompanyUser
                           ? widget.accentColor
-                          : const Color(0xFF3B82F6))
+                          : t.activeBlue)
                       .withValues(alpha: 0.5),
                 ),
                 onPressed: _isLoading ? null : _submit,
@@ -586,6 +669,62 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pastille de choix d'icône dans la feuille de création/modification.
+class _IconChoice extends StatelessWidget {
+  final bool selected;
+  final Color color;
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _IconChoice({
+    required this.selected,
+    required this.color,
+    required this.semanticLabel,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = KartTokens.of(context);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: selected ? color.withValues(alpha: 0.14) : t.softFill,
+            border: Border.all(
+              color: selected ? color : t.softBorder,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: IconTheme(
+            data: IconThemeData(color: selected ? color : t.textSecondary),
+            child: DefaultTextStyle.merge(
+              style: TextStyle(color: selected ? color : t.textSecondary),
+              child: child,
+            ),
+          ),
         ),
       ),
     );

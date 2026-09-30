@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../widgets/social_auth_buttons.dart';
 import '../providers/auth_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
@@ -235,6 +236,13 @@ class _RegisterPageState extends State<RegisterPage>
 
                 // Buttons
                 _buildButtons(auth),
+
+                // Inscription en un geste via Google/Apple — proposée
+                // uniquement à la 1re étape, avant la saisie manuelle.
+                if (_currentPage == 0) ...[
+                  const SizedBox(height: 24),
+                  const SocialAuthButtons(),
+                ],
 
                 const SizedBox(height: 20),
 

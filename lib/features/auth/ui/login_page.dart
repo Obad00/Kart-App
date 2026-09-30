@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../../../config/auth_config.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -108,10 +108,12 @@ class _LoginPageState extends State<LoginPage>
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: colors.onSurface.withValues(alpha: isDark ? 0.03 : 0.035),
+                      color: colors.onSurface
+                          .withValues(alpha: isDark ? 0.03 : 0.035),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
+                        color: colors.onSurface
+                            .withValues(alpha: isDark ? 0.08 : 0.1),
                         width: 1,
                       ),
                     ),
@@ -218,7 +220,8 @@ class _LoginPageState extends State<LoginPage>
                                         child: Text(
                                           auth.error!,
                                           style: TextStyle(
-                                            color: Colors.red[isDark ? 300 : 700],
+                                            color:
+                                                Colors.red[isDark ? 300 : 700],
                                             fontSize: 14,
                                           ),
                                         ),
@@ -252,10 +255,8 @@ class _LoginPageState extends State<LoginPage>
                           onTap: _isFormValid() ? () => _submit(auth) : null,
                         ),
 
-                        if (AuthConfig.enableGoogleSignIn) ...[
-                          const SizedBox(height: 24),
-                          _buildGoogleButton(auth),
-                        ],
+                        const SizedBox(height: 24),
+                        const SocialAuthButtons(),
                       ],
                     ),
                   ),
@@ -328,67 +329,6 @@ class _LoginPageState extends State<LoginPage>
         ),
       ],
     );
-  }
-
-  Widget _buildGoogleButton(AuthProvider auth) {
-    return GestureDetector(
-      onTap: auth.isGoogleLoading ? null : () => _submitGoogle(auth),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: auth.isGoogleLoading
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
-                  ),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.network(
-                    'https://www.google.com/favicon.ico',
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.g_mobiledata,
-                      color: Colors.black87,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Continuer avec Google',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Future<void> _submitGoogle(AuthProvider auth) async {
-    await auth.loginWithGoogle();
-    if (!mounted) return;
-    if (auth.isAuthenticated) {
-      if (auth.isNewUser) {
-        Navigator.pushReplacementNamed(context, '/complete-profile');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
   }
 
   Widget _buildRegisterLink(BuildContext context) {

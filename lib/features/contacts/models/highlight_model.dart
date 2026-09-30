@@ -1,6 +1,8 @@
 class HighlightModel {
   final int id;
   final String name;
+  // Clé d'icône choisie (cf. HighlightIcons) ; null = initiale du nom.
+  final String? icon;
   final bool isActive;
   // Présents seulement quand ce highlight vient d'une inscription à un
   // événement KART (formulaire public /events/{slug}/register) — voir
@@ -13,6 +15,7 @@ class HighlightModel {
   HighlightModel({
     required this.id,
     required this.name,
+    this.icon,
     required this.isActive,
     this.isCompanyEvent = false,
     this.eventId,
@@ -24,6 +27,7 @@ class HighlightModel {
     return HighlightModel(
       id: int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? '',
+      icon: json['icon'] as String?,
       isActive: json['is_active'] == true || json['is_active'] == 1,
       isCompanyEvent: json['is_company_event'] == true || json['is_company_event'] == 1,
       eventId: json['event_id'] != null ? int.tryParse(json['event_id'].toString()) : null,
