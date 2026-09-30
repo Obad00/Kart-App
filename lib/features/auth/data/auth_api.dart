@@ -22,10 +22,29 @@ class AuthApi {
     );
   }
 
-  Future<Response> googleLogin(String googleToken) {
+  Future<Response> googleLogin(String idToken) {
     return ApiClient.dio.post(
       ApiEndpoints.googleToken,
-      data: {'token': googleToken},
+      data: {'id_token': idToken},
+    );
+  }
+
+  Future<Response> appleLogin({
+    required String identityToken,
+    required String authorizationCode,
+    required String nonce,
+    String? firstname,
+    String? lastname,
+  }) {
+    return ApiClient.dio.post(
+      ApiEndpoints.appleToken,
+      data: {
+        'identity_token': identityToken,
+        'authorization_code': authorizationCode,
+        'nonce': nonce,
+        if (firstname != null && firstname.isNotEmpty) 'firstname': firstname,
+        if (lastname != null && lastname.isNotEmpty) 'lastname': lastname,
+      },
     );
   }
 
@@ -84,10 +103,11 @@ class AuthApi {
     );
   }
 
-  Future<Response> deleteAccount(String password) {
+  /// [password] null pour un compte Google/Apple sans mot de passe.
+  Future<Response> deleteAccount(String? password) {
     return ApiClient.dio.delete(
       ApiEndpoints.deleteAccount,
-      data: {'password': password},
+      data: {if (password != null) 'password': password},
       options: Options(
         // We need to handle 422/401 explicitly in provider logic.
         validateStatus: (_) => true,

@@ -11,5 +11,12 @@
 	     via l'APNs production) ne sont jamais délivrés à l'appareil. -->
 	<key>aps-environment</key>
 	<string>production</string>
+	<!-- "Se connecter avec Apple" (sign_in_with_apple). La capability doit
+	     aussi être activée sur l'App ID com.kartapp.app dans le portail
+	     Apple Developer, et le profil de distribution régénéré. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

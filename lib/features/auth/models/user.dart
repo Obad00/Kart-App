@@ -28,6 +28,9 @@ class User {
   // User::canManageCompanyCommunity() côté backend. Un owner/admin y a
   // toujours accès, indépendamment de ce champ (cf. canAccessCommunity).
   final bool canManageCommunity;
+  // false pour un compte créé via Google/Apple : pas de mot de passe à
+  // demander pour supprimer le compte (cf. _showDeleteAccountDialog).
+  final bool hasPassword;
 
   User({
     required this.id,
@@ -45,6 +48,7 @@ class User {
     this.emailVerified = true,
     this.hasTemporaryPin = false,
     this.canManageCommunity = false,
+    this.hasPassword = true,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -93,6 +97,7 @@ class User {
       emailVerified: json['email_verified'] ?? true,
       hasTemporaryPin: json['has_temporary_pin'] == true,
       canManageCommunity: json['can_manage_community'] == true,
+      hasPassword: json['has_password'] ?? true,
     );
   }
 
@@ -100,6 +105,7 @@ class User {
   bool get hasCompany => companyId != null || company != null;
   bool get isCompanyOwnerOrAdmin =>
       companyRole == 'owner' || companyRole == 'admin';
+
   /// Qui peut ouvrir "Ma communauté" (événements/participants de
   /// l'entreprise) : owner/admin toujours, plus tout collaborateur à qui
   /// l'admin a explicitement délégué cet accès depuis le CRM — remonté

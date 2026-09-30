@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
@@ -13,6 +17,15 @@ import '../models/user.dart';
 
 const String _kGoogleSignInClientId =
     String.fromEnvironment('GOOGLE_SIGN_IN_CLIENT_ID', defaultValue: '');
+
+// Client OAuth "Web" du projet Google Cloud : sur Android, l'ID token
+// n'est émis que si on le fournit, et il sert alors d'audience ("aud")
+// vérifiée par le backend (GOOGLE_ALLOWED_CLIENT_IDS).
+const String _kGoogleServerClientId = String.fromEnvironment(
+  'GOOGLE_SERVER_CLIENT_ID',
+  defaultValue:
+      '51355966688-c2943v8dcbjikh2t9j8eqape67blo9a9.apps.googleusercontent.com',
+);
 
 enum DeleteAccountStatus {
   success,
@@ -35,6 +48,8 @@ class AuthProvider extends ChangeNotifier {
     clientId: kIsWeb && _kGoogleSignInClientId.isNotEmpty
         ? _kGoogleSignInClientId
         : null,
+    // Non supporté sur le web (assertion du plugin).
+    serverClientId: kIsWeb ? null : _kGoogleServerClientId,
   );
 
   bool get _isGoogleSignInConfigured =>
@@ -43,6 +58,14 @@ class AuthProvider extends ChangeNotifier {
   bool get isPro => user?.isPro ?? false;
   bool isLoading = false;
   bool isGoogleLoading = false;
+  bool isAppleLoading = false;
+
+  /// "Se connecter avec Apple" n'est proposé que sur iOS/macOS (flux natif) —
+  /// Apple ne l'impose que là où une connexion tierce (Google) est proposée.
+  bool get isAppleSignInAvailable =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
   bool isNewUser = false;
   User? user;
   String? error;
@@ -286,7 +309,8 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('pending_plan_slug');
   }
 
-  Future<DeleteAccountResult> deleteAccount(String password) async {
+  /// [password] null pour un compte Google/Apple sans mot de passe.
+  Future<DeleteAccountResult> deleteAccount(String? password) async {
     isLoading = true;
     error = null;
     notifyListeners();
@@ -516,66 +540,106 @@ class AuthProvider extends ChangeNotifier {
   Future<void> loginWithGoogle() async {
     isGoogleLoading = true;
     error = null;
+    errorDetails = null;
     notifyListeners();
 
     try {
       if (kIsWeb && !_isGoogleSignInConfigured) {
         error =
             'Google sign-in non configuré pour le web. Ajoutez un client_id dans web/index.html ou utilisez --dart-define=GOOGLE_SIGN_IN_CLIENT_ID=...';
-        isGoogleLoading = false;
-        notifyListeners();
         return;
       }
 
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        isGoogleLoading = false;
-        notifyListeners();
+      if (googleUser == null) return; // annulé par l'utilisateur
+
+      final idToken = (await googleUser.authentication).idToken;
+      if (idToken == null) {
+        error = 'Impossible d\'obtenir le jeton Google';
         return;
       }
 
-      final googleAuth = await googleUser.authentication;
-      final accessToken = googleAuth.accessToken;
-
-      if (accessToken == null) {
-        error = 'Impossible d\'obtenir le token Google';
-        isGoogleLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final response = await _api.googleLogin(accessToken);
-      // Handle both 'access_token' and 'token' field names from backend
-      final token = response.data['access_token'] ?? response.data['token'];
-
-      if (token == null || token is! String) {
-        error = 'Erreur: token non reçu';
-        isGoogleLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      await ApiClient.setToken(token);
-      isNewUser = response.data['is_new_user'] == true;
-
-      await loadMe();
+      await _completeSocialLogin(await _api.googleLogin(idToken));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        error = 'Token Google invalide';
-      } else if (e.response?.data != null &&
-          e.response?.data['message'] != null) {
-        error = e.response?.data['message'];
-      } else {
-        error = 'Erreur de connexion Google';
-      }
-      errorDetails = e.toString();
+      error = getErrorMessage(e, fallback: 'Erreur de connexion Google');
+      debugPrint('❌ Google login: $e');
     } catch (e, st) {
       error = 'Erreur de connexion avec Google';
-      errorDetails = '$e\n$st';
+      debugPrint('❌ Google login: $e\n$st');
     } finally {
       isGoogleLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> loginWithApple() async {
+    isAppleLoading = true;
+    error = null;
+    errorDetails = null;
+    notifyListeners();
+
+    try {
+      // Nonce anti-rejeu : Apple embarque son SHA-256 dans le jeton, le
+      // backend le compare au nonce en clair qu'on lui envoie.
+      final rawNonce = _generateNonce();
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null) {
+        error = 'Impossible d\'obtenir le jeton Apple';
+        return;
+      }
+
+      // Apple ne fournit le nom qu'à la toute première autorisation.
+      await _completeSocialLogin(await _api.appleLogin(
+        identityToken: identityToken,
+        authorizationCode: credential.authorizationCode,
+        nonce: rawNonce,
+        firstname: credential.givenName,
+        lastname: credential.familyName,
+      ));
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled) {
+        error = 'Erreur de connexion avec Apple';
+        debugPrint('❌ Apple login: ${e.code} ${e.message}');
+      }
+    } on DioException catch (e) {
+      error = getErrorMessage(e, fallback: 'Erreur de connexion Apple');
+      debugPrint('❌ Apple login: $e');
+    } catch (e, st) {
+      error = 'Erreur de connexion avec Apple';
+      debugPrint('❌ Apple login: $e\n$st');
+    } finally {
+      isAppleLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Réponse commune de /auth/google/token et /auth/apple/token.
+  Future<void> _completeSocialLogin(Response response) async {
+    final token = response.data['access_token'] ?? response.data['token'];
+    if (token == null || token is! String) {
+      error = 'Erreur: token non reçu';
+      return;
+    }
+
+    await ApiClient.setToken(token);
+    isNewUser = response.data['is_new_user'] == true;
+    await loadMe();
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
   }
 
   bool get isAuthenticated => user != null;

@@ -1619,6 +1619,10 @@ class _ProfilePageState extends State<ProfilePage>
     bool isLoading = false;
     String? passwordError;
     bool obscurePassword = true;
+    // Compte Google/Apple sans mot de passe : la session suffit (le backend
+    // n'exige alors aucun mot de passe, cf. AuthService côté API).
+    final requiresPassword =
+        pageContext.read<AuthProvider>().user?.hasPassword ?? true;
 
     showDialog(
       context: context,
@@ -1628,7 +1632,7 @@ class _ProfilePageState extends State<ProfilePage>
           builder: (context, setStateDialog) {
             Future<void> handleDelete() async {
               final password = passwordController.text.trim();
-              if (password.isEmpty) {
+              if (requiresPassword && password.isEmpty) {
                 setStateDialog(() {
                   passwordError = 'Entrez votre mot de passe';
                 });
@@ -1641,7 +1645,8 @@ class _ProfilePageState extends State<ProfilePage>
               });
 
               final auth = pageContext.read<AuthProvider>();
-              final result = await auth.deleteAccount(password);
+              final result =
+                  await auth.deleteAccount(requiresPassword ? password : null);
 
               if (!dialogContext.mounted) return;
 
@@ -1739,51 +1744,53 @@ class _ProfilePageState extends State<ProfilePage>
                       color: colors.onSurface.withValues(alpha: 0.75),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: obscurePassword,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Entrez votre mot de passe',
-                      errorText: passwordError,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                setStateDialog(() {
-                                  obscurePassword = !obscurePassword;
-                                });
-                              },
-                        icon: Icon(
-                          obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                  if (requiresPassword) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      enabled: !isLoading,
+                      decoration: InputDecoration(
+                        hintText: 'Entrez votre mot de passe',
+                        errorText: passwordError,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  setStateDialog(() {
+                                    obscurePassword = !obscurePassword;
+                                  });
+                                },
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
                         ),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colors.onSurface.withValues(alpha: 0.15),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colors.primary,
-                          width: 1.3,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: colors.onSurface.withValues(alpha: 0.15),
+                          ),
                         ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: colors.primary,
+                            width: 1.3,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 18),
                   Row(
                     children: [

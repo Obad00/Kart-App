@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../../digital_card/providers/card_provider.dart';
+import '../../../shared/onboarding/onboarding_prefs.dart';
+import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 
@@ -83,12 +86,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
-
     if (success) {
-      // Nouveau user Google -> rediriger vers le choix de plan
-      Navigator.pushReplacementNamed(context, '/plans');
+      await _proceed();
     } else {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(auth.error ?? 'Une erreur est survenue'),
@@ -98,8 +99,30 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     }
   }
 
-  void _skip() {
-    // Meme en skippant, on va vers les plans
+  Future<void> _skip() async {
+    // Même en skippant, on crée la carte puis on va vers les plans.
+    setState(() => _isLoading = true);
+    await _proceed();
+  }
+
+  /// Nouveau compte Google/Apple : email déjà vérifié par le fournisseur,
+  /// donc pas d'EmailVerificationPage — on reproduit ici ce qu'elle fait
+  /// une fois l'email confirmé (carte digitale par défaut + invitation à
+  /// compléter poste/entreprise), puis on reprend vers le choix du plan.
+  Future<void> _proceed() async {
+    try {
+      await CardService.createDefaultCard();
+    } catch (e) {
+      // Non bloquant : MyDigitalCardPage retombe sur le CTA "Créer ma carte".
+      debugPrint('⚠️ Création auto de la carte échouée (non bloquant): $e');
+    }
+
+    await OnboardingPrefs.markPendingJobCompanyPrompt();
+    if (!mounted) return;
+
+    await context.read<CardProvider>().loadCardSummary();
+    if (!mounted) return;
+
     Navigator.pushReplacementNamed(context, '/plans');
   }
 
@@ -191,10 +214,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: colors.onSurface.withValues(alpha: isDark ? 0.03 : 0.035),
+                      color: colors.onSurface
+                          .withValues(alpha: isDark ? 0.03 : 0.035),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: colors.onSurface.withValues(alpha: isDark ? 0.08 : 0.1),
+                        color: colors.onSurface
+                            .withValues(alpha: isDark ? 0.08 : 0.1),
                         width: 1,
                       ),
                     ),
@@ -280,7 +305,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
                         Center(
                           child: TextButton(
-                            onPressed: _skip,
+                            onPressed: _isLoading ? null : _skip,
                             child: Text(
                               'Passer cette étape',
                               style: TextStyle(
@@ -302,7 +327,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     );
   }
 
-  Widget _buildStep(ColorScheme colors, int number, String label, bool isActive) {
+  Widget _buildStep(
+      ColorScheme colors, int number, String label, bool isActive) {
     return Expanded(
       child: Column(
         children: [
@@ -325,7 +351,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
               child: Text(
                 '$number',
                 style: TextStyle(
-                  color: isActive ? colors.surface : colors.onSurface.withValues(alpha: 0.5),
+                  color: isActive
+                      ? colors.surface
+                      : colors.onSurface.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -336,7 +364,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
           Text(
             label,
             style: TextStyle(
-              color: isActive ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+              color: isActive
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.4),
               fontSize: 12,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
             ),
