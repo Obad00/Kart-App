@@ -247,11 +247,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
     final initials = getInitials(fullName);
 
-    final subtitle = card.company?.isNotEmpty == true
-        ? card.company!
-        : card.jobTitle?.isNotEmpty == true
-            ? card.jobTitle!
-            : 'Membre';
+    final firstName = user?.firstname.trim() ?? '';
+
+    final subtitle = card.status == CardStatus.noCard
+        ? 'Créez votre carte pour commencer'
+        : 'Votre carte est prête à être partagée';
 
     return _wrapScaffold(
       context,
@@ -283,6 +283,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       child: CardHeader(
                         initials: initials,
                         fullName: fullName,
+                        firstName: firstName,
                         subtitle: subtitle,
                         onLeadsTap: () =>
                             Navigator.pushNamed(context, '/leads'),
