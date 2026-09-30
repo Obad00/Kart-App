@@ -65,7 +65,7 @@ class _CardQuickActionsState extends State<CardQuickActions> {
                       decoration: BoxDecoration(
                         color: t.softFill,
                         shape: BoxShape.circle,
-                        border: Border.all(color: t.softBorder),
+                        border: Border.all(color: t.buttonStroke, width: 1),
                       ),
                       alignment: Alignment.center,
                       child: _busy.contains(i)

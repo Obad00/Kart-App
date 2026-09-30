@@ -41,6 +41,13 @@ class KartCardSurface extends StatelessWidget {
       height: width * kartCardAspect,
       decoration: BoxDecoration(
         color: t.cardBlack,
+        // Effet métal : très léger dégradé diagonal, sans reflet brillant.
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [t.cardSheen, t.cardBlack, t.cardDeep],
+          stops: const [0.0, 0.45, 1.0],
+        ),
         borderRadius: shape,
         border: Border.all(color: t.cardBorder, width: 1),
         boxShadow: withShadow
@@ -59,6 +66,38 @@ class KartCardSurface extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             BrushedTexture(lightStroke: t.onCard, darkStroke: t.cardBlack),
+            // Filigrane "K" très discret, entier, en bas à droite.
+            Positioned(
+              right: width * 0.05,
+              bottom: -width * 0.04,
+              child: Text(
+                'K',
+                style: TextStyle(
+                  color: t.onCard.withValues(alpha: 0.045),
+                  fontSize: width * 0.55,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+            ),
+            // Fin liseré lumineux sur le bord supérieur (tranche métal).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      t.onCard.withValues(alpha: 0),
+                      t.onCard.withValues(alpha: 0.14),
+                      t.onCard.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             child,
           ],
         ),
@@ -77,12 +116,16 @@ class KartCardQrFace extends StatelessWidget {
   /// Clé du RepaintBoundary du bloc QR complet (export "Télécharger").
   final GlobalKey? captureKey;
 
+  /// Tap sur la carte en dehors du QR (le QR garde son propre geste).
+  final VoidCallback? onTapCard;
+
   const KartCardQrFace({
     super.key,
     required this.width,
     required this.data,
     required this.qr,
     this.captureKey,
+    this.onTapCard,
   });
 
   @override
@@ -98,16 +141,16 @@ class KartCardQrFace extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _CardTopRow(data: data, scale: s),
-            SizedBox(height: 18 * s),
+            SizedBox(height: 16 * s),
             _NameBlock(data: data, scale: s),
-            SizedBox(height: 14 * s),
+            SizedBox(height: 12 * s),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, c) {
                   // Place réservée à la ligne "Scannez pour me contacter".
                   final footer = 30 * s;
                   final side =
-                      (c.maxHeight - footer).clamp(0.0, width * 0.56);
+                      (c.maxHeight - footer).clamp(0.0, width * 0.58);
                   return Column(
                     children: [
                       Expanded(
@@ -161,8 +204,15 @@ class KartCardQrFace extends StatelessWidget {
       ),
     );
 
-    if (captureKey == null) return face;
-    return RepaintBoundary(key: captureKey, child: face);
+    final tappable = onTapCard == null
+        ? face
+        : GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTapCard,
+            child: face,
+          );
+    if (captureKey == null) return tappable;
+    return RepaintBoundary(key: captureKey, child: tappable);
   }
 }
 
@@ -230,50 +280,51 @@ class _CardTopRow extends StatelessWidget {
         _LogoTile(data: data, size: 34 * s),
         if (data.hasBrandName) ...[
           SizedBox(width: 10 * s),
-          Flexible(
+          Expanded(
             child: Text(
               data.brandName!.toUpperCase(),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: t.onCard,
-                fontSize: 13 * s,
+                fontSize: 11.5 * s,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
+                letterSpacing: 1.1,
+                height: 1.25,
               ),
             ),
           ),
         ] else
           const Spacer(),
         SizedBox(width: 12 * s),
-        if (data.badgeLabel != null) ...[
+        // Compte entreprise : le badge (ex: PRO) prend la place de "KART".
+        if (data.badgeLabel != null)
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 6 * s, vertical: 2 * s),
+            padding: EdgeInsets.symmetric(horizontal: 8 * s, vertical: 3 * s),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6 * s),
-              border: Border.all(color: t.onCardMuted.withValues(alpha: 0.5)),
+              border: Border.all(color: t.onCard.withValues(alpha: 0.6)),
             ),
             child: Text(
               data.badgeLabel!,
               style: TextStyle(
-                color: t.onCardMuted,
-                fontSize: 9 * s,
+                color: t.onCard,
+                fontSize: 12 * s,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 1,
+                letterSpacing: 1.5,
               ),
             ),
+          )
+        else
+          Text(
+            'KART',
+            style: TextStyle(
+              color: t.onCard,
+              fontSize: 17 * s,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
           ),
-          SizedBox(width: 8 * s),
-        ],
-        Text(
-          'KART',
-          style: TextStyle(
-            color: t.onCard,
-            fontSize: 17 * s,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
-          ),
-        ),
       ],
     );
   }
@@ -343,13 +394,14 @@ class _NameBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Noms longs : jusqu'à 2 lignes et police réduite plutôt que "…".
         Text(
           data.fullName,
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: t.onCard,
-            fontSize: 25 * s,
+            fontSize: (data.fullName.length > 16 ? 20 : 24) * s,
             fontWeight: FontWeight.w700,
             height: 1.15,
           ),

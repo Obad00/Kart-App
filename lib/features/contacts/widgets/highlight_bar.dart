@@ -47,7 +47,7 @@ class HighlightBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         scrollDirection: Axis.horizontal,
         itemCount: provider.highlights.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (_, index) {
           if (index == 0) {
             return _AddHighlightButton(
@@ -305,8 +305,10 @@ class _HighlightItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: _circleSize + 16,
+          // Largeur ajustée au libellé (au plus 84) : un libellé court
+          // ("Amis") n'élargit plus l'élément au-delà de son cercle.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 84),
             child: Text(
               highlight.name,
               maxLines: 1,

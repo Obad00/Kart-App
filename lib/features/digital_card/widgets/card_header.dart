@@ -43,15 +43,20 @@ class CardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                firstName.isNotEmpty ? 'Bonjour $firstName' : 'Bonjour',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: t.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
+              // Prénoms longs : le texte se réduit pour tenir sur une ligne
+              // au lieu d'être coupé par "…".
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  firstName.isNotEmpty ? 'Bonjour $firstName' : 'Bonjour',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -63,7 +68,7 @@ class CardHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: t.textSecondary,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -84,14 +89,12 @@ class _MenuLines extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Couleur de marque de l'entreprise (comme HomeShell) plutôt qu'un gris
-    // neutre : ce bouton restait le seul élément de l'en-tête de carte à
-    // ignorer le branding — remonté côté produit. Sans branding : bleu actif
-    // du thème (éclairci en sombre), sur fond bleu clair.
+    // Compte entreprise : couleur de marque de l'entreprise (comme HomeShell).
+    // Compte individuel : bouton neutre, comme les icônes des statistiques.
     final t = KartTokens.of(context);
-    final brand = CompanyColorHelper.getBrandColorOrNull(context);
-    final fg = brand ?? t.activeBlue;
-    final bg = brand?.withValues(alpha: 0.12) ?? t.activeBlueBackground;
+    final brand = CompanyColorHelper.getCompanyColorOrNull(context);
+    final fg = brand ?? t.textPrimary;
+    final bg = brand?.withValues(alpha: 0.12) ?? t.softFill;
 
     return Semantics(
       button: true,
@@ -107,7 +110,10 @@ class _MenuLines extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: fg.withValues(alpha: 0.15), width: 1),
+            border: Border.all(
+              color: brand?.withValues(alpha: 0.15) ?? t.softBorder,
+              width: 1,
+            ),
           ),
           child: Icon(Icons.menu_rounded, color: fg, size: 26),
         ),
