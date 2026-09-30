@@ -39,6 +39,10 @@ class CompanyColorHelper {
         cardProvider.companyPrimaryColor!.isNotEmpty;
   }
 
+  /// Parse une couleur hexadécimale ("#3B82F6" ou "3B82F6") ; null si
+  /// absente ou invalide.
+  static Color? parseHex(String? hexColor) => _parseColor(hexColor);
+
   /// Parse une couleur hexadécimale
   static Color? _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return null;
