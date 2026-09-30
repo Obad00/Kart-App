@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/kart_tokens.dart';
 import 'kart_card_faces.dart';
 
-/// Carte de visite retournable : une face principale au premier plan et
-/// l'autre face qui dépasse derrière, à droite — un tap sur cette partie
-/// visible retourne la carte (rotation Y). Les deux faces ont exactement la
-/// même taille (KartCardSurface).
+/// Carte de visite à deux faces : une face au premier plan et l'autre qui
+/// dépasse derrière, à droite. Changer de face fait passer la carte de
+/// devant derrière pendant que celle de derrière avance au premier plan
+/// (échange façon paquet de cartes), en suivant le doigt pendant un swipe.
+/// Les deux faces ont exactement la même taille (KartCardSurface).
 ///
-/// L'état (quelle face, progression de la rotation) est piloté par
-/// [animation] (0 = face QR, 1 = face infos), possédée par la page : le
-/// bouton sous la carte et les points utilisent la même source.
+/// L'état est piloté par [animation] (0 = face QR devant, 1 = face infos
+/// devant), possédée par la page : le bouton sous la carte, les points et
+/// le swipe utilisent la même source.
 class KartFlipCard extends StatelessWidget {
   final double width;
   final Animation<double> animation;
@@ -25,6 +26,12 @@ class KartFlipCard extends StatelessWidget {
 
   final VoidCallback onFlip;
 
+  /// Swipe horizontal sur la face principale : la carte suit le doigt.
+  /// [onDragUpdate] reçoit le déplacement horizontal, [onDragEnd] la
+  /// vitesse horizontale au lâcher.
+  final ValueChanged<double>? onDragUpdate;
+  final ValueChanged<double>? onDragEnd;
+
   const KartFlipCard({
     super.key,
     required this.width,
@@ -34,12 +41,14 @@ class KartFlipCard extends StatelessWidget {
     required this.qrFacePeek,
     required this.infoFacePeek,
     required this.onFlip,
+    this.onDragUpdate,
+    this.onDragEnd,
   });
 
   /// Largeur de la carte pour un écran donné : laisse la place à la face
   /// qui dépasse à droite, plafonnée pour les grands écrans.
   static double widthFor(double screenWidth) =>
-      math.min(screenWidth - 72, 330).toDouble();
+      (screenWidth * 0.72).clamp(240.0, 300.0);
 
   /// Partie de la face arrière qui dépasse à droite.
   static double peekFor(double width) => width * 0.12;
@@ -53,67 +62,94 @@ class KartFlipCard extends StatelessWidget {
       animation: animation,
       builder: (context, _) {
         final t = animation.value;
-        final angle = t * math.pi;
-        final showingInfo = t >= 0.5;
+        final qrInFront = t < 0.5;
+        // Arc de l'échange : 0 aux extrémités, 1 au milieu.
+        final arc = math.sin(math.pi * t);
 
-        final front = showingInfo
-            ? Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.rotationY(math.pi),
-                child: infoFace,
-              )
-            : qrFace;
+        // Carte qui recule (celle de devant au départ) : glisse vers la
+        // gauche puis va se ranger derrière, à droite.
+        Widget leaving(Widget child, double p) => _posed(
+              child: child,
+              dx: peek * p - arc * width * 0.42,
+              scale: 1 - 0.08 * p,
+              angle: 0.06 * p - arc * 0.10,
+            );
 
-        return SizedBox(
-          width: width + peek,
-          height: height,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Autre face, derrière, légèrement inclinée et décalée à droite.
-              Positioned(
-                left: peek,
-                top: 0,
-                child: Semantics(
-                  button: true,
-                  label: showingInfo ? 'Afficher le QR' : 'Afficher la carte',
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onFlip,
-                    child: Transform.rotate(
-                      angle: 0.06,
-                      child: Transform.scale(
-                        scale: 0.92,
-                        // Ancrée à droite : la face réduite dépasse de
-                        // [peek] à droite de la face principale.
-                        alignment: Alignment.centerRight,
-                        child: IgnorePointer(
-                          child: Opacity(
-                            opacity: 0.92,
-                            child: showingInfo ? qrFacePeek : infoFacePeek,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+        // Carte qui avance (celle de derrière au départ) : s'avance vers
+        // la place de devant avec un léger décalage à droite.
+        Widget coming(Widget child, double p) => _posed(
+              child: child,
+              dx: peek * (1 - p) + arc * width * 0.12,
+              scale: 0.92 + 0.08 * p,
+              angle: 0.06 * (1 - p) + arc * 0.04,
+            );
+
+        // Les gestes sont posés DANS la transformation de chaque carte :
+        // la zone de tap suit ainsi la carte là où elle est dessinée (la
+        // partie de derrière qui dépasse à droite reste cliquable).
+        Widget asBack(Widget face) => Semantics(
+              button: true,
+              label: qrInFront ? 'Afficher la carte' : 'Afficher le QR',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onFlip,
+                child: IgnorePointer(child: face),
               ),
-              // Face principale, rotation Y avec perspective.
-              Positioned(
-                left: 0,
-                top: 0,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0012)
-                    ..rotateY(angle),
-                  child: front,
-                ),
-              ),
-            ],
+            );
+        Widget asFront(Widget face) => face;
+
+        // QR : part de devant (p = t). Infos : part de derrière (p = t).
+        final qrCard =
+            leaving(qrInFront ? asFront(qrFace) : asBack(qrFacePeek), t);
+        final infoCard =
+            coming(qrInFront ? asBack(infoFacePeek) : asFront(infoFace), t);
+
+        // Swipe détecté sur toute la zone des cartes (fixe) plutôt que sur
+        // la carte de devant : les cartes échangent leur ordre à mi-course,
+        // ce qui aurait interrompu le geste en cours.
+        return GestureDetector(
+          onHorizontalDragUpdate: onDragUpdate == null
+              ? null
+              : (d) => onDragUpdate!(d.delta.dx),
+          onHorizontalDragEnd: onDragEnd == null
+              ? null
+              : (d) => onDragEnd!(d.velocity.pixelsPerSecond.dx),
+          child: SizedBox(
+            width: width + peek,
+            height: height,
+            child: Stack(
+              clipBehavior: Clip.none,
+              // La carte de devant est peinte en dernier (au-dessus).
+              children: qrInFront ? [infoCard, qrCard] : [qrCard, infoCard],
+            ),
           ),
         );
       },
+    );
+  }
+
+  /// Place une face selon sa pose (décalage, échelle ancrée à droite,
+  /// inclinaison) dans la zone commune aux deux cartes.
+  Widget _posed({
+    required Widget child,
+    required double dx,
+    required double scale,
+    required double angle,
+  }) {
+    return Transform.translate(
+      offset: Offset(dx, 0),
+      child: Transform.rotate(
+        angle: angle,
+        child: Transform.scale(
+          scale: scale,
+          // Ancrée à droite : en pose "derrière", la face réduite dépasse
+          // de [peek] à droite de la face de devant.
+          alignment: Alignment.centerRight,
+          // Cartes opaques : aucune transparence, pour qu'on ne voie jamais
+          // le texte de celle de derrière à travers celle de devant.
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -134,9 +170,11 @@ class KartFlipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = KartTokens.of(context);
 
+    // Même fond et même contour (couleur + 1 px) que les boutons d'action
+    // ronds (CardQuickActions) : l'ensemble sous la carte reste homogène.
     return Material(
-      color: t.buttonBackground,
-      shape: StadiumBorder(side: BorderSide(color: t.softBorder)),
+      color: t.softFill,
+      shape: StadiumBorder(side: BorderSide(color: t.buttonStroke, width: 1)),
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,

@@ -26,8 +26,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
   /// Contour fin des cercles/boutons secondaires.
   final Color softBorder;
 
-  /// Bleu des éléments actifs (onglet, bouton menu, icônes d'action).
-  /// Éclairci en sombre pour rester lisible.
+  /// Bleu des éléments actifs (icônes d'action, boutons pleins) — même bleu
+  /// que les boutons de l'Explorer (#3B82F6), dans les deux thèmes.
   final Color activeBlue;
 
   /// Fond léger derrière un élément actif bleu (bouton menu, pastilles).
@@ -68,6 +68,15 @@ class KartTokens extends ThemeExtension<KartTokens> {
   /// Texte/icône posé sur un fond [activeBlue] (bouton plein).
   final Color onActiveBlue;
 
+  /// Coin clair du dégradé métal de la carte (haut gauche).
+  final Color cardSheen;
+
+  /// Coin sombre du dégradé métal de la carte (bas droite).
+  final Color cardDeep;
+
+  /// Contour fin (1 px) des boutons sous la carte : plus léger que [softBorder], pour paraître aussi fin que celui des boutons de l'Explorer.
+  final Color buttonStroke;
+
   /// Point "Scannez pour me contacter" et tendance à la hausse.
   final Color positive;
 
@@ -95,6 +104,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     required this.cardShadow,
     required this.attention,
     required this.onActiveBlue,
+    required this.cardSheen,
+    required this.cardDeep,
+    required this.buttonStroke,
     required this.positive,
     required this.negative,
   });
@@ -106,7 +118,7 @@ class KartTokens extends ThemeExtension<KartTokens> {
     sheetBackground: Color(0xFFFFFFFF),
     softFill: Color(0xFFEDECE8),
     softBorder: Color(0xFFE0DFDA),
-    activeBlue: Color(0xFF2F6FED),
+    activeBlue: Color(0xFF3B82F6),
     activeBlueBackground: Color(0xFFE3ECFD),
     cardBlack: Color(0xFF111111),
     cardBorder: Color(0x00000000),
@@ -120,6 +132,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     cardShadow: Color(0x29000000),
     attention: Color(0xFFF59E0B),
     onActiveBlue: Color(0xFFFFFFFF),
+    cardSheen: Color(0xFF1F1F1F),
+    cardDeep: Color(0xFF0A0A0A),
+    buttonStroke: Color(0x80D6D4CE),
     positive: Color(0xFF16A34A),
     negative: Color(0xFFDC2626),
   );
@@ -131,7 +146,7 @@ class KartTokens extends ThemeExtension<KartTokens> {
     sheetBackground: Color(0xFF222222),
     softFill: Color(0xFF262626),
     softBorder: Color(0xFF333333),
-    activeBlue: Color(0xFF7AA7FF),
+    activeBlue: Color(0xFF3B82F6),
     activeBlueBackground: Color(0xFF22324D),
     cardBlack: Color(0xFF111111),
     cardBorder: Color(0xFF2A2A2A),
@@ -144,7 +159,10 @@ class KartTokens extends ThemeExtension<KartTokens> {
     qrBackground: Color(0xFFFFFFFF),
     cardShadow: Color(0x66000000),
     attention: Color(0xFFFBBF24),
-    onActiveBlue: Color(0xFF0B1B33),
+    onActiveBlue: Color(0xFFFFFFFF),
+    cardSheen: Color(0xFF1F1F1F),
+    cardDeep: Color(0xFF0A0A0A),
+    buttonStroke: Color(0x1AFFFFFF),
     positive: Color(0xFF4ADE80),
     negative: Color(0xFFF87171),
   );
@@ -175,6 +193,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     Color? cardShadow,
     Color? attention,
     Color? onActiveBlue,
+    Color? cardSheen,
+    Color? cardDeep,
+    Color? buttonStroke,
     Color? positive,
     Color? negative,
   }) {
@@ -200,6 +221,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
       cardShadow: cardShadow ?? this.cardShadow,
       attention: attention ?? this.attention,
       onActiveBlue: onActiveBlue ?? this.onActiveBlue,
+      cardSheen: cardSheen ?? this.cardSheen,
+      cardDeep: cardDeep ?? this.cardDeep,
+      buttonStroke: buttonStroke ?? this.buttonStroke,
       positive: positive ?? this.positive,
       negative: negative ?? this.negative,
     );
@@ -231,6 +255,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
       cardShadow: l(cardShadow, other.cardShadow),
       attention: l(attention, other.attention),
       onActiveBlue: l(onActiveBlue, other.onActiveBlue),
+      cardSheen: l(cardSheen, other.cardSheen),
+      cardDeep: l(cardDeep, other.cardDeep),
+      buttonStroke: l(buttonStroke, other.buttonStroke),
       positive: l(positive, other.positive),
       negative: l(negative, other.negative),
     );

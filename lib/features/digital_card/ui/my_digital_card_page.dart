@@ -210,6 +210,32 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   /// Retourne la carte (bouton sous la carte, tap sur la face qui dépasse).
   void _toggleFace() => _showFace(!_showingInfo);
 
+  // Swipe : face de départ et distance parcourue depuis le début du geste.
+  bool? _dragFromInfo;
+  double _dragDistance = 0;
+
+  /// La carte suit le doigt, dans les deux sens : la progression dépend de
+  /// la distance horizontale parcourue, pas de sa direction.
+  void _onCardDrag(double dx, double cardWidth) {
+    _dragFromInfo ??= _showingInfo;
+    _dragDistance += dx;
+    final progress = (_dragDistance.abs() / cardWidth).clamp(0.0, 1.0);
+    _flipCtrl.value = _dragFromInfo! ? 1 - progress : progress;
+  }
+
+  /// Au lâcher : l'autre face si le geste est rapide ou a dépassé la
+  /// moitié, sinon retour à la face de départ.
+  void _onCardDragEnd(double velocity) {
+    final fromInfo = _dragFromInfo ?? _showingInfo;
+    _dragFromInfo = null;
+    _dragDistance = 0;
+    final crossed = fromInfo ? _flipCtrl.value < 0.5 : _flipCtrl.value > 0.5;
+    final flipToOther = crossed || velocity.abs() > 350;
+    final target = flipToOther ? !fromInfo : fromInfo;
+    if (target != fromInfo) HapticFeedback.selectionClick();
+    target ? _flipCtrl.forward() : _flipCtrl.reverse();
+  }
+
   Future<void> _showFace(bool info) {
     HapticFeedback.selectionClick();
     return info ? _flipCtrl.forward() : _flipCtrl.reverse();
@@ -257,56 +283,89 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         ? 'Créez votre carte pour commencer'
         : 'Votre carte est prête à être partagée';
 
+    final topInset = MediaQuery.of(context).padding.top;
+
+    // Mode minimal (verso de ScanPage) : la carte seule, centrée, sous
+    // l'en-tête de ScanPage.
+    if (widget.minimal) {
+      return _wrapScaffold(
+        context,
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 56, bottom: 20),
+            child: Center(
+              child: SingleChildScrollView(
+                child: _buildCardArea(user, fullName),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return _wrapScaffold(
       context,
-      SafeArea(
-        bottom: false,
-        child: widget.minimal
-            // Mode minimal (verso de ScanPage) : la carte seule, centrée,
-            // sous l'en-tête de ScanPage.
-            ? Padding(
-                padding: const EdgeInsets.only(top: 56, bottom: 20),
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: _buildCardArea(user, fullName),
+      Stack(
+        children: [
+          SingleChildScrollView(
+            // Le contenu démarre sous la barre d'état et défile ensuite
+            // derrière la bande de verre posée par-dessus (cf. plus bas).
+            padding: EdgeInsets.only(
+              top: topInset,
+              bottom: BottomNavMetrics.bottomInset(
+                      MediaQuery.of(context).padding.bottom) +
+                  12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header avec menu hamburger et profil
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: CardHeader(
+                    initials: initials,
+                    fullName: fullName,
+                    firstName: firstName,
+                    subtitle: subtitle,
+                    onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
                   ),
                 ),
-              )
-            : SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  bottom: BottomNavMetrics.bottomInset(
-                          MediaQuery.of(context).padding.bottom) +
-                      12,
+                const SizedBox(height: 8),
+                // Highlights (catégories) sous le header
+                Showcase(
+                  key: _highlightBarKeyInternal,
+                  title: 'Highlights',
+                  description:
+                      "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
+                  child: const HighlightBar(),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header avec menu hamburger et profil
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: CardHeader(
-                        initials: initials,
-                        fullName: fullName,
-                        firstName: firstName,
-                        subtitle: subtitle,
-                        onLeadsTap: () =>
-                            Navigator.pushNamed(context, '/leads'),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Highlights (catégories) sous le header
-                    Showcase(
-                      key: _highlightBarKeyInternal,
-                      title: 'Highlights',
-                      description:
-                          "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
-                      child: const HighlightBar(),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildCardArea(user, fullName),
-                  ],
+                const SizedBox(height: 20),
+                _buildCardArea(user, fullName),
+              ],
+            ),
+          ),
+          // Bande de verre sous la barre d'état : même flou et même teinte
+          // que GlassAppBar sur les autres onglets — le contenu y défile
+          // derrière au lieu d'être coupé net.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: topInset,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.surface.withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.32
+                          : 0.5),
                 ),
               ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -413,9 +472,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         final data = KartCardData(
           fullName: fullName,
           jobTitle: state.jobTitle,
-          brandName: hasCompanyBranding
-              ? (state.company ?? user?.company?.name)
-              : null,
+          // Nom de l'entreprise à côté du logo : celui du compte entreprise,
+          // sinon celui saisi sur la carte (compte individuel).
+          brandName: state.company?.trim().isNotEmpty == true
+              ? state.company
+              : user?.company?.name,
           logoUrl: logoUrl,
           logoIsPhoto: logoUrl != null && logoUrl == avatarUrl,
           badgeLabel: hasCompanyBranding ? 'PRO' : null,
@@ -438,11 +499,20 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     width: cardWidth,
                     animation: _flip,
                     onFlip: _toggleFace,
+                    onDragUpdate: (dx) => _onCardDrag(dx, cardWidth),
+                    onDragEnd: _onCardDragEnd,
                     qrFace: KartCardQrFace(
                       width: cardWidth,
                       data: data,
                       qr: _buildQr(state.qrSvg!),
                       captureKey: _fullCardKey,
+                      // Tap sur la carte hors QR : QR en plein écran (le QR
+                      // lui-même ouvre la page de scan).
+                      onTapCard: () {
+                        HapticFeedback.lightImpact();
+                        QrFullscreenView.show(
+                            context, _buildQrOnly(state.qrSvg!));
+                      },
                     ),
                     infoFace: KartCardInfoFace(width: cardWidth, data: data),
                     // Faces de derrière : sans clé ni geste (évite les
@@ -587,18 +657,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       final file = File('${(await getTemporaryDirectory()).path}/$slug.vcf');
       await file.writeAsString(res.data ?? '');
 
-      final result = await SharePlus.instance.share(
+      _openShareSheet(
         ShareParams(files: [XFile(file.path, mimeType: 'text/vcard')]),
+        successSubtitle: 'Fiche contact partagée',
       );
-
-      if (!mounted) return;
-      if (result.status == ShareResultStatus.success) {
-        FeedbackOverlay.showSuccess(
-          context,
-          title: 'Succès',
-          subtitle: 'Fiche contact partagée',
-        );
-      }
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors du partage de la fiche contact : $e');
@@ -619,6 +681,25 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         ),
       );
     }
+  }
+
+  /// Ouvre la feuille de partage sans attendre sa fermeture : le bouton
+  /// d'action arrête son chargement dès que la feuille s'affiche (sinon le
+  /// spinner restait visible tant que la feuille était ouverte, voire après
+  /// sa fermeture). Le message de succès s'affiche quand même au retour.
+  void _openShareSheet(ShareParams params, {String? successSubtitle}) {
+    SharePlus.instance.share(params).then((result) {
+      if (!mounted || successSubtitle == null) return;
+      if (result.status == ShareResultStatus.success) {
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: successSubtitle,
+        );
+      }
+    }).catchError((Object e) {
+      debugPrint('❌ Erreur de la feuille de partage : $e');
+    });
   }
 
   Future<void> _shareLink() async {
@@ -681,7 +762,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       }
       buffer.write('\n\n$url');
 
-      await SharePlus.instance.share(ShareParams(text: buffer.toString()));
+      _openShareSheet(ShareParams(text: buffer.toString()));
     } catch (e, stack) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors du partage : $e\n$stack');
@@ -720,22 +801,13 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           data!.buffer.asUint8List(),
         );
 
-      final result = await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)]),
-      );
-
-      if (!mounted) return;
-
       // Confirmation explicite plutôt que rien — sans ça, aucun retour ne
       // permettait de savoir si le téléchargement/partage avait réellement
       // abouti (ex: enregistré dans Photos) ou avait été fermé sans suite.
-      if (result.status == ShareResultStatus.success) {
-        FeedbackOverlay.showSuccess(
-          context,
-          title: 'Succès',
-          subtitle: 'Carte téléchargée avec succès',
-        );
-      }
+      _openShareSheet(
+        ShareParams(files: [XFile(file.path)]),
+        successSubtitle: 'Carte téléchargée avec succès',
+      );
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors de l\'export de la carte: $e');

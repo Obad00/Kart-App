@@ -25,12 +25,11 @@ class CompanyColorHelper {
         colors.primary;
   }
 
-  /// Couleur de l'entreprise, sinon celle personnalisée par l'utilisateur,
-  /// sinon null (l'appelant choisit alors sa propre couleur par défaut).
-  static Color? getBrandColorOrNull(BuildContext context) {
+  /// Couleur de l'entreprise, sinon null (compte individuel : l'appelant
+  /// choisit alors sa propre couleur par défaut).
+  static Color? getCompanyColorOrNull(BuildContext context) {
     final cardProvider = context.watch<CardProvider>();
-    return _parseColor(cardProvider.companyPrimaryColor) ??
-        _parseColor(cardProvider.accentColor);
+    return _parseColor(cardProvider.companyPrimaryColor);
   }
 
   /// Vérifie si une couleur d'entreprise est définie

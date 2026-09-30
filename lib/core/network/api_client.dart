@@ -61,7 +61,14 @@ class ApiClient {
     if (token != null) {
       dio.options.headers['Authorization'] = 'Bearer $token';
     }
+    // Le cache hors-ligne (_setupOfflineCache) est enregistré AVANT le
+    // retry ci-dessous : les interceptors Dio traitent les erreurs dans
+    // l'ordre INVERSE de leur ajout (le dernier ajouté est le premier
+    // servi), donc le retry — ajouté en dernier — intercepte l'erreur en
+    // premier et retente sur le réseau avant que le cache ne serve une
+    // réponse périmée en dernier recours.
     await _setupOfflineCache();
+    dio.interceptors.add(_RetryOnServerErrorInterceptor(dio));
   }
 
   /// Mode hors-ligne en lecture seule : met en cache disque toute réponse
@@ -132,5 +139,50 @@ class ApiClient {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     dio.options.headers.remove('Authorization');
+  }
+}
+
+/// Retente automatiquement une requête GET qui a échoué avec une erreur
+/// serveur (5xx) ou de connexion — un hébergement mutualisé (limite de
+/// connexions MySQL concurrentes typique) peut renvoyer une 500 le temps
+/// d'une brève contention, sans que le service soit réellement en panne :
+/// sans ce filet, une simple salve de requêtes au démarrage de l'app
+/// (Contacts + Profil + JobMatch + résumé de carte, quasi simultanées)
+/// pouvait faire échouer certaines d'entre elles alors qu'un second essai,
+/// une fraction de seconde plus tard, aurait suffi.
+///
+/// Seul GET est retenté (jamais POST/PUT/DELETE, pour ne jamais risquer de
+/// rejouer une écriture qui aurait en fait déjà réussi côté serveur).
+class _RetryOnServerErrorInterceptor extends Interceptor {
+  final Dio _dio;
+  static const _maxRetries = 2;
+  static const _retryDelay = Duration(milliseconds: 600);
+
+  _RetryOnServerErrorInterceptor(this._dio);
+
+  @override
+  Future<void> onError(
+      DioException err, ErrorInterceptorHandler handler) async {
+    final options = err.requestOptions;
+    final isGet = options.method.toUpperCase() == 'GET';
+    final isRetryable = (err.response?.statusCode ?? 0) >= 500 ||
+        err.type == DioExceptionType.connectionError;
+    final attempt = (options.extra['retryAttempt'] as int?) ?? 0;
+
+    if (!isGet || !isRetryable || attempt >= _maxRetries) {
+      return handler.next(err);
+    }
+
+    await Future.delayed(_retryDelay * (attempt + 1));
+
+    try {
+      final retryOptions = options.copyWith(
+        extra: {...options.extra, 'retryAttempt': attempt + 1},
+      );
+      final response = await _dio.fetch(retryOptions);
+      handler.resolve(response);
+    } catch (_) {
+      handler.next(err);
+    }
   }
 }
