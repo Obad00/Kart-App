@@ -62,6 +62,12 @@ class KartTokens extends ThemeExtension<KartTokens> {
   /// Ombre douce unique de la carte.
   final Color cardShadow;
 
+  /// Icône de la feuille "Bientôt disponible" (orange).
+  final Color attention;
+
+  /// Texte/icône posé sur un fond [activeBlue] (bouton plein).
+  final Color onActiveBlue;
+
   /// Point "Scannez pour me contacter" et tendance à la hausse.
   final Color positive;
 
@@ -87,6 +93,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
     required this.buttonBackground,
     required this.qrBackground,
     required this.cardShadow,
+    required this.attention,
+    required this.onActiveBlue,
     required this.positive,
     required this.negative,
   });
@@ -110,6 +118,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
     buttonBackground: Color(0xFFFFFFFF),
     qrBackground: Color(0xFFFFFFFF),
     cardShadow: Color(0x29000000),
+    attention: Color(0xFFF59E0B),
+    onActiveBlue: Color(0xFFFFFFFF),
     positive: Color(0xFF16A34A),
     negative: Color(0xFFDC2626),
   );
@@ -133,6 +143,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
     buttonBackground: Color(0xFF222222),
     qrBackground: Color(0xFFFFFFFF),
     cardShadow: Color(0x66000000),
+    attention: Color(0xFFFBBF24),
+    onActiveBlue: Color(0xFF0B1B33),
     positive: Color(0xFF4ADE80),
     negative: Color(0xFFF87171),
   );
@@ -161,6 +173,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
     Color? buttonBackground,
     Color? qrBackground,
     Color? cardShadow,
+    Color? attention,
+    Color? onActiveBlue,
     Color? positive,
     Color? negative,
   }) {
@@ -184,6 +198,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
       buttonBackground: buttonBackground ?? this.buttonBackground,
       qrBackground: qrBackground ?? this.qrBackground,
       cardShadow: cardShadow ?? this.cardShadow,
+      attention: attention ?? this.attention,
+      onActiveBlue: onActiveBlue ?? this.onActiveBlue,
       positive: positive ?? this.positive,
       negative: negative ?? this.negative,
     );
@@ -213,6 +229,8 @@ class KartTokens extends ThemeExtension<KartTokens> {
       buttonBackground: l(buttonBackground, other.buttonBackground),
       qrBackground: l(qrBackground, other.qrBackground),
       cardShadow: l(cardShadow, other.cardShadow),
+      attention: l(attention, other.attention),
+      onActiveBlue: l(onActiveBlue, other.onActiveBlue),
       positive: l(positive, other.positive),
       negative: l(negative, other.negative),
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
@@ -11,11 +12,14 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_error.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -26,6 +30,7 @@ import '../../profile_completion/ui/completion_form_page.dart';
 
 // widgets
 import '../widgets/card_header.dart';
+import '../widgets/card_quick_actions.dart';
 import '../widgets/kart_card_data.dart';
 import '../widgets/kart_card_faces.dart';
 import '../widgets/kart_flip_card.dart';
@@ -462,6 +467,46 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     ],
                   ),
                 ),
+                // Actions rapides — absentes du mode minimal (verso de
+                // ScanPage), où partager/télécharger étaient déjà désactivés.
+                if (!widget.minimal) ...[
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: CardQuickActions(
+                      actions: [
+                        CardQuickAction(
+                          icon: Icons.share_outlined,
+                          label: 'Partager',
+                          onTap: _shareLink,
+                        ),
+                        CardQuickAction(
+                          icon: Icons.file_download_outlined,
+                          label: 'Télécharger',
+                          onTap: _exportFullCard,
+                        ),
+                        CardQuickAction(
+                          icon: Icons.contact_page_outlined,
+                          label: 'Contact',
+                          onTap: _shareVcard,
+                        ),
+                        CardQuickAction(
+                          icon: Icons.contactless_outlined,
+                          label: 'NFC',
+                          // Sans attendre la fermeture de la feuille : sinon
+                          // le bouton afficherait un chargement derrière elle.
+                          onTap: () async {
+                            ComingSoonSheet.show(
+                              context,
+                              message:
+                                  'Le partage de votre carte par NFC sera disponible dans une prochaine version de KART.',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -500,6 +545,65 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         ),
       ),
     );
+  }
+
+  /// Partage la fiche contact (.vcf) de la carte — générée par le backend
+  /// (GET /cards/{slug}/vcard) : le destinataire l'ajoute à ses contacts en
+  /// un geste. Réservé aux cartes publiques (404 sinon).
+  Future<void> _shareVcard() async {
+    final cardProvider = context.read<CardProvider>();
+
+    try {
+      // Même garde-fou que _shareLink : seul le backend connaît le slug.
+      if (cardProvider.slug == null || cardProvider.slug!.isEmpty) {
+        await cardProvider.loadCardSummary();
+      }
+      final slug = cardProvider.slug;
+      if (slug == null || slug.isEmpty) {
+        throw Exception(
+            'Impossible de préparer votre fiche contact. Veuillez réessayer.');
+      }
+
+      final res = await ApiClient.dio.get<String>(
+        '/cards/$slug/vcard',
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      final file = File('${(await getTemporaryDirectory()).path}/$slug.vcf');
+      await file.writeAsString(res.data ?? '');
+
+      final result = await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, mimeType: 'text/vcard')]),
+      );
+
+      if (!mounted) return;
+      if (result.status == ShareResultStatus.success) {
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Succès',
+          subtitle: 'Fiche contact partagée',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ Erreur lors du partage de la fiche contact : $e');
+      final String message;
+      if (e is DioException) {
+        message = e.response?.statusCode == 404
+            ? 'Votre carte est privée : rendez-la publique pour partager votre fiche contact.'
+            : getErrorMessage(e,
+                fallback: 'Impossible de télécharger votre fiche contact.');
+      } else {
+        message = e.toString().replaceAll('Exception: ', '');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red[700],
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   Future<void> _shareLink() async {
