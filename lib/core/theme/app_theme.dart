@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 
+import 'kart_tokens.dart';
+
 class AppTheme {
   AppTheme._();
 
   // Soft white used for text/icons to avoid pure white fatigue
   static const Color _softWhite = Color(0xFFF6F6F8);
-  // Deep but comfortable black (not aggressive)
-  static const Color _softBlack = Color(0xFF0A0A0B);
-  static const Color _surface = Color(0xFF0D0D0E);
+  // Fond de page sombre, identique sur toutes les pages (cf. KartTokens) —
+  // remplace l'ancien quasi-noir 0A0A0B/0D0D0E pour s'aligner sur le
+  // #1A1A1A déjà utilisé par l'app (icône, feuilles).
+  static final Color _softBlack = KartTokens.dark.pageBackground;
+  static final Color _surface = KartTokens.dark.pageBackground;
   // Bordure discrète des cartes en mode sombre (même rôle que _outlineLight).
   // ~12% était quasi invisible sur fond quasi noir — remonté à ~24% pour
   // qu'elle se voie autant que la bordure grise du mode clair.
   static const Color _outlineDark = Color(0x3DFFFFFF); // Colors.white ~24%
 
   // Couleurs pour le mode light premium
-  static const Color _lightBackground = Color(0xFFF8F9FA);
-  static const Color _lightSurface = Color(0xFFFFFFFF);
+  // Fond de page clair, identique sur toutes les pages (cf. KartTokens).
+  // colorScheme.surface sert de fond de page partout (HomeShell, pages
+  // embarquées) : il prend donc la même valeur que le scaffold.
+  static final Color _lightBackground = KartTokens.light.pageBackground;
+  static final Color _lightSurface = KartTokens.light.pageBackground;
   static const Color _lightCardBg = Color(0xFFFFFFFF);
   static const Color _lightTextPrimary = Color(0xFF1A1A2E);
   static const Color _lightTextSecondary = Color(0xFF6B7280);
@@ -30,6 +37,7 @@ class AppTheme {
   static ThemeData light() {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
+        extensions: const [KartTokens.light],
         scaffoldBackgroundColor: _lightBackground,
         primaryColor: _accentBlue,
         colorScheme: ColorScheme.light(
@@ -41,7 +49,7 @@ class AppTheme {
           onSecondary: Colors.white,
           outline: _outlineLight,
         ),
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           backgroundColor: _lightSurface,
           foregroundColor: _lightTextPrimary,
           elevation: 0,
@@ -132,7 +140,7 @@ class AppTheme {
             side: const BorderSide(color: _accentBlue),
           ),
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: _lightSurface,
           selectedItemColor: _accentBlue,
           unselectedItemColor: _lightTextSecondary,
@@ -146,6 +154,7 @@ class AppTheme {
   static ThemeData dark() {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
+      extensions: const [KartTokens.dark],
       scaffoldBackgroundColor: _softBlack,
       primaryColor: _softWhite,
       colorScheme: ColorScheme.dark(

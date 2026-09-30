@@ -8,6 +8,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
+import '../../../core/theme/kart_tokens.dart';
 
 class HighlightBar extends StatelessWidget {
   const HighlightBar({super.key});
@@ -446,7 +447,7 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final bgColor = KartTokens.of(context).sheetBackground;
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../model/contract_type_label.dart';
 import '../model/job_filters.dart';
 import '../providers/jobmatch_provider.dart';
+import '../../../core/theme/kart_tokens.dart';
 
 const _accentBlue = Color(0xFF3B82F6);
 
@@ -57,7 +58,6 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedBuilder(
       animation: widget.provider,
@@ -65,7 +65,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
         final options = widget.provider.filterOptions;
         return Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            color: KartTokens.of(context).sheetBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           constraints: BoxConstraints(
