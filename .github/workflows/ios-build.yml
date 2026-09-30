@@ -599,10 +599,15 @@ jobs:
           fi
 
       - name: Sauvegarder le fichier IPA (artifact)
+        # Non bloquant : si le quota de stockage des artefacts GitHub est
+        # atteint, l'envoi à App Store Connect (étape suivante) doit quand
+        # même avoir lieu. Rétention courte pour ne pas remplir le quota.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: KartApp-iOS
           path: build/ios/ipa/*.ipa
+          retention-days: 3
 
       - name: Soumettre à l'App Store Connect
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/flutter'
