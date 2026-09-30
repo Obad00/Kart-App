@@ -15,7 +15,9 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/widgets/app_loader.dart';
+import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/utils/initials.dart';
+import '../../auth/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
 import '../../contacts/providers/highlight_provider.dart';
@@ -24,8 +26,9 @@ import '../../profile_completion/ui/completion_form_page.dart';
 
 // widgets
 import '../widgets/card_header.dart';
-import '../widgets/company_qr_card.dart';
-import '../widgets/basic_qr_card.dart';
+import '../widgets/kart_card_data.dart';
+import '../widgets/kart_card_faces.dart';
+import '../widgets/kart_flip_card.dart';
 import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
 import 'create_card_page.dart';
@@ -67,15 +70,14 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   late final Animation<double> _qrScale;
 
   final GlobalKey _qrKey = GlobalKey();
-  // Capture la carte entière (fond, badge, nom, QR...) pour le téléchargement
-  // — avant, seul le QR code lui-même (_qrKey) était exporté.
+  // Capture la face QR entière (fond, logo, nom, QR...) pour le
+  // téléchargement — avant, seul le QR code lui-même (_qrKey) était exporté.
   final GlobalKey _fullCardKey = GlobalKey();
-  // true le temps de la capture d'export — neutralise le flottement
-  // perpétuel de la carte (cf. CompanyQrCard/BasicQrCard.isExporting),
-  // sinon l'image téléchargée était coupée en haut/bas selon l'instant
-  // exact du tap sur "Télécharger" (le décalage de l'animation n'était
-  // presque jamais à zéro pile à ce moment-là).
-  bool _isExportingCard = false;
+
+  // Retournement de la carte : 0 = face QR (par défaut), 1 = face infos.
+  // Partagé par la carte, le bouton sous la carte et les points.
+  late final AnimationController _flipCtrl;
+  late final Animation<double> _flip;
 
   // Repli si aucune clé externe n'est fournie (ex: mode minimal) — le
   // Showcase se comporte alors comme un simple wrapper transparent, sans
@@ -186,12 +188,29 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     _qrScale = Tween(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _qrTapCtrl, curve: Curves.easeInOutCubic),
     );
+
+    _flipCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _flip = CurvedAnimation(parent: _flipCtrl, curve: Curves.easeInOut);
+  }
+
+  bool get _showingInfo => _flipCtrl.value >= 0.5;
+
+  /// Retourne la carte (bouton sous la carte, tap sur la face qui dépasse).
+  void _toggleFace() => _showFace(!_showingInfo);
+
+  Future<void> _showFace(bool info) {
+    HapticFeedback.selectionClick();
+    return info ? _flipCtrl.forward() : _flipCtrl.reverse();
   }
 
   @override
   void dispose() {
     _fadeCtrl.dispose();
     _qrTapCtrl.dispose();
+    _flipCtrl.dispose();
     super.dispose();
   }
 
@@ -232,218 +251,222 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     return _wrapScaffold(
       context,
       SafeArea(
-        child: Stack(
-          children: [
-            // Header avec menu hamburger et profil
-            if (!widget.minimal)
-              Positioned(
-                top: 12,
-                left: 16,
-                right: 16,
-                child: CardHeader(
-                  initials: initials,
-                  fullName: fullName,
-                  subtitle: subtitle,
-                  onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
+        bottom: false,
+        child: widget.minimal
+            // Mode minimal (verso de ScanPage) : la carte seule, centrée,
+            // sous l'en-tête de ScanPage.
+            ? Padding(
+                padding: const EdgeInsets.only(top: 56, bottom: 20),
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: _buildCardArea(user, fullName),
+                  ),
                 ),
-              ),
-
-            // Highlights - remontes juste sous le header
-            if (!widget.minimal)
-              Positioned(
-                top: 70,
-                left: 0,
-                right: 0,
-                child: Showcase(
-                  key: _highlightBarKeyInternal,
-                  title: 'Highlights',
-                  description:
-                      "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
-                  child: const HighlightBar(),
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: BottomNavMetrics.bottomInset(
+                          MediaQuery.of(context).padding.bottom) +
+                      12,
                 ),
-              ),
-
-            // QR Card centrée verticalement
-            Positioned(
-              top: widget.minimal ? 40 : 160,
-              left: 0,
-              right: 0,
-              bottom: 20,
-              child: Consumer<CardProvider>(
-                builder: (_, state, __) {
-                  if (state.hasError) {
-                    return CardErrorState(
-                      message: state.error!,
-                      onRetry: _reload,
-                    );
-                  }
-
-                  if (state.status == CardStatus.noCard) {
-                    return Center(
-                      child: Showcase(
-                        key: _createCardKeyInternal,
-                        title: 'Créez votre carte',
-                        description:
-                            'Créez votre carte de visite digitale pour commencer à la partager.',
-                        child: NoCardCta(
-                          onCreate: () async {
-                            final navigator = Navigator.of(context);
-                            final cardProvider = context.read<CardProvider>();
-
-                            final created = await navigator.push(
-                              MaterialPageRoute(
-                                builder: (_) => const CreateCardPage(),
-                              ),
-                            );
-
-                            if (!context.mounted || created != true) return;
-
-                            await cardProvider.loadCardSummary();
-                            await cardProvider.loadMyCardQr();
-
-                            // context.mounted (pas juste `mounted`) : `context`
-                            // ici est le paramètre de build(), pas this.context
-                            // — l'analyseur ne peut pas prouver qu'un simple
-                            // `mounted` (State) le garde encore après ces deux
-                            // await, d'où le lint use_build_context_synchronously
-                            // qui persistait malgré le garde-fou déjà présent.
-                            if (!context.mounted) return;
-
-                            FeedbackOverlay.showSuccess(
-                              context,
-                              title: 'Succès',
-                              subtitle: 'Carte créée avec succès 🎉',
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  }
-
-                  // Un seul loader pour toute cette phase (résumé ET QR),
-                  // pas deux successifs — isReady n'est vrai qu'une fois
-                  // les deux arrivés (cf. CardProvider.isReady).
-                  if (!state.isReady) {
-                    return const Center(
-                      child: AppLoader(label: 'Chargement de votre carte...'),
-                    );
-                  }
-
-                  if (_fadeCtrl.value == 0) {
-                    _fadeCtrl.forward();
-                  }
-
-                  // QR Widget
-                  final Widget qrWidget = _buildQr(state.qrSvg!);
-
-                  void share() {
-                    if (widget.minimal) return;
-                    _shareLink();
-                  }
-
-                  void download() {
-                    if (widget.minimal) return;
-                    _exportFullCard();
-                  }
-
-                  // Vérifier si l'utilisateur a une entreprise
-                  // On utilise les données du CardProvider (company_logo ou company_primary_color)
-                  // car elles viennent de /me/card-summary qui est plus fiable
-                  final bool hasCompanyBranding = user?.hasCompany == true ||
-                      (state.companyLogo != null &&
-                          state.companyLogo!.isNotEmpty) ||
-                      (state.companyPrimaryColor != null &&
-                          state.companyPrimaryColor!.isNotEmpty);
-
-                  // Photo de profil en repli si aucun logo de carte n'a été
-                  // choisi explicitement — évite de forcer un second upload
-                  // pour la même chose (cf. discussion : unifier les deux
-                  // par défaut, tout en gardant le logo dédié prioritaire
-                  // pour qui veut vraiment un visuel différent).
-                  final String? avatarUrl =
-                      (user?.avatar != null && user!.avatar!.isNotEmpty)
-                          ? (user.avatar!.startsWith('http')
-                              ? user.avatar
-                              : '${ApiEndpoints.storageUrl}/${user.avatar}')
-                          : null;
-                  final String? personalLogo =
-                      (state.logo != null && state.logo!.isNotEmpty)
-                          ? state.logo
-                          : avatarUrl;
-
-                  // Branding personnel (couleur d'accent + logo/photo), gratuit pour tous
-                  final bool hasPersonalBranding = (state.accentColor != null &&
-                          state.accentColor!.isNotEmpty) ||
-                      (personalLogo != null && personalLogo.isNotEmpty);
-
-                  final bool useBrandedCard =
-                      hasCompanyBranding || hasPersonalBranding;
-
-                  return FadeTransition(
-                    opacity: _fade,
-                    child: ScaleTransition(
-                      scale: _scale,
-                      child: Center(
-                        // RepaintBoundary englobe toute la carte (fond, badge,
-                        // nom, QR...) pour que le téléchargement exporte son
-                        // vrai style complet, pas seulement le QR code.
-                        child: RepaintBoundary(
-                          key: _fullCardKey,
-                          child: useBrandedCard
-                              // Carte brandée : entreprise ou personnalisation individuelle
-                              ? CompanyQrCard(
-                                  qrCode: qrWidget,
-                                  companyName: hasCompanyBranding
-                                      ? (state.company ??
-                                          user?.company?.name ??
-                                          'Entreprise')
-                                      : fullName,
-                                  companyLogo: hasCompanyBranding
-                                      ? state.companyLogo
-                                      : personalLogo,
-                                  primaryColor: _parseColor(
-                                    hasCompanyBranding
-                                        ? state.companyPrimaryColor
-                                        : state.accentColor,
-                                    const Color(0xFF3B82F6),
-                                  ),
-                                  subtitle: state.jobTitle,
-                                  badgeLabel: hasCompanyBranding ? 'PRO' : null,
-                                  onShare: widget.minimal ? null : share,
-                                  onDownload: widget.minimal ? null : download,
-                                  onTapQr: () {
-                                    QrFullscreenView.show(
-                                      context,
-                                      _buildQrOnly(state.qrSvg!),
-                                    );
-                                  },
-                                  isExporting: _isExportingCard,
-                                )
-                              // Carte Basique par défaut (aucun branding)
-                              : BasicQrCard(
-                                  qrCode: qrWidget,
-                                  userName: fullName,
-                                  jobTitle: state.jobTitle,
-                                  onShare: share,
-                                  onDownload: download,
-                                  onTapQr: () {
-                                    QrFullscreenView.show(
-                                      context,
-                                      _buildQrOnly(state.qrSvg!),
-                                    );
-                                  },
-                                  isExporting: _isExportingCard,
-                                ),
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header avec menu hamburger et profil
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: CardHeader(
+                        initials: initials,
+                        fullName: fullName,
+                        subtitle: subtitle,
+                        onLeadsTap: () =>
+                            Navigator.pushNamed(context, '/leads'),
                       ),
                     ),
-                  );
-                },
+                    const SizedBox(height: 8),
+                    // Highlights (catégories) sous le header
+                    Showcase(
+                      key: _highlightBarKeyInternal,
+                      title: 'Highlights',
+                      description:
+                          "Créez des \"highlights\" pour regrouper vos contacts par événement (salon, conférence...).",
+                      child: const HighlightBar(),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildCardArea(user, fullName),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  /// Zone de la carte : états chargement / erreur / sans carte, puis la
+  /// carte retournable avec son bouton et ses points.
+  Widget _buildCardArea(User? user, String fullName) {
+    return Consumer<CardProvider>(
+      builder: (_, state, __) {
+        if (state.hasError) {
+          return SizedBox(
+            height: 360,
+            child: CardErrorState(
+              message: state.error!,
+              onRetry: _reload,
+            ),
+          );
+        }
+
+        if (state.status == CardStatus.noCard) {
+          return SizedBox(
+            height: 360,
+            child: Center(
+              child: Showcase(
+                key: _createCardKeyInternal,
+                title: 'Créez votre carte',
+                description:
+                    'Créez votre carte de visite digitale pour commencer à la partager.',
+                child: NoCardCta(
+                  onCreate: () async {
+                    final navigator = Navigator.of(context);
+                    final cardProvider = context.read<CardProvider>();
+
+                    final created = await navigator.push(
+                      MaterialPageRoute(
+                        builder: (_) => const CreateCardPage(),
+                      ),
+                    );
+
+                    if (!mounted || created != true) return;
+
+                    await cardProvider.loadCardSummary();
+                    await cardProvider.loadMyCardQr();
+
+                    if (!mounted) return;
+
+                    FeedbackOverlay.showSuccess(
+                      context,
+                      title: 'Succès',
+                      subtitle: 'Carte créée avec succès 🎉',
+                    );
+                  },
+                ),
               ),
             ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        // Un seul loader pour toute cette phase (résumé ET QR),
+        // pas deux successifs — isReady n'est vrai qu'une fois
+        // les deux arrivés (cf. CardProvider.isReady).
+        if (!state.isReady) {
+          return const SizedBox(
+            height: 360,
+            child: Center(
+              child: AppLoader(label: 'Chargement de votre carte...'),
+            ),
+          );
+        }
+
+        if (_fadeCtrl.value == 0) {
+          _fadeCtrl.forward();
+        }
+
+        // Vérifier si l'utilisateur a une entreprise
+        // On utilise les données du CardProvider (company_logo ou company_primary_color)
+        // car elles viennent de /me/card-summary qui est plus fiable
+        final bool hasCompanyBranding = user?.hasCompany == true ||
+            (state.companyLogo != null && state.companyLogo!.isNotEmpty) ||
+            (state.companyPrimaryColor != null &&
+                state.companyPrimaryColor!.isNotEmpty);
+
+        // Photo de profil en repli si aucun logo de carte n'a été
+        // choisi explicitement — évite de forcer un second upload
+        // pour la même chose (cf. discussion : unifier les deux
+        // par défaut, tout en gardant le logo dédié prioritaire
+        // pour qui veut vraiment un visuel différent).
+        final String? avatarUrl =
+            (user?.avatar != null && user!.avatar!.isNotEmpty)
+                ? (user.avatar!.startsWith('http')
+                    ? user.avatar
+                    : '${ApiEndpoints.storageUrl}/${user.avatar}')
+                : null;
+        final bool hasPersonalLogo =
+            state.logo != null && state.logo!.isNotEmpty;
+
+        final String? logoUrl = hasCompanyBranding &&
+                state.companyLogo != null &&
+                state.companyLogo!.isNotEmpty
+            ? state.companyLogo
+            : (hasPersonalLogo ? state.logo : avatarUrl);
+
+        final data = KartCardData(
+          fullName: fullName,
+          jobTitle: state.jobTitle,
+          brandName: hasCompanyBranding
+              ? (state.company ?? user?.company?.name)
+              : null,
+          logoUrl: logoUrl,
+          logoIsPhoto: logoUrl != null && logoUrl == avatarUrl,
+          badgeLabel: hasCompanyBranding ? 'PRO' : null,
+          phone: state.phone,
+          email: state.email,
+          city: state.city,
+        );
+
+        final cardWidth =
+            KartFlipCard.widthFor(MediaQuery.of(context).size.width);
+
+        return FadeTransition(
+          opacity: _fade,
+          child: ScaleTransition(
+            scale: _scale,
+            child: Column(
+              children: [
+                Center(
+                  child: KartFlipCard(
+                    width: cardWidth,
+                    animation: _flip,
+                    onFlip: _toggleFace,
+                    qrFace: KartCardQrFace(
+                      width: cardWidth,
+                      data: data,
+                      qr: _buildQr(state.qrSvg!),
+                      captureKey: _fullCardKey,
+                    ),
+                    infoFace: KartCardInfoFace(width: cardWidth, data: data),
+                    // Faces de derrière : sans clé ni geste (évite les
+                    // GlobalKey en double et les taps parasites).
+                    qrFacePeek: KartCardQrFace(
+                      width: cardWidth,
+                      data: data,
+                      qr: _buildQrOnly(state.qrSvg!),
+                    ),
+                    infoFacePeek:
+                        KartCardInfoFace(width: cardWidth, data: data),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                AnimatedBuilder(
+                  animation: _flipCtrl,
+                  builder: (context, _) => Column(
+                    children: [
+                      KartFlipButton(
+                        showingInfo: _showingInfo,
+                        onTap: _toggleFace,
+                      ),
+                      const SizedBox(height: 12),
+                      KartFaceIndicator(
+                        showingInfo: _showingInfo,
+                        onSelect: _showFace,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -451,19 +474,14 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     return svg_pkg.SvgPicture.string(svg);
   }
 
-  Color _parseColor(String? hexColor, Color fallback) {
-    if (hexColor == null || hexColor.isEmpty) return fallback;
-    try {
-      String hex = hexColor.replaceFirst('#', '');
-      if (hex.length == 6) hex = 'FF$hex';
-      return Color(int.parse(hex, radix: 16));
-    } catch (_) {
-      return fallback;
-    }
-  }
-
   Widget _buildQr(String svg) {
     return GestureDetector(
+      // Appui long : QR en plein écran (auparavant sur le tap de la carte,
+      // masqué par le tap -> ScanPage ci-dessous).
+      onLongPress: () {
+        HapticFeedback.mediumImpact();
+        QrFullscreenView.show(context, _buildQrOnly(svg));
+      },
       onTap: () {
         _qrTapCtrl.forward().then((_) => _qrTapCtrl.reverse());
 
@@ -559,16 +577,14 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     }
   }
 
-  /// Exporte la carte entière telle qu'affichée (fond, badge, nom, poste,
-  /// QR...) — avant, seul le QR code isolé était exporté.
+  /// Exporte la face QR entière (fond, logo, nom, poste, QR...) — avant,
+  /// seul le QR code isolé était exporté.
   Future<void> _exportFullCard() async {
-    // Neutralise le flottement perpétuel de la carte (cf.
-    // CompanyQrCard/BasicQrCard.isExporting) le temps de la capture —
-    // sinon l'image exportée est coupée en haut/bas selon la valeur de
-    // l'animation à l'instant exact du tap. Deux endOfFrame : le premier
-    // laisse ce setState peindre une frame, le second garantit qu'elle est
-    // bien affichée avant de lire le RenderRepaintBoundary.
-    setState(() => _isExportingCard = true);
+    // Toujours la face QR : si la face infos est affichée, on retourne la
+    // carte d'abord. Deux endOfFrame : le premier laisse la face QR se
+    // peindre, le second garantit qu'elle est bien affichée avant de lire
+    // le RenderRepaintBoundary.
+    if (_flipCtrl.value > 0) await _showFace(false);
     await WidgetsBinding.instance.endOfFrame;
     await WidgetsBinding.instance.endOfFrame;
 
@@ -577,10 +593,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           as RenderRepaintBoundary;
 
       final image = await boundary.toImage(pixelRatio: 3);
-      // La capture est faite : on peut laisser la carte flotter à nouveau
-      // pendant l'écriture du fichier/le partage, qui ne dépendent plus
-      // du rendu à l'écran.
-      if (mounted) setState(() => _isExportingCard = false);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
 
       final file = File(
@@ -607,10 +619,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       }
     } catch (e) {
       if (!mounted) return;
-      // Si l'erreur survient avant la capture (cf. try ci-dessus), le flag
-      // n'a pas encore été remis à false — sans ce filet, la carte resterait
-      // figée (sans flottement) après un export en échec.
-      if (_isExportingCard) setState(() => _isExportingCard = false);
       debugPrint('❌ Erreur lors de l\'export de la carte: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

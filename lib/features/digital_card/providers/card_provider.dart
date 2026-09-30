@@ -28,6 +28,7 @@ class CardProvider extends ChangeNotifier {
 
   String? jobTitle;
   String? company;
+  String? city;
   String? bio;
   String? phone;
   String? email;
@@ -89,6 +90,7 @@ class CardProvider extends ChangeNotifier {
     _error = null;
     jobTitle = null;
     company = null;
+    city = null;
     bio = null;
     phone = null;
     email = null;
@@ -137,12 +139,14 @@ class CardProvider extends ChangeNotifier {
         _status = CardStatus.noCard;
         jobTitle = null;
         company = null;
+        city = null;
         _theme = null;
         _accentColor = null;
         _logo = null;
       } else {
         jobTitle = res.data['job_title'];
         company = res.data['company'];
+        city = res.data['city'];
         bio = res.data['bio'];
         phone = res.data['phone'];
         email = res.data['email'];
@@ -299,6 +303,7 @@ class CardProvider extends ChangeNotifier {
 
     jobTitle = null;
     company = null;
+    city = null;
     bio = null;
     phone = null;
     email = null;

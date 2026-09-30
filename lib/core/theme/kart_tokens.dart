@@ -53,6 +53,15 @@ class KartTokens extends ThemeExtension<KartTokens> {
   /// Libellé de la catégorie active.
   final Color categoryActiveLabel;
 
+  /// Fond du bouton "Afficher la carte / le QR" sous la carte.
+  final Color buttonBackground;
+
+  /// Fond du bloc QR : toujours blanc (QR noir sur blanc pour le scan).
+  final Color qrBackground;
+
+  /// Ombre douce unique de la carte.
+  final Color cardShadow;
+
   /// Point "Scannez pour me contacter" et tendance à la hausse.
   final Color positive;
 
@@ -75,6 +84,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     required this.categoryGradientStart,
     required this.categoryGradientEnd,
     required this.categoryActiveLabel,
+    required this.buttonBackground,
+    required this.qrBackground,
+    required this.cardShadow,
     required this.positive,
     required this.negative,
   });
@@ -95,6 +107,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     categoryGradientStart: Color(0xFFE1306C),
     categoryGradientEnd: Color(0xFFF77737),
     categoryActiveLabel: Color(0xFFE1306C),
+    buttonBackground: Color(0xFFFFFFFF),
+    qrBackground: Color(0xFFFFFFFF),
+    cardShadow: Color(0x29000000),
     positive: Color(0xFF16A34A),
     negative: Color(0xFFDC2626),
   );
@@ -115,6 +130,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     categoryGradientStart: Color(0xFFE1306C),
     categoryGradientEnd: Color(0xFFF77737),
     categoryActiveLabel: Color(0xFFFF5C8A),
+    buttonBackground: Color(0xFF222222),
+    qrBackground: Color(0xFFFFFFFF),
+    cardShadow: Color(0x66000000),
     positive: Color(0xFF4ADE80),
     negative: Color(0xFFF87171),
   );
@@ -140,6 +158,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
     Color? categoryGradientStart,
     Color? categoryGradientEnd,
     Color? categoryActiveLabel,
+    Color? buttonBackground,
+    Color? qrBackground,
+    Color? cardShadow,
     Color? positive,
     Color? negative,
   }) {
@@ -160,6 +181,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
           categoryGradientStart ?? this.categoryGradientStart,
       categoryGradientEnd: categoryGradientEnd ?? this.categoryGradientEnd,
       categoryActiveLabel: categoryActiveLabel ?? this.categoryActiveLabel,
+      buttonBackground: buttonBackground ?? this.buttonBackground,
+      qrBackground: qrBackground ?? this.qrBackground,
+      cardShadow: cardShadow ?? this.cardShadow,
       positive: positive ?? this.positive,
       negative: negative ?? this.negative,
     );
@@ -186,6 +210,9 @@ class KartTokens extends ThemeExtension<KartTokens> {
           l(categoryGradientStart, other.categoryGradientStart),
       categoryGradientEnd: l(categoryGradientEnd, other.categoryGradientEnd),
       categoryActiveLabel: l(categoryActiveLabel, other.categoryActiveLabel),
+      buttonBackground: l(buttonBackground, other.buttonBackground),
+      qrBackground: l(qrBackground, other.qrBackground),
+      cardShadow: l(cardShadow, other.cardShadow),
       positive: l(positive, other.positive),
       negative: l(negative, other.negative),
     );
