@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Vérifier que Push Notifications est activé sur l'App ID
+      - name: Vérifier les capabilities de l'App ID (Push, Sign in with Apple)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -25,7 +25,7 @@ jobs:
           echo "$KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 
           python3 - <<'PYEOF'
-          import jwt, time, json, urllib.request, os
+          import jwt, time, json, urllib.request, urllib.error, os
 
           key_id = os.environ['KEY_ID']
           issuer_id = os.environ['ISSUER_ID']
@@ -44,8 +44,14 @@ jobs:
               }
               return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
 
-          def api_request(url):
-              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {make_token()}"})
+          def api_request(url, data=None):
+              headers = {"Authorization": f"Bearer {make_token()}"}
+              body = None
+              if data is not None:
+                  headers["Content-Type"] = "application/json"
+                  body = json.dumps(data).encode()
+              req = urllib.request.Request(url, data=body, headers=headers,
+                                           method="POST" if data is not None else "GET")
               with urllib.request.urlopen(req) as resp:
                   return json.loads(resp.read())
 
@@ -71,6 +77,39 @@ jobs:
               exit(1)
           else:
               print("✅ Push Notifications est bien activé sur l'App ID.")
+
+          # 3. Sign in with Apple (entitlement com.apple.developer.applesignin
+          # dans Runner.entitlements) : le profil généré plus bas reprend les
+          # capabilities de l'App ID — sans celle-ci, l'archive échoue avec
+          # "Provisioning profile ... doesn't include the Sign In with Apple
+          # capability". On l'active automatiquement si elle manque.
+          if "APPLE_ID_AUTH" not in capability_types:
+              print("Sign in with Apple absent de l'App ID, activation...")
+              try:
+                  api_request("https://api.appstoreconnect.apple.com/v1/bundleIdCapabilities", {
+                      "data": {
+                          "type": "bundleIdCapabilities",
+                          "attributes": {
+                              "capabilityType": "APPLE_ID_AUTH",
+                              "settings": [{
+                                  "key": "APPLE_ID_AUTH_APP_CONSENT",
+                                  "options": [{"key": "PRIMARY_APP_CONSENT"}]
+                              }]
+                          },
+                          "relationships": {
+                              "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}}
+                          }
+                      }
+                  })
+                  print("✅ Sign in with Apple activé sur l'App ID.")
+              except urllib.error.HTTPError as e:
+                  print(f"::error::Impossible d'activer Sign in with Apple via l'API ({e.code}): "
+                        f"{e.read().decode()}. Active-le à la main sur "
+                        f"https://developer.apple.com/account/resources/identifiers/list "
+                        f"({bundle_id} > Sign In with Apple), puis relance le workflow.")
+                  exit(1)
+          else:
+              print("✅ Sign in with Apple est bien activé sur l'App ID.")
           PYEOF
 
       - name: Sélectionner Xcode latest
