@@ -352,6 +352,9 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                 delegate: StickyHeaderDelegate(
                   height: headerHeight,
                   blurBackground: true,
+                  // L'en-tête en verre couvre aussi la barre d'état
+                  // (ContactsPage n'a plus de SafeArea en haut).
+                  topInset: MediaQuery.of(context).padding.top,
                   child: Column(
                     children: [
                       // En-tête : titre + total de contacts / favoris + actions (+ / ...)
