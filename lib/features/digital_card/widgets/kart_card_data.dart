@@ -1,3 +1,5 @@
+import 'dart:ui' show Color;
+
 /// Contenu affiché sur la carte de visite (faces QR et infos) — assemblé
 /// par MyDigitalCardPage à partir de CardProvider/AuthProvider, pour que les
 /// widgets de la carte restent purement visuels.
@@ -22,6 +24,10 @@ class KartCardData {
   final String? email;
   final String? city;
 
+  /// Couleur choisie (entreprise, sinon accent personnel) qui teinte le
+  /// fond noir de la carte ; null = noir mat.
+  final Color? tint;
+
   const KartCardData({
     required this.fullName,
     this.jobTitle,
@@ -32,6 +38,7 @@ class KartCardData {
     this.phone,
     this.email,
     this.city,
+    this.tint,
   });
 
   static bool _filled(String? v) => v != null && v.trim().isNotEmpty;
