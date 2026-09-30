@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/theme/kart_tokens.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/jobmatch_access.dart';
@@ -13,6 +14,7 @@ import '../../auth/providers/auth_provider.dart';
 class CardHeader extends StatelessWidget {
   final String initials;
   final String fullName;
+  final String firstName;
   final String subtitle;
   final VoidCallback? onLeadsTap;
 
@@ -20,21 +22,55 @@ class CardHeader extends StatelessWidget {
     super.key,
     required this.initials,
     required this.fullName,
+    required this.firstName,
     required this.subtitle,
     this.onLeadsTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final t = KartTokens.of(context);
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Menu deroulant du profil a gauche
+        // Photo de profil (menu déroulant du profil) à gauche
         _ProfileDropdownButton(
           initials: initials,
           fullName: fullName,
         ),
-        // Trois traits a droite - ouvre le CRM
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                firstName.isNotEmpty ? 'Bonjour $firstName' : 'Bonjour',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                // 2 lignes : sur petit écran (iPhone SE), une seule ligne
+                // coupait la phrase en plein mot.
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Bouton menu à droite - ouvre le CRM
         _MenuLines(onTap: onLeadsTap),
       ],
     );
@@ -50,46 +86,31 @@ class _MenuLines extends StatelessWidget {
   Widget build(BuildContext context) {
     // Couleur de marque de l'entreprise (comme HomeShell) plutôt qu'un gris
     // neutre : ce bouton restait le seul élément de l'en-tête de carte à
-    // ignorer le branding — remonté côté produit.
-    final brand = context.companyColor;
+    // ignorer le branding — remonté côté produit. Sans branding : bleu actif
+    // du thème (éclairci en sombre), sur fond bleu clair.
+    final t = KartTokens.of(context);
+    final brand = CompanyColorHelper.getBrandColorOrNull(context);
+    final fg = brand ?? t.activeBlue;
+    final bg = brand?.withValues(alpha: 0.12) ?? t.activeBlueBackground;
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap?.call();
-      },
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: brand.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: brand.withValues(alpha: 0.2),
-            width: 1,
+    return Semantics(
+      button: true,
+      label: 'Menu',
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap?.call();
+        },
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: fg.withValues(alpha: 0.15), width: 1),
           ),
+          child: Icon(Icons.menu_rounded, color: fg, size: 26),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildLine(brand, 18),
-            const SizedBox(height: 4),
-            _buildLine(brand, 14),
-            const SizedBox(height: 4),
-            _buildLine(brand, 10),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLine(Color color, double width) {
-    return Container(
-      width: width,
-      height: 2,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(1),
       ),
     );
   }
@@ -157,12 +178,12 @@ class _ProfileDropdownButton extends StatelessWidget {
         ),
       ],
       child: Container(
-        width: 44,
-        height: 44,
+        width: 56,
+        height: 56,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: brand.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          shape: BoxShape.circle,
           border: Border.all(
             color: brand.withValues(alpha: 0.2),
             width: 1,
@@ -186,7 +207,7 @@ class _ProfileDropdownButton extends StatelessWidget {
                 style: TextStyle(
                   color: brand,
                   fontWeight: FontWeight.w700,
-                  fontSize: 14,
+                  fontSize: 18,
                 ),
               ),
             ),

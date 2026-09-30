@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/kart_tokens.dart';
 
 /// Fiche détaillée d'une offre (titre, entreprise, lieu, description) —
 /// partagée entre le fil de suggestions (job_swipe_card.dart) et le
@@ -17,10 +18,9 @@ void showJobDetailsSheet(
     isScrollControlled: true,
     builder: (sheetContext) {
       final colors = Theme.of(sheetContext).colorScheme;
-      final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
       return Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          color: KartTokens.of(sheetContext).sheetBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         constraints: BoxConstraints(
