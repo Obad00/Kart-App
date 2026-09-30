@@ -274,11 +274,12 @@ class CardService {
     }
   }
 
-  static Future<Map<String, dynamic>> createHighlight(String name) async {
+  static Future<Map<String, dynamic>> createHighlight(String name,
+      {String? icon}) async {
     try {
       final response = await ApiClient.dio.post(
         _highlightEndpoint,
-        data: {'name': name},
+        data: {'name': name, if (icon != null) 'icon': icon},
       );
 
       if (response.data is Map<String, dynamic>) {
@@ -301,12 +302,15 @@ class CardService {
     }
   }
 
+  /// [icon] est toujours envoyé : null retire l'icône (le backend garde
+  /// l'icône actuelle seulement si la clé est absente).
   static Future<Map<String, dynamic>> updateHighlight(
-      int highlightId, String name) async {
+      int highlightId, String name,
+      {String? icon}) async {
     try {
       final response = await ApiClient.dio.put(
         '$_highlightEndpoint/$highlightId',
-        data: {'name': name},
+        data: {'name': name, 'icon': icon},
       );
 
       if (response.data is Map<String, dynamic>) {

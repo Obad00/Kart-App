@@ -36,14 +36,15 @@ class HighlightProvider extends ChangeNotifier {
   }
 
   // ✅ Créer
-  Future<void> createHighlight(String name) async {
-    await CardService.createHighlight(name);
+  Future<void> createHighlight(String name, {String? icon}) async {
+    await CardService.createHighlight(name, icon: icon);
     await loadHighlights();
   }
 
   // ✅ Modifier le nom
-  Future<void> updateHighlight(HighlightModel highlight, String name) async {
-    await CardService.updateHighlight(highlight.id, name);
+  Future<void> updateHighlight(HighlightModel highlight, String name,
+      {String? icon}) async {
+    await CardService.updateHighlight(highlight.id, name, icon: icon);
     await loadHighlights();
   }
 
