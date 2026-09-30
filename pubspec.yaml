@@ -97,6 +97,10 @@ dependencies:
   # professionnels (diplômes, attestations, certificats) sur le profil.
   file_picker: ^8.1.2
 
+  # Se connecter avec Apple (iOS) + SHA-256 du nonce anti-rejeu envoyé à Apple.
+  sign_in_with_apple: ^8.1.0
+  crypto: ^3.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
