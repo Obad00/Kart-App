@@ -31,6 +31,7 @@ import '../../profile_completion/ui/completion_form_page.dart';
 // widgets
 import '../widgets/card_header.dart';
 import '../widgets/card_quick_actions.dart';
+import '../widgets/card_stats_row.dart';
 import '../widgets/kart_card_data.dart';
 import '../widgets/kart_card_faces.dart';
 import '../widgets/kart_flip_card.dart';
@@ -120,6 +121,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         if (!cardProvider.hasQrCode) {
           await cardProvider.loadMyCardQr();
         }
+        // Sans await : le bloc statistiques apparaît quand il arrive, il ne
+        // retarde ni les highlights ni le popup poste/entreprise.
+        if (!widget.minimal) cardProvider.loadWeeklyStats();
         if (highlightProvider.highlights.isEmpty &&
             !highlightProvider.isLoading) {
           await highlightProvider.loadHighlights();
@@ -346,6 +350,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
 
                     await cardProvider.loadCardSummary();
                     await cardProvider.loadMyCardQr();
+                    cardProvider.loadWeeklyStats();
 
                     if (!mounted) return;
 
@@ -507,6 +512,15 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       ],
                     ),
                   ),
+                  // Statistiques de la semaine : affichées seulement si
+                  // l'API les a renvoyées (jamais de chiffres en dur).
+                  if (state.weeklyStats != null) ...[
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: CardStatsRow(stats: state.weeklyStats!),
+                    ),
+                  ],
                 ],
               ],
             ),

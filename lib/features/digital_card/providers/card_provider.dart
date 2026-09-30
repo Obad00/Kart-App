@@ -49,6 +49,13 @@ class CardProvider extends ChangeNotifier {
   int? scanCount;
   int? shareCount;
 
+  // --- STATS DE LA SEMAINE (GET /me/card-stats) ---
+  // null tant qu'elles ne sont pas chargées, ou si l'endpoint est
+  // indisponible (ex: backend pas encore déployé) : l'écran masque alors le
+  // bloc au lieu d'afficher des chiffres faux.
+  CardWeeklyStats? _weeklyStats;
+  CardWeeklyStats? get weeklyStats => _weeklyStats;
+
   // --- SLUG & SHARE URL ---
   String? _slug;
   String? _shareUrl;
@@ -105,6 +112,7 @@ class CardProvider extends ChangeNotifier {
     plan = null;
     scanCount = null;
     shareCount = null;
+    _weeklyStats = null;
     _slug = null;
     _shareUrl = null;
     _companyLogo = null;
@@ -239,6 +247,22 @@ class CardProvider extends ChangeNotifier {
     }
   }
 
+  /// Scans et nouveaux contacts des 7 derniers jours (et des 7 précédents,
+  /// pour la tendance). En cas d'échec, les stats restent null : jamais de
+  /// chiffres inventés.
+  Future<void> loadWeeklyStats() async {
+    try {
+      final res = await ApiClient.dio.get('/me/card-stats');
+      final data = res.data;
+      _weeklyStats =
+          data is Map<String, dynamic> ? CardWeeklyStats.fromJson(data) : null;
+    } catch (e) {
+      debugPrint('❌ Error loading card stats: $e');
+      _weeklyStats = null;
+    }
+    notifyListeners();
+  }
+
   Future<void> loadMyCardQr() async {
     _error = null;
     _isQrLoading = true;
@@ -300,6 +324,7 @@ class CardProvider extends ChangeNotifier {
   void clearCard() {
     _qrSvg = null;
     _error = null;
+    _weeklyStats = null;
 
     jobTitle = null;
     company = null;
@@ -315,5 +340,36 @@ class CardProvider extends ChangeNotifier {
 
     _status = CardStatus.idle;
     notifyListeners();
+  }
+}
+
+/// Chiffres du bloc statistiques de l'écran Carte.
+class CardWeeklyStats {
+  final int scansThisWeek;
+  final int scansPreviousWeek;
+  final int newContactsThisWeek;
+  final int newContactsPreviousWeek;
+
+  const CardWeeklyStats({
+    required this.scansThisWeek,
+    required this.scansPreviousWeek,
+    required this.newContactsThisWeek,
+    required this.newContactsPreviousWeek,
+  });
+
+  /// null si un champ manque : réponse inattendue, on préfère masquer.
+  static CardWeeklyStats? fromJson(Map<String, dynamic> json) {
+    int? read(String key) => (json[key] as num?)?.toInt();
+    final a = read('scans_this_week');
+    final b = read('scans_previous_week');
+    final c = read('new_contacts_this_week');
+    final d = read('new_contacts_previous_week');
+    if (a == null || b == null || c == null || d == null) return null;
+    return CardWeeklyStats(
+      scansThisWeek: a,
+      scansPreviousWeek: b,
+      newContactsThisWeek: c,
+      newContactsPreviousWeek: d,
+    );
   }
 }
