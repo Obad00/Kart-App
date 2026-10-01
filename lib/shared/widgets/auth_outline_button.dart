@@ -87,7 +87,10 @@ class _AuthOutlineButtonState extends State<AuthOutlineButton>
           ),
           height: 58,
           padding: EdgeInsets.symmetric(
-            horizontal: widget.expanded ? 24 : 32,
+            // 12 (et non 24) : dans un Expanded étroit (ex: "Retour" à côté
+            // de "Continuer" sur l'inscription), 24 de chaque côté ne
+            // laissait que ~55 px pour l'icône et le texte, coupé en "Ret…".
+            horizontal: widget.expanded ? 12 : 32,
           ),
           decoration: BoxDecoration(
             color: _isHovered
@@ -123,15 +126,20 @@ class _AuthOutlineButtonState extends State<AuthOutlineButton>
                         ),
                         const SizedBox(width: 10),
                       ],
+                      // Se réduit légèrement plutôt que d'être coupé.
                       Flexible(
-                        child: Text(
-                          widget.label,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: isEnabled ? Colors.white : Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            letterSpacing: 0.3,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.label,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color:
+                                  isEnabled ? Colors.white : Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
                       ),

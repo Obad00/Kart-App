@@ -90,234 +90,270 @@ class _LoginPageState extends State<LoginPage>
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: 28,
-                right: 28,
-                top: 32,
-                bottom: bottomPadding > 0 ? bottomPadding + 32 : 32,
-              ),
-              child: Column(
-                children: [
-                  // Logo / Brand
-                  _buildLogo(colors, isDark),
+            // Tout tient sur un écran sans défiler : espacements resserrés
+            // selon la hauteur disponible (compact < 900, serré < 700, ex:
+            // iPhone SE), et les Spacer répartissent le reste. Le défilement
+            // ne sert plus que clavier ouvert (hauteur réduite).
+            child: LayoutBuilder(builder: (context, constraints) {
+              final h = constraints.maxHeight;
+              final compact = h < 900;
+              final tight = h < 700;
+              final vPad = tight ? 8.0 : (compact ? 10.0 : 16.0);
+              final gapLarge = tight ? 16.0 : (compact ? 20.0 : 32.0);
+              final gapField = tight ? 12.0 : (compact ? 14.0 : 24.0);
 
-                  const SizedBox(height: 56),
-
-                  // Form Card
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: colors.onSurface
-                          .withValues(alpha: isDark ? 0.03 : 0.035),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: colors.onSurface
-                            .withValues(alpha: isDark ? 0.08 : 0.1),
-                        width: 1,
-                      ),
-                    ),
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: vPad,
+                  bottom: bottomPadding > 0 ? bottomPadding + vPad : vPad,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: (h - vPad * 2 - bottomPadding).clamp(0, h),
+                  ),
+                  child: IntrinsicHeight(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
-                        Text(
-                          'Connexion',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: colors.onSurface,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
+                        // Logo / Brand
+                        _buildLogo(colors, isDark,
+                            compact: compact, tight: tight),
 
-                        const SizedBox(height: 8),
+                        const Spacer(),
+                        SizedBox(height: tight ? 12 : 20),
 
-                        Text(
-                          'Accédez à votre carte digitale',
-                          style: TextStyle(
-                            color: colors.onSurface.withValues(alpha: 0.6),
-                            fontSize: 15,
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Email ou téléphone (cf. _isFormValid) — un
-                        // clavier neutre plutôt qu'emailAddress, qui
-                        // masquerait les touches utiles pour taper un
-                        // numéro.
-                        AuthTextField(
-                          label: 'Email ou téléphone',
-                          hint: 'votre@email.com ou +221 77 123 45 67',
-                          controller: _emailCtrl,
-                          keyboardType: TextInputType.text,
-                          prefixIcon: Icons.person_outline_rounded,
-                          onChanged: (_) => setState(() {}),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Password
-                        AuthTextField(
-                          label: 'Mot de passe',
-                          hint: '••••••••',
-                          controller: _passwordCtrl,
-                          obscureText: true,
-                          prefixIcon: Icons.lock_outline_rounded,
-                          onChanged: (_) => setState(() {}),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              '/forgot-password',
-                              arguments: _emailCtrl.text.trim(),
-                            ),
-                            child: Text(
-                              'Mot de passe oublié ?',
-                              style: TextStyle(
-                                color: colors.onSurface.withValues(alpha: 0.6),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        // Form Card
+                        Container(
+                          padding:
+                              EdgeInsets.all(tight ? 18 : (compact ? 22 : 28)),
+                          decoration: BoxDecoration(
+                            color: colors.onSurface
+                                .withValues(alpha: isDark ? 0.03 : 0.035),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: colors.onSurface
+                                  .withValues(alpha: isDark ? 0.08 : 0.1),
+                              width: 1,
                             ),
                           ),
-                        ),
-
-                        // Error message
-                        if (auth.error != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.3),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title
+                              Text(
+                                'Connexion',
+                                style: TextStyle(
+                                  fontSize: tight ? 24 : 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.onSurface,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline_rounded,
-                                        color: Colors.red[isDark ? 300 : 700],
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          auth.error!,
-                                          style: TextStyle(
-                                            color:
-                                                Colors.red[isDark ? 300 : 700],
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+
+                              if (!tight) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Accédez à votre carte digitale',
+                                  style: TextStyle(
+                                    color:
+                                        colors.onSurface.withValues(alpha: 0.6),
+                                    fontSize: 15,
                                   ),
-                                  if (auth.errorDetails != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: Text(
-                                        auth.errorDetails!,
-                                        style: TextStyle(
-                                          color: Colors.red[isDark ? 200 : 800],
-                                          fontSize: 12,
-                                          fontFamily: 'monospace',
-                                        ),
+                                ),
+                              ],
+
+                              SizedBox(height: gapLarge),
+
+                              // Email ou téléphone (cf. _isFormValid) — un
+                              // clavier neutre plutôt qu'emailAddress, qui
+                              // masquerait les touches utiles pour taper un
+                              // numéro.
+                              AuthTextField(
+                                label: 'Email ou téléphone',
+                                hint: 'votre@email.com ou +221 77 123 45 67',
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.text,
+                                prefixIcon: Icons.person_outline_rounded,
+                                onChanged: (_) => setState(() {}),
+                              ),
+
+                              SizedBox(height: gapField),
+
+                              // Password
+                              AuthTextField(
+                                label: 'Mot de passe',
+                                hint: '••••••••',
+                                controller: _passwordCtrl,
+                                obscureText: true,
+                                prefixIcon: Icons.lock_outline_rounded,
+                                onChanged: (_) => setState(() {}),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/forgot-password',
+                                    arguments: _emailCtrl.text.trim(),
+                                  ),
+                                  child: Text(
+                                    'Mot de passe oublié ?',
+                                    style: TextStyle(
+                                      color: colors.onSurface
+                                          .withValues(alpha: 0.6),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Error message
+                              if (auth.error != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color:
+                                            Colors.red.withValues(alpha: 0.3),
                                       ),
                                     ),
-                                ],
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.error_outline_rounded,
+                                              color: Colors
+                                                  .red[isDark ? 300 : 700],
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                auth.error!,
+                                                style: TextStyle(
+                                                  color: Colors
+                                                      .red[isDark ? 300 : 700],
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if (auth.errorDetails != null)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8.0),
+                                            child: Text(
+                                              auth.errorDetails!,
+                                              style: TextStyle(
+                                                color: Colors
+                                                    .red[isDark ? 200 : 800],
+                                                fontSize: 12,
+                                                fontFamily: 'monospace',
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                              SizedBox(height: gapLarge),
+
+                              // Submit Button
+                              AuthPrimaryButton(
+                                label: 'Se connecter',
+                                icon: Icons.arrow_forward_rounded,
+                                loading: auth.isLoading,
+                                onTap:
+                                    _isFormValid() ? () => _submit(auth) : null,
                               ),
-                            ),
+
+                              SizedBox(height: gapField),
+                              const SocialAuthButtons(),
+                            ],
                           ),
-
-                        const SizedBox(height: 32),
-
-                        // Submit Button
-                        AuthPrimaryButton(
-                          label: 'Se connecter',
-                          icon: Icons.arrow_forward_rounded,
-                          loading: auth.isLoading,
-                          onTap: _isFormValid() ? () => _submit(auth) : null,
                         ),
 
-                        const SizedBox(height: 24),
-                        const SocialAuthButtons(),
+                        const Spacer(),
+                        SizedBox(height: tight ? 8 : 16),
+
+                        // Register Link
+                        _buildRegisterLink(context),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Register Link
-                  _buildRegisterLink(context),
-                ],
-              ),
-            ),
+                ),
+              );
+            }),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLogo(ColorScheme colors, bool isDark) {
+  Widget _buildLogo(ColorScheme colors, bool isDark,
+      {bool compact = false, bool tight = false}) {
+    final iconBox = compact ? 44.0 : 72.0;
     return Column(
       children: [
-        // Logo icon
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                colors.onSurface.withValues(alpha: isDark ? 0.15 : 0.08),
-                colors.onSurface.withValues(alpha: isDark ? 0.05 : 0.03),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        // Logo icon (masqué sur petit écran : la marque suffit)
+        if (!tight) ...[
+          Container(
+            width: iconBox,
+            height: iconBox,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colors.onSurface.withValues(alpha: isDark ? 0.15 : 0.08),
+                  colors.onSurface.withValues(alpha: isDark ? 0.05 : 0.03),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colors.onSurface.withValues(alpha: isDark ? 0.1 : 0.12),
+              ),
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: colors.onSurface.withValues(alpha: isDark ? 0.1 : 0.12),
+            child: Center(
+              child: Icon(
+                Icons.credit_card_rounded,
+                color: colors.onSurface,
+                size: iconBox / 2,
+              ),
             ),
           ),
-          child: Center(
-            child: Icon(
-              Icons.credit_card_rounded,
-              color: colors.onSurface,
-              size: 36,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
+          SizedBox(height: compact ? 8 : 20),
+        ],
 
         // Brand name
         Text(
           'KART',
           style: TextStyle(
-            fontSize: 36,
+            fontSize: compact ? 28 : 36,
             fontWeight: FontWeight.w800,
             letterSpacing: 6,
             color: colors.onSurface,
           ),
         ),
 
-        const SizedBox(height: 6),
+        SizedBox(height: tight ? 2 : 6),
 
         Text(
           'Votre carte de visite digitale',
