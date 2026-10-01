@@ -537,14 +537,17 @@ class _ProfilePageState extends State<ProfilePage>
                       card.jobTitle != null &&
                       card.jobTitle!.isNotEmpty) ...[
                     const SizedBox(height: 2),
+                    // 3 lignes : un intitulé long ("Tech Entrepreneur & CEO
+                    // | Informaticien | AI Engineer") était coupé à la 1re.
                     Text(
                       card.jobTitle!,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: companyColor,
+                        height: 1.3,
                       ),
-                      maxLines: 1,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
