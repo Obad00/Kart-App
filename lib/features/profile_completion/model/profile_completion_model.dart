@@ -1,4 +1,8 @@
 class ProfileCompletionModel {
+  // Prénom/nom du compte : envoyés seulement depuis la section "Informations
+  // de base" (null ailleurs = inchangés côté backend).
+  String? firstname;
+  String? lastname;
   String? jobTitle;
   String? company;
   String? city;
@@ -23,6 +27,8 @@ class ProfileCompletionModel {
   List<String> interests;
 
   ProfileCompletionModel({
+    this.firstname,
+    this.lastname,
     this.jobTitle,
     this.company,
     this.city,
@@ -83,6 +89,8 @@ class ProfileCompletionModel {
 
   Map<String, dynamic> toJson() {
     return {
+      if (firstname != null) "firstname": firstname,
+      if (lastname != null) "lastname": lastname,
       "job_title": jobTitle,
       "company": company,
       "city": city,

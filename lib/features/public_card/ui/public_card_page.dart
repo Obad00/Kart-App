@@ -1,14 +1,20 @@
+import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/utils/company_color_helper.dart'
     show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/api_error.dart';
 import '../data/public_card_service.dart';
 import '../../../shared/services/card_service.dart';
 import '../widgets/lead_capture_sheet.dart';
@@ -293,6 +299,38 @@ class _PublicCardPageState extends State<PublicCardPage>
     debugPrint(
         '_getFieldValue($key) fields is not a Map: ${rawFields.runtimeType}');
     return '';
+  }
+
+  /// Ajoute la fiche de cette personne au répertoire du téléphone : la
+  /// fiche .vcf générée par le backend (GET /cards/{slug}/vcard, mêmes
+  /// champs que sa carte publique) est ouverte dans la feuille de partage,
+  /// d'où "Contacts" l'importe en un geste.
+  Future<void> _saveToPhoneContacts() async {
+    HapticFeedback.lightImpact();
+    try {
+      final res = await ApiClient.dio.get<String>(
+        '/cards/${widget.slug}/vcard',
+        options: Options(responseType: ResponseType.plain),
+      );
+      final file =
+          File('${(await getTemporaryDirectory()).path}/${widget.slug}.vcf');
+      await file.writeAsString(res.data ?? '');
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, mimeType: 'text/vcard')]),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('❌ Enregistrement du contact impossible : $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is DioException
+              ? getErrorMessage(e,
+                  fallback: "Impossible de récupérer la fiche de ce contact.")
+              : "Impossible de récupérer la fiche de ce contact."),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
   }
 
   Future<void> _openUrl(String url) async {
@@ -878,11 +916,19 @@ class _PublicCardPageState extends State<PublicCardPage>
     return Row(
       children: [
         Expanded(
+          // Personne déjà dans mes contacts : lui renvoyer mes coordonnées
+          // ("Partager") n'a plus de sens — on propose plutôt d'enregistrer
+          // SA fiche dans le répertoire du téléphone. Sinon, "Partager" reste.
           child: OutlinedButton.icon(
-            onPressed: _showContactForm,
-            icon: const Icon(Icons.send_outlined, size: 18),
-            label: const Text(
-              'Partager',
+            onPressed:
+                widget.contactId != null ? _saveToPhoneContacts : _showContactForm,
+            icon: Icon(
+                widget.contactId != null
+                    ? Icons.person_add_alt_1_outlined
+                    : Icons.send_outlined,
+                size: 18),
+            label: Text(
+              widget.contactId != null ? 'Enregistrer' : 'Partager',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
