@@ -32,6 +32,15 @@ class KartFlipCard extends StatelessWidget {
   final ValueChanged<double>? onDragUpdate;
   final ValueChanged<double>? onDragEnd;
 
+  /// Sens de départ de la carte de devant pendant l'échange : -1 vers la
+  /// gauche (défaut : bouton, points, tap), +1 vers la droite (swipe vers
+  /// la droite) — la carte part dans le sens du doigt.
+  final double swipeDirection;
+
+  /// Face qui était devant au début de l'échange en cours : c'est elle qui
+  /// part (grand arc + inclinaison), l'autre avance.
+  final bool swapFromInfo;
+
   const KartFlipCard({
     super.key,
     required this.width,
@@ -43,6 +52,8 @@ class KartFlipCard extends StatelessWidget {
     required this.onFlip,
     this.onDragUpdate,
     this.onDragEnd,
+    this.swipeDirection = -1,
+    this.swapFromInfo = false,
   });
 
   /// Largeur de la carte pour un écran donné : laisse la place à la face
@@ -65,23 +76,26 @@ class KartFlipCard extends StatelessWidget {
         final qrInFront = t < 0.5;
         // Arc de l'échange : 0 aux extrémités, 1 au milieu.
         final arc = math.sin(math.pi * t);
+        final dir = swipeDirection < 0 ? -1.0 : 1.0;
 
-        // Carte qui recule (celle de devant au départ) : glisse vers la
-        // gauche puis va se ranger derrière, à droite.
+        // Carte qui part (celle de devant au début de l'échange) : glisse
+        // dans le sens du geste, s'incline légèrement en 3D, puis va se
+        // ranger derrière, à droite.
         Widget leaving(Widget child, double p) => _posed(
               child: child,
-              dx: peek * p - arc * width * 0.42,
+              dx: peek * p + dir * arc * width * 0.42,
               scale: 1 - 0.08 * p,
-              angle: 0.06 * p - arc * 0.10,
+              angle: 0.06 * p + dir * arc * 0.10,
+              tiltY: -dir * arc * 0.35,
             );
 
-        // Carte qui avance (celle de derrière au départ) : s'avance vers
-        // la place de devant avec un léger décalage à droite.
+        // Carte qui avance (celle de derrière au début) : vient prendre la
+        // place de devant avec un léger décalage opposé au geste.
         Widget coming(Widget child, double p) => _posed(
               child: child,
-              dx: peek * (1 - p) + arc * width * 0.12,
+              dx: peek * (1 - p) - dir * arc * width * 0.12,
               scale: 0.92 + 0.08 * p,
-              angle: 0.06 * (1 - p) + arc * 0.04,
+              angle: 0.06 * (1 - p) - dir * arc * 0.04,
             );
 
         // Les gestes sont posés DANS la transformation de chaque carte :
@@ -98,19 +112,22 @@ class KartFlipCard extends StatelessWidget {
             );
         Widget asFront(Widget face) => face;
 
-        // QR : part de devant (p = t). Infos : part de derrière (p = t).
+        // p : avancement de l'échange en cours (0 = début, 1 = fin), quel
+        // que soit le sens (QR -> infos ou infos -> QR).
+        final p = swapFromInfo ? 1 - t : t;
+        final qrWidget = qrInFront ? asFront(qrFace) : asBack(qrFacePeek);
+        final infoWidget = qrInFront ? asBack(infoFacePeek) : asFront(infoFace);
         final qrCard =
-            leaving(qrInFront ? asFront(qrFace) : asBack(qrFacePeek), t);
+            swapFromInfo ? coming(qrWidget, p) : leaving(qrWidget, p);
         final infoCard =
-            coming(qrInFront ? asBack(infoFacePeek) : asFront(infoFace), t);
+            swapFromInfo ? leaving(infoWidget, p) : coming(infoWidget, p);
 
         // Swipe détecté sur toute la zone des cartes (fixe) plutôt que sur
         // la carte de devant : les cartes échangent leur ordre à mi-course,
         // ce qui aurait interrompu le geste en cours.
         return GestureDetector(
-          onHorizontalDragUpdate: onDragUpdate == null
-              ? null
-              : (d) => onDragUpdate!(d.delta.dx),
+          onHorizontalDragUpdate:
+              onDragUpdate == null ? null : (d) => onDragUpdate!(d.delta.dx),
           onHorizontalDragEnd: onDragEnd == null
               ? null
               : (d) => onDragEnd!(d.velocity.pixelsPerSecond.dx),
@@ -135,19 +152,28 @@ class KartFlipCard extends StatelessWidget {
     required double dx,
     required double scale,
     required double angle,
+    double tiltY = 0,
   }) {
     return Transform.translate(
       offset: Offset(dx, 0),
-      child: Transform.rotate(
-        angle: angle,
-        child: Transform.scale(
-          scale: scale,
-          // Ancrée à droite : en pose "derrière", la face réduite dépasse
-          // de [peek] à droite de la face de devant.
-          alignment: Alignment.centerRight,
-          // Cartes opaques : aucune transparence, pour qu'on ne voie jamais
-          // le texte de celle de derrière à travers celle de devant.
-          child: child,
+      // Légère inclinaison 3D (rotation Y avec perspective) de la carte qui
+      // part, maximale au milieu de l'échange.
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.0012)
+          ..rotateY(tiltY),
+        child: Transform.rotate(
+          angle: angle,
+          child: Transform.scale(
+            scale: scale,
+            // Ancrée à droite : en pose "derrière", la face réduite dépasse
+            // de [peek] à droite de la face de devant.
+            alignment: Alignment.centerRight,
+            // Cartes opaques : aucune transparence, pour qu'on ne voie jamais
+            // le texte de celle de derrière à travers celle de devant.
+            child: child,
+          ),
         ),
       ),
     );
@@ -160,10 +186,15 @@ class KartFlipButton extends StatelessWidget {
   final bool showingInfo;
   final VoidCallback onTap;
 
+  /// Avancement de l'échange (0 à 1) : l'icône fait un demi-tour en suivant
+  /// le mouvement des cartes (bouton, points ou swipe).
+  final double progress;
+
   const KartFlipButton({
     super.key,
     required this.showingInfo,
     required this.onTap,
+    this.progress = 0,
   });
 
   @override
@@ -183,7 +214,10 @@ class KartFlipButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.sync_rounded, size: 20, color: t.textPrimary),
+              Transform.rotate(
+                angle: progress * math.pi,
+                child: Icon(Icons.sync_rounded, size: 20, color: t.textPrimary),
+              ),
               const SizedBox(width: 10),
               Text(
                 showingInfo ? 'Afficher le QR' : 'Afficher la carte',

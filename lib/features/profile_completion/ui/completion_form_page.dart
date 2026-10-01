@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../core/network/api_error.dart';
 import '../providers/profile_completion_provider.dart';
 import '../../digital_card/providers/card_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../../core/theme/kart_tokens.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
@@ -88,6 +90,11 @@ class CompletionFormPage extends StatefulWidget {
 class _CompletionFormPageState extends State<CompletionFormPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final _firstnameCtrl = TextEditingController();
+  final _lastnameCtrl = TextEditingController();
+  // Email chargé à l'ouverture : sert à détecter un changement (nouvelle
+  // adresse = email de connexion, à vérifier).
+  String _initialEmail = '';
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
@@ -132,6 +139,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       if (!mounted) return;
 
       final m = p.model;
+      final user = context.read<AuthProvider>().user;
+      _firstnameCtrl.text = user?.firstname ?? '';
+      _lastnameCtrl.text = user?.lastname ?? '';
+      _initialEmail = (m.email ?? '').trim();
       _jobCtrl.text = m.jobTitle ?? '';
       _companyCtrl.text = m.company ?? '';
       _cityCtrl.text = m.city ?? '';
@@ -216,6 +227,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     _bioCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
+    _firstnameCtrl.dispose();
+    _lastnameCtrl.dispose();
     _linkedinCtrl.dispose();
     _instagramCtrl.dispose();
     _githubCtrl.dispose();
@@ -328,6 +341,18 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final editsBasic = _showSection('basic');
+    if (editsBasic &&
+        (_firstnameCtrl.text.trim().isEmpty ||
+            _lastnameCtrl.text.trim().isEmpty)) {
+      setState(() => _errorMessage = 'Le prénom et le nom sont obligatoires.');
+      return;
+    }
+    final newEmail = _emailCtrl.text.trim();
+    final emailChanged = editsBasic &&
+        newEmail.isNotEmpty &&
+        newEmail.toLowerCase() != _initialEmail.toLowerCase();
+
     setState(() {
       loading = true;
       _successMessage = null;
@@ -392,12 +417,17 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     }
 
     final updated = ProfileCompletionModel(
+      // Prénom, nom et email ne sont envoyés que depuis la section où on les
+      // modifie : l'email est celui du compte (= email de connexion), il ne
+      // doit jamais changer en enregistrant une expérience ou une formation.
+      firstname: editsBasic ? _firstnameCtrl.text.trim() : null,
+      lastname: editsBasic ? _lastnameCtrl.text.trim() : null,
       jobTitle: _jobCtrl.text,
       company: _companyCtrl.text,
       city: _cityCtrl.text,
       bio: _bioCtrl.text,
       phone: _phoneCtrl.text,
-      email: _emailCtrl.text,
+      email: editsBasic ? newEmail : null,
       linkedin: _linkedinCtrl.text,
       instagram: _instagramCtrl.text,
       github: _githubCtrl.text,
@@ -431,12 +461,20 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         if (mounted) {
           await context.read<CardProvider>().loadCardSummary();
         }
+        // Nom/email du compte affichés ailleurs (en-tête du profil...).
+        if (mounted && editsBasic) {
+          await context.read<AuthProvider>().loadMe();
+        }
       }
 
       if (!mounted) return;
       setState(() {
         loading = false;
-        _successMessage = ok ? 'Profil mis à jour avec succès' : null;
+        _successMessage = !ok
+            ? null
+            : emailChanged
+                ? 'Profil mis à jour. Un lien de vérification a été envoyé à $newEmail.'
+                : 'Profil mis à jour avec succès';
         _errorMessage = ok ? null : 'Une erreur est survenue';
       });
 
@@ -538,6 +576,18 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     colors, Icons.person_outline, 'Informations de base'),
                 const SizedBox(height: 12),
                 AuthTextField(
+                    label: 'Prénom',
+                    controller: _firstnameCtrl,
+                    prefixIcon: Icons.badge_outlined,
+                    hint: 'Ex: Adama'),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'Nom',
+                    controller: _lastnameCtrl,
+                    prefixIcon: Icons.badge_outlined,
+                    hint: 'Ex: Dabo'),
+                const SizedBox(height: 12),
+                AuthTextField(
                     label: 'Poste',
                     controller: _jobCtrl,
                     prefixIcon: Icons.work_outline,
@@ -585,7 +635,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ),
                 const SizedBox(height: 12),
                 AuthTextField(
-                    label: 'Email',
+                    // Email du compte : sert aussi à se connecter, et c'est
+                    // celui affiché sur la carte (une nouvelle adresse est à
+                    // vérifier via le lien envoyé par email).
+                    label: 'Email (connexion et carte)',
                     controller: _emailCtrl,
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
@@ -762,25 +815,28 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           ],
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+              // Pas de titre sur la première : la section porte déjà
+              // "Expériences" juste au-dessus (titre en double sinon). Le
+              // numéro ne sert qu'à distinguer les suivantes.
+              if (index > 0) ...[
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.work_outline,
+                      size: 16, color: Color(0xFF3B82F6)),
                 ),
-                child: const Icon(Icons.work_outline,
-                    size: 16, color: Color(0xFF3B82F6)),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                // "Expérience" tout court pour la première — le numéro ne
-                // sert qu'à distinguer les suivantes.
-                index == 0 ? 'Expérience' : 'Expérience ${index + 1}',
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF3B82F6)),
-              ),
+                const SizedBox(width: 10),
+                Text(
+                  'Expérience ${index + 1}',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF3B82F6)),
+                ),
+              ],
               const Spacer(),
               GestureDetector(
                 onTap: () => _removeExperience(index),
@@ -801,6 +857,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
               label: 'Titre du poste',
               controller: exp['title']!,
               prefixIcon: Icons.badge_outlined,
+              // Grandit avec le texte (jusqu'à 3 lignes) au lieu de le
+              // masquer, avec une limite et un compteur comme la bio.
+              minLines: 1,
+              maxLines: 3,
+              maxLength: 100,
               hint: 'Ex: Développeur Senior'),
           const SizedBox(height: 10),
           AuthTextField(
@@ -843,6 +904,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
               label: 'Description',
               controller: exp['description']!,
               prefixIcon: Icons.description_outlined,
+              // Grandit avec le texte (2 à 8 lignes, puis défile), limite
+              // et compteur comme la bio.
+              minLines: 2,
+              maxLines: 8,
+              maxLength: 500,
               hint: 'Décrivez vos responsabilités...'),
         ],
       ),
@@ -856,6 +922,11 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   ) {
     const accent = Color(0xFF8B5CF6);
 
+    // Champ de choix (école, diplôme, domaine) : un tap ouvre une feuille
+    // avec recherche + liste. La liste reste affichée clavier fermé (un tap
+    // hors du champ ou un défilement ferme le clavier sans perdre la liste,
+    // contrairement à l'ancien Autocomplete), et on peut saisir une valeur
+    // absente de la liste. La croix efface le choix.
     Widget buildStyledAutocomplete({
       required String label,
       required IconData icon,
@@ -863,177 +934,106 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       required TextEditingController controller,
       String? hint,
     }) {
-      return Autocomplete<String>(
-        optionsBuilder: (TextEditingValue value) {
-          if (value.text.isEmpty) return options;
-          return options.where((option) =>
-              option.toLowerCase().contains(value.text.toLowerCase()));
-        },
-        onSelected: (value) {
-          controller.text = value;
-        },
-        optionsViewBuilder: (context, onSelected, options) {
-          return Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              elevation: 8,
-              shadowColor: accent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-              color: colors.surface,
-              child: Container(
-                constraints:
-                    const BoxConstraints(maxHeight: 220, maxWidth: 340),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.15),
-                  ),
-                ),
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    color: colors.onSurface.withValues(alpha: 0.05),
-                  ),
-                  itemBuilder: (_, i) {
-                    final option = options.elementAt(i);
-                    return InkWell(
-                      onTap: () => onSelected(option),
-                      borderRadius: BorderRadius.circular(10),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        child: Row(
-                          children: [
-                            Icon(icon,
-                                size: 16, color: accent.withValues(alpha: 0.6)),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                option,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: colors.onSurface,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+      return ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          final hasValue = value.text.trim().isNotEmpty;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: hasValue ? 12 : 14,
+                  color: colors.onSurface.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ),
-          );
-        },
-        fieldViewBuilder: (context, textController, focusNode, onSubmit) {
-          // Sync initial value
-          if (textController.text != controller.text) {
-            textController.text = controller.text;
-          }
-          textController.addListener(() {
-            controller.text = textController.text;
-          });
-
-          return AnimatedBuilder(
-            animation: focusNode,
-            builder: (context, _) {
-              final focused = focusNode.hasFocus;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontSize:
-                          focused || textController.text.isNotEmpty ? 12 : 14,
-                      color: focused
-                          ? accent
-                          : colors.onSurface.withValues(alpha: 0.5),
-                      fontWeight: focused ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: 0.5,
-                    ),
-                    child: Text(label),
-                  ),
-                  const SizedBox(height: 8),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
+              const SizedBox(height: 8),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () async {
+                    FocusScope.of(context).unfocus();
+                    final picked = await _OptionPickerSheet.show(
+                      context,
+                      title: label,
+                      options: options,
+                      initial: value.text,
+                      icon: icon,
+                      accent: accent,
+                    );
+                    if (picked != null) controller.text = picked;
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 2, 4, 2),
                     decoration: BoxDecoration(
-                      color: focused
-                          ? accent.withValues(alpha: 0.06)
-                          : colors.onSurface.withValues(alpha: 0.04),
+                      color: colors.onSurface.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: focused
-                            ? accent.withValues(alpha: 0.5)
-                            : textController.text.isNotEmpty
-                                ? colors.onSurface.withValues(alpha: 0.15)
-                                : colors.onSurface.withValues(alpha: 0.08),
-                        width: focused ? 1.5 : 1,
+                        color: hasValue
+                            ? colors.onSurface.withValues(alpha: 0.15)
+                            : colors.onSurface.withValues(alpha: 0.08),
                       ),
-                      boxShadow: focused
-                          ? [
-                              BoxShadow(
-                                color: accent.withValues(alpha: 0.08),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : [],
                     ),
-                    child: TextField(
-                      controller: textController,
-                      focusNode: focusNode,
-                      onSubmitted: (_) => onSubmit(),
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      cursorColor: accent,
-                      cursorWidth: 1.5,
-                      decoration: InputDecoration(
-                        hintText: hint ?? 'Sélectionner ou saisir',
-                        hintStyle: TextStyle(
-                          color: colors.onSurface.withValues(alpha: 0.35),
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
+                    child: Row(
+                      children: [
+                        Icon(
+                          icon,
+                          size: 20,
+                          color: hasValue
+                              ? accent
+                              : colors.onSurface.withValues(alpha: 0.4),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
-                        border: InputBorder.none,
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 14, right: 10),
-                          child: Icon(
-                            icon,
-                            size: 20,
-                            color: focused
-                                ? accent
-                                : colors.onSurface.withValues(alpha: 0.4),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              hasValue
+                                  ? value.text
+                                  : (hint ?? 'Sélectionner ou saisir'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: hasValue
+                                    ? colors.onSurface
+                                    : colors.onSurface.withValues(alpha: 0.35),
+                                fontSize: hasValue ? 15 : 14,
+                                fontWeight: hasValue
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                              ),
+                            ),
                           ),
                         ),
-                        prefixIconConstraints: const BoxConstraints(
-                          minWidth: 44,
-                          minHeight: 44,
-                        ),
-                        suffixIcon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: focused
-                              ? accent
-                              : colors.onSurface.withValues(alpha: 0.3),
-                          size: 22,
-                        ),
-                      ),
+                        if (hasValue)
+                          IconButton(
+                            tooltip: 'Effacer',
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: colors.onSurface.withValues(alpha: 0.5),
+                            ),
+                            onPressed: controller.clear,
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 22,
+                              color: colors.onSurface.withValues(alpha: 0.3),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ],
-              );
-            },
+                ),
+              ),
+            ],
           );
         },
       );
@@ -1050,47 +1050,52 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
             Divider(color: colors.onSurface.withValues(alpha: 0.08)),
             const SizedBox(height: 12),
           ],
-          // HEADER
+          // HEADER — pas de titre sur la première : la section porte déjà
+          // "Formation" juste au-dessus (titre en double sinon).
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      accent.withValues(alpha: 0.15),
-                      accent.withValues(alpha: 0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              if (index > 0) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withValues(alpha: 0.15),
+                        accent.withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  child: const Icon(Icons.school_outlined,
+                      size: 18, color: accent),
                 ),
-                child:
-                    const Icon(Icons.school_outlined, size: 18, color: accent),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
+              ],
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      index == 0 ? 'Formation' : 'Formation ${index + 1}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
+                child: index == 0
+                    ? const SizedBox.shrink()
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Formation ${index + 1}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: accent,
+                            ),
+                          ),
+                          Text(
+                            'Parcours académique',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.4),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      'Parcours académique',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colors.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
-                ),
               ),
               GestureDetector(
                 onTap: () => _removeEducation(index),
@@ -1362,6 +1367,191 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Feuille de choix d'une valeur (école, diplôme, domaine) : recherche en
+/// haut, liste filtrée en dessous. Le clavier se ferme au défilement ou au
+/// tap hors du champ sans faire disparaître la liste. Une valeur absente de
+/// la liste peut être utilisée telle quelle.
+class _OptionPickerSheet extends StatefulWidget {
+  final String title;
+  final List<String> options;
+  final String initial;
+  final IconData icon;
+  final Color accent;
+
+  const _OptionPickerSheet({
+    required this.title,
+    required this.options,
+    required this.initial,
+    required this.icon,
+    required this.accent,
+  });
+
+  static Future<String?> show(
+    BuildContext context, {
+    required String title,
+    required List<String> options,
+    required String initial,
+    required IconData icon,
+    required Color accent,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OptionPickerSheet(
+        title: title,
+        options: options,
+        initial: initial,
+        icon: icon,
+        accent: accent,
+      ),
+    );
+  }
+
+  @override
+  State<_OptionPickerSheet> createState() => _OptionPickerSheetState();
+}
+
+class _OptionPickerSheetState extends State<_OptionPickerSheet> {
+  late final _query = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = KartTokens.of(context);
+    final colors = Theme.of(context).colorScheme;
+    final q = _query.text.trim();
+    final filtered = q.isEmpty
+        ? widget.options
+        : widget.options
+            .where((o) => o.toLowerCase().contains(q.toLowerCase()))
+            .toList();
+    final canUseTyped = q.isNotEmpty &&
+        !widget.options.any((o) => o.toLowerCase() == q.toLowerCase());
+
+    return GestureDetector(
+      // Tap hors du champ de recherche : ferme le clavier, la liste reste.
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: t.sheetBackground,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: t.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Fermer',
+                    icon: Icon(Icons.close_rounded, color: t.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _query,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (v) {
+                  if (v.trim().isNotEmpty) Navigator.pop(context, v.trim());
+                },
+                cursorColor: widget.accent,
+                decoration: InputDecoration(
+                  hintText: 'Rechercher ou saisir',
+                  prefixIcon: Icon(Icons.search_rounded, color: t.textSecondary),
+                  suffixIcon: q.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Effacer la recherche',
+                          icon: Icon(Icons.close_rounded,
+                              size: 18, color: t.textSecondary),
+                          onPressed: () => setState(_query.clear),
+                        ),
+                  filled: true,
+                  fillColor: t.softFill,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                children: [
+                  if (canUseTyped)
+                    ListTile(
+                      leading: Icon(Icons.add_rounded, color: widget.accent),
+                      title: Text(
+                        'Utiliser « $q »',
+                        style: TextStyle(
+                          color: widget.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      onTap: () => Navigator.pop(context, q),
+                    ),
+                  for (final option in filtered)
+                    ListTile(
+                      leading: Icon(widget.icon,
+                          size: 20,
+                          color: widget.accent.withValues(alpha: 0.7)),
+                      title: Text(
+                        option,
+                        style: TextStyle(color: t.textPrimary, fontSize: 15),
+                      ),
+                      trailing: option == widget.initial
+                          ? Icon(Icons.check_rounded, color: widget.accent)
+                          : null,
+                      onTap: () => Navigator.pop(context, option),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

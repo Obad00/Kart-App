@@ -215,10 +215,21 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   bool? _dragFromInfo;
   double _dragDistance = 0;
 
+  // Sens et face de départ de l'échange en cours (cf. KartFlipCard) : la
+  // carte de devant part dans le sens du doigt ; -1 (gauche) par défaut.
+  double _swipeDirection = -1;
+  bool _swapFromInfo = false;
+
   /// La carte suit le doigt, dans les deux sens : la progression dépend de
   /// la distance horizontale parcourue, pas de sa direction.
   void _onCardDrag(double dx, double cardWidth) {
-    _dragFromInfo ??= _showingInfo;
+    if (_dragFromInfo == null) {
+      _dragFromInfo = _showingInfo;
+      setState(() {
+        _swapFromInfo = _showingInfo;
+        _swipeDirection = dx > 0 ? 1 : -1;
+      });
+    }
     _dragDistance += dx;
     final progress = (_dragDistance.abs() / cardWidth).clamp(0.0, 1.0);
     _flipCtrl.value = _dragFromInfo! ? 1 - progress : progress;
@@ -238,6 +249,12 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
   }
 
   Future<void> _showFace(bool info) {
+    if (info != _showingInfo) {
+      setState(() {
+        _swapFromInfo = _showingInfo;
+        _swipeDirection = -1;
+      });
+    }
     HapticFeedback.selectionClick();
     return info ? _flipCtrl.forward() : _flipCtrl.reverse();
   }
@@ -498,6 +515,8 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     onFlip: _toggleFace,
                     onDragUpdate: (dx) => _onCardDrag(dx, cardWidth),
                     onDragEnd: _onCardDragEnd,
+                    swipeDirection: _swipeDirection,
+                    swapFromInfo: _swapFromInfo,
                     qrFace: KartCardQrFace(
                       width: cardWidth,
                       data: data,
@@ -531,6 +550,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       KartFlipButton(
                         showingInfo: _showingInfo,
                         onTap: _toggleFace,
+                        progress: _flipCtrl.value,
                       ),
                       const SizedBox(height: 12),
                       KartFaceIndicator(
