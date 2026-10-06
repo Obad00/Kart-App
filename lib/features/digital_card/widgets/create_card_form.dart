@@ -386,7 +386,7 @@ class _CreateCardFormState extends State<CreateCardForm> {
                           _lockedCompanyLogoUrl!,
                           width: 24,
                           height: 24,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                       ),

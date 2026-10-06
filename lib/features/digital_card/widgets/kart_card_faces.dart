@@ -383,6 +383,10 @@ class _LogoTile extends StatelessWidget {
       ),
     );
 
+    if (data.hasFullLogo) {
+      return _FullLogo(data: data, size: size, fallback: placeholder);
+    }
+
     return Container(
       width: size,
       height: size,
@@ -400,6 +404,70 @@ class _LogoTile extends StatelessWidget {
                 errorWidget: (_, __, ___) => placeholder,
               )
             : placeholder,
+      ),
+    );
+  }
+}
+
+/// Logo entier, jamais coupé : même hauteur que la tuile carrée, mais la
+/// largeur suit le ratio du logo (jusqu'à [_maxAspect] fois la hauteur), et
+/// l'image est en `BoxFit.contain`. Un logo opaque (fond blanc le plus
+/// souvent) est posé dans une pastille claire : collé tel quel sur la carte
+/// noire, il ferait un rectangle blanc peu élégant.
+class _FullLogo extends StatelessWidget {
+  final KartCardData data;
+  final double size;
+  final Widget fallback;
+
+  const _FullLogo({
+    required this.data,
+    required this.size,
+    required this.fallback,
+  });
+
+  /// Largeur max = 2,6 × la hauteur : un logo très allongé reste entier
+  /// (il rétrécit), sans pousser le nom de l'entreprise hors de la carte.
+  static const double _maxAspect = 2.6;
+
+  /// Blanc cassé de la pastille (pas un blanc pur, trop dur sur le noir).
+  static const Color _pill = Color(0xFFF7F5F0);
+
+  @override
+  Widget build(BuildContext context) {
+    final onPill = data.logoTransparent == false;
+    final radius = BorderRadius.circular(math.min(12.0, size * 0.35));
+    final padding = onPill ? size * 0.12 : 0.0;
+    final inner = size - 2 * padding;
+
+    final image = Image(
+      image: data.logoFullImage ??
+          CachedNetworkImageProvider(data.logoFullUrl!),
+      height: inner,
+      fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
+      // Tant que l'image charge (ou si elle échoue), un carré de la taille
+      // de la tuile habituelle tient la place.
+      frameBuilder: (_, child, frame, wasSynchronouslyLoaded) =>
+          frame == null && !wasSynchronouslyLoaded
+              ? SizedBox(width: inner, height: inner)
+              : child,
+      errorBuilder: (_, __, ___) =>
+          SizedBox(width: inner, height: inner, child: fallback),
+    );
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: size,
+        maxWidth: size * _maxAspect,
+        minHeight: size,
+        maxHeight: size,
+      ),
+      child: Container(
+        padding: EdgeInsets.all(padding),
+        decoration: onPill
+            ? BoxDecoration(color: _pill, borderRadius: radius)
+            : null,
+        child: image,
       ),
     );
   }

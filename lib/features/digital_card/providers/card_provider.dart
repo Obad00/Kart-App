@@ -64,15 +64,40 @@ class CardProvider extends ChangeNotifier {
 
   // --- COMPANY INFO ---
   String? _companyLogo;
+  String? _companyLogoFull;
+  bool? _companyLogoTransparent;
   String? _companyPrimaryColor;
   String? get companyLogo => _companyLogo;
+
+  /// Logo d'entreprise entier, à son ratio d'origine (cf. [logoFull]).
+  String? get companyLogoFull => _companyLogoFull;
+  bool? get companyLogoTransparent => _companyLogoTransparent;
   String? get companyPrimaryColor => _companyPrimaryColor;
 
   // --- PERSONAL BRANDING ---
   String? _accentColor;
   String? _logo;
+  String? _logoFull;
+  bool? _logoTransparent;
   String? get accentColor => _accentColor;
+
+  /// Logo en variante carrée (logo entier, centré, avec des marges).
   String? get logo => _logo;
+
+  /// Logo entier à son ratio d'origine, à afficher en `BoxFit.contain`.
+  /// null pour un logo envoyé avant ce traitement : on affiche alors
+  /// [logo] comme avant.
+  String? get logoFull => _logoFull;
+
+  /// false = logo opaque (souvent sur fond blanc), à poser dans une
+  /// pastille claire sur la carte sombre ; null = inconnu (ancien logo).
+  bool? get logoTransparent => _logoTransparent;
+
+  /// Chemin relatif renvoyé par l'API → URL du stockage.
+  static String? _storageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    return path.startsWith('http') ? path : '${ApiEndpoints.storageUrl}/$path';
+  }
 
   // --- LOADING ---
   bool _isQrLoading = false;
@@ -116,9 +141,13 @@ class CardProvider extends ChangeNotifier {
     _slug = null;
     _shareUrl = null;
     _companyLogo = null;
+    _companyLogoFull = null;
+    _companyLogoTransparent = null;
     _companyPrimaryColor = null;
     _accentColor = null;
     _logo = null;
+    _logoFull = null;
+    _logoTransparent = null;
     _isQrLoading = false;
     _isSummaryLoading = false;
     notifyListeners();
@@ -151,6 +180,8 @@ class CardProvider extends ChangeNotifier {
         _theme = null;
         _accentColor = null;
         _logo = null;
+        _logoFull = null;
+        _logoTransparent = null;
       } else {
         jobTitle = res.data['job_title'];
         company = res.data['company'];
@@ -191,6 +222,8 @@ class CardProvider extends ChangeNotifier {
         } else {
           _logo = null;
         }
+        _logoFull = _storageUrl(res.data['logo_full'] as String?);
+        _logoTransparent = res.data['logo_transparent'] as bool?;
 
         // Récupérer les infos de l'entreprise depuis l'objet branding
         final branding = res.data['branding'] as Map<String, dynamic>?;
@@ -208,7 +241,11 @@ class CardProvider extends ChangeNotifier {
             }
           } else {
             _companyLogo = null;
+            _companyLogoFull = null;
+            _companyLogoTransparent = null;
           }
+          _companyLogoFull = _storageUrl(branding['logo_full'] as String?);
+          _companyLogoTransparent = branding['logo_transparent'] as bool?;
           _companyPrimaryColor = branding['primary_color'];
           // Utiliser le nom de l'entreprise du branding si disponible
           if (branding['company_name'] != null) {
@@ -226,6 +263,8 @@ class CardProvider extends ChangeNotifier {
             }
           } else {
             _companyLogo = null;
+            _companyLogoFull = null;
+            _companyLogoTransparent = null;
           }
           _companyPrimaryColor = res.data['company_primary_color'];
         }
@@ -334,9 +373,13 @@ class CardProvider extends ChangeNotifier {
     email = null;
     linkedin = null;
     _companyLogo = null;
+    _companyLogoFull = null;
+    _companyLogoTransparent = null;
     _companyPrimaryColor = null;
     _accentColor = null;
     _logo = null;
+    _logoFull = null;
+    _logoTransparent = null;
 
     _status = CardStatus.idle;
     notifyListeners();

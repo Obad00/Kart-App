@@ -1,5 +1,7 @@
 import 'dart:ui' show Color;
 
+import 'package:flutter/painting.dart' show ImageProvider;
+
 /// Contenu affiché sur la carte de visite (faces QR et infos) — assemblé
 /// par MyDigitalCardPage à partir de CardProvider/AuthProvider, pour que les
 /// widgets de la carte restent purement visuels.
@@ -16,6 +18,20 @@ class KartCardData {
   /// true quand [logoUrl] est la photo de profil (repli) : affichée en rond
   /// plutôt qu'en tuile carrée.
   final bool logoIsPhoto;
+
+  /// Logo entier, à son ratio d'origine (horizontal, vertical...) : affiché
+  /// sans jamais être coupé. null pour une photo de profil ou un logo
+  /// envoyé avant ce traitement — la tuile carrée [logoUrl] sert alors.
+  final String? logoFullUrl;
+
+  /// false = logo opaque (souvent sur fond blanc) : posé dans une pastille
+  /// claire sur la carte sombre. true = logo détouré, posé directement.
+  final bool? logoTransparent;
+
+  /// Image déjà disponible, utilisée à la place du téléchargement de
+  /// [logoFullUrl]. Sert aux tests de rendu, qui n'ont pas de réseau ;
+  /// l'app ne le renseigne pas.
+  final ImageProvider? logoFullImage;
 
   /// Badge discret à côté de "KART" (ex: 'PRO' pour un compte entreprise).
   final String? badgeLabel;
@@ -34,6 +50,9 @@ class KartCardData {
     this.brandName,
     this.logoUrl,
     this.logoIsPhoto = false,
+    this.logoFullUrl,
+    this.logoTransparent,
+    this.logoFullImage,
     this.badgeLabel,
     this.phone,
     this.email,
@@ -46,6 +65,7 @@ class KartCardData {
   bool get hasJobTitle => _filled(jobTitle);
   bool get hasBrandName => _filled(brandName);
   bool get hasLogo => _filled(logoUrl);
+  bool get hasFullLogo => !logoIsPhoto && _filled(logoFullUrl);
   bool get hasPhone => _filled(phone);
   bool get hasEmail => _filled(email);
   bool get hasCity => _filled(city);

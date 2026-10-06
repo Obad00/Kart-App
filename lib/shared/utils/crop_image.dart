@@ -5,8 +5,8 @@ import 'package:image_cropper/image_cropper.dart';
 /// sans ça, l'image partait telle quelle vers un cercle (avatar) ou un
 /// carré (logo entreprise), recadrée automatiquement par le centre sans
 /// que l'utilisateur puisse choisir la zone (front/menton coupés...).
-/// Toujours en carré 1:1 (verrouillé) : c'est le seul format utilisé pour
-/// un avatar ou un logo dans l'app. Retourne le CroppedFile (utiliser
+/// Toujours en carré 1:1 (verrouillé) : c'est le format d'un avatar. Pour un
+/// logo, voir [cropLogoImage] (ratio libre). Retourne le CroppedFile (utiliser
 /// .readAsBytes(), pas dart:io File — non disponible/valide sur web), ou
 /// `null` si l'utilisateur annule (aucune image à uploader dans ce cas).
 Future<CroppedFile?> cropPickedImage(
@@ -36,6 +36,43 @@ Future<CroppedFile?> cropPickedImage(
       // Web (tests locaux via `flutter run -d chrome`) — sans ce réglage,
       // le recadrage silencieusement ignoré sur cette plateforme
       // (uiSettings Android/iOS n'y ont aucun effet).
+      WebUiSettings(context: context),
+    ],
+  );
+}
+
+/// Recadrage LIBRE d'un logo (mode « Recadrer » de LogoPickerField) : ratio
+/// non verrouillé, avec quelques formats proposés. Remonté par un client au
+/// logo horizontal (« CMAS — Cabinet Médical… ») que le carré imposé coupait
+/// forcément. Sortie en PNG, pour ne pas perdre la transparence d'un logo
+/// détouré. Retourne `null` si l'utilisateur annule.
+Future<CroppedFile?> cropLogoImage(
+  BuildContext context,
+  String sourcePath,
+) async {
+  const presets = [
+    CropAspectRatioPreset.original,
+    CropAspectRatioPreset.square,
+    CropAspectRatioPreset.ratio3x2,
+    CropAspectRatioPreset.ratio16x9,
+  ];
+
+  return ImageCropper().cropImage(
+    sourcePath: sourcePath,
+    compressFormat: ImageCompressFormat.png,
+    uiSettings: [
+      AndroidUiSettings(
+        toolbarTitle: 'Recadrer le logo',
+        initAspectRatio: CropAspectRatioPreset.original,
+        lockAspectRatio: false,
+        aspectRatioPresets: presets,
+      ),
+      IOSUiSettings(
+        title: 'Recadrer le logo',
+        aspectRatioLockEnabled: false,
+        resetAspectRatioEnabled: true,
+        aspectRatioPresets: presets,
+      ),
       WebUiSettings(context: context),
     ],
   );

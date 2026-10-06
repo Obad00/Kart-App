@@ -73,7 +73,7 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
                                 imageUrl: _logoUrl(company)!,
                                 width: 56,
                                 height: 56,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 errorWidget: (_, __, ___) => Icon(
                                   Icons.business_rounded,
                                   size: 40,

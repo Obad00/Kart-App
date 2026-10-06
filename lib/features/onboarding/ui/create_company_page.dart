@@ -434,7 +434,7 @@ final argb = color.toARGB32();
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.network(_logoPath!,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => Icon(Icons.business,
                                 color: Colors.white.withValues(alpha: 0.8),
                                 size: 28)),

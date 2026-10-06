@@ -479,6 +479,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
             ? state.companyLogo
             : (hasPersonalLogo ? state.logo : avatarUrl);
 
+        // Même priorité pour le logo entier (ratio d'origine) : entreprise,
+        // sinon logo personnel. Aucun pour la photo de profil en repli.
+        final bool usesCompanyLogo = hasCompanyBranding &&
+            state.companyLogo != null &&
+            state.companyLogo!.isNotEmpty;
+        final String? logoFullUrl = usesCompanyLogo
+            ? state.companyLogoFull
+            : (hasPersonalLogo ? state.logoFull : null);
+        final bool? logoTransparent = usesCompanyLogo
+            ? state.companyLogoTransparent
+            : (hasPersonalLogo ? state.logoTransparent : null);
+
         final data = KartCardData(
           fullName: fullName,
           jobTitle: state.jobTitle,
@@ -489,6 +501,8 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
               : user?.company?.name,
           logoUrl: logoUrl,
           logoIsPhoto: logoUrl != null && logoUrl == avatarUrl,
+          logoFullUrl: logoFullUrl,
+          logoTransparent: logoTransparent,
           badgeLabel: hasCompanyBranding ? 'PRO' : null,
           phone: state.phone,
           email: state.email,

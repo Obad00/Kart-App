@@ -4,6 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../utils/crop_image.dart';
 
+/// Choix proposé après la sélection d'un logo.
+enum _LogoMode {
+  /// Logo gardé en entier (le serveur retire les marges vides).
+  fit,
+
+  /// Recadrage libre par l'utilisateur.
+  crop,
+}
+
 class LogoPickerField extends StatefulWidget {
   final String label;
   final String title;
@@ -141,27 +150,35 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
 
   Future<void> _pickFromSource(ImageSource source) async {
     try {
+      // Pas de imageQuality : il recompresserait un PNG détouré en JPEG et
+      // lui ferait perdre sa transparence. Le serveur réduit à 1024 px.
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
       if (pickedFile == null || !mounted) return;
 
-      // Recadrage carré avant de garder l'image — sans lui, le logo
-      // partait recadré automatiquement par le centre (cf. avatar profil,
-      // même correctif), sans que l'utilisateur puisse choisir la zone.
-      final cropped = await cropPickedImage(context, pickedFile.path);
-      if (cropped == null || !mounted) return;
+      // Un logo n'est plus forcé dans un carré (un logo horizontal y était
+      // coupé) : par défaut il est gardé en entier, et le recadrage libre
+      // reste possible pour qui veut couper des marges.
+      final mode = await _chooseLogoMode(pickedFile.path);
+      if (mode == null || !mounted) return;
 
-      final file = File(cropped.path);
+      String path = pickedFile.path;
+      if (mode == _LogoMode.crop) {
+        final cropped = await cropLogoImage(context, pickedFile.path);
+        if (cropped == null || !mounted) return;
+        path = cropped.path;
+      }
+
+      final file = File(path);
       if (await file.exists()) {
         setState(() {
           _selectedImage = file;
           _imageUrl = null;
         });
-        widget.onLogoChanged(cropped.path);
+        widget.onLogoChanged(path);
         HapticFeedback.mediumImpact();
       } else {
         throw Exception('Fichier introuvable');
@@ -182,6 +199,121 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     }
   }
 
+  /// « Ajuster » (logo entier, par défaut) ou « Recadrer » (ratio libre).
+  /// null si la feuille est fermée sans choisir : rien n'est modifié.
+  Future<_LogoMode?> _chooseLogoMode(String path) {
+    return showModalBottomSheet<_LogoMode>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final colors = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Votre logo',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Aperçu entier, tel qu'il sera gardé avec « Ajuster ».
+                Container(
+                  height: 120,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _previewBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.file(File(path), fit: BoxFit.contain),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () =>
+                      Navigator.pop(sheetContext, _LogoMode.fit),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Ajuster',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Le logo est gardé en entier, sans être coupé.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton(
+                  onPressed: () =>
+                      Navigator.pop(sheetContext, _LogoMode.crop),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.onSurface,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(
+                      color: colors.onSurface.withValues(alpha: 0.2),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Recadrer',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pour couper des marges ou choisir une zone.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Fond clair derrière un logo affiché en entier (`BoxFit.contain`) : la
+  /// plupart des logos sont dessinés pour un fond blanc.
+  static const Color _previewBackground = Color(0xFFF7F5F0);
+
   void _removeImage() {
     HapticFeedback.lightImpact();
     setState(() {
@@ -195,11 +327,13 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     if (_selectedImage != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.file(
-          _selectedImage!,
+        child: Container(
           width: 100,
           height: 100,
-          fit: BoxFit.cover,
+          padding: const EdgeInsets.all(8),
+          color: _previewBackground,
+          // Logo entier, jamais coupé.
+          child: Image.file(_selectedImage!, fit: BoxFit.contain),
         ),
       );
     } else if (_imageUrl != null && _imageUrl!.isNotEmpty) {
@@ -209,7 +343,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
           _imageUrl!,
           width: 100,
           height: 100,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           errorBuilder: (context, error, stack) => _buildPlaceholder(),
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;

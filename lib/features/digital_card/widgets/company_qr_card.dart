@@ -354,7 +354,8 @@ class _CompanyQrCardState extends State<CompanyQrCard>
         child: widget.companyLogo != null && widget.companyLogo!.isNotEmpty
             ? CachedNetworkImage(
                 imageUrl: widget.companyLogo!,
-                fit: BoxFit.cover,
+                // Logo : jamais coupé (cf. LogoPickerField).
+                fit: BoxFit.contain,
                 errorWidget: (_, __, ___) => _buildLogoPlaceholder(),
                 placeholder: (_, __) => _buildLogoPlaceholder(),
               )
