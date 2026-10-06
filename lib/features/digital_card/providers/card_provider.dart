@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_error.dart';
 import '../../../shared/services/card_service.dart';
+import '../../../shared/utils/logo_upload.dart';
 
 import 'package:dio/dio.dart';
 
@@ -337,11 +338,13 @@ class CardProvider extends ChangeNotifier {
       if (localLogoPath != null && !localLogoPath.startsWith('http')) {
         final file = File(localLogoPath);
         if (await file.exists()) {
+          // Logo opaque de plus de 1,5 Mo → JPG ; jamais plus de 5 Mo.
+          final uploadPath = await prepareLogoForUpload(localLogoPath);
           formData.files.add(MapEntry(
             'logo',
             await MultipartFile.fromFile(
-              localLogoPath,
-              filename: localLogoPath.split('/').last,
+              uploadPath,
+              filename: uploadPath.split('/').last,
             ),
           ));
         }
@@ -354,6 +357,8 @@ class CardProvider extends ChangeNotifier {
       );
 
       await loadCardSummary();
+    } on LogoTooLargeException catch (e) {
+      throw Exception(e.message);
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e,
           fallback: 'Erreur lors de la personnalisation de la carte'));

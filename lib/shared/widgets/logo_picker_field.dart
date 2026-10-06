@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/theme/kart_tokens.dart';
 import '../utils/crop_image.dart';
 
 /// Choix proposé après la sélection d'un logo.
@@ -245,6 +246,11 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
                   decoration: BoxDecoration(
                     color: _previewBackground,
                     borderRadius: BorderRadius.circular(12),
+                    // Sans elle, le blanc cassé se confond avec la feuille
+                    // en thème clair.
+                    border: Border.all(
+                      color: KartTokens.of(sheetContext).softBorder,
+                    ),
                   ),
                   child: Image.file(File(path), fit: BoxFit.contain),
                 ),
@@ -325,16 +331,17 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
 
   Widget _buildPreview() {
     if (_selectedImage != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 100,
-          height: 100,
-          padding: const EdgeInsets.all(8),
+      return Container(
+        width: 100,
+        height: 100,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
           color: _previewBackground,
-          // Logo entier, jamais coupé.
-          child: Image.file(_selectedImage!, fit: BoxFit.contain),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: KartTokens.of(context).softBorder),
         ),
+        // Logo entier, jamais coupé.
+        child: Image.file(_selectedImage!, fit: BoxFit.contain),
       );
     } else if (_imageUrl != null && _imageUrl!.isNotEmpty) {
       return ClipRRect(

@@ -58,6 +58,10 @@ dependencies:
   # Image picker
   image_picker: ^1.0.7
 
+  # Allègement du logo avant l'envoi (cf. lib/shared/utils/logo_upload.dart).
+  # Déjà présent en dépendance indirecte ; Dart pur, aucun code natif.
+  image: ^4.8.0
+
   # Google Sign-In
   google_sign_in: ^6.2.1
 

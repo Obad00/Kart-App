@@ -440,8 +440,7 @@ class _FullLogo extends StatelessWidget {
     final inner = size - 2 * padding;
 
     final image = Image(
-      image: data.logoFullImage ??
-          CachedNetworkImageProvider(data.logoFullUrl!),
+      image: data.logoFullProvider,
       height: inner,
       fit: BoxFit.contain,
       alignment: Alignment.centerLeft,

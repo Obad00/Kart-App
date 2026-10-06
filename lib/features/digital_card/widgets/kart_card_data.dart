@@ -1,5 +1,7 @@
 import 'dart:ui' show Color;
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/painting.dart' show ImageProvider;
 
 /// Contenu affiché sur la carte de visite (faces QR et infos) — assemblé
@@ -28,9 +30,10 @@ class KartCardData {
   /// claire sur la carte sombre. true = logo détouré, posé directement.
   final bool? logoTransparent;
 
-  /// Image déjà disponible, utilisée à la place du téléchargement de
-  /// [logoFullUrl]. Sert aux tests de rendu, qui n'ont pas de réseau ;
-  /// l'app ne le renseigne pas.
+  /// Image injectée à la place du téléchargement de [logoFullUrl] : les
+  /// tests de rendu n'ont pas de réseau. L'app ne le renseigne jamais, et
+  /// lit toujours [logoFullProvider].
+  @visibleForTesting
   final ImageProvider? logoFullImage;
 
   /// Badge discret à côté de "KART" (ex: 'PRO' pour un compte entreprise).
@@ -66,6 +69,10 @@ class KartCardData {
   bool get hasBrandName => _filled(brandName);
   bool get hasLogo => _filled(logoUrl);
   bool get hasFullLogo => !logoIsPhoto && _filled(logoFullUrl);
+
+  /// Source de l'image du logo entier (à n'appeler que si [hasFullLogo]).
+  ImageProvider get logoFullProvider =>
+      logoFullImage ?? CachedNetworkImageProvider(logoFullUrl!);
   bool get hasPhone => _filled(phone);
   bool get hasEmail => _filled(email);
   bool get hasCity => _filled(city);

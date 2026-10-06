@@ -2153,13 +2153,30 @@ class _BrandingEditorState extends State<_BrandingEditor> {
                   ),
                 ),
                 child: _saving
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colors.onPrimary,
-                        ),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colors.onPrimary,
+                            ),
+                          ),
+                          // L'envoi d'un logo peut prendre quelques
+                          // secondes sur un réseau lent : on le dit.
+                          if (_newLogoPath != null) ...[
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Envoi du logo…',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ],
                       )
                     : const Text(
                         'Enregistrer',
