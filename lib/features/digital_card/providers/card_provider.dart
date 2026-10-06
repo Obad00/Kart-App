@@ -94,6 +94,23 @@ class CardProvider extends ChangeNotifier {
   /// pastille claire sur la carte sombre ; null = inconnu (ancien logo).
   bool? get logoTransparent => _logoTransparent;
 
+  String? _accentColorLight;
+
+  /// Variante de [accentColor] pour le thème clair, quand celle-ci y est
+  /// peu lisible (ex. un jaune sur fond blanc). null = même couleur.
+  String? get accentColorLight => _accentColorLight;
+
+  List<String> _brandColors = const [];
+  String? _suggestedAccent;
+
+  /// Couleurs extraites du logo par le serveur (hex, 5 au plus). Vide pour
+  /// une carte sans logo, un logo noir et blanc, ou un logo d'avant.
+  List<String> get brandColors => _brandColors;
+
+  /// Couleur du logo la plus lisible sur la carte (hex), calculée par le
+  /// serveur. Proposée, jamais appliquée d'office.
+  String? get suggestedAccent => _suggestedAccent;
+
   /// Chemin relatif renvoyé par l'API → URL du stockage.
   static String? _storageUrl(String? path) {
     if (path == null || path.isEmpty) return null;
@@ -146,9 +163,12 @@ class CardProvider extends ChangeNotifier {
     _companyLogoTransparent = null;
     _companyPrimaryColor = null;
     _accentColor = null;
+    _accentColorLight = null;
     _logo = null;
     _logoFull = null;
     _logoTransparent = null;
+    _brandColors = const [];
+    _suggestedAccent = null;
     _isQrLoading = false;
     _isSummaryLoading = false;
     notifyListeners();
@@ -180,9 +200,12 @@ class CardProvider extends ChangeNotifier {
         city = null;
         _theme = null;
         _accentColor = null;
+        _accentColorLight = null;
         _logo = null;
         _logoFull = null;
         _logoTransparent = null;
+        _brandColors = const [];
+        _suggestedAccent = null;
       } else {
         jobTitle = res.data['job_title'];
         company = res.data['company'];
@@ -215,6 +238,7 @@ class CardProvider extends ChangeNotifier {
         debugPrint('🎨 Theme from API = $_theme');
 
         _accentColor = res.data['accent_color'] as String?;
+        _accentColorLight = res.data['accent_color_light'] as String?;
         final personalLogoPath = res.data['logo'] as String?;
         if (personalLogoPath != null && personalLogoPath.isNotEmpty) {
           _logo = personalLogoPath.startsWith('http')
@@ -225,6 +249,11 @@ class CardProvider extends ChangeNotifier {
         }
         _logoFull = _storageUrl(res.data['logo_full'] as String?);
         _logoTransparent = res.data['logo_transparent'] as bool?;
+        _brandColors = (res.data['brand_colors'] as List?)
+                ?.whereType<String>()
+                .toList() ??
+            const [];
+        _suggestedAccent = res.data['suggested_accent'] as String?;
 
         // Récupérer les infos de l'entreprise depuis l'objet branding
         final branding = res.data['branding'] as Map<String, dynamic>?;
@@ -320,7 +349,11 @@ class CardProvider extends ChangeNotifier {
   }
 
   /// Personnalise la carte (couleur d'accent + logo), gratuit pour tous.
-  Future<void> updatePersonalBranding({
+  ///
+  /// Renvoie true si un NOUVEAU logo vient d'être envoyé et que le serveur
+  /// en a extrait des couleurs : l'écran reste alors ouvert pour les
+  /// proposer.
+  Future<bool> updatePersonalBranding({
     String? accentColorHex,
     String? localLogoPath,
     bool removeLogo = false,
@@ -350,6 +383,8 @@ class CardProvider extends ChangeNotifier {
         }
       }
 
+      final logoSent = formData.files.any((entry) => entry.key == 'logo');
+
       await ApiClient.dio.post(
         '/me/card-summary',
         data: formData,
@@ -357,6 +392,7 @@ class CardProvider extends ChangeNotifier {
       );
 
       await loadCardSummary();
+      return logoSent && _brandColors.isNotEmpty;
     } on LogoTooLargeException catch (e) {
       throw Exception(e.message);
     } on DioException catch (e) {
@@ -382,9 +418,12 @@ class CardProvider extends ChangeNotifier {
     _companyLogoTransparent = null;
     _companyPrimaryColor = null;
     _accentColor = null;
+    _accentColorLight = null;
     _logo = null;
     _logoFull = null;
     _logoTransparent = null;
+    _brandColors = const [];
+    _suggestedAccent = null;
 
     _status = CardStatus.idle;
     notifyListeners();

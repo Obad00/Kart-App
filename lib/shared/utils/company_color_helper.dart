@@ -11,7 +11,7 @@ class CompanyColorHelper {
     final colors = Theme.of(context).colorScheme;
 
     return _parseColor(cardProvider.companyPrimaryColor) ??
-        _parseColor(cardProvider.accentColor) ??
+        _personalAccent(cardProvider, colors.brightness) ??
         colors.primary;
   }
 
@@ -21,8 +21,18 @@ class CompanyColorHelper {
     final colors = Theme.of(context).colorScheme;
 
     return _parseColor(cardProvider.companyPrimaryColor) ??
-        _parseColor(cardProvider.accentColor) ??
+        _personalAccent(cardProvider, colors.brightness) ??
         colors.primary;
+  }
+
+  /// Couleur d'accent personnelle. En thème clair, sa variante assombrie
+  /// quand le serveur en a calculé une (couleur trop pâle sur fond blanc).
+  static Color? _personalAccent(CardProvider card, Brightness brightness) {
+    if (brightness == Brightness.light) {
+      final light = _parseColor(card.accentColorLight);
+      if (light != null) return light;
+    }
+    return _parseColor(card.accentColor);
   }
 
   /// Couleur de l'entreprise, sinon null (compte individuel : l'appelant

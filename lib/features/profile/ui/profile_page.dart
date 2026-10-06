@@ -2032,22 +2032,46 @@ class _BrandingEditorState extends State<_BrandingEditor> {
   bool _logoRemoved = false;
   bool _saving = false;
 
+  /// La carte n'avait aucune couleur choisie à l'ouverture : le bleu
+  /// affiché est la couleur par défaut de KART.
+  late final bool _accentIsDefault;
+
+  /// Un nouveau logo vient d'être enregistré et l'écran est resté ouvert
+  /// pour proposer ses couleurs.
+  bool _logoJustSaved = false;
+
   @override
   void initState() {
     super.initState();
     final card = context.read<CardProvider>();
-    _accentColor = _parseHexColor(card.accentColor) ?? const Color(0xFF2563EB);
+    final saved = _parseHexColor(card.accentColor);
+    _accentIsDefault = saved == null;
+    _accentColor = saved ?? const Color(0xFF2563EB);
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await context.read<CardProvider>().updatePersonalBranding(
-            accentColorHex: _colorToHex(_accentColor),
-            localLogoPath: _newLogoPath,
-            removeLogo: _logoRemoved,
-          );
-      if (mounted) Navigator.pop(context);
+      final newLogoHasColors =
+          await context.read<CardProvider>().updatePersonalBranding(
+                accentColorHex: _colorToHex(_accentColor),
+                localLogoPath: _newLogoPath,
+                removeLogo: _logoRemoved,
+              );
+      if (!mounted) return;
+
+      // Seul cas où l'écran ne se ferme pas : un nouveau logo vient d'être
+      // envoyé et il a des couleurs. On reste ouvert UNE fois pour les
+      // proposer ; le prochain « Enregistrer » ferme comme d'habitude.
+      if (newLogoHasColors) {
+        setState(() {
+          _saving = false;
+          _newLogoPath = null;
+          _logoJustSaved = true;
+        });
+        return;
+      }
+      Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
@@ -2121,6 +2145,15 @@ class _BrandingEditorState extends State<_BrandingEditor> {
               label: 'Couleur d\'accent',
               initialColor: _accentColor,
               onColorChanged: (color) => setState(() => _accentColor = color),
+              // Couleurs du logo : proposées, jamais présélectionnées.
+              logoColors: card.brandColors
+                  .map(_parseHexColor)
+                  .whereType<Color>()
+                  .toList(),
+              suggestedColor: _parseHexColor(card.suggestedAccent),
+              logoNotice: _logoJustSaved ? 'Logo enregistré' : null,
+              warnWhenUnreadable: true,
+              initialIsDefault: _accentIsDefault,
             ),
             const SizedBox(height: 20),
             LogoPickerField(

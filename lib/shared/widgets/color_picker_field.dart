@@ -1,16 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/theme/kart_tokens.dart';
+import '../utils/color_contrast.dart';
+
 class ColorPickerField extends StatefulWidget {
   final String label;
   final Color initialColor;
   final ValueChanged<Color> onColorChanged;
+
+  /// Couleurs extraites du logo (5 au plus, de la plus présente à la moins
+  /// présente). Vide : la ligne « Couleurs de votre logo » n'existe pas et
+  /// le champ est exactement celui d'avant.
+  final List<Color> logoColors;
+
+  /// Couleur du logo la plus lisible sur la carte : porte le badge
+  /// « Suggérée ». Si ce n'est pas une des [logoColors] (aucune n'est
+  /// lisible, c'est alors une version éclaircie), elle est ajoutée comme
+  /// pastille supplémentaire. Jamais présélectionnée.
+  final Color? suggestedColor;
+
+  /// Petit message au-dessus des couleurs du logo (ex. « Logo enregistré »).
+  final String? logoNotice;
+
+  /// Affiche « Peu lisible sur votre carte publique » + « Ajuster » quand
+  /// la couleur choisie manque de contraste. Désactivé par défaut : les
+  /// autres usages du champ (couleur d'entreprise) ne changent pas.
+  final bool warnWhenUnreadable;
+
+  /// true si [initialColor] est la couleur par défaut de KART (carte sans
+  /// couleur choisie) : jamais d'avertissement tant qu'elle n'a pas été
+  /// changée.
+  final bool initialIsDefault;
 
   const ColorPickerField({
     super.key,
     required this.label,
     required this.initialColor,
     required this.onColorChanged,
+    this.logoColors = const [],
+    this.suggestedColor,
+    this.logoNotice,
+    this.warnWhenUnreadable = false,
+    this.initialIsDefault = false,
   });
 
   @override
@@ -20,6 +52,9 @@ class ColorPickerField extends StatefulWidget {
 class _ColorPickerFieldState extends State<ColorPickerField> {
   late Color _selectedColor;
   late TextEditingController _hexController;
+
+  /// L'utilisateur a-t-il changé la couleur depuis l'ouverture ?
+  bool _touched = false;
 
   // Palette de couleurs prédéfinies
   static const List<Color> _presetColors = [
@@ -77,6 +112,7 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
   void _updateColor(Color color) {
     setState(() {
       _selectedColor = color;
+      _touched = true;
       _hexController.text = _colorToHex(color);
     });
     widget.onColorChanged(color);
@@ -85,9 +121,191 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
   void _onHexChanged(String value) {
     final color = _hexToColor(value);
     if (color != null) {
-      setState(() => _selectedColor = color);
+      setState(() {
+        _selectedColor = color;
+        _touched = true;
+      });
       widget.onColorChanged(color);
     }
+  }
+
+  /// Couleurs du logo à afficher : celles du logo, plus la suggérée si elle
+  /// n'en fait pas partie. 6 pastilles au plus.
+  List<Color> get _logoSwatches {
+    final swatches = widget.logoColors.take(5).toList();
+    final suggested = widget.suggestedColor;
+    if (suggested != null &&
+        !swatches.any((c) => c.toARGB32() == suggested.toARGB32())) {
+      swatches.add(suggested);
+    }
+    return swatches;
+  }
+
+  bool get _showContrastWarning =>
+      widget.warnWhenUnreadable &&
+      !(widget.initialIsDefault && !_touched) &&
+      !ColorContrast.isReadableOnCard(_selectedColor);
+
+  /// Pastille de couleur : la même pour la palette et pour les couleurs du
+  /// logo (taille, bordure, coche et halo quand elle est sélectionnée).
+  Widget _buildSwatch(Color color, ColorScheme colors, {Key? key}) {
+    final isSelected = _selectedColor.toARGB32() == color.toARGB32();
+    return GestureDetector(
+      key: key,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _updateColor(color);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.1),
+            width: isSelected ? 2.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.5),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: isSelected
+            ? Icon(
+                Icons.check,
+                size: 18,
+                color: color.computeLuminance() > 0.5
+                    ? Colors.black
+                    : Colors.white,
+              )
+            : null,
+      ),
+    );
+  }
+
+  /// « Couleurs de votre logo » : libellé, pastilles, badge « Suggérée »
+  /// sous la plus lisible. Rien n'est présélectionné.
+  Widget _buildLogoColors(ColorScheme colors) {
+    final suggested = widget.suggestedColor;
+    final muted = colors.onSurface.withValues(alpha: 0.5);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.logoNotice != null) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                size: 14,
+                color: KartTokens.of(context).positive,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.logoNotice!,
+                style: TextStyle(
+                  color: KartTokens.of(context).positive,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
+        Text(
+          'Couleurs de votre logo',
+          style: TextStyle(
+            color: muted,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _logoSwatches.map((color) {
+            final isSuggested = suggested != null &&
+                color.toARGB32() == suggested.toARGB32();
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSwatch(
+                  color,
+                  colors,
+                  key: ValueKey('logo-color-${_colorToHex(color)}'),
+                ),
+                // Hauteur réservée même sans badge : les pastilles restent
+                // alignées.
+                SizedBox(
+                  height: 16,
+                  child: isSuggested
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            'Suggérée',
+                            style: TextStyle(
+                              color: muted,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  /// Ligne discrète sous la palette. N'empêche jamais d'enregistrer.
+  Widget _buildContrastWarning() {
+    final attention = KartTokens.of(context).attention;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 15, color: attention),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Peu lisible sur votre carte publique',
+              style: TextStyle(color: attention, fontSize: 12),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _updateColor(ColorContrast.adjustForCard(_selectedColor));
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: attention,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 30),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text(
+              'Ajuster',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -213,53 +431,23 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
 
               const SizedBox(height: 16),
 
+              // Couleurs du logo, seulement s'il y en a.
+              if (_logoSwatches.isNotEmpty)
+                SizedBox(
+                  width: double.infinity,
+                  child: _buildLogoColors(colors),
+                ),
+
               // Palette de couleurs prédéfinies
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _presetColors.map((color) {
-                final isSelected = _selectedColor.toARGB32() == color.toARGB32();
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _updateColor(color);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? colors.onSurface
-                              : colors.onSurface.withValues(alpha: 0.1),
-                          width: isSelected ? 2.5 : 1,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: color.withValues(alpha: 0.5),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: isSelected
-                          ? Icon(
-                              Icons.check,
-                              size: 18,
-                              color: color.computeLuminance() > 0.5
-                                  ? Colors.black
-                                  : Colors.white,
-                            )
-                          : null,
-                    ),
-                  );
-                }).toList(),
+                children: _presetColors
+                    .map((color) => _buildSwatch(color, colors))
+                    .toList(),
               ),
+
+              if (_showContrastWarning) _buildContrastWarning(),
             ],
           ),
         ),

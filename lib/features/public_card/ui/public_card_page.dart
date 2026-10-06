@@ -115,9 +115,16 @@ class _PublicCardPageState extends State<PublicCardPage>
       (card?['connection_status'] == null &&
           widget.initialConnectionStatus == ConnectionStatus.contact);
 
-  Color get _accentColor =>
-      _parseHexColor(card?['accent_color'] as String?) ??
-      const Color(0xFF2563EB);
+  Color get _accentColor {
+    // Thème clair : variante assombrie si le serveur en a calculé une
+    // (couleur du propriétaire trop pâle sur fond blanc).
+    if (Theme.of(context).brightness == Brightness.light) {
+      final light = _parseHexColor(card?['accent_color_light'] as String?);
+      if (light != null) return light;
+    }
+    return _parseHexColor(card?['accent_color'] as String?) ??
+        const Color(0xFF2563EB);
+  }
 
   Color? _parseHexColor(String? hex) {
     if (hex == null || hex.isEmpty) return null;
