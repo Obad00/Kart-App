@@ -32,6 +32,7 @@ import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../providers/professional_document_provider.dart';
+import '../widgets/profile_company_name.dart';
 import '../widgets/document_row.dart';
 import '../widgets/document_upload_sheet.dart';
 import '../../profile_completion/helpers/completion_helper.dart';
@@ -555,16 +556,7 @@ class _ProfilePageState extends State<ProfilePage>
                       card.company != null &&
                       card.company!.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(
-                      card.company!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: colors.onSurface.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ProfileCompanyName(card.company!),
                   ],
                   // Indenté, aligné avec le nom/poste/entreprise (pas
                   // avec la photo) — cf. maquette fournie.

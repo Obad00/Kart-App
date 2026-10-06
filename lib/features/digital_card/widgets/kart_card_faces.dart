@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/shrink_to_fit_text.dart';
 import 'brushed_texture.dart';
 import 'kart_card_data.dart';
 
@@ -289,42 +290,66 @@ class KartCardInfoFace extends StatelessWidget {
   }
 }
 
-class _CardTopRow extends StatelessWidget {
+/// Ligne du haut de la carte : logo, nom de l'entreprise, « KART ».
+///
+/// Deux dispositions pour le nom, pour qu'il ne soit jamais coupé tant que
+/// l'une des deux suffit (cas réel : « Cabinet Médical Ahmadina Saliou
+/// (CMAS) », tronqué à côté du logo) :
+///  - A, par défaut : à côté du logo, sur 3 lignes au plus, réduit si besoin
+///    jusqu'à la taille minimale ;
+///  - B, en repli : si même à la taille minimale il ne tient pas à côté du
+///    logo (nom très long, logo large), il passe sur sa propre ligne, pleine
+///    largeur, sur 2 lignes.
+/// Les « … » n'apparaissent que si B ne suffit pas non plus.
+class _CardTopRow extends StatefulWidget {
   final KartCardData data;
   final double scale;
 
   const _CardTopRow({required this.data, required this.scale});
 
   @override
+  State<_CardTopRow> createState() => _CardTopRowState();
+}
+
+class _CardTopRowState extends State<_CardTopRow> {
+  /// true une fois constaté que le nom ne tient pas à côté du logo.
+  bool _nameBelow = false;
+
+  static const int _linesBeside = 3;
+  static const int _linesBelow = 2;
+
+  @override
+  void didUpdateWidget(_CardTopRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Autre nom, autre logo ou autre taille de carte : on réévalue.
+    if (oldWidget.data.brandName != widget.data.brandName ||
+        oldWidget.data.logoFullUrl != widget.data.logoFullUrl ||
+        oldWidget.data.logoUrl != widget.data.logoUrl ||
+        oldWidget.scale != widget.scale) {
+      _nameBelow = false;
+    }
+  }
+
+  TextStyle _nameStyle(KartTokens t, double fontSize) => TextStyle(
+        color: t.onCard,
+        fontSize: fontSize,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.1,
+        height: 1.25,
+      );
+
+  @override
   Widget build(BuildContext context) {
     final t = KartTokens.of(context);
-    final s = scale;
+    final s = widget.scale;
+    final data = widget.data;
+    final name = data.hasBrandName ? data.brandName!.toUpperCase() : null;
+    final minSize = 9 * s;
+    final style = _nameStyle(t, 11.5 * s);
 
-    return Row(
-      children: [
-        _LogoTile(data: data, size: 34 * s),
-        if (data.hasBrandName) ...[
-          SizedBox(width: 10 * s),
-          Expanded(
-            child: Text(
-              data.brandName!.toUpperCase(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: t.onCard,
-                fontSize: 11.5 * s,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.1,
-                height: 1.25,
-              ),
-            ),
-          ),
-        ] else
-          const Spacer(),
-        SizedBox(width: 12 * s),
-        // Compte entreprise : le badge (ex: PRO) prend la place de "KART".
-        if (data.badgeLabel != null)
-          Container(
+    // Compte entreprise : le badge (ex: PRO) prend la place de "KART".
+    final Widget mark = data.badgeLabel != null
+        ? Container(
             padding: EdgeInsets.symmetric(horizontal: 8 * s, vertical: 3 * s),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6 * s),
@@ -340,8 +365,7 @@ class _CardTopRow extends StatelessWidget {
               ),
             ),
           )
-        else
-          Text(
+        : Text(
             'KART',
             style: TextStyle(
               color: t.onCard,
@@ -349,7 +373,68 @@ class _CardTopRow extends StatelessWidget {
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
             ),
+          );
+
+    final logo = _LogoTile(data: data, size: 34 * s);
+
+    // Disposition B : logo et « KART » en haut, le nom dessous.
+    if (name != null && _nameBelow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [logo, const Spacer(), SizedBox(width: 12 * s), mark]),
+          SizedBox(height: 8 * s),
+          ShrinkToFitText(
+            name,
+            maxLines: _linesBelow,
+            minFontSize: minSize,
+            style: style,
           ),
+        ],
+      );
+    }
+
+    // Disposition A : le nom à côté du logo.
+    return Row(
+      children: [
+        logo,
+        if (name != null) ...[
+          SizedBox(width: 10 * s),
+          Expanded(
+            // La largeur restante n'est connue qu'ici, une fois le logo
+            // mesuré (elle dépend de son ratio, donc de l'image chargée).
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final fitsBeside = ShrinkToFitText.fits(
+                  context,
+                  text: name,
+                  style: style.copyWith(fontSize: minSize),
+                  maxLines: _linesBeside,
+                  maxWidth: constraints.maxWidth,
+                );
+                if (!fitsBeside) {
+                  // On ne peut pas changer de disposition pendant la mise
+                  // en page : on le fait juste après.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && !_nameBelow) {
+                      setState(() => _nameBelow = true);
+                    }
+                  });
+                }
+                return ShrinkToFitText(
+                  name,
+                  maxLines: _linesBeside,
+                  minFontSize: minSize,
+                  style: style,
+                );
+              },
+            ),
+          ),
+        ] else
+          const Spacer(),
+        SizedBox(width: 12 * s),
+        mark,
       ],
     );
   }

@@ -666,7 +666,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                           fontWeight: FontWeight.w500,
                           color: colors.onSurface.withValues(alpha: 0.6),
                         ),
-                        maxLines: 1,
+                        // 2 lignes, comme le nom et le poste au-dessus : un
+                        // nom d'entreprise long (« Cabinet Médical Ahmadina
+                        // Saliou (CMAS) ») était coupé par "...".
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],

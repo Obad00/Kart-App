@@ -272,7 +272,8 @@ class _CompanyQrCardState extends State<CompanyQrCard>
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
                 ),
-                maxLines: 1,
+                // 2 lignes : un nom d'entreprise long n'est plus coupé.
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               if (widget.subtitle != null) ...[
