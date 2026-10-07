@@ -18,5 +18,17 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<!-- Lecture de la carte NFC KART (activation en la tapant sur le
+	     téléphone, cf. DeviceNfcTagReader). "TAG" seulement : c'est le
+	     format lu par NFCTagReaderSession. La capability « NFC Tag
+	     Reading » doit aussi être activée sur l'App ID com.kartapp.app dans
+	     le portail Apple Developer, AVANT le build : le pipeline CI génère
+	     le profil de distribution à partir des capabilities de l'App ID.
+	     Va de pair avec NFCReaderUsageDescription (Info.plist) et
+	     kIosNfcReadingEnabled (nfc_tag_reader.dart). -->
+	<key>com.apple.developer.nfc.readersession.formats</key>
+	<array>
+		<string>TAG</string>
+	</array>
 </dict>
 </plist>

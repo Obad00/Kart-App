@@ -1,7 +1,11 @@
-// Sur iPhone, tant que l'app ne déclare pas NFCReaderUsageDescription et
+// Sur iPhone, si l'app ne déclare pas NFCReaderUsageDescription et
 // l'entitlement de lecture, ouvrir une session NFC peut la faire planter.
 // DeviceNfcTagReader ne doit donc JAMAIS toucher à nfc_manager dans ce cas :
 // ni pour tester la disponibilité, ni pour ouvrir ou fermer une session.
+// Le réglage kIosNfcReadingEnabled n'est à true que si les deux
+// déclarations sont présentes dans le projet iOS.
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/features/nfc_card/data/nfc_tag_reader.dart';
@@ -52,9 +56,23 @@ class _SpyManager implements NfcManager {
 void main() {
   tearDown(() => debugDefaultTargetPlatformOverride = null);
 
-  test('la lecture NFC est désactivée sur iOS dans cette version', () {
-    // À passer à true avec Info.plist et l'entitlement (commit iOS).
-    expect(kIosNfcReadingEnabled, isFalse);
+  test('la lecture NFC sur iOS va de pair avec Info.plist et l\'entitlement',
+      () {
+    // Ouvrir une session sans ces deux déclarations peut faire planter
+    // l'app : le réglage ne doit être à true que si elles sont présentes.
+    final plist = File('ios/Runner/Info.plist').readAsStringSync();
+    final entitlements =
+        File('ios/Runner/Runner.entitlements').readAsStringSync();
+
+    final declared = plist.contains('<key>NFCReaderUsageDescription</key>') &&
+        RegExp(
+          r'<key>com\.apple\.developer\.nfc\.readersession\.formats</key>\s*'
+          r'<array>\s*<string>TAG</string>\s*</array>',
+        ).hasMatch(entitlements);
+
+    expect(kIosNfcReadingEnabled, declared);
+    expect(kIosNfcReadingEnabled, isTrue);
+    expect(plist, contains("KART lit votre carte NFC pour l'activer"));
   });
 
   group('iPhone sans les droits de lecture', () {
@@ -63,7 +81,8 @@ void main() {
     test('la disponibilité répond « indisponible » sans interroger le téléphone',
         () async {
       final manager = _SpyManager(NfcAvailability.enabled);
-      final reader = DeviceNfcTagReader(manager: manager);
+      final reader =
+          DeviceNfcTagReader(manager: manager, iosReadingEnabled: false);
 
       expect(await reader.availability(), NfcReaderAvailability.unsupported);
       expect(manager.calls, 0);
@@ -73,7 +92,8 @@ void main() {
 
     test('aucune session n\'est ouverte, même si on appelle start()', () async {
       final manager = _SpyManager(NfcAvailability.enabled);
-      final reader = DeviceNfcTagReader(manager: manager);
+      final reader =
+          DeviceNfcTagReader(manager: manager, iosReadingEnabled: false);
       var errors = 0;
       var reads = 0;
 
@@ -90,12 +110,10 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
-    test('avec le réglage par défaut de l\'app, rien n\'est appelé non plus',
-        () async {
-      // Sans faux gestionnaire : si le lecteur touchait au vrai
-      // nfc_manager, l'appel échouerait ici (pas de téléphone) — il doit
-      // répondre sans même essayer.
-      const reader = DeviceNfcTagReader();
+    test('sans faux gestionnaire non plus, rien n\'est appelé', () async {
+      // Si le lecteur touchait au vrai nfc_manager, l'appel échouerait ici
+      // (pas de téléphone) — il doit répondre sans même essayer.
+      const reader = DeviceNfcTagReader(iosReadingEnabled: false);
 
       expect(await reader.availability(), NfcReaderAvailability.unsupported);
 
@@ -104,11 +122,24 @@ void main() {
   });
 
   group('iPhone une fois les droits déclarés', () {
+    test('un iPhone sans puce NFC reste sur la saisie du code', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final manager = _SpyManager(NfcAvailability.unsupported);
+
+      expect(
+        await DeviceNfcTagReader(manager: manager).availability(),
+        NfcReaderAvailability.unsupported,
+      );
+      expect(manager.sessionsStarted, 0);
+
+      debugDefaultTargetPlatformOverride = null;
+    });
+
     test('la disponibilité et la session passent par nfc_manager', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final manager = _SpyManager(NfcAvailability.enabled);
-      final reader =
-          DeviceNfcTagReader(manager: manager, iosReadingEnabled: true);
+      // Réglage par défaut de l'app (kIosNfcReadingEnabled).
+      final reader = DeviceNfcTagReader(manager: manager);
 
       expect(await reader.availability(), NfcReaderAvailability.enabled);
       await reader.start(onRead: (_) {}, onError: () {});

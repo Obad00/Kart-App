@@ -39,15 +39,17 @@ abstract class NfcTagReader {
 
 /// L'app iOS a-t-elle le droit de lire le NFC ?
 ///
-/// false tant que la version iOS ne déclare pas NFCReaderUsageDescription
-/// (Info.plist) et l'entitlement de lecture NFC : sans eux, ouvrir une
-/// session de lecture peut faire PLANTER l'app au lieu d'échouer
-/// proprement. Et on ne peut pas s'en remettre au téléphone pour le
-/// savoir : sur iOS, la disponibilité renvoyée par nfc_manager ne teste
-/// que le matériel (NFCTagReaderSession.readingAvailable), pas ces droits.
+/// true seulement si la version iOS déclare NFCReaderUsageDescription
+/// (Info.plist) ET l'entitlement com.apple.developer.nfc.readersession.formats
+/// (Runner.entitlements) : sans eux, ouvrir une session de lecture peut
+/// faire PLANTER l'app au lieu d'échouer proprement. Et on ne peut pas s'en
+/// remettre au téléphone pour le savoir : sur iOS, la disponibilité
+/// renvoyée par nfc_manager ne teste que le matériel
+/// (NFCTagReaderSession.readingAvailable), pas ces droits.
 ///
-/// À passer à true dans le même commit que Info.plist et l'entitlement.
-const bool kIosNfcReadingEnabled = false;
+/// Les trois vont ensemble : ne jamais retirer l'un sans repasser ce
+/// réglage à false (un test le vérifie).
+const bool kIosNfcReadingEnabled = true;
 
 /// Lecture réelle, via nfc_manager.
 class DeviceNfcTagReader extends NfcTagReader {
