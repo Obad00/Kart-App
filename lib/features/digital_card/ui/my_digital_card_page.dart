@@ -19,12 +19,12 @@ import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
-import '../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/card_provider.dart';
+import '../../nfc_card/nfc_card_entry.dart';
 import '../../contacts/providers/highlight_provider.dart';
 import '../../contacts/widgets/highlight_bar.dart';
 import '../../profile_completion/ui/completion_form_page.dart';
@@ -600,14 +600,10 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                         CardQuickAction(
                           icon: Icons.contactless_outlined,
                           label: 'NFC',
-                          // Sans attendre la fermeture de la feuille : sinon
-                          // le bouton afficherait un chargement derrière elle.
+                          // Écran « Ma carte NFC » : commande, activation,
+                          // suivi de la carte physique.
                           onTap: () async {
-                            ComingSoonSheet.show(
-                              context,
-                              message:
-                                  'Le partage de votre carte par NFC sera disponible dans une prochaine version de KART.',
-                            );
+                            Navigator.of(context).push(myNfcCardRoute());
                           },
                         ),
                       ],

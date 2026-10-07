@@ -47,6 +47,27 @@ class CardStatsRow extends StatelessWidget {
             ],
           ),
         ),
+        // Taps de la carte NFC, sous les scans : sur une seconde ligne, trois
+        // tuiles côte à côte seraient trop serrées sur un petit écran.
+        if (stats.showNfcTaps) ...[
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.contactless_outlined,
+                  value: stats.nfcTapsThisWeek ?? 0,
+                  previous: stats.nfcTapsPreviousWeek ?? 0,
+                  label: (stats.nfcTapsThisWeek ?? 0) > 1
+                      ? 'taps NFC cette semaine'
+                      : 'tap NFC cette semaine',
+                ),
+              ),
+              const SizedBox(width: 24),
+              const Expanded(child: SizedBox.shrink()),
+            ],
+          ),
+        ],
       ],
     );
   }

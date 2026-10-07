@@ -110,5 +110,45 @@ void main() {
     // la semaine précédente).
     expect(find.byIcon(Icons.trending_up_rounded), findsOneWidget);
     expect(find.byIcon(Icons.trending_down_rounded), findsNothing);
+    // Pas de carte NFC : aucune tuile « taps NFC ».
+    expect(find.textContaining('NFC'), findsNothing);
+  });
+
+  testWidgets('statistiques : les taps NFC apparaissent à côté des scans',
+      (tester) async {
+    await tester.pumpWidget(_wrap(const CardStatsRow(
+      stats: CardWeeklyStats(
+        scansThisWeek: 24,
+        scansPreviousWeek: 18,
+        newContactsThisWeek: 1,
+        newContactsPreviousWeek: 0,
+        nfcTapsThisWeek: 5,
+        nfcTapsPreviousWeek: 2,
+      ),
+    )));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('scans cette semaine'), findsOneWidget);
+    expect(find.text('taps NFC cette semaine'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget);
+    expect(find.byIcon(Icons.contactless_outlined), findsOneWidget);
+  });
+
+  testWidgets('statistiques : carte NFC active, tuile affichée même à 0 tap',
+      (tester) async {
+    await tester.pumpWidget(_wrap(const CardStatsRow(
+      stats: CardWeeklyStats(
+        scansThisWeek: 4,
+        scansPreviousWeek: 4,
+        newContactsThisWeek: 0,
+        newContactsPreviousWeek: 0,
+        nfcTapsThisWeek: 0,
+        nfcTapsPreviousWeek: 0,
+        nfcActive: true,
+      ),
+    )));
+
+    expect(find.text('tap NFC cette semaine'), findsOneWidget);
+    expect(find.byIcon(Icons.contactless_outlined), findsOneWidget);
   });
 }

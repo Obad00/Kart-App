@@ -437,12 +437,32 @@ class CardWeeklyStats {
   final int newContactsThisWeek;
   final int newContactsPreviousWeek;
 
+  /// Vues venues d'une carte NFC (incluses dans les scans). null avec un
+  /// serveur qui ne les renvoie pas encore : la tuile n'est pas affichée.
+  final int? nfcTapsThisWeek;
+  final int? nfcTapsPreviousWeek;
+
+  /// L'utilisateur a une carte NFC active.
+  final bool nfcActive;
+
   const CardWeeklyStats({
     required this.scansThisWeek,
     required this.scansPreviousWeek,
     required this.newContactsThisWeek,
     required this.newContactsPreviousWeek,
+    this.nfcTapsThisWeek,
+    this.nfcTapsPreviousWeek,
+    this.nfcActive = false,
   });
+
+  /// La tuile « taps NFC » apparaît si l'utilisateur a une carte NFC active
+  /// (même à 0 tap), ou s'il y a eu des taps cette semaine ou la
+  /// précédente. Masquée sinon : la plupart des utilisateurs n'ont pas de
+  /// carte NFC.
+  bool get showNfcTaps =>
+      nfcActive ||
+      (nfcTapsThisWeek ?? 0) > 0 ||
+      (nfcTapsPreviousWeek ?? 0) > 0;
 
   /// null si un champ manque : réponse inattendue, on préfère masquer.
   static CardWeeklyStats? fromJson(Map<String, dynamic> json) {
@@ -457,6 +477,9 @@ class CardWeeklyStats {
       scansPreviousWeek: b,
       newContactsThisWeek: c,
       newContactsPreviousWeek: d,
+      nfcTapsThisWeek: read('nfc_taps_this_week'),
+      nfcTapsPreviousWeek: read('nfc_taps_previous_week'),
+      nfcActive: json['nfc_active'] == true,
     );
   }
 }

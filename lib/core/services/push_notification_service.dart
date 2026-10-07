@@ -10,6 +10,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/nfc_card/nfc_card_entry.dart';
 import '../../firebase_options_web.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../network/api_client.dart';
@@ -331,6 +332,14 @@ class PushNotificationService {
             (route) => false,
             arguments: {'tab': 2, 'openDashboardTab': 0},
           );
+          break;
+
+        case 'nfc_ready':
+        case 'nfc_order':
+          // Carte NFC prête à activer, ou commande qui avance : on ouvre
+          // « Ma carte NFC » par-dessus l'accueil.
+          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+          navigator.push(myNfcCardRoute());
           break;
 
         case 'jobmatch_new_suggestions':
