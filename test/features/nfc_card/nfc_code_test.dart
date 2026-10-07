@@ -1,8 +1,13 @@
 // Code d'une carte NFC : saisi à la main, ou lu dans le lien gravé sur la
 // puce (https://kart.business/t/{code}).
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/features/digital_card/providers/card_provider.dart';
+import 'package:kart_app/features/nfc_card/data/nfc_tag_reader.dart';
 import 'package:kart_app/features/nfc_card/models/nfc_card_status.dart';
+import 'package:nfc_manager/ndef_record.dart';
 import 'package:kart_app/features/nfc_card/utils/nfc_code.dart';
 
 void main() {
@@ -31,6 +36,52 @@ void main() {
       expect(isCompleteNfcCode('ABCD2345'), isTrue);
       expect(isCompleteNfcCode('ABC'), isFalse);
       expect(isCompleteNfcCode('https://kart.business/t/ZWLC8FDH'), isTrue);
+    });
+  });
+
+  group('decodeNdefLink', () {
+    NdefRecord uriRecord(int prefix, String rest) => NdefRecord(
+          typeNameFormat: TypeNameFormat.wellKnown,
+          type: Uint8List.fromList([0x55]),
+          identifier: Uint8List(0),
+          payload: Uint8List.fromList([prefix, ...utf8.encode(rest)]),
+        );
+
+    test('lit un enregistrement URI et son préfixe abrégé', () {
+      // 0x04 = « https:// », ce qu'écrivent les applis de gravure.
+      expect(decodeNdefLink(uriRecord(0x04, 'kart.business/t/ZWLC8FDH')),
+          'https://kart.business/t/ZWLC8FDH');
+      expect(decodeNdefLink(uriRecord(0x02, 'kart.business/t/ZWLC8FDH')),
+          'https://www.kart.business/t/ZWLC8FDH');
+      expect(decodeNdefLink(uriRecord(0x00, 'https://kart.business/t/X')),
+          'https://kart.business/t/X');
+    });
+
+    test('du lien gravé au code de la carte', () {
+      final link = decodeNdefLink(uriRecord(0x04, 'kart.business/t/zwlc8fdh'));
+      expect(extractNfcCode(link), 'ZWLC8FDH');
+    });
+
+    test('ignore ce qui n\'est pas un lien', () {
+      // Enregistrement texte (« T »), pas un lien.
+      final text = NdefRecord(
+        typeNameFormat: TypeNameFormat.wellKnown,
+        type: Uint8List.fromList([0x54]),
+        identifier: Uint8List(0),
+        payload: Uint8List.fromList([0x02, ...utf8.encode('frBonjour')]),
+      );
+      expect(decodeNdefLink(text), isNull);
+      // Contenu vide, préfixe inconnu.
+      expect(
+        decodeNdefLink(NdefRecord(
+          typeNameFormat: TypeNameFormat.wellKnown,
+          type: Uint8List.fromList([0x55]),
+          identifier: Uint8List(0),
+          payload: Uint8List(0),
+        )),
+        isNull,
+      );
+      expect(decodeNdefLink(uriRecord(0x7F, 'x')), isNull);
     });
   });
 

@@ -14,6 +14,10 @@ import 'nfc_card_widgets.dart';
 class NfcCodeSheet extends StatefulWidget {
   final String title;
   final String submitLabel;
+
+  /// Texte sous le titre, à la place de l'explication par défaut (ex. NFC
+  /// coupé sur le téléphone).
+  final String? hint;
   final Future<String?> Function(String code) onSubmit;
 
   const NfcCodeSheet({
@@ -21,6 +25,7 @@ class NfcCodeSheet extends StatefulWidget {
     required this.onSubmit,
     this.title = 'Saisir le code',
     this.submitLabel = 'Activer',
+    this.hint,
   });
 
   static Future<bool?> show(
@@ -28,6 +33,7 @@ class NfcCodeSheet extends StatefulWidget {
     required Future<String?> Function(String code) onSubmit,
     String title = 'Saisir le code',
     String submitLabel = 'Activer',
+    String? hint,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -40,6 +46,7 @@ class NfcCodeSheet extends StatefulWidget {
         onSubmit: onSubmit,
         title: title,
         submitLabel: submitLabel,
+        hint: hint,
       ),
     );
   }
@@ -109,8 +116,12 @@ class _NfcCodeSheetState extends State<NfcCodeSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Le code est imprimé sur votre carte NFC.',
-              style: TextStyle(color: t.textSecondary, fontSize: 13),
+              widget.hint ?? 'Le code est imprimé sur votre carte NFC.',
+              style: TextStyle(
+                color: t.textSecondary,
+                fontSize: 13,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(

@@ -1,11 +1,12 @@
 // Écran « Ma carte NFC » : un rendu par état renvoyé par GET /me/nfc, le
 // formulaire de commande (sans prix ni quantité), l'activation et la
-// réactivation par saisie du code, le rappel du QR code et le support
-// WhatsApp configurable.
+// réactivation en tapant la carte ou en saisissant son code, le rappel du
+// QR code et le support WhatsApp configurable.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
 import 'package:kart_app/features/nfc_card/data/nfc_card_service.dart';
+import 'package:kart_app/features/nfc_card/data/nfc_tag_reader.dart';
 import 'package:kart_app/features/nfc_card/models/nfc_card_status.dart';
 import 'package:kart_app/features/nfc_card/ui/my_nfc_card_page.dart';
 
@@ -91,6 +92,45 @@ NfcCardStatus _status(
       cancelledOrder: cancelledOrder,
     );
 
+/// Faux lecteur NFC : on choisit ce que le téléphone sait faire, puis on
+/// « présente » une carte avec [tap].
+class _FakeReader extends NfcTagReader {
+  _FakeReader([this.state = NfcReaderAvailability.unsupported]);
+
+  final NfcReaderAvailability state;
+
+  /// true : la lecture est refusée dès le départ (iPhone sans l'entitlement).
+  bool failOnStart = false;
+  bool listening = false;
+
+  /// Nombre de sessions de lecture demandées.
+  int started = 0;
+  void Function(String? link)? _onRead;
+
+  @override
+  Future<NfcReaderAvailability> availability() async => state;
+
+  @override
+  Future<void> start({
+    required void Function(String? link) onRead,
+    required void Function() onError,
+  }) async {
+    started++;
+    if (failOnStart) {
+      onError();
+      return;
+    }
+    listening = true;
+    _onRead = onRead;
+  }
+
+  @override
+  Future<void> stop({String? message}) async => listening = false;
+
+  /// Présente une carte dont la puce contient [link].
+  void tap(String? link) => _onRead?.call(link);
+}
+
 class _Harness {
   int qrOpened = 0;
   final List<Uri> opened = [];
@@ -101,6 +141,8 @@ Future<_Harness> _pump(
   _FakeService service, {
   bool dark = true,
   String? phone = '+221771112233',
+  // Par défaut, un téléphone sans NFC : tout passe par la saisie du code.
+  NfcTagReader? reader,
 }) async {
   final harness = _Harness();
   // Écran de téléphone : assez haut pour voir tout l'état sans défiler.
@@ -113,6 +155,7 @@ Future<_Harness> _pump(
       theme: dark ? AppTheme.dark() : AppTheme.light(),
       home: MyNfcCardPage(
         service: service,
+        reader: reader ?? _FakeReader(),
         initialPhone: phone,
         onShowQr: (_) => harness.qrOpened++,
         openUrl: (uri) async => harness.opened.add(uri),
@@ -327,6 +370,142 @@ void main() {
       expect(find.text("La carte n'a pas pu être activée. Réessayez."),
           findsOneWidget);
       expect(find.text('Votre carte NFC est arrivée !'), findsOneWidget);
+    });
+  });
+
+  group('lecture de la puce', () {
+    NfcCardStatus ready() =>
+        _status(NfcCardState.ready, tag: const NfcTagInfo(id: 7));
+
+    testWidgets('taper la carte l\'active avec le code lu dans son lien',
+        (tester) async {
+      final service = _FakeService(ready());
+      final reader = _FakeReader(NfcReaderAvailability.enabled);
+      await _pump(tester, service, reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Approchez votre carte du téléphone'), findsOneWidget);
+      expect(reader.listening, isTrue);
+
+      reader.tap('https://kart.business/t/abcd2345');
+      await tester.pumpAndSettle();
+
+      expect(service.lastCode, 'ABCD2345');
+      expect(reader.listening, isFalse, reason: 'lecture arrêtée');
+      expect(find.text('Votre carte NFC est activée.'), findsOneWidget);
+      expect(find.text('Active'), findsOneWidget);
+    });
+
+    testWidgets('une puce qui n\'est pas une carte KART est refusée sans appel',
+        (tester) async {
+      final service = _FakeService(ready());
+      final reader = _FakeReader(NfcReaderAvailability.enabled);
+      await _pump(tester, service, reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+
+      reader.tap('https://exemple.com/autre-chose');
+      await tester.pumpAndSettle();
+      expect(find.text("Cette carte n'est pas une carte NFC KART."),
+          findsOneWidget);
+      reader.tap(null); // puce vide
+      await tester.pumpAndSettle();
+      expect(service.calls, isNot(contains('activate')));
+
+      // La saisie du code reste proposée dans la même feuille.
+      await tester.tap(find.text('Saisir le code'));
+      await tester.pumpAndSettle();
+      expect(reader.listening, isFalse);
+      await tester.enterText(find.byType(TextField), 'ABCD2345');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer').last);
+      await tester.pumpAndSettle();
+
+      expect(service.lastCode, 'ABCD2345');
+      expect(find.text('Active'), findsOneWidget);
+    });
+
+    testWidgets('le refus du serveur s\'affiche et la lecture continue',
+        (tester) async {
+      final service = _FakeService(ready(), failWith: 'refus');
+      final reader = _FakeReader(NfcReaderAvailability.enabled);
+      await _pump(tester, service, reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+      reader.tap('https://kart.business/t/WXYZ6789');
+      await tester.pumpAndSettle();
+
+      expect(find.text("La carte n'a pas pu être activée. Réessayez."),
+          findsOneWidget);
+      expect(find.text('Approchez votre carte du téléphone'), findsOneWidget);
+      expect(reader.listening, isTrue);
+    });
+
+    testWidgets('sans NFC, on passe directement à la saisie du code',
+        (tester) async {
+      final service = _FakeService(ready());
+      final reader = _FakeReader(NfcReaderAvailability.unsupported);
+      await _pump(tester, service, reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+
+      // Aucune session de lecture n'est ouverte : c'est aussi le cas d'un
+      // iPhone tant que l'app n'a pas les droits de lecture NFC.
+      expect(reader.started, 0);
+      expect(find.text('Approchez votre carte du téléphone'), findsNothing);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Le code est imprimé sur votre carte NFC.'),
+          findsOneWidget);
+    });
+
+    testWidgets('NFC coupé : saisie du code, avec une explication',
+        (tester) async {
+      await _pump(tester, _FakeService(ready()),
+          reader: _FakeReader(NfcReaderAvailability.disabled));
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.textContaining('Le NFC est désactivé sur ce téléphone'),
+          findsOneWidget);
+    });
+
+    testWidgets('lecture refusée par le téléphone : repli sur la saisie',
+        (tester) async {
+      // Cas d'un iPhone dont l'app n'a pas (encore) le droit de lire le NFC.
+      final reader = _FakeReader(NfcReaderAvailability.enabled)
+        ..failOnStart = true;
+      await _pump(tester, _FakeService(ready()), reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Activer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Approchez votre carte du téléphone'), findsNothing);
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('réactiver en tapant la carte retrouvée', (tester) async {
+      final service = _FakeService(_status(
+        NfcCardState.disabled,
+        tag: const NfcTagInfo(id: 7, code: 'ABCD2345', canReactivate: true),
+      ));
+      final reader = _FakeReader(NfcReaderAvailability.enabled);
+      await _pump(tester, service, reader: reader);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Réactiver'));
+      await tester.pumpAndSettle();
+      expect(find.text('Réactiver ma carte'), findsOneWidget);
+      expect(service.calls, isNot(contains('activate')));
+
+      reader.tap('https://kart.business/t/ABCD2345');
+      await tester.pumpAndSettle();
+
+      expect(service.lastCode, 'ABCD2345');
+      expect(find.text('Votre carte NFC est réactivée.'), findsOneWidget);
     });
   });
 

@@ -5,11 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../data/nfc_card_service.dart';
+import '../data/nfc_tag_reader.dart';
 import '../models/nfc_card_status.dart';
 import '../providers/nfc_card_provider.dart';
 import '../widgets/nfc_card_widgets.dart';
 import '../widgets/nfc_code_sheet.dart';
 import '../widgets/nfc_order_sheet.dart';
+import '../widgets/nfc_scan_sheet.dart';
 
 /// « Ma carte NFC » : ouvert par l'icône NFC de l'écran Carte. L'écran
 /// s'adapte à l'état calculé par le serveur (GET /me/nfc) : aucune carte,
@@ -26,6 +28,9 @@ class MyNfcCardPage extends StatelessWidget {
 
   final NfcCardService service;
 
+  /// Lecture de la puce — remplaçable dans les tests.
+  final NfcTagReader reader;
+
   /// Ouvre un lien externe (WhatsApp) — remplaçable dans les tests.
   final Future<void> Function(Uri uri)? openUrl;
 
@@ -34,6 +39,7 @@ class MyNfcCardPage extends StatelessWidget {
     required this.onShowQr,
     this.initialPhone,
     this.service = const NfcCardService(),
+    this.reader = const DeviceNfcTagReader(),
     this.openUrl,
   });
 
@@ -44,6 +50,7 @@ class MyNfcCardPage extends StatelessWidget {
       child: _NfcCardView(
         initialPhone: initialPhone,
         onShowQr: onShowQr,
+        reader: reader,
         openUrl: openUrl,
       ),
     );
@@ -53,10 +60,12 @@ class MyNfcCardPage extends StatelessWidget {
 class _NfcCardView extends StatelessWidget {
   final String? initialPhone;
   final void Function(BuildContext context) onShowQr;
+  final NfcTagReader reader;
   final Future<void> Function(Uri uri)? openUrl;
 
   const _NfcCardView({
     required this.onShowQr,
+    required this.reader,
     this.initialPhone,
     this.openUrl,
   });
@@ -133,19 +142,48 @@ class _NfcCardView extends StatelessWidget {
   }
 
   /// Activation ou réactivation : il faut le code de la carte, preuve qu'on
-  /// l'a en main.
+  /// l'a en main. On propose de taper la carte quand le téléphone le peut ;
+  /// sinon (pas de NFC, NFC coupé, lecture impossible), ou si l'utilisateur
+  /// le préfère, on passe à la saisie du code imprimé dessus.
   Future<void> _enterCode(
     BuildContext context, {
-    String title = 'Saisir le code',
+    String title = 'Activer ma carte',
     String submitLabel = 'Activer',
     String success = 'Votre carte NFC est activée.',
   }) async {
     final provider = context.read<NfcCardProvider>();
 
+    // Toujours la disponibilité D'ABORD : la feuille de lecture (et donc
+    // la session NFC) n'est ouverte que si le téléphone peut lire.
+    final availability = await reader.availability();
+    if (!context.mounted) return;
+
+    if (availability == NfcReaderAvailability.enabled) {
+      final result = await NfcScanSheet.show(
+        context,
+        reader: reader,
+        title: title,
+        onCode: provider.activate,
+      );
+      if (!context.mounted) return;
+      if (result == NfcScanResult.done) {
+        _snack(context, success);
+        return;
+      }
+      // Feuille fermée sans choisir : on n'insiste pas.
+      if (result != NfcScanResult.manual) return;
+    }
+
     final done = await NfcCodeSheet.show(
       context,
       title: title,
       submitLabel: submitLabel,
+      // Le téléphone a le NFC mais il est coupé : on le dit, la saisie
+      // reste possible.
+      hint: availability == NfcReaderAvailability.disabled
+          ? 'Le NFC est désactivé sur ce téléphone. Activez-le dans les '
+              'réglages, ou saisissez le code imprimé sur votre carte.'
+          : null,
       onSubmit: provider.activate,
     );
     if (done == true && context.mounted) _snack(context, success);
@@ -314,8 +352,9 @@ class _NfcCardView extends StatelessWidget {
       const _Title('Votre carte NFC est arrivée !'),
       const SizedBox(height: 8),
       Text(
-        "Voulez-vous l'activer maintenant ? Saisissez le code imprimé "
-        "dessus pour confirmer que vous l'avez en main.",
+        "Voulez-vous l'activer maintenant ? Approchez-la du téléphone, ou "
+        "saisissez le code imprimé dessus, pour confirmer que vous l'avez "
+        'en main.',
         style: TextStyle(color: t.textSecondary, fontSize: 14, height: 1.4),
       ),
       const SizedBox(height: 24),
