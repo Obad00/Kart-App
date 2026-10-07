@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/utils/color_contrast.dart';
+import '../../../shared/widgets/avatar_initials.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../../shared/utils/session_reset.dart';
@@ -169,12 +171,15 @@ class _ProfileDropdownButton extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Center(
-              child: Text(
-                initials,
-                style: TextStyle(
-                  color: brand,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+              // Le rond est l'accent à 10 % posé sur le fond de la page :
+              // c'est sur ce mélange que les initiales doivent être
+              // lisibles (un accent sombre en thème sombre ne l'était pas).
+              child: AvatarInitials(
+                initials: initials,
+                accent: brand,
+                background: ColorContrast.composite(
+                  brand.withValues(alpha: 0.1),
+                  Theme.of(context).scaffoldBackgroundColor,
                 ),
               ),
             ),

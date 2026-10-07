@@ -31,6 +31,39 @@ class ColorContrast {
   static bool isReadableOnCard(Color color) =>
       ratio(color, darkBackground) >= iconRatio;
 
+  /// [color] rendu lisible sur [background] : même teinte, éclaircie (fond
+  /// sombre) ou assombrie (fond clair) juste assez pour atteindre
+  /// [minimum]. Renvoie [color] tel quel s'il est déjà lisible.
+  ///
+  /// Sert aux initiales des avatars : écrites dans la couleur d'accent de
+  /// la carte, elles devenaient illisibles avec un accent sombre en thème
+  /// sombre (bleu marine sur fond presque noir).
+  static Color readableOn(
+    Color color,
+    Color background, {
+    double minimum = textRatio,
+  }) {
+    if (ratio(color, background) >= minimum) return color;
+
+    final hsl = HSLColor.fromColor(color);
+    // On s'éloigne du fond : vers le clair s'il est sombre, et inversement.
+    final step = background.computeLuminance() < 0.5 ? 0.01 : -0.01;
+
+    var lightness = hsl.lightness;
+    while (lightness > 0 && lightness < 1) {
+      lightness = (lightness + step).clamp(0.0, 1.0);
+      final candidate = hsl.withLightness(lightness).toColor();
+      if (ratio(candidate, background) >= minimum) return candidate;
+    }
+    // Teinte épuisée (blanc ou noir atteint) : le plus contrasté des deux.
+    return step > 0 ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  }
+
+  /// Couleur réellement visible quand [overlay] (souvent translucide) est
+  /// posé sur [background] — c'est sur elle qu'il faut mesurer le contraste.
+  static Color composite(Color overlay, Color background) =>
+      Color.alphaBlend(overlay, background);
+
   /// Même teinte, éclaircie juste assez pour être bien lisible sur la
   /// carte. Renvoie [color] tel quel s'il l'est déjà.
   static Color adjustForCard(Color color) {

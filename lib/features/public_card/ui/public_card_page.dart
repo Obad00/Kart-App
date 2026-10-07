@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../shared/widgets/avatar_initials.dart';
 import '../../../shared/utils/company_color_helper.dart'
     show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -613,13 +614,13 @@ class _PublicCardPageState extends State<PublicCardPage>
                   radius: 32,
                   backgroundColor: avatarBackground,
                   child: avatarUrl.isEmpty
-                      ? Text(
-                          getInitials(fullName),
-                          style: TextStyle(
-                            color: _accentColor,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                          ),
+                      ? AvatarInitials(
+                          initials: getInitials(fullName),
+                          // Couleur d'accent du PROPRIÉTAIRE de la carte :
+                          // on ne la choisit pas, elle peut être sombre.
+                          accent: _accentColor,
+                          background: avatarBackground,
+                          fontSize: 20,
                         )
                       : null,
                 ),

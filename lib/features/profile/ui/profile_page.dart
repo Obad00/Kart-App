@@ -32,6 +32,7 @@ import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/utils/session_reset.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../providers/professional_document_provider.dart';
+import '../../../shared/widgets/avatar_initials.dart';
 import '../widgets/profile_company_name.dart';
 import '../widgets/document_row.dart';
 import '../widgets/document_upload_sheet.dart';
@@ -463,13 +464,12 @@ class _ProfilePageState extends State<ProfilePage>
                                 }
                               : null,
                           child: !avatarOk
-                              ? Text(
-                                  getInitials(fullName, fallback: '?'),
-                                  style: TextStyle(
-                                    color: companyColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 20,
-                                  ),
+                              ? AvatarInitials(
+                                  initials:
+                                      getInitials(fullName, fallback: '?'),
+                                  accent: companyColor,
+                                  background: colors.surface,
+                                  fontSize: 20,
                                 )
                               : null,
                         ),
