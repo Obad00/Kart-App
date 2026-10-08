@@ -37,6 +37,11 @@ class CardProvider extends ChangeNotifier {
   String? _theme;
   String? get theme => _theme;
 
+  /// Champs de contact que le propriétaire affiche publiquement
+  /// (`activated_fields`). null tant qu'ils ne sont pas connus (ancienne
+  /// réponse en cache) : rien n'est alors masqué.
+  List<String>? activatedFields;
+
   String? website;
   String? github;
   String? instagram;
@@ -56,6 +61,15 @@ class CardProvider extends ChangeNotifier {
   // bloc au lieu d'afficher des chiffres faux.
   CardWeeklyStats? _weeklyStats;
   CardWeeklyStats? get weeklyStats => _weeklyStats;
+
+  /// [value] si le champ [field] est affiché publiquement, null sinon —
+  /// même règle que la page publique : la carte de l'écran Carte montre ce
+  /// que les autres voient.
+  String? publicValue(String field, String? value) {
+    final activated = activatedFields;
+    if (activated != null && !activated.contains(field)) return null;
+    return value;
+  }
 
   // --- SLUG & SHARE URL ---
   String? _slug;
@@ -216,6 +230,9 @@ class CardProvider extends ChangeNotifier {
         linkedin = res.data['linkedin'];
 
         website = res.data['website'];
+        activatedFields = (res.data['activated_fields'] as List?)
+            ?.map((e) => e.toString())
+            .toList();
         github = res.data['github'];
         instagram = res.data['instagram'];
         facebook = res.data['facebook'];

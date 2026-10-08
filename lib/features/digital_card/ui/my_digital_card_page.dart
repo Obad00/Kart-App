@@ -41,6 +41,7 @@ import '../widgets/card_error_state.dart';
 import 'create_card_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
 import '../../scan/ui/scan_page.dart';
+import '../../public_card_settings/public_card_settings_entry.dart';
 
 class MyDigitalCardPage extends StatefulWidget {
   final bool minimal;
@@ -504,11 +505,13 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
           logoFullUrl: logoFullUrl,
           logoTransparent: logoTransparent,
           badgeLabel: hasCompanyBranding ? 'PRO' : null,
-          phone: state.phone,
-          email: state.email,
+          // Téléphone et email : seulement s'ils sont affichés
+          // publiquement (activated_fields), comme sur la page publique.
+          phone: state.publicValue('phone', state.phone),
+          email: state.publicValue('email', state.email),
           city: state.city,
           // Couleur de la carte : celle de l'entreprise, sinon la couleur
-          // d'accent choisie dans "Personnaliser ma carte", sinon noir mat.
+          // d'accent choisie dans « Couleur et logo », sinon noir mat.
           tint: CompanyColorHelper.parseHex(state.companyPrimaryColor) ??
               CompanyColorHelper.parseHex(state.accentColor),
         );
@@ -544,7 +547,21 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                             context, _buildQrOnly(state.qrSvg!));
                       },
                     ),
-                    infoFace: KartCardInfoFace(width: cardWidth, data: data),
+                    // Le bouton est le seul geste de la face infos : aucun
+                    // conflit avec l'échange des cartes (swipe, bouton et
+                    // points sous la carte, inchangés). Absent du mode
+                    // minimal (verso de ScanPage).
+                    infoFace: KartCardInfoFace(
+                      width: cardWidth,
+                      data: data,
+                      onCustomize: widget.minimal
+                          ? null
+                          : () {
+                              HapticFeedback.lightImpact();
+                              Navigator.of(context)
+                                  .push(publicCardSettingsRoute());
+                            },
+                    ),
                     // Faces de derrière : sans clé ni geste (évite les
                     // GlobalKey en double et les taps parasites).
                     qrFacePeek: KartCardQrFace(
@@ -552,8 +569,13 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                       data: data,
                       qr: _buildQrOnly(state.qrSvg!),
                     ),
-                    infoFacePeek:
-                        KartCardInfoFace(width: cardWidth, data: data),
+                    // Même dessin derrière (bouton compris), sans geste :
+                    // KartFlipCard la rend non interactive.
+                    infoFacePeek: KartCardInfoFace(
+                      width: cardWidth,
+                      data: data,
+                      onCustomize: widget.minimal ? null : () {},
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),

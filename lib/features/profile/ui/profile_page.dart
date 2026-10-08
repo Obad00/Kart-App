@@ -46,6 +46,22 @@ import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
 import '../../../shared/utils/status_bar_style.dart';
 
+/// Ouvre la feuille « Couleur et logo » (couleur d'accent et logo de la
+/// carte). Depuis le Profil, et depuis « Personnaliser ma carte publique ».
+Future<void> showBrandingEditor(BuildContext context) {
+  HapticFeedback.lightImpact();
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => const _BrandingEditor(),
+  );
+}
+
 class ProfilePage extends StatefulWidget {
   // Onglet réellement affiché à l'écran en ce moment — HomeShell le passe
   // à `_index == <index Profil>`. Sans lui, le tour local de cette page
@@ -1096,7 +1112,7 @@ class _ProfilePageState extends State<ProfilePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Personnalisation de la carte',
+                  'Couleur et logo',
                   style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.5),
@@ -1106,8 +1122,8 @@ class _ProfilePageState extends State<ProfilePage>
                 const SizedBox(height: 2),
                 Text(
                   card.accentColor != null || card.logo != null
-                      ? 'Couleur et logo personnalisés'
-                      : 'Aucune personnalisation',
+                      ? 'Personnalisés'
+                      : 'Par défaut',
                   style: TextStyle(
                     fontSize: 15,
                     color: colors.onSurface,
@@ -1128,7 +1144,7 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
             child: const Text(
-              'Personnaliser',
+              'Modifier',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1867,19 +1883,7 @@ class _ProfilePageState extends State<ProfilePage>
     }
   }
 
-  void _openBrandingEditor(BuildContext context) {
-    HapticFeedback.lightImpact();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => const _BrandingEditor(),
-    );
-  }
+  void _openBrandingEditor(BuildContext context) => showBrandingEditor(context);
 
   void _showAvatarOptions(bool hasAvatar) {
     HapticFeedback.lightImpact();
@@ -2121,7 +2125,7 @@ class _BrandingEditorState extends State<_BrandingEditor> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    'Personnaliser ma carte',
+                    'Couleur et logo',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,

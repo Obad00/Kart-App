@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/utils/color_contrast.dart';
 import '../../../shared/widgets/shrink_to_fit_text.dart';
 import 'brushed_texture.dart';
 import 'kart_card_data.dart';
@@ -49,6 +50,10 @@ class KartCardSurface extends StatelessWidget {
         .toColor();
   }
 
+  /// Couleur de fond de la carte : noir mat, ou nuance sombre de [tint].
+  static Color baseColor(KartTokens t, Color? tint) =>
+      tint == null ? t.cardBlack : _shade(tint, 0.13);
+
   @override
   Widget build(BuildContext context) {
     final t = KartTokens.of(context);
@@ -56,7 +61,7 @@ class KartCardSurface extends StatelessWidget {
 
     // Sans couleur choisie : noir mat (tokens). Avec : mêmes reliefs métal,
     // dans une nuance sombre de la couleur.
-    final base = tint == null ? t.cardBlack : _shade(tint!, 0.13);
+    final base = baseColor(t, tint);
     final sheen = tint == null ? t.cardSheen : _shade(tint!, 0.20);
     final deep = tint == null ? t.cardDeep : _shade(tint!, 0.07);
 
@@ -241,16 +246,27 @@ class KartCardQrFace extends StatelessWidget {
   }
 }
 
-/// Face infos : logo, "KART", nom, titre, puis les lignes de contact
-/// (téléphone, email, ville) — chacune seulement si elle est renseignée.
+/// Face infos : logo, "KART", nom, titre, puis — juste sous le titre — les
+/// lignes de contact (téléphone, email, ville), chacune seulement si elle
+/// est renseignée (et visible, cf. MyDigitalCardPage) ; tout en bas, le
+/// bouton « Personnaliser ma carte ».
+///
+/// Par rapport à la face d'origine, seules deux choses changent : les
+/// contacts sont remontés sous le titre (ils étaient collés en bas), et le
+/// bouton occupe le bas de la carte.
 class KartCardInfoFace extends StatelessWidget {
   final double width;
   final KartCardData data;
+
+  /// Tap sur le bouton du bas ; null = pas de bouton. La face n'a aucun
+  /// autre geste : le bouton ne peut entrer en conflit avec rien.
+  final VoidCallback? onCustomize;
 
   const KartCardInfoFace({
     super.key,
     required this.width,
     required this.data,
+    this.onCustomize,
   });
 
   @override
@@ -277,11 +293,36 @@ class KartCardInfoFace extends StatelessWidget {
           children: [
             _CardTopRow(data: data, scale: s),
             SizedBox(height: 28 * s),
-            _NameBlock(data: data, scale: s),
-            const Spacer(),
-            for (var i = 0; i < lines.length; i++) ...[
-              if (i > 0) SizedBox(height: 12 * s),
-              lines[i],
+            // Nom, titre et contacts occupent la place restante au-dessus
+            // du bouton. Si tout est au plus long sur un petit écran (nom
+            // et titre sur deux lignes, trois contacts), le bloc est
+            // légèrement resserré plutôt que de déborder ou d'être coupé.
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) => FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _NameBlock(data: data, scale: s),
+                        if (lines.isNotEmpty) SizedBox(height: 18 * s),
+                        for (var i = 0; i < lines.length; i++) ...[
+                          if (i > 0) SizedBox(height: 12 * s),
+                          lines[i],
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (onCustomize != null) ...[
+              SizedBox(height: 10 * s),
+              _CustomizeButton(data: data, onTap: onCustomize!),
             ],
           ],
         ),
@@ -289,6 +330,79 @@ class KartCardInfoFace extends StatelessWidget {
     );
   }
 }
+
+/// Bouton du bas de la face infos. Hauteur fixe de 48 px (cible tactile),
+/// quelle que soit la taille de la carte. Contour et icône de la couleur
+/// d'accent de la carte si elle s'y lit bien, sinon du blanc cassé du texte.
+class _CustomizeButton extends StatelessWidget {
+  final KartCardData data;
+  final VoidCallback onTap;
+
+  const _CustomizeButton({required this.data, required this.onTap});
+
+  static const double height = 48;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = KartTokens.of(context);
+    final tint = data.tint;
+    final accent = tint != null &&
+            ColorContrast.ratio(tint, KartCardSurface.baseColor(t, tint)) >=
+                ColorContrast.iconRatio
+        ? tint
+        : t.onCard;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(color: accent, width: 1.2),
+    );
+
+    return Semantics(
+      button: true,
+      label: 'Personnaliser ma carte',
+      child: Material(
+        color: t.onCard.withValues(alpha: 0.06),
+        shape: shape,
+        child: InkWell(
+          key: const Key('customize-public-card'),
+          customBorder: shape,
+          onTap: onTap,
+          child: SizedBox(
+            height: height,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.edit_outlined, size: 17, color: accent),
+                  const SizedBox(width: 8),
+                  // Une seule ligne : réduite si la carte est étroite,
+                  // jamais sous 11 px.
+                  Flexible(
+                    child: ExcludeSemantics(
+                      child: ShrinkToFitText(
+                        'Personnaliser ma carte',
+                        maxLines: 1,
+                        minFontSize: _minTextSize,
+                        style: TextStyle(
+                          color: t.onCard,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Plus petit texte lisible de la face infos, même sur un petit écran.
+const double _minTextSize = 11;
 
 /// Ligne du haut de la carte : logo, nom de l'entreprise, « KART ».
 ///
@@ -630,7 +744,8 @@ class _ContactLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: t.onCard,
-              fontSize: 13.5 * s,
+              // Jamais sous 11 px, même sur un petit écran.
+              fontSize: math.max(_minTextSize, 13.5 * s),
               fontWeight: FontWeight.w400,
             ),
           ),

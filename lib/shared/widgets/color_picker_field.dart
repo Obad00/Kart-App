@@ -475,6 +475,22 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
 
 // ─────────────── ADVANCED COLOR PICKER ───────────────
 
+/// Ouvre le sélecteur de couleur libre (le même que celui de « Couleur et
+/// logo ») et renvoie la couleur choisie, ou null si la feuille est fermée.
+Future<Color?> showKartColorPicker(BuildContext context, Color initial) {
+  return showModalBottomSheet<Color>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetContext) => _AdvancedColorPicker(
+      currentColor: initial,
+      onColorSelected: (color) => Navigator.pop(sheetContext, color),
+    ),
+  );
+}
+
 class _AdvancedColorPicker extends StatefulWidget {
   final Color currentColor;
   final ValueChanged<Color> onColorSelected;

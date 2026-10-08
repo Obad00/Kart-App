@@ -1,3 +1,5 @@
+import '../../public_card_settings/models/public_card_settings.dart'
+    show EffectiveAccent;
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
@@ -117,6 +119,16 @@ class _PublicCardPageState extends State<PublicCardPage>
           widget.initialConnectionStatus == ConnectionStatus.contact);
 
   Color get _accentColor {
+    // Couleur choisie par l'API (entreprise, sinon carte, sinon défaut),
+    // pour le thème affiché : la même que sur la page web. Absente d'une
+    // ancienne API (ou d'une réponse en cache) : repli sur accent_color
+    // ci-dessous, comme avant.
+    final effective = EffectiveAccent.tryParse(card?['effective_accent']);
+    if (effective != null) {
+      final light = Theme.of(context).brightness == Brightness.light;
+      return effective.forTheme(light ? 'light' : 'dark').color;
+    }
+
     // Thème clair : variante assombrie si le serveur en a calculé une
     // (couleur du propriétaire trop pâle sur fond blanc).
     if (Theme.of(context).brightness == Brightness.light) {

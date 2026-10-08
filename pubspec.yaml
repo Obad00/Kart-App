@@ -135,6 +135,17 @@ flutter:
   # temps que le fichier se télécharge, en particulier sur le splash screen
   # qui ne reste affiché que ~2s.
   fonts:
+    # Archivo (variable, SIL OFL — cf. assets/fonts/Archivo-OFL.txt) : texte
+    # courant des écrans « Ma carte publique » et face infos de la carte,
+    # d'après leurs maquettes. Le reste de l'app reste en Syne.
+    - family: Archivo
+      fonts:
+        - asset: assets/fonts/Archivo.ttf
+          weight: 400
+        - asset: assets/fonts/Archivo.ttf
+          weight: 500
+        - asset: assets/fonts/Archivo.ttf
+          weight: 600
     - family: Syne
       fonts:
         - asset: assets/fonts/Syne.ttf
