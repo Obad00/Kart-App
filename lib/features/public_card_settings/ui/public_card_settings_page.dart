@@ -1,7 +1,15 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/kart_tokens.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/widgets/app_loader.dart';
+import '../../../shared/widgets/auth_outline_button.dart';
+import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/widgets/glass_app_bar.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../data/public_card_settings_service.dart';
 import '../models/public_card_settings.dart';
 import '../providers/public_card_settings_provider.dart';
@@ -88,11 +96,7 @@ class _Ui {
     required this.muted,
     required this.listBackground,
     required this.handle,
-    required this.switchOn,
-    required this.switchOff,
-    required this.switchOffThumb,
     required this.primary,
-    required this.onPrimary,
   });
 
   factory _Ui.of(BuildContext context) {
@@ -106,11 +110,7 @@ class _Ui {
         muted: Color(0xFF8C8A85),
         listBackground: Color(0xFF222224),
         handle: Color(0xFF5A5A5E),
-        switchOn: Color(0xFF4ADE80),
-        switchOff: Color(0xFF3A3A3E),
-        switchOffThumb: Color(0xFFA8A59E),
         primary: Color(0xFFFFFFFF),
-        onPrimary: Color(0xFF0B0B0C),
       );
     }
     final t = KartTokens.of(context);
@@ -123,11 +123,7 @@ class _Ui {
       muted: t.textSecondary,
       listBackground: t.softFill,
       handle: t.textSecondary.withValues(alpha: 0.6),
-      switchOn: t.positive,
-      switchOff: t.softBorder,
-      switchOffThumb: Colors.white,
       primary: t.textPrimary,
-      onPrimary: t.pageBackground,
     );
   }
 
@@ -139,13 +135,9 @@ class _Ui {
   final Color muted;
   final Color listBackground;
   final Color handle;
-  final Color switchOn;
-  final Color switchOff;
-  final Color switchOffThumb;
 
-  /// Bouton principal (« Enregistrer ») et contour de l'élément choisi.
+  /// Contour de l'élément choisi (vignette, thème, pastille, style).
   final Color primary;
-  final Color onPrimary;
 
   TextStyle body(double size, Color color, {FontWeight weight = FontWeight.w400}) =>
       TextStyle(fontFamily: 'Archivo', fontSize: size, color: color, fontWeight: weight, height: 1.25);
@@ -159,44 +151,45 @@ class _SettingsView extends StatelessWidget {
 
   final PublicCardSettingsPage page;
 
+  /// Messages de succès et d'erreur : le toast partagé de l'app
+  /// (FeedbackOverlay, en haut de l'écran — il ne cache pas la barre
+  /// Réinitialiser / Enregistrer).
   Future<void> _save(BuildContext context) async {
     final provider = context.read<PublicCardSettingsProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final error = await provider.save();
-    if (error == null) page.onSaved?.call();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(error ?? 'Carte publique mise à jour.'),
-      ));
+    if (!context.mounted) return;
+    if (error == null) {
+      page.onSaved?.call();
+      FeedbackOverlay.showSuccess(
+        context,
+        title: 'Carte publique mise à jour',
+        subtitle: 'Vos changements sont en ligne.',
+      );
+    } else {
+      FeedbackOverlay.showError(
+        context,
+        title: 'Enregistrement impossible',
+        subtitle: error,
+      );
+    }
   }
 
-  /// Quitter avec des changements non enregistrés : on demande d'abord.
-  Future<bool> _confirmLeave(BuildContext context) async {
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Quitter sans enregistrer ?'),
-        content: const Text('Vos changements ne seront pas appliqués.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Rester'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Quitter'),
-          ),
-        ],
-      ),
-    );
-    return leave ?? false;
-  }
+  /// Quitter avec des changements non enregistrés : la confirmation
+  /// partagée de l'app (GlassDialog, comme pour la déconnexion).
+  Future<bool> _confirmLeave(BuildContext context) => GlassDialog.confirm(
+        context,
+        title: 'Quitter sans enregistrer ?',
+        message: 'Vos changements ne seront pas appliqués.',
+        cancelLabel: 'Rester',
+        confirmLabel: 'Quitter',
+      );
 
   @override
   Widget build(BuildContext context) {
     final ui = _Ui.of(context);
     final provider = context.watch<PublicCardSettingsProvider>();
+    final canSee =
+        provider.isReady && page.onOpenUrl != null && provider.slug.isNotEmpty;
 
     return PopScope(
       canPop: !provider.hasChanges,
@@ -207,99 +200,50 @@ class _SettingsView extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: ui.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: _TopBar(
-                  onSee: !provider.isReady ||
-                          page.onOpenUrl == null ||
-                          provider.slug.isEmpty
-                      ? null
-                      : () => page.onOpenUrl!(PublicCardSettingsPage.previewUrl(
-                          provider.slug, provider.settings)),
-                ),
+        // Le contenu défile sur toute la hauteur, SOUS les deux barres en
+        // verre (cf. GlassAppBar).
+        extendBodyBehindAppBar: true,
+        appBar: GlassAppBar(
+          centerTitle: false,
+          title: const Text('Ma carte publique'),
+          actions: [
+            TextButton(
+              key: const Key('see-public-page'),
+              onPressed: canSee
+                  ? () => page.onOpenUrl!(PublicCardSettingsPage.previewUrl(
+                      provider.slug, provider.settings))
+                  : null,
+              style: TextButton.styleFrom(
+                foregroundColor: ui.soft,
+                minimumSize: const Size(64, 44),
               ),
-              Expanded(
-                child: !provider.isReady
-                    ? _LoadState(provider: provider)
-                    : _Content(page: page),
+              // « Voir ↗ » : la flèche est une icône, Archivo n'ayant pas
+              // ce caractère.
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Voir', style: ui.body(14, ui.soft)),
+                  const SizedBox(width: 3),
+                  Icon(Icons.north_east_rounded, size: 14, color: ui.soft),
+                ],
               ),
-              if (provider.isReady) _BottomBar(onSave: () => _save(context)),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-/// Barre du haut : retour, titre, « Voir ↗ ».
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onSee});
-
-  final VoidCallback? onSee;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = _Ui.of(context);
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Semantics(
-            button: true,
-            label: 'Retour',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => Navigator.maybePop(context),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: ui.line),
-                ),
-                child: Icon(Icons.chevron_left_rounded, size: 24, color: ui.text),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            // Sur un petit écran, le titre est réduit plutôt que coupé.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text('Ma carte publique', maxLines: 1, style: ui.title(18)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Zone de 44 px de haut autour du texte.
-          InkWell(
-            key: const Key('see-public-page'),
-            borderRadius: BorderRadius.circular(10),
-            onTap: onSee,
-            child: SizedBox(
-              height: 44,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  // « Voir ↗ » : la flèche est une icône, Archivo n'ayant
-                  // pas ce caractère.
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Voir', style: ui.body(14, ui.soft)),
-                      const SizedBox(width: 3),
-                      Icon(Icons.north_east_rounded, size: 14, color: ui.soft),
-                    ],
+        body: !provider.isReady
+            ? SafeArea(child: _LoadState(provider: provider))
+            : Stack(
+                children: [
+                  _Content(page: page),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _BottomBar(onSave: () => _save(context)),
                   ),
-                ),
+                ],
               ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -315,7 +259,9 @@ class _LoadState extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = _Ui.of(context);
     if (provider.error == null) {
-      return Center(child: CircularProgressIndicator(color: ui.soft));
+      return const Center(
+        child: AppLoader(label: 'Chargement de vos réglages...'),
+      );
     }
     return Center(
       child: Padding(
@@ -327,10 +273,10 @@ class _LoadState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(provider.error!, textAlign: TextAlign.center, style: ui.body(15, ui.text)),
             const SizedBox(height: 20),
-            _OutlineButton(
+            AuthOutlineButton(
               label: 'Réessayer',
+              expanded: false,
               onTap: provider.loading ? null : provider.load,
-              width: 160,
             ),
           ],
         ),
@@ -395,8 +341,18 @@ class _Content extends StatelessWidget {
           ),
         );
 
+    // Marges : la barre du haut et la barre du bas flottent par-dessus ;
+    // le premier et le dernier élément restent atteignables. Avec
+    // extendBodyBehindAppBar, insets.top contient déjà la zone d'état ET
+    // la hauteur de la barre du haut.
+    final insets = MediaQuery.paddingOf(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 22),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        insets.top + 16,
+        16,
+        _BottomBar.height + insets.bottom + 16,
+      ),
       children: [
         PublicCardLivePreview(
           settings: settings,
@@ -638,20 +594,19 @@ class _AccentPicker extends StatelessWidget {
 
   Future<void> _pickCustom(BuildContext context) async {
     final provider = context.read<PublicCardSettingsProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final picked = await page.onPickColor!(context, provider.accent.color);
-    if (picked == null) return;
+    if (picked == null || !context.mounted) return;
 
     // Une couleur peu lisible est ajustée : même teinte, éclaircie jusqu'à
     // se détacher de la carte.
     final adjusted = PublicCardStyles.readableAccent(picked, const [_cardBlack], minimum: 3);
     provider.setAccent(adjusted);
     if (adjusted != picked) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-          content: Text('Couleur éclaircie pour rester lisible sur la carte.'),
-        ));
+      FeedbackOverlay.showInfo(
+        context,
+        title: 'Couleur ajustée',
+        subtitle: 'Éclaircie pour rester lisible sur la carte.',
+      );
     }
   }
 
@@ -808,56 +763,6 @@ class _DashedCircle extends CustomPainter {
   bool shouldRepaint(_DashedCircle old) => old.color != color;
 }
 
-/// Interrupteur de la maquette : 44 × 26, pastille de 20.
-class _Toggle extends StatelessWidget {
-  const _Toggle({super.key, required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = _Ui.of(context);
-    return Semantics(
-      toggled: value,
-      enabled: onChanged != null,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onChanged == null ? null : () => onChanged!(!value),
-        // Zone de toucher de 54 × 54 autour du dessin de 44 × 26.
-        child: SizedBox(
-          width: 54,
-          height: 54,
-          child: Center(
-            child: Opacity(
-              opacity: onChanged == null ? 0.5 : 1,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 44,
-                height: 26,
-                padding: const EdgeInsets.all(3),
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  color: value ? ui.switchOn : ui.switchOff,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: value ? Colors.white : ui.switchOffThumb,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Sections de la page, réordonnables, chacune avec son interrupteur.
 class _SectionList extends StatelessWidget {
   const _SectionList();
@@ -945,12 +850,14 @@ class _SectionList extends StatelessWidget {
                     ],
                   ),
                 ),
-                _Toggle(
+                // Interrupteur standard de l'app (le même que dans les
+                // réglages de notifications).
+                Switch(
                   key: Key('switch-$section'),
                   value: visible,
                   onChanged: dependsOnPhone ? null : (value) => provider.setVisible(section, value),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
               ],
             ),
           );
@@ -960,103 +867,64 @@ class _SectionList extends StatelessWidget {
   }
 }
 
-class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({super.key, required this.label, required this.onTap, this.width});
-
-  final String label;
-  final VoidCallback? onTap;
-  final double? width;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = _Ui.of(context);
-    return Opacity(
-      opacity: onTap == null ? 0.45 : 1,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: ui.line),
-          ),
-          child: Text(label, maxLines: 1, style: ui.body(15, ui.text)),
-        ),
-      ),
-    );
-  }
-}
-
-/// « Réinitialiser » (1/3) et « Enregistrer » (2/3), fixés en bas.
+/// « Réinitialiser » (1/3) et « Enregistrer » (2/3), dans une barre en
+/// verre qui flotte au-dessus du contenu : mêmes valeurs que GlassAppBar et
+/// que la barre de navigation du bas (flou 24, teinte de surface à 32 % en
+/// sombre et 50 % en clair, filet fin). Boutons partagés de l'app.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.onSave});
 
   final VoidCallback onSave;
 
+  /// Hauteur de la barre hors zone basse de l'écran : marges + boutons.
+  static const double height = 12 + 58 + 12;
+
   @override
   Widget build(BuildContext context) {
-    final ui = _Ui.of(context);
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<PublicCardSettingsProvider>();
     final busy = provider.saving;
-    final canSave = !busy && provider.hasChanges;
 
-    return Container(
-      color: ui.background,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-      child: Row(
-        children: [
-          Expanded(
-            child: _OutlineButton(
-              key: const Key('reset'),
-              label: 'Réinitialiser',
-              onTap: busy || provider.settings == const PublicCardSettings()
-                  ? null
-                  : provider.resetToDefaults,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 2,
-            child: Semantics(
-              button: true,
-              enabled: canSave,
-              child: Opacity(
-                opacity: canSave || busy ? 1 : 0.45,
-                child: InkWell(
-                  key: const Key('save'),
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: canSave ? onSave : null,
-                  child: Container(
-                    height: 54,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: ui.primary,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: busy
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: ui.onPrimary),
-                          )
-                        : Text(
-                            'Enregistrer',
-                            style: TextStyle(
-                              fontFamily: 'Syne',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: ui.onPrimary,
-                            ),
-                          ),
-                  ),
-                ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colors.surface.withValues(alpha: isDark ? 0.32 : 0.5),
+            border: Border(
+              top: BorderSide(
+                color: colors.onSurface.withValues(alpha: 0.06),
+                width: 0.5,
               ),
             ),
           ),
-        ],
+          padding: EdgeInsets.fromLTRB(
+              16, 12, 16, 12 + MediaQuery.paddingOf(context).bottom),
+          child: Row(
+            children: [
+              Expanded(
+                child: AuthOutlineButton(
+                  key: const Key('reset'),
+                  label: 'Réinitialiser',
+                  onTap: busy || provider.settings == const PublicCardSettings()
+                      ? null
+                      : provider.resetToDefaults,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: AuthPrimaryButton(
+                  key: const Key('save'),
+                  label: 'Enregistrer',
+                  loading: busy,
+                  onTap: provider.hasChanges ? onSave : null,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

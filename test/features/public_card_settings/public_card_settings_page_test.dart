@@ -5,11 +5,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
+import 'package:kart_app/features/digital_card/providers/card_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:kart_app/features/public_card_settings/data/public_card_settings_service.dart';
 import 'package:kart_app/features/public_card_settings/models/public_card_settings.dart';
 import 'package:kart_app/features/public_card_settings/public_card_styles.dart';
 import 'package:kart_app/features/public_card_settings/ui/public_card_settings_page.dart';
 import 'package:kart_app/features/public_card_settings/widgets/public_card_thumbnail.dart';
+import 'package:kart_app/shared/widgets/app_loader.dart';
+import 'package:kart_app/shared/widgets/auth_outline_button.dart';
+import 'package:kart_app/shared/widgets/auth_primary_button.dart';
+import 'package:kart_app/shared/widgets/glass_app_bar.dart';
+import 'package:kart_app/shared/widgets/glass_dialog.dart';
 
 const _gold = Color(0xFFC99A2E);
 const _blue = Color(0xFF4F8EF7);
@@ -87,7 +94,22 @@ Future<void> _pump(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  await tester.pumpWidget(MaterialApp(
+  // CardProvider : le loader partagé de l'app y lit la couleur du compte.
+  await tester.pumpWidget(ChangeNotifierProvider(
+    create: (_) => CardProvider(),
+    child: _app(theme, service, onOpenUrl, onEditLogo, onPickColor, onSaved),
+  ));
+}
+
+Widget _app(
+  ThemeData? theme,
+  _FakeService service,
+  Future<void> Function(Uri)? onOpenUrl,
+  Future<void> Function(BuildContext)? onEditLogo,
+  Future<Color?> Function(BuildContext, Color)? onPickColor,
+  VoidCallback? onSaved,
+) {
+  return MaterialApp(
     theme: theme ?? AppTheme.dark(),
     home: PublicCardSettingsPage(
       service: service,
@@ -102,21 +124,24 @@ Future<void> _pump(
       onEditInfo: (_) async {},
       onSaved: onSaved,
     ),
-  ));
+  );
 }
 
 PublicCardLivePreview _preview(WidgetTester tester) =>
     tester.widget<PublicCardLivePreview>(find.byType(PublicCardLivePreview));
 
-bool _isOn(WidgetTester tester, String section) => tester
-    .getSemantics(find.byKey(Key('switch-$section')))
-    .getSemanticsData()
-    .flagsCollection
-    .isToggled
-    .toBoolOrNull()!;
+bool _isOn(WidgetTester tester, String section) =>
+    tester.widget<Switch>(find.byKey(Key('switch-$section'))).value;
 
 bool _canSave(WidgetTester tester) =>
-    tester.widget<InkWell>(find.byKey(const Key('save'))).onTap != null;
+    tester.widget<AuthPrimaryButton>(find.byKey(const Key('save'))).onTap != null;
+
+/// Le toast partagé (FeedbackOverlay) se retire tout seul après quelques
+/// secondes : on laisse passer ce délai avant la fin du test.
+Future<void> _dismissToast(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 5));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group('chargement', () {
@@ -127,10 +152,11 @@ void main() {
       );
       await _pump(tester, service);
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Chargement : le loader partagé de l'app.
+      expect(find.byType(AppLoader), findsOneWidget);
       await tester.pumpAndSettle();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
       expect(_preview(tester).settings.layout, 'banner');
       expect(_preview(tester).settings.theme, 'light');
       // Rien à enregistrer tant que rien n'a changé.
@@ -245,6 +271,7 @@ void main() {
       expect(service.calls, ['fetch', 'card', 'fetch']);
       expect(_preview(tester).accent.color, _blue);
       expect(_canSave(tester), isFalse);
+      await _dismissToast(tester);
     });
 
     testWidgets('« + » : une couleur trop sombre est éclaircie',
@@ -263,8 +290,9 @@ void main() {
         PublicCardStyles.contrast(chosen, const Color(0xFF0E0E10)),
         greaterThanOrEqualTo(3),
       );
-      expect(find.text('Couleur éclaircie pour rester lisible sur la carte.'),
-          findsOneWidget);
+      // Message : le toast partagé de l'app.
+      expect(find.text('Couleur ajustée'), findsOneWidget);
+      await _dismissToast(tester);
     });
 
     testWidgets('« + » : une couleur lisible est gardée telle quelle',
@@ -277,7 +305,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_preview(tester).accent.color, teal);
-      expect(find.textContaining('éclaircie'), findsNothing);
+      expect(find.text('Couleur ajustée'), findsNothing);
     });
 
     testWidgets('habillage entreprise : pastilles inactives, cadenas, mention',
@@ -372,9 +400,16 @@ void main() {
       expect(service.savedSettings!.hiddenSections, ['bio']);
       // Ni la visibilité des contacts ni la couleur n'ont changé.
       expect(service.calls, ['fetch', 'save']);
-      expect(find.text('Carte publique mise à jour.'), findsOneWidget);
+      // Succès : le toast partagé de l'app, en haut de l'écran — il ne
+      // cache pas la barre Réinitialiser / Enregistrer.
+      final toast = find.text('Carte publique mise à jour');
+      expect(toast, findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.getRect(toast).bottom,
+          lessThan(tester.getRect(find.byKey(const Key('save'))).top));
       expect(savedCallbacks, 1);
       expect(_canSave(tester), isFalse);
+      await _dismissToast(tester);
     });
 
     testWidgets('téléphone, email, réseaux et site pilotent activated_fields',
@@ -402,6 +437,7 @@ void main() {
           ['email', 'facebook', 'github', 'instagram', 'linkedin']);
       expect(service.savedAccent, isNull);
       expect(service.calls, ['fetch', 'card']);
+      await _dismissToast(tester);
     });
 
     testWidgets('échec : message, et les changements restent à enregistrer',
@@ -415,12 +451,16 @@ void main() {
       await tester.tap(find.byKey(const Key('save')));
       await tester.pumpAndSettle();
 
+      // Erreur : le toast d'erreur partagé de l'app.
+      expect(find.text('Enregistrement impossible'), findsOneWidget);
       expect(
         find.text("Vos réglages n'ont pas pu être enregistrés. Réessayez."),
         findsOneWidget,
       );
+      expect(find.byType(SnackBar), findsNothing);
       expect(_preview(tester).settings.theme, 'light');
       expect(_canSave(tester), isTrue);
+      await _dismissToast(tester);
     });
 
     testWidgets('« Réinitialiser » ne remet que la présentation',
@@ -448,6 +488,7 @@ void main() {
       await tester.tap(find.byKey(const Key('save')));
       await tester.pumpAndSettle();
       expect(service.savedSettings, const PublicCardSettings());
+      await _dismissToast(tester);
     });
   });
 
@@ -526,6 +567,121 @@ void main() {
     for (final text in ['Awa Diop', 'Directrice générale', 'Entreprise Exemple', 'AD']) {
       expect(find.descendant(of: preview, matching: find.text(text)), findsOneWidget);
     }
+  });
+
+  testWidgets('composants partagés : barre en verre, boutons, interrupteurs',
+      (tester) async {
+    await _pump(tester, _FakeService());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassAppBar), findsOneWidget);
+    expect(find.byType(AuthOutlineButton), findsOneWidget); // Réinitialiser
+    expect(find.byType(AuthPrimaryButton), findsOneWidget); // Enregistrer
+    expect(find.byType(Switch), findsNWidgets(11));
+    // Les deux barres floutent ce qui défile dessous.
+    expect(find.byType(BackdropFilter), findsNWidgets(2));
+  });
+
+  testWidgets('le contenu défile sous les deux barres', (tester) async {
+    await _pump(tester, _FakeService(), size: const Size(390, 844));
+    await tester.pumpAndSettle();
+
+    final list = find.byType(ListView).first;
+    // La liste occupe toute la hauteur de l'écran, barres comprises.
+    expect(tester.getRect(list).top, 0);
+    expect(tester.getRect(list).bottom, 844);
+
+    // En haut : le premier élément est sous la barre, entièrement visible.
+    final bar = tester.getRect(find.byType(GlassAppBar));
+    final previewTop = tester.getRect(find.byType(PublicCardLivePreview)).top;
+    expect(previewTop, greaterThanOrEqualTo(bar.bottom));
+    // … et juste sous elle, sans grand vide.
+    expect(previewTop - bar.bottom, lessThanOrEqualTo(24));
+
+    // Tout en bas : le dernier élément reste au-dessus de la barre du bas.
+    final position = tester
+        .state<ScrollableState>(
+            find.descendant(of: list, matching: find.byType(Scrollable)).first)
+        .position;
+    // La hauteur totale n'est connue qu'en avançant (liste paresseuse) :
+    // on saute jusqu'à ne plus pouvoir descendre.
+    for (var i = 0; i < 10; i++) {
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+    }
+    expect(position.pixels, position.maxScrollExtent);
+    expect(tester.getRect(find.text('Modifier mes infos →')).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byKey(const Key('save'))).top));
+  });
+
+  testWidgets('ouvert par une vraie navigation : flèche retour dans la barre',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    // Comme dans l'app : un écran (la Carte) pousse « Ma carte publique »
+    // par une MaterialPageRoute, comme publicCardSettingsRoute().
+    await tester.pumpWidget(ChangeNotifierProvider(
+      create: (_) => CardProvider(),
+      child: MaterialApp(
+        theme: AppTheme.dark(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PublicCardSettingsPage(
+                      service: _FakeService(),
+                      identity: const PreviewIdentity(fullName: 'Awa Diop'),
+                    ),
+                  ),
+                ),
+                child: const Text('Personnaliser ma carte'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.text('Personnaliser ma carte'));
+    await tester.pumpAndSettle();
+
+    // La flèche retour standard est dans la barre en verre, visible.
+    final back = find.descendant(
+        of: find.byType(GlassAppBar), matching: find.byType(BackButton));
+    expect(back, findsOneWidget);
+    final bar = tester.getRect(find.byType(GlassAppBar));
+    expect(bar.contains(tester.getCenter(back)), isTrue);
+    expect(tester.getSize(back).height, greaterThanOrEqualTo(44));
+
+    // Sans changement en cours, elle ramène à l'écran précédent.
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+    expect(find.byType(PublicCardSettingsPage), findsNothing);
+    expect(find.text('Personnaliser ma carte'), findsOneWidget);
+  });
+
+  testWidgets('quitter avec des changements : confirmation partagée',
+      (tester) async {
+    await _pump(tester, _FakeService());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('theme-light')));
+    await tester.pump();
+
+    // Retour (bouton de la barre ou geste du système).
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassDialog), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Quitter sans enregistrer ?'), findsOneWidget);
+
+    await tester.tap(find.text('Rester'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PublicCardLivePreview), findsOneWidget);
   });
 
   for (final dark in [true, false]) {
