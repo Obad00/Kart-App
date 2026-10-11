@@ -166,3 +166,91 @@ class PublicPagePalette {
   /// Texte secondaire : le texte à 62 % sur le fond, comme sur le site.
   Color get muted => Color.lerp(background, text, 0.62)!;
 }
+
+/// Couleurs des dispositions Bento et Éditorial par thème — celles du site
+/// en ligne (PALETTES de publicCardNext/theme.js, main 83cad2d).
+class PublicNextPalette {
+  const PublicNextPalette._({
+    required this.background,
+    required this.surface,
+    required this.line,
+    required this.strong,
+    required this.text,
+    required this.soft,
+    required this.muted,
+    required this.faint,
+    required this.inverseBackground,
+    required this.inverseText,
+    required this.shareLine,
+    required this.logoLine,
+    required this.whatsapp,
+    required this.stickyShadow,
+  });
+
+  static const dark = PublicNextPalette._(
+    background: Color(0xFF0B0B0C),
+    surface: Color(0xFF151517),
+    line: Color(0xFF2A2A2D),
+    strong: Color(0xFFFFFFFF),
+    text: Color(0xFFE9E6DF),
+    soft: Color(0xFFA8A59E),
+    muted: Color(0xFF8C8A85),
+    faint: Color(0xFF6E6C67),
+    inverseBackground: Color(0xFFE9E6DF),
+    inverseText: Color(0xFF0B0B0C),
+    shareLine: Color(0xFF2A2A2D),
+    logoLine: Color(0x00000000),
+    whatsapp: Color(0xFF4ADE80),
+    stickyShadow: BoxShadow(
+        color: Color(0x80000000), offset: Offset(0, 10), blurRadius: 30),
+  );
+  static const light = PublicNextPalette._(
+    background: Color(0xFFF4F1EA),
+    surface: Color(0xFFFFFFFF),
+    line: Color(0xFFE2DDD1),
+    strong: Color(0xFF121212),
+    text: Color(0xFF121212),
+    soft: Color(0xFF4A4740),
+    muted: Color(0xFF7A766C),
+    faint: Color(0xFF9A958A),
+    inverseBackground: Color(0xFF121212),
+    inverseText: Color(0xFFF4F1EA),
+    shareLine: Color(0xFFD9D4C8),
+    logoLine: Color(0xFFE2DDD1),
+    whatsapp: Color(0xFF1F9D55),
+    stickyShadow: BoxShadow(
+        color: Color(0x2E121212), offset: Offset(0, 10), blurRadius: 24),
+  );
+
+  static PublicNextPalette of(String theme) => theme == 'light' ? light : dark;
+
+  final Color background;
+  final Color surface;
+  final Color line;
+
+  /// Nom (blanc pur en sombre).
+  final Color strong;
+  final Color text;
+  final Color soft;
+  final Color muted;
+  final Color faint;
+
+  /// Bouton « inversé » : bouton fixe du bento, première ligne de l'éditorial.
+  final Color inverseBackground;
+  final Color inverseText;
+
+  /// Contour du bouton rond « Partager » (éditorial).
+  final Color shareLine;
+
+  /// Contour de la tuile de logo (visible en clair seulement).
+  final Color logoLine;
+  final Color whatsapp;
+
+  /// Ombre du bouton fixé en bas de l'écran.
+  final BoxShadow stickyShadow;
+
+  /// Accent en TEXTE ou en trait : ajusté pour rester lisible sur le fond
+  /// et sur les surfaces (`--pc-accent-ink` côté site).
+  Color accentInk(Color accent) =>
+      PublicCardStyles.readableAccent(accent, [background, surface]);
+}

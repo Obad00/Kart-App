@@ -11,6 +11,7 @@ import 'package:kart_app/features/public_card_settings/data/public_card_settings
 import 'package:kart_app/features/public_card_settings/models/public_card_settings.dart';
 import 'package:kart_app/features/public_card_settings/public_card_styles.dart';
 import 'package:kart_app/features/public_card_settings/ui/public_card_settings_page.dart';
+import 'package:kart_app/features/public_card_settings/widgets/public_card_next_view.dart';
 import 'package:kart_app/features/public_card_settings/widgets/public_card_thumbnail.dart';
 import 'package:kart_app/shared/widgets/app_loader.dart';
 import 'package:kart_app/shared/widgets/auth_outline_button.dart';
@@ -117,6 +118,7 @@ Widget _app(
         fullName: 'Awa Diop',
         jobTitle: 'Directrice générale',
         company: 'Entreprise Exemple',
+        phone: '+221 77 000 00 00',
       ),
       onOpenUrl: onOpenUrl,
       onEditLogo: onEditLogo,
@@ -192,23 +194,33 @@ void main() {
 
   group('aperçu en direct', () {
     testWidgets(
-        'trois dispositions (celles du site en ligne) changent l\'aperçu',
+        'cinq dispositions (celles du site en ligne) changent l\'aperçu',
         (tester) async {
       final service = _FakeService();
       await _pump(tester, service);
       await tester.pumpAndSettle();
 
-      for (final layout in PublicCardSettings.layouts) {
-        await tester.tap(find.byKey(Key('layout-$layout')));
+      expect(PublicCardSettings.layouts,
+          ['physical', 'classic', 'banner', 'bento', 'editorial']);
+      const labels = ['Carte physique', 'Classique', 'Bandeau', 'Bento', 'Éditorial'];
+
+      for (final (index, layout) in PublicCardSettings.layouts.indexed) {
+        // Les dernières vignettes sont hors de l'écran : on fait défiler.
+        final tile = find.byKey(Key('layout-$layout'));
+        await tester.scrollUntilVisible(tile, 96,
+            scrollable: find
+                .ancestor(of: find.byType(PublicCardThumbnail).first, matching: find.byType(Scrollable))
+                .first);
+        await tester.ensureVisible(tile);
+        await tester.pump();
+        expect(find.descendant(of: tile, matching: find.byType(PublicCardThumbnail)),
+            findsOneWidget);
+        expect(find.descendant(of: tile, matching: find.text(labels[index])),
+            findsOneWidget);
+        await tester.tap(tile);
         await tester.pump();
         expect(_preview(tester).settings.layout, layout);
       }
-      expect(PublicCardSettings.layouts, ['physical', 'classic', 'banner']);
-      expect(find.byType(PublicCardThumbnail), findsNWidgets(3));
-      // Bento et Éditorial ne sont pas proposés tant que le site ne les
-      // affiche pas.
-      expect(find.text('Bento'), findsNothing);
-      expect(find.text('Éditorial'), findsNothing);
       // Rien n'est envoyé tant qu'on n'enregistre pas.
       expect(service.calls, ['fetch']);
     });
@@ -509,14 +521,141 @@ void main() {
 
   testWidgets('« Faire défiler → » seulement si les vignettes débordent',
       (tester) async {
-    await _pump(tester, _FakeService());
+    // Tablette : les cinq vignettes tiennent.
+    await _pump(tester, _FakeService(), size: const Size(700, 2600));
     await tester.pumpAndSettle();
-    // 390 px : les trois vignettes tiennent.
     expect(find.text('Faire défiler →'), findsNothing);
 
-    await _pump(tester, _FakeService(), size: const Size(320, 2600));
+    // Téléphone : elles débordent.
+    await _pump(tester, _FakeService());
     await tester.pumpAndSettle();
     expect(find.text('Faire défiler →'), findsOneWidget);
+  });
+
+  Widget bentoPreview(String theme, List<String> contacts) => MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 358,
+              child: PublicCardLivePreview(
+                settings: PublicCardSettings(layout: 'bento', theme: theme),
+                accent: EffectiveAccent.fallback,
+                identity: const PreviewIdentity(
+                    fullName: 'Awa Diop', phone: '+221 77 000 00 00'),
+                contacts: contacts,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  for (final theme in PublicCardSettings.themes) {
+    testWidgets(
+        'bento / $theme : Appeler (accent) et WhatsApp côte à côte, comme à 390 px',
+        (tester) async {
+      await tester.pumpWidget(bentoPreview(theme, const ['phone', 'whatsapp']));
+
+      final view = tester.getRect(find.byType(PublicCardNextView));
+      final phone = tester.getRect(find.byKey(const Key('bento-phone')));
+      final whatsapp = tester.getRect(find.byKey(const Key('bento-whatsapp')));
+      // Deux tuiles carrées sur une rangée, sur toute la largeur.
+      expect(phone.left, view.left);
+      expect(whatsapp.right, view.right);
+      expect(phone.top, whatsapp.top);
+      expect(phone.width, closeTo(phone.height, 0.01));
+      expect(whatsapp.width, closeTo(phone.width, 0.01));
+      final tile = tester.widget<Container>(find.byKey(const Key('bento-phone')));
+      expect((tile.decoration! as BoxDecoration).color, EffectiveAccent.fallback.color);
+      for (final text in ['Appeler', '+221 77 000 00 00', 'WhatsApp', 'Écrire un message']) {
+        expect(find.text(text), findsOneWidget);
+      }
+      // « Partager » n'est plus dans l'aperçu.
+      expect(find.text('Partager'), findsNothing);
+      // Bouton du bas « inversé » : jamais de la couleur d'accent.
+      final button = tester.widget<Container>(find.descendant(
+        of: find.byKey(const Key('preview-save-button')),
+        matching: find.byType(Container),
+      ));
+      expect((button.decoration! as BoxDecoration).color,
+          PublicNextPalette.of(theme).inverseBackground);
+    });
+  }
+
+  testWidgets('bento : téléphone seul, la tuile Appeler prend toute la largeur',
+      (tester) async {
+    await tester.pumpWidget(bentoPreview('dark', const ['phone']));
+
+    final view = tester.getRect(find.byType(PublicCardNextView));
+    final phone = tester.getRect(find.byKey(const Key('bento-phone')));
+    expect(phone.left, view.left);
+    expect(phone.right, view.right);
+    expect(find.byKey(const Key('bento-whatsapp')), findsNothing);
+  });
+
+  testWidgets('bento : ni téléphone ni WhatsApp, rien sous l\'identité',
+      (tester) async {
+    await tester.pumpWidget(bentoPreview('dark', const []));
+
+    expect(find.byKey(const Key('bento-phone')), findsNothing);
+    expect(find.byKey(const Key('bento-whatsapp')), findsNothing);
+    expect(find.text('Partager'), findsNothing);
+    // Le bouton suit directement la tuile d'identité (20 px du site).
+    final view = tester.getRect(find.byType(PublicCardNextView));
+    final button = tester.getRect(find.byKey(const Key('preview-save-button')));
+    expect(button.top - view.bottom, closeTo(20 * 326 / 350, 0.5));
+  });
+
+  testWidgets('bento : les tuiles suivent les interrupteurs Téléphone et WhatsApp',
+      (tester) async {
+    await _pump(tester, _FakeService(settings: const PublicCardSettings(layout: 'bento')));
+    await tester.pumpAndSettle();
+    expect(_preview(tester).contacts, ['phone', 'whatsapp']);
+
+    await tester.tap(find.byKey(const Key('switch-whatsapp')));
+    await tester.pump();
+    expect(_preview(tester).contacts, ['phone']);
+
+    await tester.tap(find.byKey(const Key('switch-phone')));
+    await tester.pump();
+    expect(_preview(tester).contacts, isEmpty);
+    expect(find.byKey(const Key('bento-phone')), findsNothing);
+  });
+
+  testWidgets('éditorial : prénom et nom sur deux lignes, « poste chez entreprise »',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 358,
+            child: PublicCardLivePreview(
+              settings: PublicCardSettings(layout: 'editorial', theme: 'light'),
+              accent: EffectiveAccent.fallback,
+              identity: PreviewIdentity(
+                fullName: 'Awa Diop',
+                jobTitle: 'Directrice générale',
+                company: 'Entreprise Exemple',
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    expect(find.text('Awa'), findsOneWidget);
+    expect(find.text('Diop'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Diop')).dy,
+        greaterThan(tester.getTopLeft(find.text('Awa')).dy));
+    expect(find.text('Directrice générale chez Entreprise Exemple', findRichText: true),
+        findsOneWidget);
+    // L'or KART n'est pas lisible sur fond clair : le filet est assombri.
+    final rule = tester.widget<Container>(find.byKey(const Key('editorial-rule')));
+    final ink = (rule.decoration! as BoxDecoration).color!;
+    expect(ink, isNot(EffectiveAccent.fallback.color));
+    expect(PublicCardStyles.contrast(ink, PublicNextPalette.light.background),
+        greaterThanOrEqualTo(4.5));
   });
 
   for (final layout in PublicCardSettings.layouts) {

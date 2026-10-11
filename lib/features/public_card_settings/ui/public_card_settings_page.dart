@@ -294,6 +294,8 @@ class _Content extends StatelessWidget {
     'physical': 'Carte physique',
     'classic': 'Classique',
     'banner': 'Bandeau',
+    'bento': 'Bento',
+    'editorial': 'Éditorial',
   };
 
   /// Largeur des vignettes (96 px, 10 px d'écart) contre la largeur utile.
@@ -358,6 +360,15 @@ class _Content extends StatelessWidget {
           settings: settings,
           accent: accent,
           identity: page.identity,
+          // Tuiles Appeler / WhatsApp du bento : seulement si le téléphone
+          // existe et est visible (WhatsApp en dépend, comme sur le site).
+          contacts: [
+            if (page.identity.phone.trim().isNotEmpty && provider.isVisible('phone'))
+              for (final section in settings.order)
+                if (section == 'phone' ||
+                    (section == 'whatsapp' && provider.isVisible('whatsapp')))
+                  section,
+          ],
         ),
         const SizedBox(height: 22),
 

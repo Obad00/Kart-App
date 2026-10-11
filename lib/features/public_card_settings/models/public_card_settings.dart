@@ -15,9 +15,11 @@ class PublicCardSettings {
   });
 
   /// Dispositions proposées : celles que le site en ligne sait afficher.
-  /// L'API en accepte d'autres (bento, editorial) ; elles seront ajoutées
-  /// ici quand le site les aura.
-  static const layouts = ['physical', 'classic', 'banner'];
+  static const layouts = ['physical', 'classic', 'banner', 'bento', 'editorial'];
+
+  /// Dispositions rendues côté site par `publicCardNext/` : en-tête de page
+  /// propre et bouton « Enregistrer le contact » fixé en bas de l'écran.
+  static const nextLayouts = ['bento', 'editorial'];
   static const themes = ['dark', 'light'];
   static const cardStyles = ['mat', 'gradient', 'marine'];
 

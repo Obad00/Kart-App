@@ -24,6 +24,7 @@ Route<void> publicCardSettingsRoute() {
           jobTitle: card.jobTitle ?? '',
           company: card.company ?? '',
           city: card.city ?? '',
+          phone: card.phone ?? '',
         ),
         fallbackActivatedFields: card.activatedFields ?? const [],
         onOpenUrl: (url) =>

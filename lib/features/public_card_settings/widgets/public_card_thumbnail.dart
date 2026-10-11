@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/public_card_settings.dart';
 import '../public_card_styles.dart';
+import 'public_card_next_view.dart';
 
 /// Haut de la page publique pour une disposition, dessiné d'après les
 /// dispositions du site en ligne (LayoutPhysical / LayoutClassic /
@@ -248,6 +249,7 @@ class PreviewIdentity {
     this.jobTitle = '',
     this.company = '',
     this.city = '',
+    this.phone = '',
     this.logo,
   });
 
@@ -255,6 +257,9 @@ class PreviewIdentity {
   final String jobTitle;
   final String company;
   final String city;
+
+  /// Numéro écrit sous « Appeler » (bento).
+  final String phone;
 
   /// Logo déjà prêt à être affiché en haut à gauche de la carte physique ;
   /// null = « KART », comme sur le site quand il n'y a pas de logo.
@@ -271,6 +276,8 @@ class PreviewIdentity {
 
 /// Vignette d'une disposition (96 × 150) : la page en petit — haut de la
 /// disposition, bouton « Enregistrer le contact », deux cartes de contact.
+/// Bento et Éditorial : la page telle qu'elle s'ouvre sur téléphone, avec
+/// leur bouton fixé en bas.
 class PublicCardThumbnail extends StatelessWidget {
   const PublicCardThumbnail({
     super.key,
@@ -290,6 +297,9 @@ class PublicCardThumbnail extends StatelessWidget {
     final p = PublicPagePalette.of(settings.theme);
     final pad = width * 8 / 96;
     final inner = width - 2 * pad;
+    if (PublicCardSettings.nextLayouts.contains(settings.layout)) {
+      return _next(pad, inner);
+    }
     final u = inner / 358;
 
     return Container(
@@ -335,6 +345,52 @@ class PublicCardThumbnail extends StatelessWidget {
   }
 }
 
+extension on PublicCardThumbnail {
+  /// Bento, Éditorial : le contenu en haut, le bouton en bas par-dessus,
+  /// comme sur le site où il reste fixé en bas de l'écran.
+  Widget _next(double pad, double inner) {
+    final p = PublicNextPalette.of(settings.theme);
+    final u = inner / PublicCardNextView.contentWidth(settings.layout);
+
+    return Container(
+      width: width,
+      height: height,
+      color: p.background,
+      padding: EdgeInsets.all(pad),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                maxHeight: double.infinity,
+                child: PublicCardNextView(
+                  width: inner,
+                  settings: settings,
+                  accent: accent,
+                  withContacts: true,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: PublicCardNextSaveButton(
+              unit: u,
+              settings: settings,
+              accent: accent,
+              labelled: false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Bloc « Aperçu en direct » : le haut de la page publique telle qu'elle
 /// est en ligne, avec les vraies infos, puis son bouton « Enregistrer le
 /// contact ». Change avec la disposition, le thème, le style et la couleur.
@@ -344,15 +400,21 @@ class PublicCardLivePreview extends StatelessWidget {
     required this.settings,
     required this.accent,
     required this.identity,
+    this.contacts = const [],
   });
 
   final PublicCardSettings settings;
   final EffectiveAccent accent;
   final PreviewIdentity identity;
 
+  /// Contacts visibles sur la page parmi `phone` et `whatsapp`, dans leur
+  /// ordre : les tuiles du bento. Les autres dispositions n'en font rien.
+  final List<String> contacts;
+
   @override
   Widget build(BuildContext context) {
     final p = PublicPagePalette.of(settings.theme);
+    final isNext = PublicCardSettings.nextLayouts.contains(settings.layout);
 
     return Container(
       key: const Key('public-card-preview'),
@@ -364,8 +426,39 @@ class PublicCardLivePreview extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final u = constraints.maxWidth / 358;
           // Le cadre s'arrête juste sous le bouton, où qu'il soit posé.
+          if (isNext) {
+            // Bento, Éditorial : le haut de la page, puis leur bouton en
+            // pilule (fixé en bas de l'écran sur le site).
+            final u = constraints.maxWidth /
+                PublicCardNextView.contentWidth(settings.layout);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Aperçu en direct',
+                  style: TextStyle(fontFamily: 'Archivo', fontSize: 12, color: p.muted),
+                ),
+                const SizedBox(height: 12),
+                PublicCardNextView(
+                  width: constraints.maxWidth,
+                  settings: settings,
+                  accent: accent,
+                  identity: identity,
+                  contacts: contacts,
+                ),
+                SizedBox(height: 20 * u),
+                PublicCardNextSaveButton(
+                  key: const Key('preview-save-button'),
+                  unit: u,
+                  settings: settings,
+                  accent: accent,
+                ),
+              ],
+            );
+          }
+          final u = constraints.maxWidth / 358;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
