@@ -190,7 +190,7 @@ class PublicCardNextView extends StatelessWidget {
             Icon(
               isPhone
                   ? Icons.phone_outlined
-                  : Icons.chat_bubble_outline_rounded,
+                  : Icons.chat_bubble_outline,
               size: 28 * _u,
               color: isPhone ? foreground : p.whatsapp,
             ),
