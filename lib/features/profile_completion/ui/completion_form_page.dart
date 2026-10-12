@@ -8,6 +8,7 @@ import '../../../core/theme/kart_tokens.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
+import '../../../shared/utils/website_url.dart';
 
 final List<String> _schools = [
   'Université Cheikh Anta Diop (UCAD)',
@@ -432,7 +433,9 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       instagram: _instagramCtrl.text,
       github: _githubCtrl.text,
       facebook: _facebookCtrl.text,
-      website: _websiteCtrl.text,
+      // « monsite.com » → « https://monsite.com » : sans protocole, le
+      // serveur refusait tout le formulaire.
+      website: completeWebsiteUrl(_websiteCtrl.text),
       experiences: experiences,
       educations: educations,
       // Ce formulaire n'édite jamais les centres d'intérêt (cf.
@@ -716,7 +719,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ),
                 const SizedBox(height: 12),
                 AuthTextField(
-                    label: 'Site web',
+                    label: 'Site web / Portfolio',
                     controller: _websiteCtrl,
                     prefixIcon: Icons.language,
                     hint: 'https://votresite.com'),

@@ -119,7 +119,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
             _CheckItem('Instagram', model.instagram, Icons.camera_alt_outlined),
             _CheckItem('GitHub', model.github, Icons.code),
             _CheckItem('Facebook', model.facebook, Icons.facebook),
-            _CheckItem('Site web', model.website, Icons.language),
+            _CheckItem('Site web / Portfolio', model.website, Icons.language),
           ],
         ),
         const SizedBox(height: 16),

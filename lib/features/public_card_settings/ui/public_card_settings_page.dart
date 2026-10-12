@@ -29,6 +29,7 @@ class PublicCardSettingsPage extends StatelessWidget {
     this.identity = const PreviewIdentity(fullName: ''),
     this.fallbackActivatedFields = const [],
     this.onOpenUrl,
+    this.hasWebsite,
     this.onEditInfo,
     this.onEditLogo,
     this.onPickColor,
@@ -46,6 +47,11 @@ class PublicCardSettingsPage extends StatelessWidget {
 
   /// « Voir ↗ » : ouvre la page publique avec les réglages en cours.
   final Future<void> Function(Uri url)? onOpenUrl;
+
+  /// La carte a-t-elle un site renseigné ? Lu à chaque affichage ; false
+  /// grise l'interrupteur « Site web / Portfolio » (rien à montrer). Non
+  /// fourni : l'interrupteur reste actif.
+  final bool Function()? hasWebsite;
 
   /// « Modifier mes infos → » : ouvre le formulaire existant.
   final Future<void> Function(BuildContext context)? onEditInfo;
@@ -496,7 +502,7 @@ class _Content extends StatelessWidget {
 
         // ── Ce qui est visible ─────────────────────────────────────────
         section('Ce qui est visible', hint: 'Glisser pour réordonner', [
-          const _SectionList(),
+          _SectionList(websiteMissing: page.hasWebsite?.call() == false),
           const SizedBox(height: 10),
           Text("Un champ vide n'apparaît jamais, même activé.", style: ui.body(12, ui.muted)),
           if (page.onEditInfo != null)
@@ -776,14 +782,17 @@ class _DashedCircle extends CustomPainter {
 
 /// Sections de la page, réordonnables, chacune avec son interrupteur.
 class _SectionList extends StatelessWidget {
-  const _SectionList();
+  const _SectionList({this.websiteMissing = false});
+
+  /// Aucun site renseigné sur la carte : son interrupteur est grisé.
+  final bool websiteMissing;
 
   static const _labels = {
     'bio': 'Bio',
     'phone': 'Téléphone mobile',
     'whatsapp': 'WhatsApp',
     'email': 'Email',
-    'website': 'Site web',
+    'website': 'Site web / Portfolio',
     'socials': 'Réseaux sociaux',
     'company': 'Entreprise',
     'skills': 'Compétences',
@@ -818,7 +827,10 @@ class _SectionList extends StatelessWidget {
           // WhatsApp est fabriqué depuis le téléphone : sans lui, rien à
           // afficher, l'interrupteur est grisé.
           final dependsOnPhone = section == 'whatsapp' && !phoneVisible;
-          final visible = provider.isVisible(section) && !dependsOnPhone;
+          // Site vide : rien à afficher non plus.
+          final needsWebsite = section == 'website' && websiteMissing;
+          final locked = dependsOnPhone || needsWebsite;
+          final visible = provider.isVisible(section) && !locked;
 
           return Container(
             key: ValueKey(section),
@@ -858,6 +870,8 @@ class _SectionList extends StatelessWidget {
                       ),
                       if (dependsOnPhone)
                         Text("Activez d'abord le téléphone", style: ui.body(11, ui.muted)),
+                      if (needsWebsite)
+                        Text("Renseignez d'abord votre site", style: ui.body(11, ui.muted)),
                     ],
                   ),
                 ),
@@ -866,7 +880,7 @@ class _SectionList extends StatelessWidget {
                 Switch(
                   key: Key('switch-$section'),
                   value: visible,
-                  onChanged: dependsOnPhone ? null : (value) => provider.setVisible(section, value),
+                  onChanged: locked ? null : (value) => provider.setVisible(section, value),
                 ),
                 const SizedBox(width: 8),
               ],

@@ -510,7 +510,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final label in [
-      'Bio', 'Téléphone mobile', 'WhatsApp', 'Email', 'Site web', //
+      'Bio', 'Téléphone mobile', 'WhatsApp', 'Email', 'Site web / Portfolio', //
       'Réseaux sociaux', 'Entreprise', 'Compétences', 'Expériences',
       'Formations', "Centres d'intérêt",
     ]) {
@@ -620,6 +620,46 @@ void main() {
     await tester.pump();
     expect(_preview(tester).contacts, isEmpty);
     expect(find.byKey(const Key('bento-phone')), findsNothing);
+  });
+
+  testWidgets(
+      'site non renseigné : interrupteur grisé, « Renseignez d\'abord votre site »',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var hasWebsite = false;
+    final service = _FakeService(activatedFields: const ['phone', 'website']);
+
+    Widget app() => ChangeNotifierProvider(
+          create: (_) => CardProvider(),
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            home: PublicCardSettingsPage(
+              key: ValueKey(hasWebsite),
+              service: service,
+              identity: const PreviewIdentity(fullName: 'Awa Diop'),
+              hasWebsite: () => hasWebsite,
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    // Coché côté serveur, mais rien à montrer : éteint et inactif.
+    expect(find.text("Renseignez d'abord votre site"), findsOneWidget);
+    final off = tester.widget<Switch>(find.byKey(const Key('switch-website')));
+    expect(off.value, isFalse);
+    expect(off.onChanged, isNull);
+
+    // Site renseigné : l'interrupteur redevient normal.
+    hasWebsite = true;
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(find.text("Renseignez d'abord votre site"), findsNothing);
+    final on = tester.widget<Switch>(find.byKey(const Key('switch-website')));
+    expect(on.value, isTrue);
+    expect(on.onChanged, isNotNull);
   });
 
   testWidgets('éditorial : prénom et nom sur deux lignes, « poste chez entreprise »',

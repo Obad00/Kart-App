@@ -27,6 +27,8 @@ Route<void> publicCardSettingsRoute() {
           phone: card.phone ?? '',
         ),
         fallbackActivatedFields: card.activatedFields ?? const [],
+        // Relu à chaque affichage : le formulaire recharge la carte.
+        hasWebsite: () => (card.website ?? '').trim().isNotEmpty,
         onOpenUrl: (url) =>
             launchUrl(url, mode: LaunchMode.externalApplication),
         // Formulaire existant (le même que depuis le Profil).
