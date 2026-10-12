@@ -3,7 +3,6 @@ import '../../public_card_settings/models/public_card_settings.dart'
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/widgets/avatar_initials.dart';
+import '../../../shared/widgets/card_header_image.dart';
 import '../../../shared/utils/company_color_helper.dart'
     show readableForegroundOn;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -103,7 +103,6 @@ class _PublicCardPageState extends State<PublicCardPage>
   // interrompu côté propriétaire de la carte) faisait planter le décodage
   // à chaque repaint (erreur "source image cannot be decoded" répétée en
   // boucle) au lieu de simplement retomber sur les initiales.
-  bool _avatarBroken = false;
   static const _chipsPreviewCount = 8;
 
   // Vrai si ce profil est déjà un contact — soit parce que la page a été
@@ -243,42 +242,33 @@ class _PublicCardPageState extends State<PublicCardPage>
     );
   }
 
-  /// Avatar tapable ouvrant la photo en plein écran (comme les applis
-  /// modernes) — seulement si une vraie photo est disponible, sinon reste
-  /// un simple rond d'initiales non interactif.
+  /// Logo de la carte : celui de l'entreprise si elle impose son
+  /// habillage, sinon le logo personnel (même choix que la page web).
+  String get _headerLogoUrl {
+    final branding = card?['branding'];
+    final source = branding is Map ? branding : card;
+    final raw = (source?['logo_full'] ?? source?['logo'])?.toString() ?? '';
+    if (raw.isEmpty) return '';
+    return raw.startsWith('http') ? raw : '${ApiEndpoints.storageUrl}/$raw';
+  }
+
+  /// Image du haut de la carte : la photo ; à défaut (absente ou qui ne se
+  /// charge pas) le logo de l'entreprise ; à défaut les initiales
+  /// (cf. [CardHeaderImage]). La photo, quand il y en a une, s'ouvre en
+  /// plein écran au toucher.
   Widget _buildAvatarCircle({
     required String avatarUrl,
     required double radius,
     required Color backgroundColor,
     Widget? child,
   }) {
-    final showImage = avatarUrl.isNotEmpty && !_avatarBroken;
-    final circle = CircleAvatar(
-      radius: radius,
+    final circle = CardHeaderImage(
+      size: radius * 2,
+      avatarUrl: avatarUrl,
+      logoUrl: _headerLogoUrl,
       backgroundColor: backgroundColor,
-      backgroundImage: showImage ? CachedNetworkImageProvider(avatarUrl) : null,
-      // addPostFrameCallback : ce callback est invoqué de façon synchrone
-      // pendant la peinture de la frame en cours dès que l'image est déjà
-      // connue en échec — un setState() direct ici plante avec "Build
-      // scheduled during frame" (interdit pendant build/paint). On reporte
-      // à la frame suivante, seul moment sûr.
-      onBackgroundImageError: showImage
-          ? (_, __) {
-              if (!_avatarBroken) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _avatarBroken = true);
-                });
-              }
-            }
-          : null,
-      // Si l'image casse au décodage, on retombe sur les initiales même
-      // si l'appelant avait initialement décidé de ne pas fournir de
-      // child (parce qu'une URL était présente).
-      child: !showImage
-          ? (child ??
-              Text(getInitials(card?['fullname']?.toString() ?? '',
-                  fallback: '?')))
-          : null,
+      initials: child ??
+          Text(getInitials(card?['fullname']?.toString() ?? '', fallback: '?')),
     );
 
     if (avatarUrl.isEmpty) return circle;
@@ -625,16 +615,14 @@ class _PublicCardPageState extends State<PublicCardPage>
                   avatarUrl: avatarUrl,
                   radius: 32,
                   backgroundColor: avatarBackground,
-                  child: avatarUrl.isEmpty
-                      ? AvatarInitials(
-                          initials: getInitials(fullName),
-                          // Couleur d'accent du PROPRIÉTAIRE de la carte :
-                          // on ne la choisit pas, elle peut être sombre.
-                          accent: _accentColor,
-                          background: avatarBackground,
-                          fontSize: 20,
-                        )
-                      : null,
+                  child: AvatarInitials(
+                      initials: getInitials(fullName),
+                      // Couleur d'accent du PROPRIÉTAIRE de la carte :
+                      // on ne la choisit pas, elle peut être sombre.
+                      accent: _accentColor,
+                      background: avatarBackground,
+                      fontSize: 20,
+                    )
                 ),
               ),
               const SizedBox(width: 16),

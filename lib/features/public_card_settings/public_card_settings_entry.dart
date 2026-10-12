@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/network/api_endpoints.dart';
 import '../auth/providers/auth_provider.dart';
 import '../digital_card/providers/card_provider.dart';
 import '../profile/ui/profile_page.dart' show showBrandingEditor;
@@ -25,6 +26,14 @@ Route<void> publicCardSettingsRoute() {
           company: card.company ?? '',
           city: card.city ?? '',
           phone: card.phone ?? '',
+          // Image du haut : photo, sinon logo, sinon initiales.
+          avatarUrl: _storageUrl(user?.avatar),
+          logoUrl: _storageUrl(card.companyLogoFull ??
+              card.companyLogo ??
+              card.logoFull ??
+              card.logo),
+          logoOnPill:
+              (card.companyLogoTransparent ?? card.logoTransparent) != true,
         ),
         fallbackActivatedFields: card.activatedFields ?? const [],
         // Relu à chaque affichage : le formulaire recharge la carte.
@@ -48,4 +57,11 @@ Route<void> publicCardSettingsRoute() {
       );
     },
   );
+}
+
+/// Chemin de stockage renvoyé par l'API → adresse complète ; null si vide.
+String? _storageUrl(String? path) {
+  final value = (path ?? '').trim();
+  if (value.isEmpty) return null;
+  return value.startsWith('http') ? value : '${ApiEndpoints.storageUrl}/$value';
 }

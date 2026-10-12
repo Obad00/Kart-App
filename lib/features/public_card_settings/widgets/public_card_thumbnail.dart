@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/card_header_image.dart';
 import '../models/public_card_settings.dart';
 import '../public_card_styles.dart';
 import 'public_card_next_view.dart';
@@ -97,14 +99,19 @@ class PublicCardHero extends StatelessWidget {
     ];
   }
 
-  /// Initiales dans un rond (photo absente).
-  Widget _avatar(double size, {required Color background, required Color foreground}) => Container(
-        width: size * _u,
-        height: size * _u,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: identity == null
-            ? null
+  /// Image du haut, dans un rond : la photo, sinon le logo, sinon les
+  /// initiales (cf. [CardHeaderImage]). Vignettes : un rond uni.
+  /// [withLogo] à false : photo, sinon initiales (Carte physique, où le
+  /// logo est déjà affiché à gauche).
+  Widget _avatar(double size,
+          {required Color background, required Color foreground, bool withLogo = true}) =>
+      CardHeaderImage(
+        size: size * _u,
+        avatarUrl: identity?.avatarUrl,
+        logoUrl: withLogo ? identity?.logoUrl : null,
+        backgroundColor: background,
+        initials: identity == null
+            ? const SizedBox.shrink()
             : Text(
                 identity!.initials,
                 style: TextStyle(
@@ -117,8 +124,10 @@ class PublicCardHero extends StatelessWidget {
       );
 
   // ── Carte physique : carte inclinée de la couleur d'accent derrière ;
-  //    devant, logo (ou « KART ») en haut à gauche, initiales dans un rond
-  //    en haut à droite, puis nom, poste, entreprise.
+  //    devant, le logo de l'entreprise (ou « KART ») en haut à gauche, la
+  //    photo (ou les initiales) dans un rond en haut à droite, puis nom,
+  //    poste, entreprise. Seule disposition où le logo et la photo sont
+  //    tous deux en haut, comme sur une vraie carte de visite.
   Widget _physical(PublicPagePalette p) {
     final look = PublicCardStyles.cardLook(settings.cardStyle, accent.color);
     final radius = BorderRadius.circular(PublicCardStyles.cardRadius * _u);
@@ -164,22 +173,15 @@ class PublicCardHero extends StatelessWidget {
                     Expanded(
                       child: Align(
                         alignment: Alignment.topLeft,
-                        child: identity?.logo ??
-                            (identity == null
-                                ? _bar(54, 9, look.muted)
-                                : Text(
-                                    'KART',
-                                    style: TextStyle(
-                                      fontFamily: 'Syne',
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13 * _u,
-                                      letterSpacing: 3 * _u,
-                                      color: look.muted,
-                                    ),
-                                  )),
+                        child: identity == null
+                            ? _bar(54, 9, look.muted)
+                            : _cardLogo(look.muted),
                       ),
                     ),
-                    _avatar(52, background: look.avatarBackground, foreground: look.avatarText),
+                    _avatar(52,
+                        background: look.avatarBackground,
+                        foreground: look.avatarText,
+                        withLogo: false),
                   ],
                 ),
                 SizedBox(height: 46 * _u),
@@ -189,6 +191,44 @@ class PublicCardHero extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Haut gauche de la carte physique : le logo de l'entreprise, entier,
+  /// sur 34 px de haut (dans une pastille claire s'il est opaque) ; sans
+  /// logo, ou s'il ne se charge pas, le mot « KART ».
+  Widget _cardLogo(Color muted) {
+    final kart = Text(
+      'KART',
+      style: TextStyle(
+        fontFamily: 'Syne',
+        fontWeight: FontWeight.w800,
+        fontSize: 13 * _u,
+        letterSpacing: 3 * _u,
+        color: muted,
+      ),
+    );
+    final url = (identity?.logoUrl ?? '').trim();
+    if (url.isEmpty) return kart;
+
+    final onPill = identity!.logoOnPill;
+    return Image(
+      key: const Key('physical-card-logo'),
+      image: CachedNetworkImageProvider(url),
+      height: 34 * _u,
+      fit: BoxFit.contain,
+      frameBuilder: (_, child, frame, __) => frame == null
+          ? kart
+          : Container(
+              constraints: BoxConstraints(maxWidth: 34 * 2.6 * _u),
+              padding: EdgeInsets.all(onPill ? 4 * _u : 0),
+              decoration: BoxDecoration(
+                color: onPill ? const Color(0xFFF7F5F0) : null,
+                borderRadius: BorderRadius.circular(10 * _u),
+              ),
+              child: child,
+            ),
+      errorBuilder: (_, __, ___) => kart,
     );
   }
 
@@ -250,7 +290,9 @@ class PreviewIdentity {
     this.company = '',
     this.city = '',
     this.phone = '',
-    this.logo,
+    this.avatarUrl,
+    this.logoUrl,
+    this.logoOnPill = true,
   });
 
   final String fullName;
@@ -261,9 +303,17 @@ class PreviewIdentity {
   /// Numéro écrit sous « Appeler » (bento).
   final String phone;
 
-  /// Logo déjà prêt à être affiché en haut à gauche de la carte physique ;
-  /// null = « KART », comme sur le site quand il n'y a pas de logo.
-  final Widget? logo;
+  /// Photo de profil : l'image du haut de la carte quand elle existe.
+  final String? avatarUrl;
+
+  /// Logo de l'entreprise : affiché à la place de la photo quand il n'y en
+  /// a pas (ou qu'elle ne se charge pas). Sans l'un ni l'autre : initiales.
+  /// Sur la Carte physique, il reste en haut à gauche de la carte.
+  final String? logoUrl;
+
+  /// Logo opaque (fond blanc le plus souvent) : posé dans une pastille
+  /// claire sur la carte physique. false = logo transparent, posé tel quel.
+  final bool logoOnPill;
 
   String get companyLine => [company, city].where((v) => v.trim().isNotEmpty).join(' · ');
 

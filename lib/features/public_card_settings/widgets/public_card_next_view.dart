@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/card_header_image.dart';
 import '../models/public_card_settings.dart';
 import '../public_card_styles.dart';
 import 'public_card_thumbnail.dart' show PreviewIdentity;
@@ -94,35 +95,18 @@ class PublicCardNextView extends StatelessWidget {
       : Text('KART',
           style: _syne(size, color, weight: FontWeight.w800, spacing: 0.18));
 
-  /// Photo absente : initiales sur le bleu nuit du site.
-  Widget _avatar(double size, double radius, double fontSize) => Container(
-        width: size * _u,
-        height: size * _u,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: PublicCardStyles.initialsBackground,
-          borderRadius: BorderRadius.circular(radius * _u),
-        ),
-        child: identity == null
-            ? null
+  /// Image du haut : la photo, sinon le logo, sinon les initiales sur le
+  /// bleu nuit du site (cf. [CardHeaderImage]).
+  Widget _avatar(double size, double radius, double fontSize) =>
+      CardHeaderImage(
+        size: size * _u,
+        radius: radius * _u,
+        avatarUrl: identity?.avatarUrl,
+        logoUrl: identity?.logoUrl,
+        initials: identity == null
+            ? const SizedBox.shrink()
             : Text(identity!.initials,
                 style: _syne(fontSize, Colors.white, weight: FontWeight.w800)),
-      );
-
-  /// Tuile de logo : logo entier sur fond clair, marge intérieure de 5 px.
-  Widget _logoTile(Widget logo, double size, double radius, Color background,
-          Color border) =>
-      Container(
-        width: size * _u,
-        height: size * _u,
-        padding: EdgeInsets.all(5 * _u),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(radius * _u),
-          border: Border.all(color: border),
-        ),
-        child: FittedBox(child: logo),
       );
 
   BoxDecoration _tile(PublicNextPalette p, double radius, {Color? color}) =>
@@ -238,11 +222,8 @@ class PublicCardNextView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Le logo ; à défaut, la photo (ici : les initiales).
-              id?.logo != null
-                  ? _logoTile(id!.logo!, 64, 18, const Color(0xFFF6F3EC),
-                      Colors.transparent)
-                  : _avatar(64, 18, 22),
+              // La photo ; à défaut le logo, puis les initiales.
+              _avatar(64, 18, 22),
               SizedBox(height: 14 * _u),
               if (id == null) ...[
                 _bar(170, 21, p.strong),
@@ -334,7 +315,7 @@ class PublicCardNextView extends StatelessWidget {
   }
 
   // ── Éditorial ────────────────────────────────────────────────────────
-  // En-tête « KART » / bouton rond « Partager », photo ronde et logo, nom
+  // En-tête « KART » / bouton rond « Partager », une seule image ronde, nom
   // en très grand sur deux lignes, « poste chez entreprise », filet de la
   // couleur d'accent, [une ligne par contact, la première en plein].
   Widget _editorialPage(PublicNextPalette p) {
@@ -386,15 +367,7 @@ class PublicCardNextView extends StatelessWidget {
           ],
         ),
         SizedBox(height: (26 + 18) * _u),
-        Row(
-          children: [
-            _avatar(56, 28, 18),
-            if (id?.logo != null) ...[
-              SizedBox(width: 12 * _u),
-              _logoTile(id!.logo!, 56, 16, Colors.white, p.logoLine),
-            ],
-          ],
-        ),
+        _avatar(56, 28, 18),
         SizedBox(height: 16 * _u),
         if (id == null) ...[
           _bar(150, 30, p.text),
