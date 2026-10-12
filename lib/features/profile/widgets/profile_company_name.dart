@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Nom de l'entreprise sous le poste, dans l'en-tête du profil. Sur 2
-/// lignes : sur une seule, un nom long (« Cabinet Médical Ahmadina Saliou
-/// (CMAS) ») était coupé.
+/// lignes : sur une seule, un nom long (« Entreprise Exemple Santé Conseil
+/// (EEX) ») était coupé.
 class ProfileCompanyName extends StatelessWidget {
   final String name;
 

@@ -407,8 +407,8 @@ const double _minTextSize = 11;
 /// Ligne du haut de la carte : logo, nom de l'entreprise, « KART ».
 ///
 /// Deux dispositions pour le nom, pour qu'il ne soit jamais coupé tant que
-/// l'une des deux suffit (cas réel : « Cabinet Médical Ahmadina Saliou
-/// (CMAS) », tronqué à côté du logo) :
+/// l'une des deux suffit (cas réel : « Entreprise Exemple Santé Conseil
+/// (EEX) », tronqué à côté du logo) :
 ///  - A, par défaut : à côté du logo, sur 3 lignes au plus, réduit si besoin
 ///    jusqu'à la taille minimale ;
 ///  - B, en repli : si même à la taille minimale il ne tient pas à côté du

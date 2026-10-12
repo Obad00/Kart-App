@@ -1,4 +1,4 @@
-// Remonté par un client (CMAS) : son logo horizontal était coupé sur la
+// Remonté par un client (EEX) : son logo horizontal était coupé sur la
 // carte, au point qu'il y renonçait (la carte affichait l'initiale « C »).
 // Le logo entier (`logo_full`) est maintenant affiché en BoxFit.contain,
 // dans une pastille claire s'il est opaque. Ces tests vérifient que :
@@ -75,8 +75,8 @@ void main() {
     await _pumpCard(
       tester,
       KartCardData(
-        fullName: 'Ndeye Fatou Cissé',
-        brandName: 'Cabinet Médical Ahmadina Saliou (CMAS)',
+        fullName: 'Awa Diop',
+        brandName: 'Entreprise Exemple Santé Conseil (EEX)',
         logoUrl: 'https://exemple.test/logo.png',
         logoFullUrl: 'https://exemple.test/logo_full.png',
         logoTransparent: false,
@@ -100,7 +100,7 @@ void main() {
     expect(tester.getRect(_pill()).contains(imageBox.bottomRight), isTrue);
 
     // Le nom de l'entreprise reste visible à côté.
-    expect(find.textContaining('CABINET MÉDICAL'), findsOneWidget);
+    expect(find.textContaining('ENTREPRISE EXEMPLE'), findsOneWidget);
   });
 
   testWidgets('un logo carré opaque garde une pastille carrée', (tester) async {

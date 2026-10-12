@@ -43,7 +43,7 @@ Future<CroppedFile?> cropPickedImage(
 
 /// Recadrage LIBRE d'un logo (mode « Recadrer » de LogoPickerField) : ratio
 /// non verrouillé, avec quelques formats proposés. Remonté par un client au
-/// logo horizontal (« CMAS — Cabinet Médical… ») que le carré imposé coupait
+/// logo horizontal (« EEX — Entreprise Exemple… ») que le carré imposé coupait
 /// forcément. Sortie en PNG, pour ne pas perdre la transparence d'un logo
 /// détouré. Retourne `null` si l'utilisateur annule.
 Future<CroppedFile?> cropLogoImage(
