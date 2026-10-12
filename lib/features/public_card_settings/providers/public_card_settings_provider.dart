@@ -106,6 +106,30 @@ class PublicCardSettingsProvider extends ChangeNotifier {
     _draftAccent = null;
   }
 
+  /// Relit la visibilité des contacts (`activated_fields`) après un passage
+  /// par « Modifier mes infos », qui l'enregistre de son côté. Sans cela,
+  /// l'écran gardait sa liste d'avant et la renvoyait au prochain
+  /// « Enregistrer », annulant le changement fait dans le formulaire.
+  ///
+  /// Les interrupteurs déjà modifiés ici et pas encore enregistrés sont
+  /// conservés ; le reste du brouillon n'est pas touché.
+  Future<void> refreshVisibility() async {
+    final saved = _saved;
+    if (saved == null) return;
+    try {
+      final fresh = (await _service.fetch()).activatedFields;
+      // Ancienne API sans `activated_fields` : rien à relire.
+      if (fresh == null) return;
+      final turnedOn = _draftFields.difference(_savedFields);
+      final turnedOff = _savedFields.difference(_draftFields);
+      _savedFields = fresh.toSet();
+      _draftFields = {..._savedFields, ...turnedOn}.difference(turnedOff);
+    } catch (_) {
+      // Hors ligne : on garde la liste connue.
+    }
+    _notify();
+  }
+
   /// Recharge seulement la couleur d'accent (après un passage par
   /// « Couleur et logo »), sans toucher au brouillon en cours.
   Future<void> refreshAccent() async {

@@ -506,7 +506,12 @@ class _Content extends StatelessWidget {
           const SizedBox(height: 10),
           Text("Un champ vide n'apparaît jamais, même activé.", style: ui.body(12, ui.muted)),
           if (page.onEditInfo != null)
-            link('Modifier mes infos →', const Key('edit-info'), () => page.onEditInfo!(context)),
+            link('Modifier mes infos →', const Key('edit-info'), () async {
+              await page.onEditInfo!(context);
+              // Le formulaire enregistre aussi la visibilité des contacts
+              // (et le site) : on les relit.
+              await provider.refreshVisibility();
+            }),
         ]),
       ],
     );

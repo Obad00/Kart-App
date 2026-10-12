@@ -662,6 +662,47 @@ void main() {
     expect(on.onChanged, isNotNull);
   });
 
+  testWidgets(
+      'retour de « Modifier mes infos » : la visibilité est relue, pas écrasée',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final service = _FakeService(activatedFields: const ['phone', 'email']);
+
+    await tester.pumpWidget(ChangeNotifierProvider(
+      create: (_) => CardProvider(),
+      child: MaterialApp(
+        theme: AppTheme.dark(),
+        home: PublicCardSettingsPage(
+          service: service,
+          identity: const PreviewIdentity(fullName: 'Awa Diop'),
+          // Le formulaire enregistre de son côté : le site devient visible.
+          onEditInfo: (_) async =>
+              service.activatedFields = const ['phone', 'email', 'website'],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(_isOn(tester, 'website'), isFalse);
+
+    // Un changement fait ici, pas encore enregistré.
+    await tester.tap(find.byKey(const Key('switch-email')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('edit-info')));
+    await tester.pumpAndSettle();
+    // Le site activé dans le formulaire apparaît ; le changement local reste.
+    expect(_isOn(tester, 'website'), isTrue);
+    expect(_isOn(tester, 'email'), isFalse);
+
+    await tester.tap(find.byKey(const Key('save')));
+    await tester.pumpAndSettle();
+    // Avant : la liste d'origine était renvoyée, sans le site.
+    expect(service.savedFields, ['phone', 'website']);
+    await _dismissToast(tester);
+  });
+
   testWidgets('éditorial : prénom et nom sur deux lignes, « poste chez entreprise »',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
