@@ -1,5 +1,5 @@
 // Mêmes seuils que le backend (App\Support\ColorContrast) : référence, le
-// logo CMAS — bleu marine illisible sur la carte sombre, or bien lisible.
+// logo EEX — bleu marine illisible sur la carte sombre, or bien lisible.
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/shared/utils/color_contrast.dart';

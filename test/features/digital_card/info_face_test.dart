@@ -120,7 +120,7 @@ void main() {
       const KartCardData(
         fullName: 'Mouhamadou-Moustapha Abdourahmane Ndiaye',
         jobTitle: 'Responsable du développement commercial',
-        brandName: 'Cabinet Médical Ahmadina Saliou (CMAS)',
+        brandName: 'Entreprise Exemple Santé Conseil (EEX)',
         phone: '+221 77 123 45 67',
         email: 'mouhamadou.moustapha.abdourahmane@exemple-long.test',
         city: 'Saint-Louis',

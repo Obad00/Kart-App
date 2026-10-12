@@ -680,8 +680,8 @@ class _PublicCardPageState extends State<PublicCardPage>
                           color: colors.onSurface.withValues(alpha: 0.6),
                         ),
                         // 2 lignes, comme le nom et le poste au-dessus : un
-                        // nom d'entreprise long (« Cabinet Médical Ahmadina
-                        // Saliou (CMAS) ») était coupé par "...".
+                        // nom d'entreprise long (« Entreprise Exemple Santé
+                        // Conseil (EEX) ») était coupé par "...".
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

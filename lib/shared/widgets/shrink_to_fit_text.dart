@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// petits pas jusqu'à [minFontSize] ; les « … » n'apparaissent qu'en dernier
 /// recours, quand même la plus petite taille ne suffit pas.
 ///
-/// Cas réel : « Cabinet Médical Ahmadina Saliou (CMAS) », coupé sur la
+/// Cas réel : « Entreprise Exemple Santé Conseil (EEX) », coupé sur la
 /// carte à côté du logo.
 class ShrinkToFitText extends StatelessWidget {
   final String text;
