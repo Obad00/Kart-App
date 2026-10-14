@@ -45,6 +45,7 @@ class CardProvider extends ChangeNotifier {
   String? website;
   String? github;
   String? instagram;
+  String? tiktok;
   String? facebook;
 
   List<dynamic> experiences = [];
@@ -163,6 +164,7 @@ class CardProvider extends ChangeNotifier {
     website = null;
     github = null;
     instagram = null;
+    tiktok = null;
     facebook = null;
     experiences = [];
     educations = [];
@@ -235,6 +237,7 @@ class CardProvider extends ChangeNotifier {
             .toList();
         github = res.data['github'];
         instagram = res.data['instagram'];
+        tiktok = res.data['tiktok'];
         facebook = res.data['facebook'];
 
         experiences = res.data['experiences'] ?? [];

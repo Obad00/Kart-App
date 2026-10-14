@@ -117,6 +117,7 @@ class _CompletionSectionsState extends State<CompletionSections> {
           items: [
             _CheckItem('LinkedIn', model.linkedin, Icons.work_outline),
             _CheckItem('Instagram', model.instagram, Icons.camera_alt_outlined),
+            _CheckItem('TikTok', model.tiktok, Icons.music_note_outlined),
             _CheckItem('GitHub', model.github, Icons.code),
             _CheckItem('Facebook', model.facebook, Icons.facebook),
             _CheckItem('Site web / Portfolio', model.website, Icons.language),

@@ -104,6 +104,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   final _emailCtrl = TextEditingController();
   final _linkedinCtrl = TextEditingController();
   final _instagramCtrl = TextEditingController();
+  final _tiktokCtrl = TextEditingController();
   final _githubCtrl = TextEditingController();
   final _facebookCtrl = TextEditingController();
   final _websiteCtrl = TextEditingController();
@@ -113,6 +114,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     'email': false,
     'linkedin': false,
     'instagram': false,
+    'tiktok': false,
     'github': false,
     'facebook': false,
     'website': false,
@@ -152,6 +154,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       _emailCtrl.text = m.email ?? '';
       _linkedinCtrl.text = m.linkedin ?? '';
       _instagramCtrl.text = m.instagram ?? '';
+      _tiktokCtrl.text = m.tiktok ?? '';
       _githubCtrl.text = m.github ?? '';
       _facebookCtrl.text = m.facebook ?? '';
       _websiteCtrl.text = m.website ?? '';
@@ -232,6 +235,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     _lastnameCtrl.dispose();
     _linkedinCtrl.dispose();
     _instagramCtrl.dispose();
+    _tiktokCtrl.dispose();
     _githubCtrl.dispose();
     _facebookCtrl.dispose();
     _websiteCtrl.dispose();
@@ -431,6 +435,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       email: editsBasic ? newEmail : null,
       linkedin: _linkedinCtrl.text,
       instagram: _instagramCtrl.text,
+      // « tiktok.com/@moi » → « https://tiktok.com/@moi », comme le site.
+      tiktok: completeWebsiteUrl(_tiktokCtrl.text),
       github: _githubCtrl.text,
       facebook: _facebookCtrl.text,
       // « monsite.com » → « https://monsite.com » : sans protocole, le
@@ -691,6 +697,19 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   value: _activeFields['instagram'] ?? false,
                   onChanged: (v) =>
                       setState(() => _activeFields['instagram'] = v),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                    label: 'TikTok',
+                    controller: _tiktokCtrl,
+                    prefixIcon: Icons.music_note_outlined,
+                    hint: 'https://tiktok.com/@...'),
+                const SizedBox(height: 8),
+                _buildPremiumSwitch(
+                  title: 'Afficher TikTok sur ma carte',
+                  value: _activeFields['tiktok'] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _activeFields['tiktok'] = v),
                 ),
                 const SizedBox(height: 12),
                 AuthTextField(

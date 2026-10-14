@@ -1883,6 +1883,16 @@ class _PublicCardPageState extends State<PublicCardPage>
         'iconColor': const Color(0xFFE4405F),
       });
     }
+    if (_getFieldValue('tiktok').isNotEmpty) {
+      profiles.add({
+        'label': 'TikTok',
+        'icon': FontAwesomeIcons.tiktok,
+        'value': _getFieldValue('tiktok'),
+        'bgColor': const Color(0xFFFFE4EA),
+        // Rose TikTok : le logo noir disparaît sur le thème sombre.
+        'iconColor': const Color(0xFFFE2C55),
+      });
+    }
     if (_getFieldValue('facebook').isNotEmpty) {
       profiles.add({
         'label': 'Facebook',

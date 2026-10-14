@@ -578,6 +578,34 @@ void main() {
       expect(find.text('Active'), findsOneWidget);
     });
 
+    testWidgets(
+        'réponse réelle de l\'API après désactivation : bouton Réactiver',
+        (tester) async {
+      // Corps renvoyé par GET /me/nfc juste après PATCH status=disabled
+      // par le propriétaire (relevé sur l'API locale, carte de démo).
+      final status = NfcCardStatus.fromJson(const {
+        'state': 'disabled',
+        'has_card': true,
+        'support_whatsapp': null,
+        'tag': {
+          'id': 12,
+          'code': 'DEMO2345',
+          'status': 'disabled',
+          'tap_count': 0,
+          'last_tapped_at': null,
+          'activated_at': null,
+          'can_reactivate': true,
+        },
+        'order': null,
+        'cancelled_order': null,
+        'tags': [],
+      });
+      await _pump(tester, _FakeService(status));
+
+      expect(find.widgetWithText(ElevatedButton, 'Réactiver'), findsOneWidget);
+      expect(find.textContaining('désactivée par KART'), findsNothing);
+    });
+
     testWidgets('désactivée par KART : pas de bouton Réactiver',
         (tester) async {
       await _pump(

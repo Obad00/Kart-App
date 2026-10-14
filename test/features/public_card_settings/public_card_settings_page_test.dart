@@ -444,9 +444,10 @@ void main() {
       await tester.tap(find.byKey(const Key('save')));
       await tester.pumpAndSettle();
 
-      // Un seul interrupteur pour les quatre réseaux.
+      // Un seul interrupteur pour les cinq réseaux.
+      // « Réseaux sociaux » pilote aussi TikTok.
       expect(service.savedFields,
-          ['email', 'facebook', 'github', 'instagram', 'linkedin']);
+          ['email', 'facebook', 'github', 'instagram', 'linkedin', 'tiktok']);
       expect(service.savedAccent, isNull);
       expect(service.calls, ['fetch', 'card']);
       await _dismissToast(tester);
