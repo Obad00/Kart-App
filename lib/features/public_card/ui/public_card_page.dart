@@ -1888,8 +1888,9 @@ class _PublicCardPageState extends State<PublicCardPage>
         'label': 'TikTok',
         'icon': FontAwesomeIcons.tiktok,
         'value': _getFieldValue('tiktok'),
-        'bgColor': const Color(0xFFF3F4F6),
-        'iconColor': const Color(0xFF000000),
+        'bgColor': const Color(0xFFFFE4EA),
+        // Rose TikTok : le logo noir disparaît sur le thème sombre.
+        'iconColor': const Color(0xFFFE2C55),
       });
     }
     if (_getFieldValue('facebook').isNotEmpty) {
