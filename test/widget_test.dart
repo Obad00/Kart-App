@@ -104,7 +104,7 @@ void main() {
       ),
     )));
 
-    expect(find.text('scans cette semaine'), findsOneWidget);
+    expect(find.text('vues de la carte cette semaine'), findsOneWidget);
     expect(find.text('nouveau contact'), findsOneWidget);
     // Hausse sur les scans ; pas de flèche sur les contacts (aucune donnée
     // la semaine précédente).
@@ -128,7 +128,7 @@ void main() {
     )));
 
     expect(tester.takeException(), isNull);
-    expect(find.text('scans cette semaine'), findsOneWidget);
+    expect(find.text('vues de la carte cette semaine'), findsOneWidget);
     expect(find.text('taps NFC cette semaine'), findsOneWidget);
     expect(find.text('5'), findsOneWidget);
     expect(find.byIcon(Icons.contactless_outlined), findsOneWidget);
@@ -150,5 +150,44 @@ void main() {
 
     expect(find.text('tap NFC cette semaine'), findsOneWidget);
     expect(find.byIcon(Icons.contactless_outlined), findsOneWidget);
+  });
+
+  testWidgets(
+      'statistiques : comptage des taps récent, « depuis le » sous le libellé',
+      (tester) async {
+    final stats = CardWeeklyStats.fromJson({
+      'scans_this_week': 4,
+      'scans_previous_week': 0,
+      'new_contacts_this_week': 0,
+      'new_contacts_previous_week': 0,
+      'nfc_taps_this_week': 12,
+      'nfc_taps_previous_week': 0,
+      'nfc_active': true,
+      'nfc_taps_since': '2026-10-13',
+    })!;
+    await tester.pumpWidget(_wrap(CardStatsRow(stats: stats)));
+
+    expect(find.text('taps NFC cette semaine'), findsOneWidget);
+    expect(find.text('depuis le 13 octobre'), findsOneWidget);
+    // Pas de semaine précédente comparable : pas de flèche.
+    expect(find.byIcon(Icons.trending_up_rounded), findsNothing);
+  });
+
+  testWidgets('statistiques : comptage de plus de 7 jours, pas de « depuis le »',
+      (tester) async {
+    final stats = CardWeeklyStats.fromJson({
+      'scans_this_week': 4,
+      'scans_previous_week': 0,
+      'new_contacts_this_week': 0,
+      'new_contacts_previous_week': 0,
+      'nfc_taps_this_week': 12,
+      'nfc_taps_previous_week': 9,
+      'nfc_active': true,
+      'nfc_taps_since': null,
+    })!;
+    await tester.pumpWidget(_wrap(CardStatsRow(stats: stats)));
+
+    expect(find.text('taps NFC cette semaine'), findsOneWidget);
+    expect(find.textContaining('depuis le'), findsNothing);
   });
 }

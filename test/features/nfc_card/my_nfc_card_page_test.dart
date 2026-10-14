@@ -525,7 +525,7 @@ void main() {
 
       expect(find.text('Active'), findsOneWidget);
       expect(find.text('128'), findsOneWidget);
-      expect(find.text('taps'), findsOneWidget);
+      expect(find.text('taps au total'), findsOneWidget);
       expect(find.text('il y a 2 heures'), findsOneWidget);
       expect(find.text('Code : ZWLC8FDH'), findsOneWidget);
 

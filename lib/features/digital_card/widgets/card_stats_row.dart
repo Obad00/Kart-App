@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../providers/card_provider.dart';
 
-/// Bloc statistiques sous les actions rapides : scans et nouveaux contacts
+/// Bloc statistiques sous les actions rapides : vues de la carte et nouveaux contacts
 /// des 7 derniers jours, avec une petite flèche de tendance par rapport aux
 /// 7 jours précédents. Les chiffres viennent uniquement de l'API
 /// (GET /me/card-stats) — l'écran ne l'affiche pas sans données.
@@ -24,13 +24,16 @@ class CardStatsRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
+                // Toutes les consultations de la carte publique (QR, lien,
+                // tap NFC, app), pas seulement les scans de QR : d'où « vues
+                // de la carte ». Le champ de l'API garde son nom.
                 child: _StatTile(
-                  icon: Icons.qr_code_scanner_rounded,
+                  icon: Icons.visibility_outlined,
                   value: stats.scansThisWeek,
                   previous: stats.scansPreviousWeek,
                   label: stats.scansThisWeek > 1
-                      ? 'scans cette semaine'
-                      : 'scan cette semaine',
+                      ? 'vues de la carte cette semaine'
+                      : 'vue de la carte cette semaine',
                 ),
               ),
               VerticalDivider(width: 24, thickness: 1, color: t.softBorder),
@@ -61,6 +64,10 @@ class CardStatsRow extends StatelessWidget {
                   label: (stats.nfcTapsThisWeek ?? 0) > 1
                       ? 'taps NFC cette semaine'
                       : 'tap NFC cette semaine',
+                  // Comptage commencé il y a moins de 7 jours.
+                  note: stats.nfcTapsSince == null
+                      ? null
+                      : 'depuis le ${_dayMonth(stats.nfcTapsSince!)}',
                 ),
               ),
               const SizedBox(width: 24),
@@ -73,17 +80,30 @@ class CardStatsRow extends StatelessWidget {
   }
 }
 
+/// « 13 octobre » : formatage manuel, l'app n'initialise pas les formats
+/// de date localisés (cf. contact_row.dart).
+const _frenchMonths = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin', //
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+];
+
+String _dayMonth(DateTime date) => '${date.day} ${_frenchMonths[date.month - 1]}';
+
 class _StatTile extends StatelessWidget {
   final IconData icon;
   final int value;
   final int previous;
   final String label;
 
+  /// Précision sous le libellé (ex. « depuis le 13 octobre »).
+  final String? note;
+
   const _StatTile({
     required this.icon,
     required this.value,
     required this.previous,
     required this.label,
+    this.note,
   });
 
   @override
@@ -100,7 +120,7 @@ class _StatTile extends StatelessWidget {
     final Color trendColor = value > previous ? t.positive : t.negative;
 
     return Semantics(
-      label: '$value $label',
+      label: note == null ? '$value $label' : '$value $label, $note',
       excludeSemantics: true,
       child: Row(
         children: [
@@ -148,6 +168,17 @@ class _StatTile extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
+                if (note != null)
+                  Text(
+                    note!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textSecondary,
+                      fontSize: 11,
+                      height: 1.2,
+                    ),
+                  ),
               ],
             ),
           ),

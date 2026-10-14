@@ -462,6 +462,11 @@ class CardWeeklyStats {
   /// L'utilisateur a une carte NFC active.
   final bool nfcActive;
 
+  /// Début du comptage actuel des taps, tant qu'il date de moins de 7 jours
+  /// (champ `nfc_taps_since` de l'API) : « cette semaine » ne couvre alors
+  /// pas 7 jours. null sinon.
+  final DateTime? nfcTapsSince;
+
   const CardWeeklyStats({
     required this.scansThisWeek,
     required this.scansPreviousWeek,
@@ -470,6 +475,7 @@ class CardWeeklyStats {
     this.nfcTapsThisWeek,
     this.nfcTapsPreviousWeek,
     this.nfcActive = false,
+    this.nfcTapsSince,
   });
 
   /// La tuile « taps NFC » apparaît si l'utilisateur a une carte NFC active
@@ -497,6 +503,7 @@ class CardWeeklyStats {
       nfcTapsThisWeek: read('nfc_taps_this_week'),
       nfcTapsPreviousWeek: read('nfc_taps_previous_week'),
       nfcActive: json['nfc_active'] == true,
+      nfcTapsSince: DateTime.tryParse(json['nfc_taps_since']?.toString() ?? ''),
     );
   }
 }
