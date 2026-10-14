@@ -104,7 +104,7 @@ void main() {
       ),
     )));
 
-    expect(find.text('scans cette semaine'), findsOneWidget);
+    expect(find.text('vues de la carte cette semaine'), findsOneWidget);
     expect(find.text('nouveau contact'), findsOneWidget);
     // Hausse sur les scans ; pas de flèche sur les contacts (aucune donnée
     // la semaine précédente).
@@ -128,7 +128,7 @@ void main() {
     )));
 
     expect(tester.takeException(), isNull);
-    expect(find.text('scans cette semaine'), findsOneWidget);
+    expect(find.text('vues de la carte cette semaine'), findsOneWidget);
     expect(find.text('taps NFC cette semaine'), findsOneWidget);
     expect(find.text('5'), findsOneWidget);
     expect(find.byIcon(Icons.contactless_outlined), findsOneWidget);

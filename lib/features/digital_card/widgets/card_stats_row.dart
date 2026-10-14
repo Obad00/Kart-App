@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../providers/card_provider.dart';
 
-/// Bloc statistiques sous les actions rapides : scans et nouveaux contacts
+/// Bloc statistiques sous les actions rapides : vues de la carte et nouveaux contacts
 /// des 7 derniers jours, avec une petite flèche de tendance par rapport aux
 /// 7 jours précédents. Les chiffres viennent uniquement de l'API
 /// (GET /me/card-stats) — l'écran ne l'affiche pas sans données.
@@ -24,13 +24,16 @@ class CardStatsRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
+                // Toutes les consultations de la carte publique (QR, lien,
+                // tap NFC, app), pas seulement les scans de QR : d'où « vues
+                // de la carte ». Le champ de l'API garde son nom.
                 child: _StatTile(
-                  icon: Icons.qr_code_scanner_rounded,
+                  icon: Icons.visibility_outlined,
                   value: stats.scansThisWeek,
                   previous: stats.scansPreviousWeek,
                   label: stats.scansThisWeek > 1
-                      ? 'scans cette semaine'
-                      : 'scan cette semaine',
+                      ? 'vues de la carte cette semaine'
+                      : 'vue de la carte cette semaine',
                 ),
               ),
               VerticalDivider(width: 24, thickness: 1, color: t.softBorder),
