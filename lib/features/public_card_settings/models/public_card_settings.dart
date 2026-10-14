@@ -37,7 +37,7 @@ class PublicCardSettings {
     'phone': ['phone'],
     'email': ['email'],
     'website': ['website'],
-    'socials': ['linkedin', 'instagram', 'facebook', 'github'],
+    'socials': ['linkedin', 'instagram', 'tiktok', 'facebook', 'github'],
   };
 
   final String layout;

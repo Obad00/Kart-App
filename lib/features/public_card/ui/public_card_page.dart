@@ -1883,6 +1883,15 @@ class _PublicCardPageState extends State<PublicCardPage>
         'iconColor': const Color(0xFFE4405F),
       });
     }
+    if (_getFieldValue('tiktok').isNotEmpty) {
+      profiles.add({
+        'label': 'TikTok',
+        'icon': FontAwesomeIcons.tiktok,
+        'value': _getFieldValue('tiktok'),
+        'bgColor': const Color(0xFFF3F4F6),
+        'iconColor': const Color(0xFF000000),
+      });
+    }
     if (_getFieldValue('facebook').isNotEmpty) {
       profiles.add({
         'label': 'Facebook',

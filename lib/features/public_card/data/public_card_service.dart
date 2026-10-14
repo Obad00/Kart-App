@@ -25,6 +25,7 @@ class PublicCardService {
         'email',
         'linkedin',
         'instagram',
+        'tiktok',
         'facebook',
         'github',
         'website',

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/card_header_image.dart';
+import '../../../shared/widgets/fit_words_text.dart';
 import '../models/public_card_settings.dart';
 import '../public_card_styles.dart';
 import 'public_card_next_view.dart';
@@ -87,7 +88,20 @@ class PublicCardHero extends StatelessWidget {
       ];
     }
     return [
-      _text(id.fullName, nameSize, text, weight: FontWeight.w800, syne: true, align: align),
+      // Nom : jamais coupé au milieu d'un mot (cf. FitWordsText).
+      FitWordsText(
+        id.fullName,
+        maxLines: 2,
+        textAlign: align,
+        minFontSize: 12 * _u,
+        style: TextStyle(
+          fontFamily: 'Syne',
+          fontSize: nameSize * _u,
+          fontWeight: FontWeight.w800,
+          color: text,
+          height: 1.2,
+        ),
+      ),
       if (id.jobTitle.isNotEmpty) ...[
         SizedBox(height: 4 * _u),
         _text(id.jobTitle, jobSize, text, weight: FontWeight.w500, align: align),

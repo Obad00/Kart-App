@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/card_header_image.dart';
+import '../../../shared/widgets/fit_words_text.dart';
 import '../models/public_card_settings.dart';
 import '../public_card_styles.dart';
 import 'public_card_thumbnail.dart' show PreviewIdentity;
@@ -46,6 +47,11 @@ class PublicCardNextView extends StatelessWidget {
   bool get _editorial => settings.layout == 'editorial';
 
   double get _u => width / contentWidth(settings.layout);
+
+  /// Taille du nom en éditorial : celle où son mot le plus long tient dans
+  /// la largeur, pour que prénom et nom gardent la même taille.
+  double _editorialNameSize(String fullName, TextStyle style) =>
+      FitWordsText.fittingSize(fullName, style, width, minFontSize: 12 * _u);
 
   /// Au-delà de 22 caractères, le site réduit le nom.
   bool get _nameIsLong => (identity?.fullName.length ?? 0) > 22;
@@ -232,7 +238,9 @@ class PublicCardNextView extends StatelessWidget {
                 SizedBox(height: 8 * _u),
                 _bar(150, 9, p.soft),
               ] else ...[
-                Text(id.fullName,
+                // Nom : jamais coupé au milieu d'un mot.
+                FitWordsText(id.fullName,
+                    minFontSize: 12 * _u,
                     style: _syne(_nameIsLong ? 22 : 30, p.strong, height: 1.1)),
                 if (id.jobTitle.isNotEmpty) ...[
                   SizedBox(height: 6 * _u),
@@ -376,7 +384,13 @@ class PublicCardNextView extends StatelessWidget {
           SizedBox(height: 16 * _u),
           _bar(210, 10, p.soft),
         ] else ...[
-          for (final line in nameLines) Text(line, style: nameStyle),
+          // Une même taille pour les deux lignes : celle où le mot le plus
+          // long du nom tient (jamais coupé au milieu d'un mot).
+          for (final line in nameLines)
+            FitWordsText(line,
+                minFontSize: 12 * _u,
+                style: nameStyle.copyWith(
+                    fontSize: _editorialNameSize(id.fullName, nameStyle))),
           if (id.jobTitle.isNotEmpty || id.company.isNotEmpty) ...[
             SizedBox(height: 16 * _u),
             Text.rich(

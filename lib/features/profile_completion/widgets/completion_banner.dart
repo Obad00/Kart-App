@@ -175,6 +175,10 @@ class CompletionBanner extends StatelessWidget {
       socials.add(_SocialItem(
           'Instagram', FontAwesomeIcons.instagram, const Color(0xFFE4405F)));
     }
+    if (_hasValue(model.tiktok)) {
+      socials.add(_SocialItem(
+          'TikTok', FontAwesomeIcons.tiktok, const Color(0xFF111111)));
+    }
     if (_hasValue(model.github)) {
       socials.add(_SocialItem(
           'GitHub', FontAwesomeIcons.github, const Color(0xFF333333)));

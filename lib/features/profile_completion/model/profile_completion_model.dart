@@ -12,6 +12,7 @@ class ProfileCompletionModel {
 
   String? linkedin;
   String? instagram;
+  String? tiktok;
   String? github;
   String? facebook;
   String? website;
@@ -37,6 +38,7 @@ class ProfileCompletionModel {
     this.email,
     this.linkedin,
     this.instagram,
+    this.tiktok,
     this.github,
     this.facebook,
     this.website,
@@ -63,6 +65,7 @@ class ProfileCompletionModel {
       email: json['email'],
       linkedin: json['linkedin'],
       instagram: json['instagram'],
+      tiktok: json['tiktok'],
       github: json['github'],
       facebook: json['facebook'],
       website: json['website'],
@@ -99,6 +102,7 @@ class ProfileCompletionModel {
       "email": email,
       "linkedin": linkedin,
       "instagram": instagram,
+      "tiktok": tiktok,
       "github": github,
       "facebook": facebook,
       "website": website,
