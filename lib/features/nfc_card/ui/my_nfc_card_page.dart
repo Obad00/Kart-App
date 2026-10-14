@@ -396,7 +396,9 @@ class _NfcCardView extends StatelessWidget {
                 Expanded(
                   child: _Stat(
                     value: '${tag?.tapCount ?? 0}',
-                    label: (tag?.tapCount ?? 0) > 1 ? 'taps' : 'tap',
+                    // Total depuis l'activation de la puce (l'accueil, lui,
+                    // montre les taps de la semaine).
+                    label: (tag?.tapCount ?? 0) > 1 ? 'taps au total' : 'tap au total',
                   ),
                 ),
                 VerticalDivider(width: 24, thickness: 1, color: t.softBorder),
