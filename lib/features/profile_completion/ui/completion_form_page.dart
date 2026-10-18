@@ -121,6 +121,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   };
 
   bool _isPublic = true;
+  bool _listedInDirectory = false;
 
   final List<Map<String, TextEditingController>> _experiences = [];
   final List<Map<String, TextEditingController>> _educations = [];
@@ -165,6 +166,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         }
       }
       _isPublic = m.isPublic;
+      _listedInDirectory = m.listedInDirectory;
 
       // addOnly : on ne recharge PAS les entrées déjà existantes de la
       // section concernée — seulement une carte vierge, pour que "+"
@@ -453,6 +455,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
           .map((e) => e.key)
           .toList(),
       isPublic: _isPublic,
+      // Une carte non publique n'est jamais dans l'annuaire.
+      listedInDirectory: _isPublic && _listedInDirectory,
     );
 
     try {
@@ -666,6 +670,20 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   title: 'Rendre ma carte publique',
                   value: _isPublic,
                   onChanged: (v) => setState(() => _isPublic = v),
+                ),
+                const SizedBox(height: 12),
+                // Annuaire : indépendant du lien, du QR et de la carte NFC,
+                // qui continuent de fonctionner si la carte est publique.
+                _buildPremiumSwitch(
+                  key: const Key('listed-in-directory'),
+                  title: 'Apparaître dans Explorer',
+                  subtitle: _isPublic
+                      ? 'Les membres KART peuvent vous trouver. Votre lien, votre QR et votre carte NFC fonctionnent dans tous les cas.'
+                      : 'Rendez d\'abord votre carte publique.',
+                  value: _isPublic && _listedInDirectory,
+                  onChanged: _isPublic
+                      ? (v) => setState(() => _listedInDirectory = v)
+                      : null,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -1344,51 +1362,77 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     );
   }
 
+  /// [onChanged] null : interrupteur grisé. [subtitle] : précision sous le
+  /// titre.
   Widget _buildPremiumSwitch({
+    Key? key,
     required String title,
+    String? subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
   }) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: value
-            ? const Color(0xFF3B82F6).withValues(alpha: 0.08)
-            : colors.onSurface.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
+    // Réglage indisponible : toute la ligne est atténuée, pour qu'on ne la
+    // confonde pas avec un interrupteur simplement désactivé.
+    return Opacity(
+      key: key,
+      opacity: onChanged == null ? 0.5 : 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
           color: value
-              ? const Color(0xFF3B82F6).withValues(alpha: 0.2)
-              : colors.onSurface.withValues(alpha: 0.06),
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.08)
+              : colors.onSurface.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value
+                ? const Color(0xFF3B82F6).withValues(alpha: 0.2)
+                : colors.onSurface.withValues(alpha: 0.06),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: value
-                    ? const Color(0xFF3B82F6)
-                    : colors.onSurface.withValues(alpha: 0.6),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: value
+                          ? const Color(0xFF3B82F6)
+                          : colors.onSurface.withValues(alpha: 0.6),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                        fontSize: 11.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ),
-          Transform.scale(
-            scale: 0.85,
-            child: Switch.adaptive(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF3B82F6),
-              inactiveThumbColor: colors.onSurface.withValues(alpha: 0.4),
-              inactiveTrackColor: colors.onSurface.withValues(alpha: 0.15),
+            Transform.scale(
+              scale: 0.85,
+              child: Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: Colors.white,
+                activeTrackColor: const Color(0xFF3B82F6),
+                inactiveThumbColor: colors.onSurface.withValues(alpha: 0.4),
+                inactiveTrackColor: colors.onSurface.withValues(alpha: 0.15),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
