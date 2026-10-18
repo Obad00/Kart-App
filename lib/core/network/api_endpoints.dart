@@ -18,6 +18,7 @@ class ApiEndpoints {
   static const appleToken = '/auth/apple/token';
   static const me = '/me';
   static const meConsents = '/me/consents';
+  static const meOnboardingComplete = '/me/onboarding/complete';
   static const legalCurrent = '/legal/current';
   static const meAvatar = '/me/avatar';
   static const logout = '/auth/logout';

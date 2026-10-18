@@ -543,6 +543,18 @@ class _HomeShellState extends State<HomeShell>
         );
       }
 
+      // Nouveau compte : onboarding (photo, poste, contact, visibilité),
+      // une seule fois, après le consentement.
+      if (auth.user!.onboardingRequired) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed('/onboarding');
+        });
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       final colors = Theme.of(context).colorScheme;
       final showJobMatch = canAccessJobMatch(auth.user?.plan);
       final pages = _pages(showJobMatch);

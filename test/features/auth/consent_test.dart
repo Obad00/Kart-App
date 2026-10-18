@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
@@ -123,6 +124,12 @@ void main() {
       await tester.tap(find.byType(Checkbox));
       await tester.pump();
       expect(_button(tester, 'Créer mon compte').onTap, isNotNull);
+
+      // À 390 px, à côté de « Retour » : libellé entier, jamais coupé.
+      final label = tester.renderObject<RenderParagraph>(find
+          .descendant(of: find.widgetWithText(AuthPrimaryButton, 'Créer mon compte'), matching: find.byType(RichText))
+          .last);
+      expect(label.didExceedMaxLines, isFalse);
 
       await tester.tap(find.widgetWithText(AuthPrimaryButton, 'Créer mon compte'));
       await tester.pump();

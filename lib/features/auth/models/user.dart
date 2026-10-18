@@ -37,6 +37,11 @@ class User {
   /// serveur plus ancien : false, rien n'est demandé.
   final bool consentRequired;
 
+  /// Nouveau compte qui n'a pas encore fait (ni passé) l'onboarding
+  /// (champ `onboarding_required` de /me). Absent d'un serveur plus ancien :
+  /// false, rien n'est affiché.
+  final bool onboardingRequired;
+
   User({
     required this.id,
     required this.firstname,
@@ -55,6 +60,7 @@ class User {
     this.canManageCommunity = false,
     this.hasPassword = true,
     this.consentRequired = false,
+    this.onboardingRequired = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -105,6 +111,7 @@ class User {
       canManageCommunity: json['can_manage_community'] == true,
       hasPassword: json['has_password'] ?? true,
       consentRequired: json['consent_required'] == true,
+      onboardingRequired: json['onboarding_required'] == true,
     );
   }
 

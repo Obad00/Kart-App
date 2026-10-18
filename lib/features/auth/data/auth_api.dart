@@ -52,6 +52,11 @@ class AuthApi {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
 
+  /// Note la fin de l'onboarding (rempli ou passé).
+  Future<Response> completeOnboarding() {
+    return ApiClient.dio.post(ApiEndpoints.meOnboardingComplete);
+  }
+
   /// Accepte la politique de confidentialité et les CGU en vigueur.
   Future<Response> acceptConsents() {
     return ApiClient.dio.post(ApiEndpoints.meConsents, data: {'accepted': true});

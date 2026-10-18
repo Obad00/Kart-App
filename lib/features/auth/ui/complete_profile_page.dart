@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../digital_card/providers/card_provider.dart';
-import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
@@ -108,7 +107,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   /// Nouveau compte Google/Apple : email déjà vérifié par le fournisseur,
   /// donc pas d'EmailVerificationPage — on reproduit ici ce qu'elle fait
   /// une fois l'email confirmé (carte digitale par défaut + invitation à
-  /// compléter poste/entreprise), puis on reprend vers le choix du plan.
+  /// compléter poste/entreprise), puis l'accueil, qui affiche l'onboarding.
   Future<void> _proceed() async {
     try {
       await CardService.createDefaultCard();
@@ -117,13 +116,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
       debugPrint('⚠️ Création auto de la carte échouée (non bloquant): $e');
     }
 
-    await OnboardingPrefs.markPendingJobCompanyPrompt();
     if (!mounted) return;
-
     await context.read<CardProvider>().loadCardSummary();
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, '/plans');
+    // Comme l'inscription par e-mail : plus de choix de formule, l'accueil
+    // affiche l'onboarding.
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
 
   @override
