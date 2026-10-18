@@ -226,6 +226,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String passwordConfirmation,
+    required bool acceptedTerms,
   }) async {
     isLoading = true;
     error = null;
@@ -233,6 +234,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _api.register({
+        // Case « J'accepte la politique de confidentialité et les CGU ».
+        'accepted_terms': acceptedTerms,
         'firstname': firstname,
         'lastname': lastname,
         'phone': phone,
@@ -276,6 +279,24 @@ class AuthProvider extends ChangeNotifier {
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e,
           fallback: 'Erreur lors de la suppression de la photo'));
+    }
+  }
+
+  /// Accepte la politique de confidentialité et les CGU en vigueur
+  /// (écran ConsentPage). true si c'est enregistré.
+  Future<bool> acceptConsents() async {
+    try {
+      final response = await _api.acceptConsents();
+      final data = response.data;
+      if (data is Map && data['user'] != null) {
+        user = User.fromJson(Map<String, dynamic>.from(data['user']));
+      } else {
+        await loadMe();
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

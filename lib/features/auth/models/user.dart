@@ -32,6 +32,11 @@ class User {
   // demander pour supprimer le compte (cf. _showDeleteAccountDialog).
   final bool hasPassword;
 
+  /// Politique de confidentialité / CGU en vigueur pas encore acceptées :
+  /// l'app affiche l'écran d'acceptation (ConsentPage). Absent d'un
+  /// serveur plus ancien : false, rien n'est demandé.
+  final bool consentRequired;
+
   User({
     required this.id,
     required this.firstname,
@@ -49,6 +54,7 @@ class User {
     this.hasTemporaryPin = false,
     this.canManageCommunity = false,
     this.hasPassword = true,
+    this.consentRequired = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -98,6 +104,7 @@ class User {
       hasTemporaryPin: json['has_temporary_pin'] == true,
       canManageCommunity: json['can_manage_community'] == true,
       hasPassword: json['has_password'] ?? true,
+      consentRequired: json['consent_required'] == true,
     );
   }
 
