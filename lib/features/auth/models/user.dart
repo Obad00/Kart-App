@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../onboarding/models/company.dart';
+import 'profile_score.dart';
 
 class User {
   final int id;
@@ -42,6 +43,13 @@ class User {
   /// false, rien n'est affiché.
   final bool onboardingRequired;
 
+  /// Score de profil du serveur ; null avec un serveur plus ancien (l'app
+  /// retombe alors sur son ancien calcul local).
+  final ProfileScore? profileScore;
+
+  /// Rappels pour compléter son profil (préférence, activée par défaut).
+  final bool profileRemindersEnabled;
+
   User({
     required this.id,
     required this.firstname,
@@ -61,6 +69,8 @@ class User {
     this.hasPassword = true,
     this.consentRequired = false,
     this.onboardingRequired = false,
+    this.profileScore,
+    this.profileRemindersEnabled = true,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -112,6 +122,8 @@ class User {
       hasPassword: json['has_password'] ?? true,
       consentRequired: json['consent_required'] == true,
       onboardingRequired: json['onboarding_required'] == true,
+      profileScore: ProfileScore.fromJson(json['profile_score']),
+      profileRemindersEnabled: (json['preferences'] is Map ? (json['preferences'] as Map)['profile_reminders'] : null) != false,
     );
   }
 

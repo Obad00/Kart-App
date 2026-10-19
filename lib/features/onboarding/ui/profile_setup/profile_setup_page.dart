@@ -21,14 +21,23 @@ import '../../data/profile_setup_api.dart';
 /// étape se passe avec « Plus tard » ; « Passer » termine tout de suite.
 /// Dans tous les cas, la fin est notée côté serveur (onboarding_completed_at)
 /// et l'écran ne revient plus.
+///
+/// Avec [singleStep], une seule étape s'affiche (ouverte depuis la carte
+/// « Complétez votre profil ») : « Continuer » ou « Plus tard » referment
+/// l'écran, sans toucher à l'onboarding.
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({
     super.key,
     this.api = const ProfileSetupApi(),
     this.pickAvatar,
+    this.singleStep,
   });
 
   final ProfileSetupApi api;
+
+  /// Étape seule à afficher : 0 photo, 1 poste et entreprise, 2 contact,
+  /// 3 visibilité. null : le parcours complet.
+  final int? singleStep;
 
   /// Choix et recadrage de la photo ; remplaçable dans les tests.
   /// Renvoie les octets et le nom du fichier, ou null si annulé.
@@ -41,7 +50,9 @@ class ProfileSetupPage extends StatefulWidget {
 class _ProfileSetupPageState extends State<ProfileSetupPage> {
   static const _steps = 4;
 
-  int _step = 0;
+  late int _step = widget.singleStep ?? 0;
+
+  bool get _single => widget.singleStep != null;
   bool _loading = true;
   bool _saving = false;
 
@@ -109,6 +120,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   // ── Navigation ─────────────────────────────────────────────────────────
 
   Future<void> _next() async {
+    if (_single) {
+      Navigator.of(context).pop(true);
+      return;
+    }
     if (_step < _steps - 1) {
       setState(() => _step++);
     } else {
@@ -216,7 +231,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     final colors = Theme.of(context).colorScheme;
 
     return PopScope(
-      canPop: false,
+      canPop: _single,
       child: Scaffold(
         backgroundColor: colors.surface,
         body: SafeArea(
@@ -227,17 +242,27 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: _progress(t)),
-                          const SizedBox(width: 12),
-                          TextButton(
-                            key: const Key('onboarding-skip-all'),
-                            onPressed: _saving ? null : _finish,
-                            child: Text('Passer', style: TextStyle(color: t.textSecondary)),
+                      if (_single)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            key: const Key('onboarding-close'),
+                            icon: Icon(Icons.close_rounded, color: t.textPrimary),
+                            onPressed: _saving ? null : () => Navigator.of(context).pop(false),
                           ),
-                        ],
-                      ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(child: _progress(t)),
+                            const SizedBox(width: 12),
+                            TextButton(
+                              key: const Key('onboarding-skip-all'),
+                              onPressed: _saving ? null : _finish,
+                              child: Text('Passer', style: TextStyle(color: t.textSecondary)),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 24),
                       Expanded(
                         child: SingleChildScrollView(
@@ -422,7 +447,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       0 => hasPhoto ? ('Continuer', _next) : ('Ajouter une photo', _pickPhoto),
       1 => ('Continuer', _saveJob),
       2 => ('Continuer', _contactChosen ? _saveContact : null),
-      _ => ('Terminer', _saveVisibility),
+      _ => (_single ? 'Enregistrer' : 'Terminer', _saveVisibility),
     };
 
     return Column(

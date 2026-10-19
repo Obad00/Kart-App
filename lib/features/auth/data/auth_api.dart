@@ -52,6 +52,11 @@ class AuthApi {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
 
+  /// Préférences (rappels pour compléter son profil).
+  Future<Response> updatePreferences(Map<String, dynamic> data) {
+    return ApiClient.dio.put(ApiEndpoints.mePreferences, data: data);
+  }
+
   /// Note la fin de l'onboarding (rempli ou passé).
   Future<Response> completeOnboarding() {
     return ApiClient.dio.post(ApiEndpoints.meOnboardingComplete);
