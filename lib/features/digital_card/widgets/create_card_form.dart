@@ -524,8 +524,8 @@ class _CreateCardFormState extends State<CreateCardForm> {
                 const SizedBox(height: 16),
 
                 _buildPremiumSwitch(
-                  title: 'Rendre ma carte publique',
-                  subtitle: 'Accessible via un lien ou QR code',
+                  title: 'Carte active (lien, QR code et carte NFC)',
+                  subtitle: 'Désactivée, votre carte ne s\'ouvre plus pour personne.',
                   value: _isPublic,
                   onChanged: (v) => setState(() => _isPublic = v),
                   icon: Icons.public_outlined,

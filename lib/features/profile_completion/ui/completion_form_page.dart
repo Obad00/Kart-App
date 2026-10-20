@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_error.dart';
 import '../providers/profile_completion_provider.dart';
+import '../../digital_card/confirm_card_deactivation.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/theme/kart_tokens.dart';
@@ -667,19 +668,21 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                     colors, Icons.public, 'Visibilité de la carte'),
                 const SizedBox(height: 12),
                 _buildPremiumSwitch(
-                  title: 'Rendre ma carte publique',
+                  key: const Key('card-active'),
+                  title: 'Carte active (lien, QR code et carte NFC)',
+                  subtitle: 'Désactivée, votre carte ne s\'ouvre plus pour personne.',
                   value: _isPublic,
-                  onChanged: (v) => setState(() => _isPublic = v),
+                  onChanged: _setPublic,
                 ),
                 const SizedBox(height: 12),
                 // Annuaire : indépendant du lien, du QR et de la carte NFC,
-                // qui continuent de fonctionner si la carte est publique.
+                // qui continuent de fonctionner si la carte est active.
                 _buildPremiumSwitch(
                   key: const Key('listed-in-directory'),
-                  title: 'Apparaître dans Explorer',
+                  title: 'Visible dans l\'annuaire Explorer',
                   subtitle: _isPublic
-                      ? 'Les membres KART peuvent vous trouver. Votre lien, votre QR et votre carte NFC fonctionnent dans tous les cas.'
-                      : 'Rendez d\'abord votre carte publique.',
+                      ? 'Les membres KART peuvent vous trouver. Sinon, votre lien, votre QR code et votre carte NFC fonctionnent quand même.'
+                      : 'Activez d\'abord votre carte.',
                   value: _isPublic && _listedInDirectory,
                   onChanged: _isPublic
                       ? (v) => setState(() => _listedInDirectory = v)
@@ -1360,6 +1363,12 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
         ],
       ),
     );
+  }
+
+  /// Désactiver la carte demande une confirmation ; l'activer, non.
+  Future<void> _setPublic(bool value) async {
+    if (!value && !await confirmCardDeactivation(context)) return;
+    if (mounted) setState(() => _isPublic = value);
   }
 
   /// [onChanged] null : interrupteur grisé. [subtitle] : précision sous le
