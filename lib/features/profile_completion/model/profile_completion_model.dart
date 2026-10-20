@@ -23,6 +23,11 @@ class ProfileCompletionModel {
 
   List<String> activatedFields;
   bool isPublic;
+
+  /// Apparaître dans l'annuaire Explorer (opt-in, séparé de [isPublic] :
+  /// une carte absente de l'annuaire reste accessible par lien, QR et NFC).
+  /// Absent d'un serveur plus ancien : false.
+  bool listedInDirectory;
   List<ExperienceModel> experiences;
   List<EducationModel> educations;
   List<String> interests;
@@ -47,6 +52,7 @@ class ProfileCompletionModel {
     this.branding,
     List<String>? activatedFields,
     this.isPublic = true,
+    this.listedInDirectory = false,
     List<ExperienceModel>? experiences,
     List<EducationModel>? educations,
     List<String>? interests,
@@ -77,6 +83,7 @@ class ProfileCompletionModel {
               .toList() ??
           [],
       isPublic: json['is_public'] as bool? ?? true,
+      listedInDirectory: json['listed_in_directory'] == true,
       experiences: (json['experiences'] as List?)
               ?.map((e) => ExperienceModel.fromJson(e))
               .toList() ??
@@ -108,6 +115,7 @@ class ProfileCompletionModel {
       "website": website,
       "activated_fields": activatedFields,
       "is_public": isPublic,
+      "listed_in_directory": listedInDirectory,
       "experiences": experiences.map((e) => e.toJson()).toList(),
       "educations": educations.map((e) => e.toJson()).toList(),
       "interests": interests,
