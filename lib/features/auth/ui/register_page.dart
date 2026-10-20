@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/auth_outline_button.dart';
+import '../../../shared/widgets/legal_consent_checkbox.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,6 +24,10 @@ class _RegisterPageState extends State<RegisterPage>
   final _passwordConfirmCtrl = TextEditingController();
 
   int _currentPage = 0;
+
+  /// Case « J'accepte la politique de confidentialité et les CGU » :
+  /// jamais pré-cochée, obligatoire pour créer le compte.
+  bool _acceptedTerms = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -66,7 +71,7 @@ class _RegisterPageState extends State<RegisterPage>
       case 1:
         return _emailCtrl.text.contains('@') && _phoneCtrl.text.length >= 8;
       case 2:
-        return _isPasswordValid();
+        return _isPasswordValid() && _acceptedTerms;
       default:
         return false;
     }
@@ -94,6 +99,7 @@ class _RegisterPageState extends State<RegisterPage>
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       passwordConfirmation: _passwordConfirmCtrl.text,
+      acceptedTerms: _acceptedTerms,
     );
 
     if (!mounted) return;
@@ -481,6 +487,11 @@ class _RegisterPageState extends State<RegisterPage>
               padding: const EdgeInsets.only(top: 20),
               child: _buildPasswordStrength(colors),
             ),
+          const SizedBox(height: 24),
+          LegalConsentCheckbox(
+            value: _acceptedTerms,
+            onChanged: (v) => setState(() => _acceptedTerms = v),
+          ),
         ],
       ),
     );

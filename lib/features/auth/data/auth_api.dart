@@ -52,6 +52,11 @@ class AuthApi {
     return ApiClient.dio.get(ApiEndpoints.me);
   }
 
+  /// Accepte la politique de confidentialité et les CGU en vigueur.
+  Future<Response> acceptConsents() {
+    return ApiClient.dio.post(ApiEndpoints.meConsents, data: {'accepted': true});
+  }
+
   Future<Response> updateProfile(Map<String, dynamic> data) {
     return ApiClient.dio.put(
       ApiEndpoints.me,

@@ -530,6 +530,19 @@ class _HomeShellState extends State<HomeShell>
         );
       }
 
+      // Politique de confidentialité / CGU en vigueur pas encore acceptées
+      // (compte d'avant la case, créé par l'admin, Google/Apple, nouvelle
+      // version d'un texte).
+      if (auth.user!.consentRequired) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed('/consent');
+        });
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       final colors = Theme.of(context).colorScheme;
       final showJobMatch = canAccessJobMatch(auth.user?.plan);
       final pages = _pages(showJobMatch);

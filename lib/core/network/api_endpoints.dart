@@ -17,6 +17,8 @@ class ApiEndpoints {
   static const googleToken = '/auth/google/token';
   static const appleToken = '/auth/apple/token';
   static const me = '/me';
+  static const meConsents = '/me/consents';
+  static const legalCurrent = '/legal/current';
   static const meAvatar = '/me/avatar';
   static const logout = '/auth/logout';
   static const deleteAccount = '/me';
