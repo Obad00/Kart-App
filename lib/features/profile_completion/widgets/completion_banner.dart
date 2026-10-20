@@ -1,28 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../auth/models/profile_score.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../helpers/completion_helper.dart';
+import '../profile_item_opener.dart';
 import '../providers/profile_completion_provider.dart';
 import '../providers/candidate_skills_provider.dart';
 import '../ui/completion_form_page.dart';
 import 'package:provider/provider.dart';
 
+/// Carte « Complétez votre profil » (Profil) : le score du serveur
+/// (ProfileScoreService, la même source que l'admin et l'Explorer) et
+/// l'élément manquant suivant ; un toucher ouvre directement l'écran qui le
+/// complète. Avec un serveur qui ne renvoie pas encore le score, l'ancien
+/// calcul local sert de repli.
 class CompletionBanner extends StatelessWidget {
-  const CompletionBanner({super.key});
+  const CompletionBanner({super.key, this.onOpen = openProfileItem});
+
+  /// Ouvre l'écran d'un critère (remplaçable dans les tests).
+  final Future<void> Function(BuildContext context, String key) onOpen;
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProfileCompletionProvider>();
     final skillsProvider = context.watch<CandidateSkillsProvider>();
+    final serverScore = context.watch<AuthProvider>().user?.profileScore;
     final model = provider.model;
-    final result = CompletionHelper.calculate(
-      model,
-      hasSkills: skillsProvider.skills.isNotEmpty,
-    );
     final colors = Theme.of(context).colorScheme;
 
+    final double percent;
+    final List<String> missing;
+    final ProfileCriterion? next;
+    if (serverScore != null) {
+      percent = serverScore.score.toDouble();
+      next = serverScore.next;
+      missing = serverScore.criteria.where((c) => !c.done && c.key != next?.key).map((c) => c.label).toList();
+    } else {
+      final result = CompletionHelper.calculate(model, hasSkills: skillsProvider.skills.isNotEmpty);
+      percent = result.percent;
+      next = null;
+      missing = result.missing;
+    }
+
     // Profil complet : afficher la carte récapitulative
-    if (result.percent >= 100) {
+    if (percent >= 100) {
       return _buildCompletedCard(
         context,
         colors,
@@ -32,23 +54,20 @@ class CompletionBanner extends StatelessWidget {
     }
 
     // Profil incomplet : afficher le banner d'invitation
-    return _buildIncompleteBanner(context, colors, result);
+    return _buildIncompleteBanner(context, colors, percent: percent, missing: missing, next: next);
   }
 
-  Widget _buildIncompleteBanner(
-      BuildContext context, ColorScheme colors, CompletionResult result) {
-    final progress = result.percent / 100;
+  Widget _buildIncompleteBanner(BuildContext context, ColorScheme colors,
+      {required double percent, required List<String> missing, ProfileCriterion? next}) {
+    final progress = percent / 100;
     const accentColor = Color(0xFFF59E0B);
 
     return GestureDetector(
+      key: const Key('completion-banner'),
       onTap: () {
         HapticFeedback.lightImpact();
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (_) => const CompletionFormPage(),
-        );
+        // L'élément suivant s'il est connu, sinon tout le formulaire.
+        onOpen(context, next?.key ?? '');
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -99,7 +118,7 @@ class CompletionBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${result.percent.toInt()}% complété',
+                        '${percent.toInt()}% complété',
                         style: TextStyle(
                           fontSize: 12,
                           color: colors.onSurface.withValues(alpha: 0.5),
@@ -126,12 +145,32 @@ class CompletionBanner extends StatelessWidget {
                 valueColor: const AlwaysStoppedAnimation<Color>(accentColor),
               ),
             ),
-            if (result.missing.isNotEmpty) ...[
+            if (next != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                key: const Key('completion-next'),
+                children: [
+                  const Icon(Icons.arrow_forward_rounded, size: 16, color: accentColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Ensuite : ${next.label}',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface),
+                    ),
+                  ),
+                  Text(
+                    '+${next.weight} %',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: accentColor),
+                  ),
+                ],
+              ),
+            ],
+            if (missing.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: result.missing
+                children: missing
                     .take(3)
                     .map((e) => Container(
                           padding: const EdgeInsets.symmetric(

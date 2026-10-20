@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/nfc_card/nfc_card_entry.dart';
+import '../../features/profile_completion/profile_item_opener.dart';
+import '../../features/profile_completion/profile_reminder_target.dart';
 import '../../firebase_options_web.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../network/api_client.dart';
@@ -340,6 +342,23 @@ class PushNotificationService {
           // « Ma carte NFC » par-dessus l'accueil.
           navigator.pushNamedAndRemoveUntil('/home', (route) => false);
           navigator.push(myNfcCardRoute());
+          break;
+
+        case 'profile_reminder':
+          // Rappel de complétion : onglet Profil, puis l'élément manquant
+          // ouvert directement (comme la carte « Complétez votre profil »).
+          final target = profileReminderTarget(data, authProvider.user);
+          navigator.pushNamedAndRemoveUntil(
+            '/home',
+            (route) => false,
+            arguments: {'tab': target.tab},
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final homeContext = _navigatorKey.currentContext;
+            if (homeContext != null && homeContext.mounted && target.item.isNotEmpty) {
+              openProfileItem(homeContext, target.item);
+            }
+          });
           break;
 
         case 'jobmatch_new_suggestions':

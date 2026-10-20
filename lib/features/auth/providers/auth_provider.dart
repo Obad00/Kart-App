@@ -282,6 +282,41 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Active ou coupe les rappels pour compléter son profil. true si c'est
+  /// enregistré.
+  Future<bool> setProfileReminders(bool enabled) async {
+    try {
+      final response = await _api.updatePreferences({'profile_reminders': enabled});
+      final data = response.data;
+      if (data is Map && data['user'] != null) {
+        user = User.fromJson(Map<String, dynamic>.from(data['user']));
+      } else {
+        await loadMe();
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Fin de l'onboarding (rempli ou passé). true si c'est enregistré.
+  Future<bool> completeOnboarding() async {
+    try {
+      final response = await _api.completeOnboarding();
+      final data = response.data;
+      if (data is Map && data['user'] != null) {
+        user = User.fromJson(Map<String, dynamic>.from(data['user']));
+      } else {
+        await loadMe();
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Accepte la politique de confidentialité et les CGU en vigueur
   /// (écran ConsentPage). true si c'est enregistré.
   Future<bool> acceptConsents() async {

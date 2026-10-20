@@ -127,22 +127,26 @@ class _AuthPrimaryButtonState extends State<AuthPrimaryButton>
                       color: isEnabled ? Colors.black : Colors.grey[600],
                     ),
                   )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (widget.icon != null) ...[
-                        Icon(
-                          widget.icon,
-                          color: isEnabled ? Colors.black : Colors.grey[500],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                      ],
-                      Flexible(
-                        child: Text(
+                // Libellé jamais coupé : si le bouton est trop étroit (bouton
+                // à côté de « Retour » sur un petit écran), icône et texte
+                // rétrécissent ensemble. Sinon, taille normale.
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(
+                            widget.icon,
+                            color: isEnabled ? Colors.black : Colors.grey[500],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Text(
                           widget.label,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                           style: TextStyle(
                             color: isEnabled ? Colors.black : Colors.grey[500],
                             fontWeight: FontWeight.w700,
@@ -150,8 +154,8 @@ class _AuthPrimaryButtonState extends State<AuthPrimaryButton>
                             letterSpacing: 0.5,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
           ),
         ),

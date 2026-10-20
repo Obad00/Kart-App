@@ -42,6 +42,7 @@ import 'features/auth/ui/email_verification_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
 import 'features/auth/ui/force_change_password_page.dart';
 import 'features/auth/ui/consent_page.dart';
+import 'features/onboarding/ui/profile_setup/profile_setup_page.dart';
 import 'features/auth/ui/change_password_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
 import 'features/onboarding/ui/create_company_page.dart';
@@ -245,6 +246,7 @@ class _KartAppState extends State<KartApp> {
                 '/forgot-password': (_) => const ForgotPasswordPage(),
                 '/complete-profile': (_) => const CompleteProfilePage(),
                 '/consent': (_) => const ConsentPage(),
+                '/onboarding': (_) => const ProfileSetupPage(),
                 '/force-change-password': (_) =>
                     const ForceChangePasswordPage(),
                 '/change-password': (_) => const ChangePasswordPage(),

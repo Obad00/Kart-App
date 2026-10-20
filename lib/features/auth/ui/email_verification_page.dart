@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
-import '../../../shared/onboarding/onboarding_prefs.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../digital_card/providers/card_provider.dart';
@@ -14,10 +13,9 @@ import '../providers/auth_provider.dart';
 /// Affiché juste après l'inscription (3e étape validée) : bloque le
 /// parcours jusqu'à ce que l'email soit vérifié (lien reçu par mail), puis
 /// enchaîne automatiquement — carte digitale créée en arrière-plan (sans
-/// poste/entreprise, cf. CardService.createDefaultCard), et un drapeau posé
-/// pour que MyDigitalCardPage propose de les compléter une fois la carte
-/// affichée (cf. OnboardingPrefs) — avant de reprendre le parcours normal
-/// vers /plans.
+/// poste/entreprise, cf. CardService.createDefaultCard) — puis l'accueil,
+/// qui affiche l'onboarding d'un nouveau compte (photo, poste, contact,
+/// visibilité).
 class EmailVerificationPage extends StatefulWidget {
   const EmailVerificationPage({super.key});
 
@@ -112,8 +110,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   }
 
   /// Email confirmé : crée la carte digitale (vide, sans poste/entreprise)
-  /// puis reprend le parcours d'inscription là où il s'arrêtait avant cet
-  /// écran — vers le choix du plan.
+  /// puis va à l'accueil (onboarding).
   Future<void> _onVerified() async {
     _pollTimer?.cancel();
     setState(() => _proceeding = true);
@@ -127,19 +124,17 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
       debugPrint('⚠️ Création auto de la carte échouée (non bloquant): $e');
     }
 
-    await OnboardingPrefs.markPendingJobCompanyPrompt();
-    if (!mounted) return;
-
     // Rafraîchit tout de suite le CardProvider partagé (HomeShell le lira
     // sans nouvel appel réseau dès l'arrivée sur l'onglet Carte).
+    if (!mounted) return;
     await context.read<CardProvider>().loadCardSummary();
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(
-      context,
-      '/plans',
-      arguments: {'successMessage': 'Compte créé avec succès 🎉'},
-    );
+    // Plus de choix de formule à l'inscription : l'accueil affiche
+    // l'onboarding (poste et entreprise compris, d'où la fin de l'ancienne
+    // invite OnboardingPrefs), sur la formule attribuée par défaut. La page
+    // /plans reste accessible par ses autres entrées.
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
 
   @override
