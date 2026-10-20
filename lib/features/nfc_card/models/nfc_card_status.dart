@@ -32,12 +32,17 @@ class NfcTagInfo {
   /// alors la réactiver.
   final bool canReactivate;
 
+  /// Fin de l'assistance et du remplacement gratuit (`assistance_until`).
+  /// null avec un serveur plus ancien : rien n'est affiché.
+  final DateTime? assistanceUntil;
+
   const NfcTagInfo({
     required this.id,
     this.code,
     this.tapCount = 0,
     this.lastTappedAt,
     this.canReactivate = false,
+    this.assistanceUntil,
   });
 
   factory NfcTagInfo.fromJson(Map<String, dynamic> json) => NfcTagInfo(
@@ -46,6 +51,7 @@ class NfcTagInfo {
         tapCount: (json['tap_count'] as num?)?.toInt() ?? 0,
         lastTappedAt: _date(json['last_tapped_at']),
         canReactivate: json['can_reactivate'] == true,
+        assistanceUntil: _day(json['assistance_until']),
       );
 }
 
@@ -139,6 +145,24 @@ class NfcCardStatus {
         'disabled' => NfcCardState.disabled,
         _ => NfcCardState.none,
       };
+}
+
+/// Date seule (« 2027-05-02 »), sans conversion de fuseau.
+DateTime? _day(Object? value) {
+  final parsed = value is String ? DateTime.tryParse(value) : null;
+  return parsed == null ? null : DateTime(parsed.year, parsed.month, parsed.day);
+}
+
+/// Texte de l'assistance sous la carte active, ou null sans date. Le jour
+/// même de l'échéance, l'assistance est encore incluse. Jamais de prix.
+String? assistanceLabel(DateTime? until, DateTime today) {
+  if (until == null) return null;
+  final day = '${until.day.toString().padLeft(2, '0')}/${until.month.toString().padLeft(2, '0')}/${until.year}';
+  final todayDate = DateTime(today.year, today.month, today.day);
+
+  return todayDate.isAfter(until)
+      ? 'Assistance terminée le $day. Pour la renouveler, contactez KART.'
+      : "Assistance incluse jusqu'au $day";
 }
 
 DateTime? _date(Object? value) =>

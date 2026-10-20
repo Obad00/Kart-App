@@ -543,6 +543,18 @@ class _HomeShellState extends State<HomeShell>
         );
       }
 
+      // Membre d'une entreprise à licence suspendue : seul l'écran
+      // « Compte suspendu » (contacts, suppression du compte, déconnexion).
+      if (auth.isSuspended) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed('/suspended');
+        });
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       // Nouveau compte : onboarding (photo, poste, contact, visibilité),
       // une seule fois, après le consentement.
       if (auth.user!.onboardingRequired) {

@@ -43,6 +43,11 @@ class User {
   /// false, rien n'est affiché.
   final bool onboardingRequired;
 
+  /// Membre d'une entreprise dont la licence est suspendue (champ
+  /// `suspended` de /me) : l'app n'affiche que l'écran « Compte suspendu ».
+  /// Absent d'un serveur plus ancien : false, rien ne change.
+  final bool suspended;
+
   /// Score de profil du serveur ; null avec un serveur plus ancien (l'app
   /// retombe alors sur son ancien calcul local).
   final ProfileScore? profileScore;
@@ -69,6 +74,7 @@ class User {
     this.hasPassword = true,
     this.consentRequired = false,
     this.onboardingRequired = false,
+    this.suspended = false,
     this.profileScore,
     this.profileRemindersEnabled = true,
   });
@@ -122,6 +128,7 @@ class User {
       hasPassword: json['has_password'] ?? true,
       consentRequired: json['consent_required'] == true,
       onboardingRequired: json['onboarding_required'] == true,
+      suspended: json['suspended'] == true,
       profileScore: ProfileScore.fromJson(json['profile_score']),
       profileRemindersEnabled: (json['preferences'] is Map ? (json['preferences'] as Map)['profile_reminders'] : null) != false,
     );

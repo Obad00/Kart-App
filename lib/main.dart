@@ -42,6 +42,7 @@ import 'features/auth/ui/email_verification_page.dart';
 import 'features/auth/ui/complete_profile_page.dart';
 import 'features/auth/ui/force_change_password_page.dart';
 import 'features/auth/ui/consent_page.dart';
+import 'features/auth/ui/suspended_page.dart';
 import 'features/onboarding/ui/profile_setup/profile_setup_page.dart';
 import 'features/auth/ui/change_password_page.dart';
 import 'features/onboarding/ui/onboarding_company_choice_page.dart';
@@ -121,8 +122,19 @@ class _KartAppState extends State<KartApp> {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(
-          create: (context) => AuthProvider()
-            ..onSessionExpired = () => resetSessionProviders(context),
+          create: (context) {
+            final auth = AuthProvider()
+              ..onSessionExpired = () => resetSessionProviders(context);
+            // 403 account_suspended sur n'importe quelle requête : écran
+            // « Compte suspendu », une seule fois.
+            ApiClient.onAccountSuspended = () {
+              if (auth.markSuspended()) {
+                navigatorKey.currentState
+                    ?.pushNamedAndRemoveUntil('/suspended', (_) => false);
+              }
+            };
+            return auth;
+          },
         ),
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => HighlightProvider()),
@@ -246,6 +258,7 @@ class _KartAppState extends State<KartApp> {
                 '/forgot-password': (_) => const ForgotPasswordPage(),
                 '/complete-profile': (_) => const CompleteProfilePage(),
                 '/consent': (_) => const ConsentPage(),
+                '/suspended': (_) => const SuspendedPage(),
                 '/onboarding': (_) => const ProfileSetupPage(),
                 '/force-change-password': (_) =>
                     const ForceChangePasswordPage(),

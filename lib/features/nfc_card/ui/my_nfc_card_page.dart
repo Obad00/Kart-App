@@ -425,6 +425,16 @@ class _NfcCardView extends StatelessWidget {
           ),
         ),
       ],
+      // Assistance et remplacement gratuit : rien sans assistance_until
+      // (serveur plus ancien). Jamais de prix.
+      if (assistanceLabel(tag?.assistanceUntil, DateTime.now()) case final assistance?) ...[
+        const SizedBox(height: 8),
+        Text(
+          assistance,
+          key: const Key('nfc-assistance'),
+          style: TextStyle(color: t.textSecondary, fontSize: 13, height: 1.4),
+        ),
+      ],
       const SizedBox(height: 24),
       NfcSecondaryButton(
         label: 'Désactiver (carte perdue)',
