@@ -197,15 +197,48 @@ void main() {
 
     expect(_switchValue(tester, 'onboarding-public'), isTrue);
     expect(_switchValue(tester, 'onboarding-listed'), isFalse);
-    expect(find.textContaining('fonctionnent dans tous les cas'), findsOneWidget);
+    expect(find.text('Carte active (lien, QR code et carte NFC)'), findsOneWidget);
+    expect(find.text("Visible dans l'annuaire Explorer"), findsOneWidget);
+    expect(find.textContaining('fonctionnent quand même'), findsOneWidget);
 
+    // Désactiver la carte : confirmation demandée.
     await tester.tap(find.descendant(of: find.byKey(const Key('onboarding-public')), matching: find.byType(Switch)));
     await tester.pumpAndSettle();
-    expect(find.text("Rendez d'abord votre carte publique."), findsOneWidget);
+    expect(find.text('Votre lien, votre QR code et votre carte NFC ne fonctionneront plus. Continuer ?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('card-deactivation-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text("Activez d'abord votre carte."), findsOneWidget);
     expect(tester.widget<Switch>(find.descendant(of: find.byKey(const Key('onboarding-listed')), matching: find.byType(Switch))).onChanged, isNull);
 
     await _tapPrimary(tester);
     expect(api.saved.single, {'is_public': false, 'listed_in_directory': false});
     expect(auth.completed, 1);
+  });
+
+  testWidgets('visibilité : « Annuler » garde la carte active ; la réactiver ne demande rien', (tester) async {
+    final api = _FakeApi({'is_public': true, 'listed_in_directory': true});
+    await _pump(tester, _FakeAuth(), api);
+    for (var i = 0; i < 3; i++) {
+      await _later(tester);
+    }
+    final publicSwitch = find.descendant(of: find.byKey(const Key('onboarding-public')), matching: find.byType(Switch));
+
+    await tester.tap(publicSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    expect(_switchValue(tester, 'onboarding-public'), isTrue);
+    expect(_switchValue(tester, 'onboarding-listed'), isTrue);
+
+    await tester.tap(publicSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('card-deactivation-confirm')));
+    await tester.pumpAndSettle();
+    expect(_switchValue(tester, 'onboarding-public'), isFalse);
+
+    await tester.tap(publicSwitch);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('card-deactivation-dialog')), findsNothing);
+    expect(_switchValue(tester, 'onboarding-public'), isTrue);
   });
 }

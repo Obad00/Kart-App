@@ -14,6 +14,7 @@ import '../../../../shared/utils/placeholder_email.dart';
 import '../../../../shared/widgets/auth_primary_button.dart';
 import '../../../../shared/widgets/auth_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../digital_card/confirm_card_deactivation.dart';
 import '../../data/profile_setup_api.dart';
 
 /// Onboarding d'un nouveau compte, après l'inscription et le consentement :
@@ -392,19 +393,25 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _title(t, 'Qui peut voir votre carte', 'Vous pourrez changer ces réglages à tout moment dans « Modifier mes infos ».'),
-          _toggle(t, key: 'onboarding-public', title: 'Rendre ma carte publique',
-              subtitle: 'Votre lien, votre QR et votre carte NFC ouvrent votre carte.', value: _isPublic,
-              onChanged: (v) => setState(() => _isPublic = v)),
+          _toggle(t, key: 'onboarding-public', title: 'Carte active (lien, QR code et carte NFC)',
+              subtitle: 'Désactivée, votre carte ne s\'ouvre plus pour personne.', value: _isPublic,
+              onChanged: _setPublic),
           const SizedBox(height: 10),
           // Même texte que « Modifier mes infos ».
-          _toggle(t, key: 'onboarding-listed', title: 'Apparaître dans Explorer',
+          _toggle(t, key: 'onboarding-listed', title: "Visible dans l'annuaire Explorer",
               subtitle: _isPublic
-                  ? 'Les membres KART peuvent vous trouver. Votre lien, votre QR et votre carte NFC fonctionnent dans tous les cas.'
-                  : "Rendez d'abord votre carte publique.",
+                  ? 'Les membres KART peuvent vous trouver. Sinon, votre lien, votre QR code et votre carte NFC fonctionnent quand même.'
+                  : "Activez d'abord votre carte.",
               value: _isPublic && _listed,
               onChanged: _isPublic ? (v) => setState(() => _listed = v) : null),
         ],
       );
+
+  /// Désactiver la carte demande une confirmation ; l'activer, non.
+  Future<void> _setPublic(bool value) async {
+    if (!value && !await confirmCardDeactivation(context)) return;
+    if (mounted) setState(() => _isPublic = value);
+  }
 
   Widget _toggle(KartTokens t,
       {required String key, required String title, String? subtitle, required bool value, required ValueChanged<bool>? onChanged}) {
