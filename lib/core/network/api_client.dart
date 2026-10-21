@@ -69,7 +69,14 @@ class ApiClient {
     // réponse périmée en dernier recours.
     await _setupOfflineCache();
     dio.interceptors.add(_RetryOnServerErrorInterceptor(dio));
+    // Ajouté en dernier : voit les erreurs en premier, avant que le cache
+    // hors-ligne ne ressorte une ancienne réponse à la place du 403.
+    dio.interceptors.add(AccountSuspendedInterceptor());
   }
+
+  /// Appelé quand l'API répond 403 `account_suspended` (licence de
+  /// l'entreprise suspendue), quelle que soit la requête.
+  static VoidCallback? onAccountSuspended;
 
   /// Mode hors-ligne en lecture seule : met en cache disque toute réponse
   /// GET réussie, et la ressert automatiquement si une requête échoue
@@ -139,6 +146,23 @@ class ApiClient {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     dio.options.headers.remove('Authorization');
+  }
+}
+
+/// Repère le 403 `account_suspended` sur n'importe quelle requête et
+/// prévient l'app (écran « Compte suspendu »). L'erreur suit son cours.
+class AccountSuspendedInterceptor extends Interceptor {
+  static bool isAccountSuspended(DioException err) {
+    final data = err.response?.data;
+    return err.response?.statusCode == 403 &&
+        data is Map &&
+        data['code'] == 'account_suspended';
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    if (isAccountSuspended(err)) ApiClient.onAccountSuspended?.call();
+    handler.next(err);
   }
 }
 

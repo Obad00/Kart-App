@@ -548,6 +548,54 @@ void main() {
     });
   });
 
+  group('assistance', () {
+    test('libellé : incluse jusqu\'au jour même, terminée le lendemain', () {
+      final until = DateTime(2027, 5, 2);
+      expect(assistanceLabel(until, DateTime(2027, 5, 2, 23, 59)), "Assistance incluse jusqu'au 02/05/2027");
+      expect(assistanceLabel(until, DateTime(2027, 5, 3)),
+          'Assistance terminée le 02/05/2027. Pour la renouveler, contactez KART.');
+      expect(assistanceLabel(null, DateTime(2027, 5, 3)), isNull);
+    });
+
+    test('lu depuis assistance_until ; absent (serveur actuel) : null', () {
+      final withDate = NfcTagInfo.fromJson({'id': 7, 'assistance_until': '2027-05-02'});
+      expect(withDate.assistanceUntil, DateTime(2027, 5, 2));
+      expect(NfcTagInfo.fromJson({'id': 7}).assistanceUntil, isNull);
+      expect(NfcTagInfo.fromJson({'id': 7, 'assistance_until': null}).assistanceUntil, isNull);
+    });
+
+    testWidgets('carte active : date d\'assistance affichée, sans prix', (tester) async {
+      final until = DateTime.now().add(const Duration(days: 200));
+      await _pump(tester, _FakeService(_status(
+        NfcCardState.active,
+        tag: NfcTagInfo(id: 7, code: 'ZWLC8FDH', assistanceUntil: DateTime(until.year, until.month, until.day)),
+      )));
+
+      expect(find.textContaining("Assistance incluse jusqu'au"), findsOneWidget);
+      expect(find.textContaining(RegExp(r'\d\s?F\b|FCFA|[Pp]rix|[Pp]ayer')), findsNothing, reason: 'aucun prix');
+    });
+
+    testWidgets('échéance passée : « Assistance terminée … contactez KART »', (tester) async {
+      await _pump(tester, _FakeService(_status(
+        NfcCardState.active,
+        tag: NfcTagInfo(id: 7, code: 'ZWLC8FDH', assistanceUntil: DateTime(2025, 1, 10)),
+      )));
+
+      expect(find.text('Assistance terminée le 10/01/2025. Pour la renouveler, contactez KART.'), findsOneWidget);
+    });
+
+    testWidgets('sans assistance_until (serveur actuel) : rien ne s\'affiche', (tester) async {
+      await _pump(tester, _FakeService(_status(
+        NfcCardState.active,
+        tag: NfcTagInfo.fromJson({'id': 7, 'code': 'ZWLC8FDH', 'tap_count': 3}),
+      )));
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('nfc-assistance')), findsNothing);
+      expect(find.text('Active'), findsOneWidget);
+    });
+  });
+
   group('disabled', () {
     testWidgets('réactiver exige le code de la carte', (tester) async {
       final service = _FakeService(_status(
@@ -636,6 +684,24 @@ void main() {
 
       expect(harness.opened.single.host, 'wa.me');
       expect(harness.opened.single.path, '/$_whatsapp');
+    });
+
+    testWidgets('assistance terminée : le message WhatsApp ne parle ni de renouvellement, ni de prix, ni de paiement',
+        (tester) async {
+      final harness = await _pump(
+        tester,
+        _FakeService(_status(
+          NfcCardState.active,
+          tag: NfcTagInfo(id: 7, code: 'ABCD2345', assistanceUntil: DateTime(2025, 1, 10)),
+        )),
+      );
+
+      await tester.tap(find.text('Contacter le support'));
+      await tester.pumpAndSettle();
+
+      final text = harness.opened.single.queryParameters['text'] ?? '';
+      expect(text, "Bonjour, j'ai une question sur ma carte NFC KART.");
+      expect(text, isNot(matches(RegExp(r'renouvel|prix|tarif|pay|paie|\d\s?F\b|FCFA', caseSensitive: false))));
     });
 
     testWidgets('bouton masqué si aucun numéro n\'est configuré',

@@ -83,6 +83,23 @@ class AuthProvider extends ChangeNotifier {
   /// n'a pas de BuildContext pour appeler ça lui-même directement.
   VoidCallback? onSessionExpired;
 
+  /// 403 `account_suspended` reçu sur une requête : vrai jusqu'au prochain
+  /// /me qui dit le contraire, ou jusqu'à la déconnexion.
+  bool _suspendedByApi = false;
+
+  /// Compte bloqué par la licence suspendue de son entreprise (/me ou
+  /// réponse 403 de l'API). Jamais pour un particulier.
+  bool get isSuspended => _suspendedByApi || (user?.suspended ?? false);
+
+  /// Renvoie true si le compte vient de passer suspendu (pour ne naviguer
+  /// qu'une fois).
+  bool markSuspended() {
+    if (isSuspended) return false;
+    _suspendedByApi = true;
+    notifyListeners();
+    return true;
+  }
+
   AuthProvider() {
     _init();
   }
@@ -145,6 +162,8 @@ class AuthProvider extends ChangeNotifier {
       final meResponse = await _api.me();
       debugPrint('👤 /me response: \\${meResponse.data}');
       user = User.fromJson(meResponse.data);
+      // /me fait foi : le compte a pu être réactivé depuis le dernier 403.
+      _suspendedByApi = false;
       // Fire-and-forget : ne doit jamais bloquer/faire échouer le chargement
       // de l'utilisateur (couvre login, loginWithGoogle et l'auto-connexion
       // au démarrage, qui passent tous par loadMe()). On respecte la
@@ -357,6 +376,7 @@ class AuthProvider extends ChangeNotifier {
     user = null;
     error = null;
     isNewUser = false;
+    _suspendedByApi = false;
     notifyListeners();
   }
 
