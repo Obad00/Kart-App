@@ -1097,6 +1097,11 @@ class _ExplorePageState extends State<ExplorePage> {
                             eventName: event.name,
                             publicUrl: event.publicUrl,
                             eventHasEnded: event.hasEnded,
+                            showInvitations: context
+                                    .read<AuthProvider>()
+                                    .user
+                                    ?.canAccessCompanyCommunity ==
+                                true,
                           ),
                         ),
                       ),

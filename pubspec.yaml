@@ -49,6 +49,14 @@ dependencies:
   # Guide interactif pour les nouveaux utilisateurs (coach marks)
   showcaseview: ^4.0.1
 
+  # Invitations d'événements : contacts du téléphone (iOS uniquement, avec
+  # permission ; accès limité iOS 18 géré). Versions exactes : les suivantes
+  # exigent Flutter 3.44. Sur Android, aucune permission Contacts : sélecteur
+  # système via le canal natif kart/contact_picker (MainActivity).
+  flutter_contacts: 2.1.0
+  # Sélecteur natif multiple d'iOS (refus de permission ou accès limité).
+  flutter_native_contact_picker: 0.0.12
+
   # Device info for automatic tracking
   device_info_plus: ^10.1.0
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/company_event_summary.dart';
 import '../services/company_community_service.dart';
 import 'company_event_participants_page.dart';
@@ -105,6 +107,11 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
                       eventName: event.name,
                       publicUrl: event.publicUrl,
                       eventHasEnded: event.hasEnded,
+                      showInvitations: context
+                              .read<AuthProvider>()
+                              .user
+                              ?.canAccessCompanyCommunity ==
+                          true,
                     ),
                   ),
                 ),
@@ -170,6 +177,13 @@ class _EventRow extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 12, color: colors.onSurface.withValues(alpha: 0.55)),
                     ),
+                    if (event.invitationsCount > 0) ...[
+                      const SizedBox(height: 4),
+                      _InvitationsCount(
+                        confirmed: event.invitationsConfirmedCount,
+                        invited: event.invitationsCount,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -179,6 +193,30 @@ class _EventRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// « X confirmés / Y invités » (seulement si l'événement a des invitations).
+class _InvitationsCount extends StatelessWidget {
+  final int confirmed;
+  final int invited;
+
+  const _InvitationsCount({required this.confirmed, required this.invited});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final green = isDark ? const Color(0xFF34D399) : const Color(0xFF047857);
+    return Row(
+      children: [
+        Icon(Icons.mark_email_read_outlined, size: 14, color: green),
+        const SizedBox(width: 4),
+        Text(
+          '$confirmed confirmé${confirmed > 1 ? 's' : ''} / $invited invité${invited > 1 ? 's' : ''}',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: green),
+        ),
+      ],
     );
   }
 }

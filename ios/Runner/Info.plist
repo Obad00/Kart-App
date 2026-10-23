@@ -50,7 +50,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>KART a besoin d'accéder à votre caméra pour scanner des QR codes et des cartes de visite</string>
 	<key>NSContactsUsageDescription</key>
-	<string>KART a besoin d'accéder à vos contacts pour ajouter les contacts scannés</string>
+	<string>KART lit les contacts de ce téléphone pour vous laisser choisir qui inviter à vos événements. Seuls les contacts que vous cochez sont envoyés à KART.</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>KART lit votre carte NFC pour l'activer</string>
 	<key>GIDClientID</key>

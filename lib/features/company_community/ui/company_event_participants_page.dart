@@ -8,6 +8,7 @@ import '../../../shared/widgets/glass_app_bar.dart';
 import '../models/event_participant_summary.dart';
 import '../services/company_community_service.dart';
 import '../widgets/participant_list_widgets.dart';
+import 'event_invitations_tab.dart';
 
 /// Détail d'un événement de l'entreprise : statistiques inscrits/présents/
 /// walk-ins + table "Participant / Statut / Profil KART" (cf. maquette
@@ -25,6 +26,10 @@ class CompanyEventParticipantsPage extends StatefulWidget {
   // d'inviter à s'inscrire à quelque chose qui n'a plus lieu — cf. bouton
   // de partage plus bas, masqué dans ce cas.
   final bool eventHasEnded;
+  // Onglets « Participants » / « Invitations » — mêmes comptes que ceux qui
+  // ouvrent cette page (User.canAccessCompanyCommunity). Sans eux, la page
+  // reste exactement l'écran des participants d'avant.
+  final bool showInvitations;
 
   const CompanyEventParticipantsPage({
     super.key,
@@ -32,6 +37,7 @@ class CompanyEventParticipantsPage extends StatefulWidget {
     required this.eventName,
     this.publicUrl,
     this.eventHasEnded = false,
+    this.showInvitations = false,
   });
 
   @override
@@ -40,8 +46,13 @@ class CompanyEventParticipantsPage extends StatefulWidget {
 }
 
 class _CompanyEventParticipantsPageState
-    extends State<CompanyEventParticipantsPage> {
+    extends State<CompanyEventParticipantsPage>
+    with SingleTickerProviderStateMixin {
   final _service = CompanyCommunityService();
+  // Créé seulement quand les onglets sont affichés (showInvitations).
+  TabController? _tabs;
+  // L'onglet Invitations n'est chargé qu'à sa première ouverture.
+  bool _invitationsOpened = false;
   List<EventParticipantSummary> _participants = [];
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
@@ -50,7 +61,22 @@ class _CompanyEventParticipantsPageState
   @override
   void initState() {
     super.initState();
+    if (widget.showInvitations) {
+      _tabs = TabController(length: 2, vsync: this)..addListener(_onTabChanged);
+    }
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs?.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    final tabs = _tabs!;
+    if (tabs.indexIsChanging) return;
+    setState(() => _invitationsOpened |= tabs.index == 1);
   }
 
   Future<void> _load() async {
@@ -122,6 +148,7 @@ class _CompanyEventParticipantsPageState
             onPressed: _shareRegistrationLink,
           ),
       ],
+      bottom: widget.showInvitations ? _buildTabs() : null,
     );
     final topPadding =
         glassAppBar.preferredSize.height + MediaQuery.of(context).padding.top;
@@ -133,7 +160,18 @@ class _CompanyEventParticipantsPageState
           SafeArea(
             top: false,
             bottom: false,
-            child: _buildBody(colors, topPadding),
+            child: widget.showInvitations
+                ? IndexedStack(
+                    index: _tabs!.index,
+                    children: [
+                      _buildBody(colors, topPadding),
+                      if (_invitationsOpened)
+                        EventInvitationsTab(eventId: widget.eventId, topPadding: topPadding)
+                      else
+                        const SizedBox.shrink(),
+                    ],
+                  )
+                : _buildBody(colors, topPadding),
           ),
           Positioned(
             top: 0,
@@ -142,6 +180,40 @@ class _CompanyEventParticipantsPageState
             child: SizedBox(height: topPadding, child: glassAppBar),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Même pilule « segmented control » qu'Explorer et JobMatch.
+  PreferredSizeWidget _buildTabs() {
+    final colors = Theme.of(context).colorScheme;
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(58),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: colors.onSurface.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TabBar(
+            controller: _tabs,
+            indicator: BoxDecoration(
+              color: const Color(0xFF3B82F6),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            splashBorderRadius: BorderRadius.circular(6),
+            labelColor: Colors.white,
+            unselectedLabelColor: colors.onSurface.withValues(alpha: 0.6),
+            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            tabs: const [Tab(text: 'Participants'), Tab(text: 'Invitations')],
+          ),
+        ),
       ),
     );
   }
