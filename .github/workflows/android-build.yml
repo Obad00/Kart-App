@@ -8,6 +8,10 @@ name: Build Android App Bundle
 # envoyer directement à la Play Console via l'API.
 on:
   workflow_dispatch:
+  # Temporaire : vérifie la compilation (canal natif) et le manifeste
+  # fusionné de feature/event-invitations. À retirer avant la fusion.
+  push:
+    branches: [feature/event-invitations]
 
 jobs:
   build:
