@@ -21,9 +21,9 @@
     <!-- Notifications push (FCM) — permission d'affichage requise depuis Android 13 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Contacts permissions for adding contacts -->
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <!-- Aucune permission Contacts (règle Google Play « Contacts
+         Permissions ») : l'app ne lit ni n'écrit les contacts du téléphone ;
+         le choix d'un contact passe par le sélecteur du système. -->
 
     <application
         android:label="KART"
