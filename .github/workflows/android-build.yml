@@ -52,10 +52,23 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::Secret ANDROID_KEYSTORE_BASE64 manquant — voir la documentation de signature Android du projet."
-            exit 1
+            # Temporaire (vérification de feature/event-invitations) : sans
+            # secret, clé jetable pour compiler la release complète. L'AAB
+            # obtenu n'est PAS publiable (mauvaise clé de signature).
+            if [ "${{ github.ref_name }}" != "feature/event-invitations" ]; then
+              echo "::error::Secret ANDROID_KEYSTORE_BASE64 manquant — voir la documentation de signature Android du projet."
+              exit 1
+            fi
+            echo "::warning::Secret ANDROID_KEYSTORE_BASE64 absent : AAB de vérification signé avec une clé jetable, à ne pas publier."
+            KEY_ALIAS=verification
+            KEY_PASSWORD=verification
+            STORE_PASSWORD=verification
+            keytool -genkeypair -keystore android/kart-release.jks -alias "$KEY_ALIAS" \
+              -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+              -dname "CN=KART verification" -keyalg RSA -keysize 2048 -validity 2
+          else
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/kart-release.jks
           fi
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/kart-release.jks
           cat > android/key.properties <<EOF
           storePassword=$STORE_PASSWORD
           keyPassword=$KEY_PASSWORD
@@ -71,3 +84,10 @@ jobs:
         with:
           name: KartApp-android-aab
           path: build/app/outputs/bundle/release/*.aab
+
+      # Temporaire : manifeste fusionné (permissions finales), lisible tel quel.
+      - name: Sauvegarder le manifeste fusionné (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartApp-android-merged-manifest
+          path: build/app/intermediates/merged_manifest*/release/**/AndroidManifest.xml
