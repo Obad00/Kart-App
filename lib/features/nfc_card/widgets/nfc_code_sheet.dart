@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../utils/nfc_code.dart';
 import 'nfc_card_widgets.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Saisie manuelle du code imprimé sur la carte NFC — pour un téléphone
 /// sans NFC, ou quand la lecture de la puce échoue.
@@ -38,16 +39,13 @@ class NfcCodeSheet extends StatefulWidget {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: KartTokens.of(context).sheetBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => NfcCodeSheet(
+      backgroundColor: Colors.transparent,
+      builder: (_) => GlassSheet(child: NfcCodeSheet(
         onSubmit: onSubmit,
         title: title,
         submitLabel: submitLabel,
         hint: hint,
-      ),
+      )),
     );
   }
 

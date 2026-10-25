@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../data/nfc_tag_reader.dart';
 import '../utils/nfc_code.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Résultat de la feuille « Approchez votre carte ».
 enum NfcScanResult {
@@ -38,11 +39,8 @@ class NfcScanSheet extends StatefulWidget {
   }) {
     return showModalBottomSheet<NfcScanResult>(
       context: context,
-      backgroundColor: KartTokens.of(context).sheetBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => NfcScanSheet(reader: reader, onCode: onCode, title: title),
+      backgroundColor: Colors.transparent,
+      builder: (_) => GlassSheet(child: NfcScanSheet(reader: reader, onCode: onCode, title: title)),
     );
   }
 

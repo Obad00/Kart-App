@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/professional_document.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Une ligne de la section "Documents professionnels" — icône par
 /// catégorie, titre, "Établissement • Année", puis le badge "Vérifié"
@@ -52,11 +53,9 @@ class DocumentRow extends StatelessWidget {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => GlassSheet(
+          child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -81,7 +80,7 @@ class DocumentRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 

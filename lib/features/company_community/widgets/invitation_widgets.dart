@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/glass_menu.dart';
 import '../models/event_invitation.dart';
 import '../utils/phone_display.dart';
 
@@ -112,7 +113,6 @@ class InvitationListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pending = invitation.status == InvitationStatus.pending;
     final subtitle = [formatPhoneForDisplay(invitation.phone), invitation.category]
         .where((s) => s != null && s.isNotEmpty)
@@ -182,7 +182,6 @@ class InvitationListTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _MoreMenu(
-                isDark: isDark,
                 showWhatsApp: onSend == null,
                 onWhatsApp: onResend,
                 onShare: onShare,
@@ -264,7 +263,6 @@ class _SendChip extends StatelessWidget {
 }
 
 class _MoreMenu extends StatelessWidget {
-  final bool isDark;
   final bool showWhatsApp;
   final VoidCallback onWhatsApp;
   final VoidCallback onShare;
@@ -272,7 +270,6 @@ class _MoreMenu extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _MoreMenu({
-    required this.isDark,
     required this.showWhatsApp,
     required this.onWhatsApp,
     required this.onShare,
@@ -283,25 +280,9 @@ class _MoreMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    PopupMenuItem<String> item(String value, IconData icon, String label, {Color? color}) =>
-        PopupMenuItem(
-          value: value,
-          child: Row(
-            children: [
-              Icon(icon, color: color ?? _themeBlue, size: 20),
-              const SizedBox(width: 12),
-              Text(label, style: TextStyle(color: color)),
-            ],
-          ),
-        );
-
-    // Même menu que celui des contacts (fond, coins, icônes bleues).
-    return PopupMenuButton<String>(
+    // Même menu verre que celui des contacts.
+    return GlassMenuButton<String>(
       tooltip: "Plus d'options",
-      icon: Icon(Icons.more_horiz_rounded, color: colors.onSurface.withValues(alpha: 0.6)),
-      padding: EdgeInsets.zero,
-      color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) => switch (value) {
         'whatsapp' => onWhatsApp(),
         'share' => onShare(),
@@ -310,11 +291,17 @@ class _MoreMenu extends StatelessWidget {
         _ => null,
       },
       itemBuilder: (_) => [
-        if (showWhatsApp) item('whatsapp', Icons.send_rounded, 'Renvoyer sur WhatsApp'),
-        item('share', Icons.ios_share_rounded, "Partager l'invitation"),
-        item('edit', Icons.edit_outlined, 'Modifier'),
-        item('delete', Icons.delete_outline_rounded, 'Retirer de la liste', color: Colors.redAccent),
+        if (showWhatsApp)
+          const GlassMenuItem(value: 'whatsapp', icon: Icons.send_rounded, title: 'Renvoyer sur WhatsApp'),
+        const GlassMenuItem(value: 'share', icon: Icons.ios_share_rounded, title: "Partager l'invitation"),
+        const GlassMenuItem(value: 'edit', icon: Icons.edit_outlined, title: 'Modifier'),
+        const GlassMenuItem(
+            value: 'delete', icon: Icons.delete_outline_rounded, title: 'Retirer de la liste', destructive: true),
       ],
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Icon(Icons.more_horiz_rounded, color: colors.onSurface.withValues(alpha: 0.6)),
+      ),
     );
   }
 }

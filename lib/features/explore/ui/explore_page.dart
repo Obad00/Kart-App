@@ -39,6 +39,7 @@ import 'my_requests_page.dart';
 import 'section_profiles_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 const _themeBlue = exploreThemeBlue;
 
@@ -286,12 +287,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
+      builder: (sheetContext) => GlassSheet(child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -438,7 +436,7 @@ class _ExplorePageState extends State<ExplorePage> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -451,12 +449,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => ChangeNotifierProvider.value(
+      builder: (sheetContext) => GlassSheet(child: ChangeNotifierProvider.value(
         value: _provider,
         child: SafeArea(
           top: false,
@@ -530,7 +525,7 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 

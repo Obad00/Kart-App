@@ -4,6 +4,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../jobmatch_theme.dart';
 import '../model/contract_type_label.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Détail complet d'une offre — feuille modale (DraggableScrollableSheet),
 /// même présentation que "Voir tout" pour Expériences/Formation sur la
@@ -33,16 +34,12 @@ void showJobDetailSheet(
   VoidCallback? onSave,
   bool isSaved = false,
 }) {
-  final colors = Theme.of(context).colorScheme;
-
   showModalBottomSheet(
     context: context,
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (sheetContext) => DraggableScrollableSheet(
+    builder: (sheetContext) => GlassSheet(
+        child: DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.4,
       maxChildSize: 0.95,
@@ -67,7 +64,7 @@ void showJobDetailSheet(
         isSaved: isSaved,
         scrollController: scrollController,
       ),
-    ),
+    )),
   );
 }
 

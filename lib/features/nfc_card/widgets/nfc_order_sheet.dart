@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/kart_tokens.dart';
 import 'nfc_card_widgets.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Formulaire de commande d'une carte NFC : téléphone, adresse de
 /// livraison, notes. Aucun prix ni paiement dans l'app — KART recontacte
@@ -42,15 +43,13 @@ class NfcOrderSheet extends StatefulWidget {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: KartTokens.of(context).sheetBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => NfcOrderSheet(
+      backgroundColor: Colors.transparent,
+      builder: (_) => GlassSheet(
+          child: NfcOrderSheet(
         onSubmit: onSubmit,
         initialPhone: initialPhone,
         onContactSupport: onContactSupport,
-      ),
+      )),
     );
   }
 

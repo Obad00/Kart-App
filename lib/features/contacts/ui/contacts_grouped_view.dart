@@ -7,6 +7,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/tour/tour_prefs.dart';
 import '../../../shared/tour/tab_bar_tour_gate.dart';
+import '../../../shared/widgets/glass_menu.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/filter_pill_chip.dart';
@@ -252,7 +253,12 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
     }
   }
 
-  static const double _titleRowHeight = 66;
+  /// Hauteur du bloc titre (« Contacts » en 28, compteurs en 13), selon la
+  /// taille de texte réellement affichée : la valeur fixe de 66 débordait
+  /// de 3,5 px avec la police Syne, et davantage avec un texte agrandi
+  /// dans les réglages du téléphone.
+  static double _titleRowHeight(TextScaler scaler) =>
+      8 + scaler.scale(28) * 1.3 + 4 + scaler.scale(13) * 1.5 + 4;
   // +6 de marge de sécurité (même AppSearchBar qu'Explorer, qui a montré un
   // "RenderFlex overflowed by 5.0 pixels" avec la même hauteur supposée).
   static const double _searchBarBlockHeight = 88;
@@ -266,7 +272,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
       builder: (context, provider, _) {
         final colors = Theme.of(context).colorScheme;
         final hasHighlights = provider.groups.any((g) => g.highlight.id != 0);
-        final headerHeight = _titleRowHeight +
+        final headerHeight = _titleRowHeight(MediaQuery.textScalerOf(context)) +
             _searchBarBlockHeight +
             (hasHighlights ? _highlightFilterRowHeight : 0);
 
@@ -882,14 +888,10 @@ class _ContactsMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return PopupMenuButton<String>(
+    // Menu verre (cf. GlassMenuButton) : mêmes entrées, mêmes actions.
+    return GlassMenuButton<String>(
       tooltip: 'Plus d\'options',
-      color: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF2A2A2A)
-          : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) {
-        HapticFeedback.lightImpact();
         switch (value) {
           case 'export':
             onExport();
@@ -903,43 +905,23 @@ class _ContactsMenuButton extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        const GlassMenuItem(
           value: 'export',
-          child: Row(
-            children: [
-              Icon(Icons.file_upload_outlined, color: _themeBlue, size: 20),
-              SizedBox(width: 12),
-              Text('Exporter (.CSV)'),
-            ],
-          ),
+          icon: Icons.file_upload_outlined,
+          title: 'Exporter (.CSV)',
         ),
-        PopupMenuItem(
+        GlassMenuItem(
           value: 'select',
-          child: Row(
-            children: [
-              Icon(
-                selectionModeActive
-                    ? Icons.check_circle_rounded
-                    : Icons.check_circle_outline_rounded,
-                color: _themeBlue,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Text(selectionModeActive
-                  ? 'Terminer la sélection'
-                  : 'Sélectionner'),
-            ],
-          ),
+          icon: selectionModeActive
+              ? Icons.check_circle_rounded
+              : Icons.check_circle_outline_rounded,
+          title: selectionModeActive ? 'Terminer la sélection' : 'Sélectionner',
         ),
-        const PopupMenuItem(
+        const GlassMenuItem(
           value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
-              SizedBox(width: 12),
-              Text('Supprimer', style: TextStyle(color: Colors.red)),
-            ],
-          ),
+          icon: Icons.delete_outline_rounded,
+          title: 'Supprimer',
+          destructive: true,
         ),
       ],
       child: Container(

@@ -1,29 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/digital_card/providers/card_provider.dart';
+import 'color_contrast.dart';
 
-/// Helper pour obtenir la couleur de l'entreprise avec un fallback sur la couleur primaire
+/// Couleur de l'entreprise ou de l'utilisateur, en deux usages :
+/// - [getCompanyColor] : texte et icônes. Rendue LISIBLE sur le fond du
+///   thème en cours (contraste ≥ 4,5:1, donc aussi ≥ 3:1 pour les icônes) :
+///   un accent foncé (#002842) est éclairci en thème sombre, un accent très
+///   clair assombri en thème clair (accent_color_light du serveur d'abord).
+/// - [getCompanyFill] : fonds pleins (boutons, pastilles) — la couleur de
+///   marque exacte ; le texte posé dessus passe par readableForegroundOn.
 class CompanyColorHelper {
-  /// Obtient la couleur de l'entreprise, sinon celle personnalisée par
-  /// l'utilisateur, sinon la couleur primaire par défaut
-  static Color getCompanyColor(BuildContext context) {
-    final cardProvider = context.watch<CardProvider>();
-    final colors = Theme.of(context).colorScheme;
+  /// Fonds sur lesquels l'accent doit rester lisible : le plus clair des
+  /// fonds sombres (cartes #222222, avec marge) et le fond de page clair.
+  static const Color _darkBackground = Color(0xFF2A2A2A);
+  static const Color _lightBackground = Color(0xFFF5F4F0);
 
-    return _parseColor(cardProvider.companyPrimaryColor) ??
-        _personalAccent(cardProvider, colors.brightness) ??
-        colors.primary;
+  /// Couleur de texte et d'icône (avec watch).
+  static Color getCompanyColor(BuildContext context) => _readable(
+      context, _brand(context.watch<CardProvider>(), Theme.of(context)));
+
+  /// Idem, sans watch.
+  static Color getCompanyColorRead(BuildContext context) => _readable(
+      context, _brand(context.read<CardProvider>(), Theme.of(context)));
+
+  /// Couleur de marque exacte, pour un fond plein (avec watch).
+  static Color getCompanyFill(BuildContext context) =>
+      _brand(context.watch<CardProvider>(), Theme.of(context));
+
+  /// [color] rendue lisible sur le fond du thème de [context].
+  static Color readable(BuildContext context, Color color) =>
+      _readable(context, color);
+
+  static Color _readable(BuildContext context, Color color) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ColorContrast.readableOn(
+        color, dark ? _darkBackground : _lightBackground);
   }
 
-  /// Idem, sans watch
-  static Color getCompanyColorRead(BuildContext context) {
-    final cardProvider = context.read<CardProvider>();
-    final colors = Theme.of(context).colorScheme;
-
-    return _parseColor(cardProvider.companyPrimaryColor) ??
-        _personalAccent(cardProvider, colors.brightness) ??
-        colors.primary;
-  }
+  static Color _brand(CardProvider card, ThemeData theme) =>
+      _parseColor(card.companyPrimaryColor) ??
+      _personalAccent(card, theme.colorScheme.brightness) ??
+      theme.colorScheme.primary;
 
   /// Couleur d'accent personnelle. En thème clair, sa variante assombrie
   /// quand le serveur en a calculé une (couleur trop pâle sur fond blanc).
@@ -73,6 +91,9 @@ extension CompanyColorContext on BuildContext {
 
   /// Couleur de l'entreprise ou primaire par défaut (sans watch)
   Color get companyColorRead => CompanyColorHelper.getCompanyColorRead(this);
+
+  /// Couleur de marque exacte, pour un fond plein (avec watch)
+  Color get companyFill => CompanyColorHelper.getCompanyFill(this);
 
   /// Vérifie si une couleur d'entreprise existe
   bool get hasCompanyColor => CompanyColorHelper.hasCompanyColor(this);

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/kart_tokens.dart';
 import '../utils/crop_image.dart';
+import '../../shared/widgets/glass_sheet.dart';
 
 /// Choix proposé après la sélection d'un logo.
 enum _LogoMode {
@@ -49,11 +50,8 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     // Afficher un bottom sheet pour choisir la source
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
+      backgroundColor: Colors.transparent,
+      builder: (context) => GlassSheet(child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
@@ -105,7 +103,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -205,13 +203,10 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
   Future<_LogoMode?> _chooseLogoMode(String path) {
     return showModalBottomSheet<_LogoMode>(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final colors = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
+        return GlassSheet(child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
             child: Column(
@@ -311,7 +306,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
               ],
             ),
           ),
-        );
+        ));
       },
     );
   }

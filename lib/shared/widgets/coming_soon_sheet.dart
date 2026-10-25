@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/kart_tokens.dart';
+import '../../shared/widgets/glass_sheet.dart';
 
 /// Feuille "Fonctionnalité bientôt disponible" — même présentation que celle
 /// du scan de cartes physiques (ScanPage), mais aux couleurs du thème et
@@ -22,12 +23,10 @@ class ComingSoonSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = KartTokens.of(context);
 
-    return Container(
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: t.sheetBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       child: SafeArea(
         top: false,
         child: Column(
@@ -75,6 +74,7 @@ class ComingSoonSheet extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -32,7 +32,7 @@ import '../../explore/models/explore_user.dart';
 import '../../../shared/utils/status_bar_style.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../../shared/widgets/expandable_text.dart';
-import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 // Même bleu (indigo) que CompletionSections._interestsAccentColor côté
 // profil — cohérence entre l'affichage lecture seule ici et l'éditeur.
@@ -1153,11 +1153,8 @@ class _PublicCardPageState extends State<PublicCardPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
-        return Container(
-          decoration: BoxDecoration(
-            color: KartTokens.of(sheetContext).sheetBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return GlassSheet(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),

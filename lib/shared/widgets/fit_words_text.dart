@@ -13,6 +13,7 @@ class FitWordsText extends StatelessWidget {
     this.minFontSize = 16,
     this.maxLines,
     this.textAlign,
+    this.shrinkToMaxLines = false,
   });
 
   final String text;
@@ -23,6 +24,10 @@ class FitWordsText extends StatelessWidget {
   final int? maxLines;
   final TextAlign? textAlign;
 
+  /// true : la taille baisse aussi jusqu'à ce que tout le texte tienne en
+  /// [maxLines] lignes (au lieu d'être coupé par « … »).
+  final bool shrinkToMaxLines;
+
   /// Taille à laquelle le mot le plus large de [text] tient dans [maxWidth].
   static double fittingSize(
     String text,
@@ -30,6 +35,7 @@ class FitWordsText extends StatelessWidget {
     double maxWidth, {
     required double minFontSize,
     TextScaler textScaler = TextScaler.noScaling,
+    int? maxLines,
   }) {
     final words = text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     var size = style.fontSize ?? 14;
@@ -50,7 +56,21 @@ class FitWordsText extends StatelessWidget {
       return max;
     }
 
-    while (size > minFontSize && widest(size) > maxWidth) {
+    // Tout le texte, coupé entre les mots seulement, tient-il en maxLines ?
+    bool tooManyLines(double fontSize) {
+      if (maxLines == null) return false;
+      final painter = TextPainter(
+        text: TextSpan(text: text.trim(), style: style.copyWith(fontSize: fontSize)),
+        textDirection: TextDirection.ltr,
+        textScaler: textScaler,
+        maxLines: maxLines,
+      )..layout(maxWidth: maxWidth);
+      final exceeded = painter.didExceedMaxLines;
+      painter.dispose();
+      return exceeded;
+    }
+
+    while (size > minFontSize && (widest(size) > maxWidth || tooManyLines(size))) {
       size = (size - 0.5).clamp(minFontSize, size);
     }
     return size;
@@ -69,6 +89,7 @@ class FitWordsText extends StatelessWidget {
           constraints.maxWidth,
           minFontSize: minFontSize,
           textScaler: MediaQuery.textScalerOf(context),
+          maxLines: shrinkToMaxLines ? maxLines : null,
         );
         return Text(
           text,

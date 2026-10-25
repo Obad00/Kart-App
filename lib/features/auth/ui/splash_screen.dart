@@ -11,6 +11,7 @@ import '../../digital_card/providers/card_provider.dart';
 import 'login_page.dart';
 import '../../navigation/home_shell.dart';
 import '../../plans/ui/plan_selection_page.dart';
+import '../../../shared/widgets/fit_words_text.dart';
 
 /// Angle du balancement du cordon entier. Il s'amorce avec l'arrivée du
 /// badge : pendant la descente d'entrée il n'oscille pas encore.
@@ -655,11 +656,18 @@ class _SplashKartCardState extends State<_SplashKartCard>
                                 // toute la durée où le nom reste affiché.
                                 AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 400),
-                                  child: Text(
+                                  // Jamais coupé au milieu d'un mot
+                                  // (« ABDOULA / YE ») : retour à la ligne
+                                  // entre les mots, 2 lignes au plus, la
+                                  // taille baisse jusqu'à ce que tout tienne.
+                                  child: FitWordsText(
                                     title,
                                     key: ValueKey(title),
                                     maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    // Plancher bas : un mot seul très long
+                                    // (18 lettres et plus) doit tenir entier.
+                                    minFontSize: 9,
+                                    shrinkToMaxLines: true,
                                     style: const TextStyle(
                                       fontFamily: 'Syne',
                                       color: Colors.white,

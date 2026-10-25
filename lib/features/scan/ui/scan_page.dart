@@ -8,6 +8,7 @@ import '../../digital_card/ui/my_digital_card_page.dart';
 import '../../navigation/home_shell.dart';
 
 import 'package:kart_app/core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
@@ -37,14 +38,10 @@ void _showComingSoonDialog() {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
-    builder: (_) => Container(
+    builder: (_) => GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -81,6 +78,7 @@ void _showComingSoonDialog() {
           ),
         ],
       ),
+    ),
     ),
   );
 }

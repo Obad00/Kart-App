@@ -7,6 +7,7 @@ import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/skill_chip.dart';
 import '../model/skill_model.dart';
 import '../providers/candidate_skills_provider.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 const _levels = [
   {'value': 'debutant', 'label': 'Débutant'},
@@ -142,12 +143,10 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
     final colors = Theme.of(context).colorScheme;
     const blueColor = Color(0xFF3B82F6);
 
-    return Container(
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: SizedBox(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       child: SafeArea(
         top: false,
         child: Column(
@@ -297,6 +296,7 @@ class _SkillEditorSheetState extends State<SkillEditorSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -361,11 +361,9 @@ Future<String?> _pickLevel(BuildContext context) {
     isScrollControlled: true,
     builder: (context) {
       final colors = Theme.of(context).colorScheme;
-      return Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+      return GlassSheet(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         child: SafeArea(
           top: false,
@@ -470,6 +468,7 @@ Future<String?> _pickLevel(BuildContext context) {
             ],
           ),
         ),
+      ),
       );
     },
   );
