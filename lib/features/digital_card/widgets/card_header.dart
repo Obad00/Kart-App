@@ -7,6 +7,7 @@ import '../../../core/theme/kart_tokens.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/utils/color_contrast.dart';
 import '../../../shared/widgets/avatar_initials.dart';
+import '../../../shared/widgets/glass_menu.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/jobmatch_access.dart';
 import '../../../shared/utils/session_reset.dart';
@@ -96,7 +97,6 @@ class _ProfileDropdownButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     // Initiales/cadre aux couleurs de l'entreprise (cf. _MenuLines).
     final brand = context.companyColor;
     final avatarPath = context.watch<AuthProvider>().user?.avatar;
@@ -106,44 +106,36 @@ class _ProfileDropdownButton extends StatelessWidget {
             : '${ApiEndpoints.storageUrl}/$avatarPath')
         : null;
 
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      color: colors.surface,
-      elevation: 8,
+    // Menu verre (cf. GlassMenuButton) : mêmes entrées, mêmes actions.
+    return GlassMenuButton<String>(
+      tooltip: 'Mon compte',
       onSelected: (value) => _handleMenuSelection(context, value),
       itemBuilder: (context) => [
-        _buildMenuItem(
-          context,
+        GlassMenuItem(
           value: 'profile',
           icon: Icons.person_outline,
           title: 'Mon Profil',
           subtitle: fullName,
         ),
-        _buildMenuItem(
-          context,
+        const GlassMenuItem(
           value: 'cards',
           icon: Icons.credit_card_outlined,
           title: 'Mes Cartes',
           subtitle: 'Gerer mes cartes digitales',
         ),
-        _buildMenuItem(
-          context,
+        const GlassMenuItem(
           value: 'settings',
           icon: Icons.settings_outlined,
           title: 'Parametres',
           subtitle: 'Preferences de l\'application',
         ),
-        const PopupMenuDivider(),
-        _buildMenuItem(
-          context,
+        const GlassMenuItem(
           value: 'logout',
           icon: Icons.logout_rounded,
           title: 'Deconnexion',
           subtitle: 'Se deconnecter du compte',
-          isDestructive: true,
+          destructive: true,
+          dividerBefore: true,
         ),
       ],
       child: Container(
@@ -192,69 +184,6 @@ class _ProfileDropdownButton extends StatelessWidget {
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  PopupMenuItem<String> _buildMenuItem(
-    BuildContext context, {
-    required String value,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool isDestructive = false,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    final textColor = isDestructive ? Colors.red : colors.onSurface;
-    final iconColor = isDestructive ? Colors.red : colors.primary;
-
-    return PopupMenuItem<String>(
-      value: value,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: (isDestructive ? Colors.red : colors.primary)
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colors.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.chevron_right,
-            color: colors.onSurface.withValues(alpha: 0.3),
-            size: 18,
-          ),
-        ],
       ),
     );
   }

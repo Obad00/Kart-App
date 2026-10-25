@@ -10,6 +10,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Diamètre des cercles de la barre (catégories) et hauteur de la barre.
 const double _circleSize = 64;
@@ -481,15 +482,11 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final t = KartTokens.of(context);
-    final bgColor = t.sheetBackground;
     final textColor = t.textPrimary;
     final choiceColor = widget.isCompanyUser ? widget.accentColor : t.activeBlue;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Padding(
         padding: EdgeInsets.only(
           left: 20,

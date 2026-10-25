@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../shared/utils/company_color_helper.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/skill_chip.dart';
@@ -8,6 +10,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../model/interest_model.dart';
 import '../providers/profile_completion_provider.dart';
 import '../services/interest_service.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Bottom sheet "Centre d'intérêt" — mots-clés libres (loisirs, passions...)
 /// affichés en tête du profil et, en lecture seule, sur la carte publique
@@ -152,12 +155,10 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
     // fermeture, champ de saisie fixe et bouton "Enregistrer" épinglé en
     // bas pendant que le reste défile — plutôt qu'un simple Padding qui
     // grandissait avec le contenu et perdait le fond/les coins arrondis.
-    return Container(
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: SizedBox(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       child: SafeArea(
         top: false,
         child: Column(
@@ -224,7 +225,8 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
                       backgroundColor: widget.companyColor,
                       minimumSize: const Size(48, 48),
                     ),
-                    icon: const Icon(Icons.add_rounded, color: Colors.white),
+                    icon: Icon(Icons.add_rounded,
+                        color: readableForegroundOn(widget.companyColor)),
                   ),
                 ],
               ),
@@ -317,6 +319,7 @@ class _InterestsEditorSheetState extends State<InterestsEditorSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 

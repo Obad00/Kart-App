@@ -6,10 +6,12 @@ import '../../digital_card/confirm_card_deactivation.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
 import '../../../shared/utils/website_url.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 final List<String> _schools = [
   'Université Cheikh Anta Diop (UCAD)',
@@ -326,21 +328,36 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sélectionner une année'),
-        content: SizedBox(
-          width: 300,
-          height: 300,
-          child: YearPicker(
-            firstDate: DateTime(1970),
-            lastDate: DateTime(2050),
-            selectedDate: DateTime(selectedYear),
-            onChanged: (DateTime dateTime) {
-              controller.text = dateTime.year.toString();
-              setState(() {});
-              Navigator.pop(context);
-            },
-          ),
+      // Même fenêtre verre que les autres popups de l'app.
+      builder: (context) => GlassDialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sélectionner une année',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 300,
+              height: 300,
+              child: YearPicker(
+                firstDate: DateTime(1970),
+                lastDate: DateTime(2050),
+                selectedDate: DateTime(selectedYear),
+                onChanged: (DateTime dateTime) {
+                  controller.text = dateTime.year.toString();
+                  setState(() {});
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -517,11 +534,8 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: DraggableScrollableSheet(
         initialChildSize: 0.92,
         minChildSize: 0.5,
@@ -1517,12 +1531,10 @@ class _OptionPickerSheetState extends State<_OptionPickerSheet> {
     return GestureDetector(
       // Tap hors du champ de recherche : ferme le clavier, la liste reste.
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Container(
+      child: GlassSheet(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.8,
-        decoration: BoxDecoration(
-          color: t.sheetBackground,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
         child: Column(
           children: [
             const SizedBox(height: 10),
@@ -1627,6 +1639,7 @@ class _OptionPickerSheetState extends State<_OptionPickerSheet> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

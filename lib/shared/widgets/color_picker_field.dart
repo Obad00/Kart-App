@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/theme/kart_tokens.dart';
 import '../utils/color_contrast.dart';
+import '../../shared/widgets/glass_sheet.dart';
 
 class ColorPickerField extends StatefulWidget {
   final String label;
@@ -458,17 +459,14 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
   void _showFullColorPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => _AdvancedColorPicker(
+      backgroundColor: Colors.transparent,
+      builder: (context) => GlassSheet(child: _AdvancedColorPicker(
         currentColor: _selectedColor,
         onColorSelected: (color) {
           _updateColor(color);
           Navigator.pop(context);
         },
-      ),
+      )),
     );
   }
 }
@@ -480,14 +478,11 @@ class _ColorPickerFieldState extends State<ColorPickerField> {
 Future<Color?> showKartColorPicker(BuildContext context, Color initial) {
   return showModalBottomSheet<Color>(
     context: context,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (sheetContext) => _AdvancedColorPicker(
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => GlassSheet(child: _AdvancedColorPicker(
       currentColor: initial,
       onColorSelected: (color) => Navigator.pop(sheetContext, color),
-    ),
+    )),
   );
 }
 

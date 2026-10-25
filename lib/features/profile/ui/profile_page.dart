@@ -46,6 +46,7 @@ import '../../profile_completion/providers/candidate_skills_provider.dart';
 import '../../contacts/providers/contacts_provider.dart';
 import 'notification_settings_page.dart';
 import '../../../shared/utils/status_bar_style.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Ouvre la feuille « Couleur et logo » (couleur d'accent et logo de la
 /// carte). Depuis le Profil, et depuis « Personnaliser ma carte publique ».
@@ -55,11 +56,8 @@ Future<void> showBrandingEditor(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (_) => const _BrandingEditor(),
+    backgroundColor: Colors.transparent,
+    builder: (_) => GlassSheet(child: const _BrandingEditor()),
   );
 }
 
@@ -445,9 +443,10 @@ class _ProfilePageState extends State<ProfilePage>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
+                          // Anneau de l'avatar : la couleur de marque exacte.
                           colors: [
-                            companyColor,
-                            companyColor.withValues(alpha: 0.7),
+                            context.companyFill,
+                            context.companyFill.withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -501,17 +500,17 @@ class _ProfilePageState extends State<ProfilePage>
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: companyColor,
+                          color: context.companyFill,
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: colors.surface,
                             width: 2,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.camera_alt_rounded,
                           size: 11,
-                          color: Colors.white,
+                          color: readableForegroundOn(context.companyFill),
                         ),
                       ),
                     ),
@@ -660,10 +659,10 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: const Icon(Icons.ios_share_rounded, size: 17),
                 label: const Text('Partager mon profil'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: companyColor,
-                  // Blanc en dur devenait illisible si l'accent
-                  // personnalisé était clair (ex: jaune pâle).
-                  foregroundColor: readableForegroundOn(companyColor),
+                  // Fond plein : la couleur de marque exacte, texte noir
+                  // ou blanc selon elle.
+                  backgroundColor: context.companyFill,
+                  foregroundColor: readableForegroundOn(context.companyFill),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   // fontFamily explicite : ElevatedButton.styleFrom(textStyle: ...)
@@ -927,11 +926,9 @@ class _ProfilePageState extends State<ProfilePage>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => DocumentUploadSheet(companyColor: companyColor),
+      backgroundColor: Colors.transparent,
+      builder: (_) =>
+          GlassSheet(child: DocumentUploadSheet(companyColor: companyColor)),
     );
   }
 
@@ -1232,12 +1229,10 @@ class _ProfilePageState extends State<ProfilePage>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => DraggableScrollableSheet(
+      builder: (ctx) => GlassSheet(
+          child: DraggableScrollableSheet(
         initialChildSize: 0.6,
         minChildSize: 0.4,
         maxChildSize: 0.9,
@@ -1480,7 +1475,7 @@ class _ProfilePageState extends State<ProfilePage>
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -1659,11 +1654,9 @@ class _ProfilePageState extends State<ProfilePage>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => GlassSheet(
+          child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
@@ -1701,7 +1694,7 @@ class _ProfilePageState extends State<ProfilePage>
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

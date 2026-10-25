@@ -3,6 +3,7 @@ import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/services/user_service.dart';
 import '../../../shared/widgets/glass_dialog.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 class LeadCaptureSheet extends StatefulWidget {
   final String slug;
@@ -142,15 +143,10 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final bgColor = isDark ? const Color(0xFF111827) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return GlassSheet(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: SafeArea(
         top: false,
         child: Padding(

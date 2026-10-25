@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
+import '../../../shared/utils/company_color_helper.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
@@ -240,7 +242,7 @@ class _DocumentUploadSheetState extends State<DocumentUploadSheet> {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: active
-                        ? Colors.white
+                        ? readableForegroundOn(widget.companyColor)
                         : colors.onSurface.withValues(alpha: 0.7),
                   ),
                   backgroundColor: colors.onSurface.withValues(alpha: 0.06),

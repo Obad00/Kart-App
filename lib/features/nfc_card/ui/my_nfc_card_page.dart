@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../data/nfc_card_service.dart';
 import '../data/nfc_tag_reader.dart';
@@ -190,29 +191,15 @@ class _NfcCardView extends StatelessWidget {
   }
 
   Future<void> _disable(BuildContext context) async {
-    final t = KartTokens.of(context);
     final provider = context.read<NfcCardProvider>();
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Désactiver la carte ?'),
-        content: const Text(
-          "Son lien n'ouvrira plus votre carte de visite. Vous pourrez la "
+    // Même fenêtre verre que les autres confirmations de l'app.
+    final confirmed = await GlassDialog.confirm(
+      context,
+      title: 'Désactiver la carte ?',
+      message: "Son lien n'ouvrira plus votre carte de visite. Vous pourrez la "
           'réactiver si vous la retrouvez.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: t.negative),
-            child: const Text('Désactiver'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Désactiver',
     );
     if (confirmed != true) return;
 

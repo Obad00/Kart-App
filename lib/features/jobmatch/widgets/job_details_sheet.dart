@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 /// Fiche détaillée d'une offre (titre, entreprise, lieu, description) —
 /// partagée entre le fil de suggestions (job_swipe_card.dart) et le
@@ -18,11 +18,9 @@ void showJobDetailsSheet(
     isScrollControlled: true,
     builder: (sheetContext) {
       final colors = Theme.of(sheetContext).colorScheme;
-      return Container(
-        decoration: BoxDecoration(
-          color: KartTokens.of(sheetContext).sheetBackground,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+      return GlassSheet(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
         ),
@@ -82,6 +80,7 @@ void showJobDetailsSheet(
             ),
           ),
         ),
+      ),
       );
     },
   );

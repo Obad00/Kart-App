@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../model/contract_type_label.dart';
 import '../model/job_filters.dart';
 import '../providers/jobmatch_provider.dart';
-import '../../../core/theme/kart_tokens.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 
 const _accentBlue = Color(0xFF3B82F6);
 
@@ -63,11 +63,9 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
       animation: widget.provider,
       builder: (context, _) {
         final options = widget.provider.filterOptions;
-        return Container(
-          decoration: BoxDecoration(
-            color: KartTokens.of(context).sheetBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return GlassSheet(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.88,
           ),
@@ -294,6 +292,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
               ],
             ),
           ),
+        ),
         );
       },
     );
@@ -386,12 +385,10 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
     final colors = Theme.of(context).colorScheme;
     return showModalBottomSheet<T>(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
+      builder: (sheetContext) => GlassSheet(
+          child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
@@ -423,7 +420,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -435,12 +432,10 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
 
     final result = await showModalBottomSheet<int?>(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => Padding(
+      builder: (sheetContext) => GlassSheet(
+          child: Padding(
         padding: EdgeInsets.fromLTRB(
           20,
           20,
@@ -488,7 +483,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
             ],
           ),
         ),
-      ),
+      )),
     );
 
     if (!mounted) return;
@@ -508,12 +503,10 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
+      builder: (sheetContext) => GlassSheet(
+          child: StatefulBuilder(
         builder: (sheetContext, setSheetState) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -583,7 +576,7 @@ class _JobFiltersSheetState extends State<_JobFiltersSheet> {
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 }
