@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
 import 'package:kart_app/features/auth/models/user.dart';
 import 'package:kart_app/features/auth/providers/auth_provider.dart';
+import 'package:kart_app/features/profile/widgets/edit_profile_form.dart';
 import 'package:kart_app/features/profile_completion/model/profile_completion_model.dart';
 import 'package:kart_app/features/profile_completion/providers/profile_completion_provider.dart';
 import 'package:kart_app/features/profile_completion/services/profile_completion_service.dart';
@@ -70,6 +71,22 @@ void main() {
     expect(find.text("Visible dans l'annuaire Explorer"), findsOneWidget);
     expect(find.text('Rendre ma carte publique'), findsNothing);
     expect(find.text('Apparaître dans Explorer'), findsNothing);
+  });
+
+  testWidgets('email de la carte et email de connexion : deux champs distincts', (tester) async {
+    await pumpCompletionForm(tester);
+    expect(find.text('Email affiché sur la carte'), findsOneWidget);
+    expect(find.text('Email (connexion et carte)'), findsNothing);
+
+    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
+      value: _FakeAuth(),
+      child: MaterialApp(
+        theme: AppTheme.dark(),
+        home: const Scaffold(body: SingleChildScrollView(child: EditProfileForm())),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Email de connexion'), findsOneWidget);
   });
 
   testWidgets('désactiver la carte : « Annuler » ne change rien, « Continuer » désactive', (tester) async {

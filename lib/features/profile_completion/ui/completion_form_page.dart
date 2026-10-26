@@ -96,9 +96,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   final _firstnameCtrl = TextEditingController();
   final _lastnameCtrl = TextEditingController();
-  // Email chargé à l'ouverture : sert à détecter un changement (nouvelle
-  // adresse = email de connexion, à vérifier).
-  String _initialEmail = '';
   final _jobCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
@@ -149,7 +146,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       final user = context.read<AuthProvider>().user;
       _firstnameCtrl.text = user?.firstname ?? '';
       _lastnameCtrl.text = user?.lastname ?? '';
-      _initialEmail = (m.email ?? '').trim();
       _jobCtrl.text = m.jobTitle ?? '';
       _companyCtrl.text = m.company ?? '';
       _cityCtrl.text = m.city ?? '';
@@ -374,9 +370,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       return;
     }
     final newEmail = _emailCtrl.text.trim();
-    final emailChanged = editsBasic &&
-        newEmail.isNotEmpty &&
-        newEmail.toLowerCase() != _initialEmail.toLowerCase();
 
     setState(() {
       loading = true;
@@ -443,8 +436,9 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
     final updated = ProfileCompletionModel(
       // Prénom, nom et email ne sont envoyés que depuis la section où on les
-      // modifie : l'email est celui du compte (= email de connexion), il ne
-      // doit jamais changer en enregistrant une expérience ou une formation.
+      // modifie. L'email est celui affiché sur la carte (propre à la carte,
+      // pas l'email de connexion) : il ne doit jamais changer en enregistrant
+      // une expérience ou une formation.
       firstname: editsBasic ? _firstnameCtrl.text.trim() : null,
       lastname: editsBasic ? _lastnameCtrl.text.trim() : null,
       jobTitle: _jobCtrl.text,
@@ -501,11 +495,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        _successMessage = !ok
-            ? null
-            : emailChanged
-                ? 'Profil mis à jour. Un lien de vérification a été envoyé à $newEmail.'
-                : 'Profil mis à jour avec succès';
+        _successMessage = !ok ? null : 'Profil mis à jour avec succès';
         _errorMessage = ok ? null : 'Une erreur est survenue';
       });
 
@@ -663,10 +653,10 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ),
                 const SizedBox(height: 12),
                 AuthTextField(
-                    // Email du compte : sert aussi à se connecter, et c'est
-                    // celui affiché sur la carte (une nouvelle adresse est à
-                    // vérifier via le lien envoyé par email).
-                    label: 'Email (connexion et carte)',
+                    // Email affiché sur la carte, propre à la carte : l'email
+                    // de connexion se change dans le profil (Modifier mon
+                    // profil), pas ici.
+                    label: 'Email affiché sur la carte',
                     controller: _emailCtrl,
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,

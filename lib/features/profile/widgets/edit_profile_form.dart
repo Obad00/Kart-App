@@ -277,7 +277,9 @@ class _EditProfileFormState extends State<EditProfileForm> {
               const SizedBox(height: 16),
 
               AuthTextField(
-                label: 'Adresse email',
+                // Email de connexion : distinct de l'email affiché sur la
+                // carte (qui se modifie dans « Modifier la carte »).
+                label: 'Email de connexion',
                 controller: _emailCtrl,
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
