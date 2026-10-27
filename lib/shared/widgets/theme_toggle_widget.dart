@@ -125,7 +125,7 @@ class ThemeToggleWidget extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: () async {
-          await themeProvider.setThemeMode(mode, isPremiumOrCompany: true);
+          await themeProvider.setThemeMode(mode);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -205,7 +205,7 @@ class ThemeToggleButton extends StatelessWidget {
 
     return IconButton(
       onPressed: () async {
-        await themeProvider.toggleTheme(isPremiumOrCompany: true);
+        await themeProvider.toggleTheme();
       },
       icon: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
