@@ -16,6 +16,7 @@ import '../../features/profile_completion/profile_reminder_target.dart';
 import '../../firebase_options_web.dart';
 import '../../shared/utils/jobmatch_access.dart';
 import '../network/api_client.dart';
+import 'notification_prefs.dart';
 
 /// Notifications push (FCM) : demande des sons de connexion Explorer
 /// (reçue/acceptée) et JobMatch (nouvelle candidature côté recruteur,
@@ -33,7 +34,7 @@ import '../network/api_client.dart';
 /// notification en arrière-plan/onglet fermé. Au premier plan, en revanche,
 /// rien n'est affiché sur le web (flutter_local_notifications ne supporte
 /// pas cette plateforme) — limitation connue, pas un oubli.
-class PushNotificationService {
+class PushNotificationService with WidgetsBindingObserver {
   PushNotificationService(this._navigatorKey);
 
   final GlobalKey<NavigatorState> _navigatorKey;
@@ -57,6 +58,14 @@ class PushNotificationService {
   /// qui échoue silencieusement. Valeurs : `pending`, `firebase_init_failed:…`,
   /// `permission_requested:<status>`, `permission_request_failed:…`.
   static String _initStage = 'pending';
+
+  /// Dernier enregistrement réussi du token, et statut de permission vu à
+  /// ce moment-là : au retour au premier plan, on réenregistre si le statut
+  /// a changé (permission accordée plus tard, dans les Réglages) ou si le
+  /// dernier enregistrement date de plus de [_registerInterval].
+  static DateTime? _lastRegisteredAt;
+  static AuthorizationStatus? _lastStatus;
+  static const _registerInterval = Duration(minutes: 30);
 
   Future<void> init() async {
     try {
@@ -105,8 +114,9 @@ class PushNotificationService {
     _onMessageOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen(
       (message) => _handleData(message.data),
     );
-    _onTokenRefreshSub =
-        messaging.onTokenRefresh.listen((_) => registerToken());
+    _onTokenRefreshSub = messaging.onTokenRefresh
+        .listen((_) => registerTokenIfAllowed(force: true));
+    WidgetsBinding.instance.addObserver(this);
 
     // Notification qui a servi à ouvrir l'app (cold start).
     final initialMessage = await messaging.getInitialMessage();
@@ -114,9 +124,41 @@ class PushNotificationService {
   }
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _onMessageSub?.cancel();
     _onMessageOpenedSub?.cancel();
     _onTokenRefreshSub?.cancel();
+  }
+
+  /// Chaque retour au premier plan (l'ouverture à froid passe, elle, par
+  /// AuthProvider.loadMe()).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) registerTokenIfAllowed();
+  }
+
+  /// Enregistre le token si un compte est connecté et que la préférence
+  /// « Notifications » des Réglages de l'app est active. Sans [force], ne
+  /// fait rien si le token a été enregistré il y a moins de
+  /// [_registerInterval] et que la permission n'a pas changé depuis.
+  static Future<void> registerTokenIfAllowed({bool force = false}) async {
+    try {
+      if (await ApiClient.getToken() == null) return;
+      if (!await NotificationPrefs.isEnabled()) return;
+
+      if (!force && _lastRegisteredAt != null) {
+        final status = (await FirebaseMessaging.instance
+                .getNotificationSettings())
+            .authorizationStatus;
+        final recent =
+            DateTime.now().difference(_lastRegisteredAt!) < _registerInterval;
+        if (recent && status == _lastStatus) return;
+      }
+
+      await registerToken();
+    } catch (e) {
+      debugPrint('⚠️ Réenregistrement du token push ignoré: $e');
+    }
   }
 
   Future<void> _initLocalNotifications() async {
@@ -174,7 +216,9 @@ class PushNotificationService {
   }
 
   /// Enregistre (ou met à jour) le token FCM de cet appareil côté backend —
-  /// appelé après chaque connexion réussie (voir AuthProvider.loadMe()).
+  /// appelé après chaque connexion réussie et à l'ouverture (voir
+  /// AuthProvider.loadMe()), au retour au premier plan et sur
+  /// onTokenRefresh (voir [registerTokenIfAllowed]).
   /// Volontairement silencieux en cas d'échec : ne doit jamais bloquer
   /// l'authentification. Statique (pas besoin de _navigatorKey) pour rester
   /// appelable depuis AuthProvider sans référence au singleton du widget
@@ -230,10 +274,17 @@ class PushNotificationService {
         return;
       }
 
+      // Le statut part avec le token : Firebase accepte l'envoi même quand
+      // l'appareil a coupé les notifications, le backend peut ainsi le voir.
+      final status =
+          (await messaging.getNotificationSettings()).authorizationStatus;
       await ApiClient.dio.post('/device-tokens', data: {
         'token': token,
         'platform': platform,
+        'authorization_status': status.name,
       });
+      _lastRegisteredAt = DateTime.now();
+      _lastStatus = status;
     } catch (e) {
       debugPrint('⚠️ Enregistrement du token push échoué: $e');
       await _reportDiagnostic(

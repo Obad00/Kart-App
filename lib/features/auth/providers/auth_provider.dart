@@ -11,7 +11,6 @@ import '../data/auth_api.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error.dart';
 import '../../../core/services/push_notification_service.dart';
-import '../../../core/services/notification_prefs.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
 
@@ -170,9 +169,7 @@ class AuthProvider extends ChangeNotifier {
       // préférence "Notifications" des Réglages : sans cette vérification,
       // une désactivation manuelle serait silencieusement annulée à chaque
       // reconnexion.
-      unawaited(NotificationPrefs.isEnabled().then((enabled) {
-        if (enabled) PushNotificationService.registerToken();
-      }));
+      unawaited(PushNotificationService.registerTokenIfAllowed(force: true));
     } on DioException catch (e) {
       debugPrint(
           '❌ /me DioException: status=\\${e.response?.statusCode}, data=\\${e.response?.data}');
