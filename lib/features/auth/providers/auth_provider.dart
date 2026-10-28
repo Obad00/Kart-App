@@ -523,6 +523,36 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Change l'email de connexion (distinct de l'email affiché sur la carte).
+  /// PUT /me remplace aussi prénom, nom et téléphone : on renvoie donc les
+  /// valeurs actuelles, sinon le téléphone du compte serait effacé. Le
+  /// serveur envoie un lien de vérification à la nouvelle adresse.
+  /// Renvoie null si c'est enregistré, sinon le message à afficher.
+  Future<String?> changeLoginEmail(String email) async {
+    final current = user;
+    if (current == null) return 'Session expirée, reconnectez-vous.';
+
+    try {
+      await _api.updateProfile({
+        'firstname': current.firstname,
+        'lastname': current.lastname,
+        if (current.phone != null && current.phone!.isNotEmpty) 'phone': current.phone,
+        'email': email.trim(),
+      });
+      await loadMe();
+      return null;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['errors'] is Map && (data['errors'] as Map)['email'] is List) {
+        return ((data['errors'] as Map)['email'] as List).first.toString();
+      }
+      if (data is Map && data['message'] != null) return data['message'].toString();
+      return getErrorMessage(e, fallback: 'Impossible de modifier l\'email de connexion.');
+    } catch (_) {
+      return 'Une erreur est survenue. Réessayez.';
+    }
+  }
+
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,

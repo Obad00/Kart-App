@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
 import 'package:kart_app/features/auth/models/user.dart';
 import 'package:kart_app/features/auth/providers/auth_provider.dart';
-import 'package:kart_app/features/profile/widgets/edit_profile_form.dart';
 import 'package:kart_app/features/profile_completion/model/profile_completion_model.dart';
 import 'package:kart_app/features/profile_completion/providers/profile_completion_provider.dart';
 import 'package:kart_app/features/profile_completion/services/profile_completion_service.dart';
@@ -77,16 +76,9 @@ void main() {
     await pumpCompletionForm(tester);
     expect(find.text('Email affiché sur la carte'), findsOneWidget);
     expect(find.text('Email (connexion et carte)'), findsNothing);
-
-    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
-      value: _FakeAuth(),
-      child: MaterialApp(
-        theme: AppTheme.dark(),
-        home: const Scaffold(body: SingleChildScrollView(child: EditProfileForm())),
-      ),
-    ));
-    await tester.pumpAndSettle();
-    expect(find.text('Email de connexion'), findsOneWidget);
+    // L'email de connexion est rappelé sous celui de la carte, sans second champ.
+    expect(tester.widget<Text>(find.byKey(const Key('login-email-value'))).data, 'awa.diop@example.test');
+    expect(find.byKey(const Key('login-email-edit')), findsOneWidget);
   });
 
   testWidgets('désactiver la carte : « Annuler » ne change rien, « Continuer » désactive', (tester) async {
