@@ -19,7 +19,10 @@ class FeedbackOverlay {
       title: title,
       subtitle: subtitle,
       icon: Icons.check_circle,
-      iconColor: Colors.greenAccent,
+      // greenAccent, très pâle, se voyait mal sur le verre clair.
+      iconColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.greenAccent
+          : Colors.green.shade600,
       duration: duration,
     );
   }
@@ -81,7 +84,8 @@ class FeedbackOverlay {
             valueListenable: visible,
             builder: (context, isVisible, child) {
               return TweenAnimationBuilder<double>(
-                tween: Tween(begin: isVisible ? -20 : 0, end: isVisible ? 0 : -20),
+                tween:
+                    Tween(begin: isVisible ? -20 : 0, end: isVisible ? 0 : -20),
                 duration: Duration(milliseconds: isVisible ? 400 : 250),
                 curve: isVisible ? Curves.easeOutCubic : Curves.easeInCubic,
                 builder: (context, value, child) {
