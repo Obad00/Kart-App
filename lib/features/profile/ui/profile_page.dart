@@ -19,6 +19,8 @@ import '../../auth/ui/delete_account_dialog.dart';
 import '../../auth/widgets/secure_pin_banner.dart';
 import '../../../shared/utils/company_color_helper.dart';
 import '../../digital_card/providers/card_provider.dart';
+import '../widgets/login_email.dart';
+import '../../../shared/utils/placeholder_email.dart';
 import '../../../shared/widgets/theme_toggle_widget.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/glass_dialog.dart';
@@ -1303,6 +1305,17 @@ class _ProfilePageState extends State<ProfilePage>
               const SizedBox(height: 12),
 
               // Options de compte
+              _buildSettingsItem(
+                context,
+                icon: Icons.alternate_email,
+                title: 'Email de connexion',
+                subtitle: displayableEmail(context.read<AuthProvider>().user?.email) ?? 'Aucun email de connexion',
+                onTap: () {
+                  Navigator.pop(context);
+                  showLoginEmailSheet(context);
+                },
+              ),
+              const SizedBox(height: 8),
               _buildSettingsItem(
                 context,
                 icon: Icons.lock_outline,

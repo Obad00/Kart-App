@@ -12,6 +12,7 @@ import '../../../shared/widgets/auth_primary_button.dart';
 import '../model/profile_completion_model.dart';
 import '../../../shared/utils/website_url.dart';
 import '../../../shared/widgets/glass_sheet.dart';
+import '../../profile/widgets/login_email.dart';
 
 final List<String> _schools = [
   'Université Cheikh Anta Diop (UCAD)',
@@ -653,14 +654,20 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ),
                 const SizedBox(height: 12),
                 AuthTextField(
-                    // Email affiché sur la carte, propre à la carte : l'email
-                    // de connexion se change dans le profil (Modifier mon
-                    // profil), pas ici.
+                    // Email affiché sur la carte, propre à la carte. L'email
+                    // de connexion est rappelé juste en dessous
+                    // (LoginEmailNotice) et se change dans sa propre
+                    // fenêtre, avec vérification.
                     label: 'Email affiché sur la carte',
                     controller: _emailCtrl,
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     hint: 'votre@email.com'),
+                const SizedBox(height: 6),
+                LoginEmailNotice(
+                  cardEmail: _emailCtrl,
+                  onUseOnCard: (email) => setState(() => _emailCtrl.text = email),
+                ),
                 const SizedBox(height: 8),
                 _buildPremiumSwitch(
                   title: 'Afficher l\'email sur ma carte',
