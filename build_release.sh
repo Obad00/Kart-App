@@ -4,6 +4,19 @@ set -e
 
 PUBSPEC="pubspec.yaml"
 
+# ⚠️ Les builds Android de publication passent désormais par le workflow
+# GitHub Actions android-build.yml (lancé au même push que iOS, sur le même
+# commit, avec la même version). Un AAB fait ici aurait une version
+# différente de l'App Store et pourrait bloquer les envois suivants.
+echo ""
+echo "⚠️  Build local déconseillé : utilisez le workflow GitHub Actions « Build Android App Bundle »"
+echo "    (push sur release/flutter, ou lancement manuel), même version que iOS."
+read -r -p "Continuer quand même en local ? [o/N] " CONFIRM
+if [[ ! "$CONFIRM" =~ ^[oO]$ ]]; then
+    echo "Annulé."
+    exit 0
+fi
+
 # Lire la version Flutter
 VERSION=$(grep '^version:' "$PUBSPEC" | awk '{print $2}')
 

@@ -6,6 +6,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/tour/tour_prefs.dart';
+import '../../../shared/utils/plural.dart';
 import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/glass_menu.dart';
 import '../../../shared/widgets/app_search_bar.dart';
@@ -331,10 +332,10 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                                       children: [
                                         TextSpan(
                                             text:
-                                                '${provider.allContacts.length} contacts · '),
+                                                '${plural(provider.allContacts.length, 'contact')} · '),
                                         TextSpan(
                                           text:
-                                              '${provider.groups.where((g) => g.highlight.id != 0).length} highlights',
+                                              plural(provider.groups.where((g) => g.highlight.id != 0).length, 'highlight'),
                                           style: const TextStyle(
                                             color: _themeBlue,
                                             fontWeight: FontWeight.w600,
@@ -632,14 +633,13 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
 
     if (highlights.isEmpty) return const SizedBox.shrink();
 
-    // 36 (pas 40/44) avec un padding uniquement horizontal : vérifié par
-    // mesure avec la vraie police Syne que le texte tient pile dedans —
-    // une hauteur trop juste combinée à un padding vertical du ListView
-    // écrasait presque le texte des puces (cf. "Mes demandes" avant son
-    // correctif), mais le padding vertical du ListView est le vrai
-    // coupable, pas la hauteur en elle-même.
+    // Hauteur d'une puce à la taille de police du système (36 à l'échelle
+    // 1.0), padding uniquement horizontal : un padding vertical dans une
+    // hauteur fixe écrasait le texte (cf. "Mes demandes" avant son
+    // correctif), et une hauteur figée le coupait sur Android dès que la
+    // police du téléphone était agrandie.
     return SizedBox(
-      height: 36,
+      height: FilterPillChip.heightOf(context),
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,

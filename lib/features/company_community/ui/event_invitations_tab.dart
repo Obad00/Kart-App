@@ -6,6 +6,7 @@ import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/filter_pill_chip.dart';
+import '../../../shared/utils/silent_refresh.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../models/event_invitation.dart';
 import '../services/device_contacts.dart';
@@ -21,6 +22,9 @@ import 'invitation_sender.dart';
 class EventInvitationsTab extends StatefulWidget {
   final int eventId;
   final double topPadding;
+  /// Onglet affiché (il vit dans un IndexedStack) : l'actualisation
+  /// silencieuse ne tourne que lorsqu'il est à l'écran.
+  final bool visible;
   final EventInvitationsService? service;
   final InvitationSender? sender;
   final DeviceContactsSource? contacts;
@@ -29,6 +33,7 @@ class EventInvitationsTab extends StatefulWidget {
     super.key,
     required this.eventId,
     required this.topPadding,
+    this.visible = true,
     this.service,
     this.sender,
     this.contacts,
@@ -38,7 +43,7 @@ class EventInvitationsTab extends StatefulWidget {
   State<EventInvitationsTab> createState() => _EventInvitationsTabState();
 }
 
-class _EventInvitationsTabState extends State<EventInvitationsTab> {
+class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRefreshMixin {
   late final EventInvitationsService _service = widget.service ?? EventInvitationsService();
   late final InvitationSender _sender =
       widget.sender ?? InvitationSender(service: _service, eventId: widget.eventId);
@@ -57,7 +62,15 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
 
   bool _loading = true;
   bool _loadingMore = false;
+  /// Erreur du premier chargement : écran d'erreur.
   String? _error;
+  /// Erreur après un chargement réussi : bandeau, liste et filtres gardés.
+  String? _staleError;
+  bool _loadedOnce = false;
+  bool _eventEnded = false;
+  /// Seule la dernière requête lancée s'applique (changements de filtre
+  /// rapides : une réponse lente ne doit pas écraser la liste affichée).
+  int _requestSeq = 0;
   int? _busyId;
   bool _sendingNext = false;
 
@@ -65,6 +78,18 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
   void initState() {
     super.initState();
     _refresh(initial: true);
+    startSilentRefresh();
+  }
+
+  @override
+  bool get silentRefreshVisible => widget.visible && super.silentRefreshVisible;
+
+  /// Pas pendant le défilement infini : remplacer la page 1 ferait sauter
+  /// la liste. Le tirer-pour-actualiser reste possible.
+  @override
+  Future<void> silentRefresh() async {
+    if (_page > 1 || _loadingMore || _busyId != null || _sendingNext) return;
+    await _refresh(silent: true);
   }
 
   @override
@@ -74,7 +99,8 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
     super.dispose();
   }
 
-  Future<void> _refresh({bool initial = false}) async {
+  Future<void> _refresh({bool initial = false, bool silent = false}) async {
+    final seq = ++_requestSeq;
     if (initial) setState(() => _loading = true);
     try {
       final results = await Future.wait([
@@ -82,7 +108,7 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
             status: _status, category: _category, query: _search.text, page: 1),
         _service.next(widget.eventId),
       ]);
-      if (!mounted) return;
+      if (!mounted || seq != _requestSeq) return;
       final page = results[0] as InvitationPage;
       final next = results[1] as ({EventInvitation? next, int remaining});
       setState(() {
@@ -93,15 +119,23 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
         _lastPage = page.lastPage;
         _next = next.next;
         _remaining = next.remaining;
+        _eventEnded = page.eventEnded;
         _error = null;
+        _staleError = null;
+        _loadedOnce = true;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || seq != _requestSeq) return;
+      final message = EventInvitationsService.errorMessage(e,
+          fallback: 'Impossible de charger les invitations.');
       setState(() {
-        _error = EventInvitationsService.errorMessage(e,
-            fallback: 'Impossible de charger les invitations.');
         _loading = false;
+        if (!_loadedOnce) {
+          _error = message;
+        } else if (!silent) {
+          _staleError = message;
+        }
       });
     }
   }
@@ -249,29 +283,37 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(16, widget.topPadding + 12, 16, 32),
           children: [
+            if (_staleError != null) ...[
+              _buildStaleErrorBanner(colors),
+              const SizedBox(height: 12),
+            ],
             _buildCounts(colors),
             const SizedBox(height: 16),
-            _buildNextButton(colors),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: InvitationOutlineButton(
-                    label: 'Ajouter',
-                    icon: Icons.person_add_alt_1_outlined,
-                    onTap: () => _edit(null),
+            if (_eventEnded)
+              _buildEndedBanner(colors)
+            else ...[
+              _buildNextButton(colors),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: InvitationOutlineButton(
+                      label: 'Ajouter',
+                      icon: Icons.person_add_alt_1_outlined,
+                      onTap: () => _edit(null),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: InvitationOutlineButton(
-                    label: 'Mes contacts',
-                    icon: Icons.contacts_outlined,
-                    onTap: _addFromContacts,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: InvitationOutlineButton(
+                      label: 'Mes contacts',
+                      icon: Icons.contacts_outlined,
+                      onTap: _addFromContacts,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
             const SizedBox(height: 18),
             AppSearchBar(
               controller: _search,
@@ -306,10 +348,10 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
                 InvitationListTile(
                   invitation: invitation,
                   busy: _busyId == invitation.id,
-                  onSend: invitation.status == InvitationStatus.pending || invitation.needsReminder
+                  onSend: !_eventEnded && (invitation.status == InvitationStatus.pending || invitation.needsReminder)
                       ? () => _sendWhatsApp(invitation)
                       : null,
-                  onResend: () => _sendWhatsApp(invitation),
+                  onResend: _eventEnded ? null : () => _sendWhatsApp(invitation),
                   onShare: () => _share(invitation),
                   onEdit: () => _edit(invitation),
                   onDelete: () => _delete(invitation),
@@ -327,6 +369,40 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStaleErrorBanner(ColorScheme colors) {
+    return Material(
+      color: colors.error.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline_rounded, size: 18, color: colors.error),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_staleError!, style: TextStyle(fontSize: 13, color: colors.onSurface))),
+            TextButton(onPressed: _refresh, child: const Text('Réessayer')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndedBanner(ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        'Cet événement est terminé : la liste reste consultable, mais plus aucune invitation ne peut être ajoutée ni envoyée.',
+        style: TextStyle(fontSize: 13, height: 1.35, color: colors.onSurface),
       ),
     );
   }

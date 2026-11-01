@@ -3,6 +3,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:dio_cache_interceptor_file_store/dio_cache_interceptor_file_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_endpoints.dart';
@@ -54,6 +55,7 @@ class ApiClient {
   }
 
   static bool _cacheReady = false;
+  static bool _interceptorsReady = false;
   static CacheStore? _cacheStore;
 
   static Future<void> init() async {
@@ -61,6 +63,10 @@ class ApiClient {
     if (token != null) {
       dio.options.headers['Authorization'] = 'Bearer $token';
     }
+    // init() est appelé deux fois (main.dart puis AuthProvider) : sans ce
+    // garde, chaque intercepteur était ajouté en double.
+    if (_interceptorsReady) return;
+    _interceptorsReady = true;
     // Le cache hors-ligne (_setupOfflineCache) est enregistré AVANT le
     // retry ci-dessous : les interceptors Dio traitent les erreurs dans
     // l'ordre INVERSE de leur ajout (le dernier ajouté est le premier
@@ -72,6 +78,21 @@ class ApiClient {
     // Ajouté en dernier : voit les erreurs en premier, avant que le cache
     // hors-ligne ne ressorte une ancienne réponse à la place du 403.
     dio.interceptors.add(AccountSuspendedInterceptor());
+    dio.interceptors.add(RetryOnUnauthorizedInterceptor(dio, getToken));
+    await _setDiagnosticHeaders();
+  }
+
+  /// Version et plateforme, lues par le journal des 401 côté serveur
+  /// (aucune donnée personnelle). Pas sur le web : en-têtes hors CORS.
+  static Future<void> _setDiagnosticHeaders() async {
+    if (kIsWeb) return;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      dio.options.headers['X-App-Version'] = '${info.version}+${info.buildNumber}';
+      dio.options.headers['X-Platform'] = defaultTargetPlatform.name;
+    } catch (e) {
+      debugPrint('⚠️ Version de l\'app indisponible: $e');
+    }
   }
 
   /// Appelé quand l'API répond 403 `account_suspended` (licence de
@@ -163,6 +184,52 @@ class AccountSuspendedInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (isAccountSuspended(err)) ApiClient.onAccountSuspended?.call();
     handler.next(err);
+  }
+}
+
+/// « Non authentifié » alors qu'un jeton est enregistré : rejoue la requête
+/// une seule fois, avec le jeton relu depuis le stockage. Couvre un en-tête
+/// Authorization perdu en route (hébergement) ou retiré entre-temps, vu dans
+/// l'onglet Invitations au changement de filtre. Sans jeton (déconnecté) ou
+/// au second échec, l'erreur suit son cours. Sûr pour une écriture aussi :
+/// un 401 d'authentification est renvoyé avant toute action côté serveur.
+class RetryOnUnauthorizedInterceptor extends Interceptor {
+  final Dio _dio;
+  final Future<String?> Function() _readToken;
+  static const _delay = Duration(milliseconds: 400);
+
+  RetryOnUnauthorizedInterceptor(this._dio, this._readToken);
+
+  static bool isAuthFailure(DioException err) {
+    final data = err.response?.data;
+    return err.response?.statusCode == 401 &&
+        data is Map &&
+        data['message'] == 'Non authentifié.';
+  }
+
+  @override
+  Future<void> onError(
+      DioException err, ErrorInterceptorHandler handler) async {
+    final options = err.requestOptions;
+    if (!isAuthFailure(err) || options.extra['authRetried'] == true) {
+      return handler.next(err);
+    }
+    final token = await _readToken();
+    if (token == null || token.isEmpty) return handler.next(err);
+
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+    await Future.delayed(_delay);
+    try {
+      final response = await _dio.fetch(options.copyWith(
+        headers: {...options.headers, 'Authorization': 'Bearer $token'},
+        extra: {...options.extra, 'authRetried': true},
+      ));
+      handler.resolve(response);
+    } on DioException catch (retryError) {
+      handler.next(retryError);
+    } catch (_) {
+      handler.next(err);
+    }
   }
 }
 

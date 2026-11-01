@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/utils/silent_refresh.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../models/event_participant_summary.dart';
@@ -47,7 +48,7 @@ class CompanyEventParticipantsPage extends StatefulWidget {
 
 class _CompanyEventParticipantsPageState
     extends State<CompanyEventParticipantsPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, SilentRefreshMixin {
   final _service = CompanyCommunityService();
   // Créé seulement quand les onglets sont affichés (showInvitations).
   TabController? _tabs;
@@ -65,6 +66,24 @@ class _CompanyEventParticipantsPageState
       _tabs = TabController(length: 2, vsync: this)..addListener(_onTabChanged);
     }
     _load();
+    startSilentRefresh();
+  }
+
+  /// Onglet Participants à l'écran (l'onglet Invitations a le sien).
+  @override
+  bool get silentRefreshVisible =>
+      (_tabs?.index ?? 0) == 0 && super.silentRefreshVisible;
+
+  /// Présences du jour J en direct : liste remplacée sur place, sans loader.
+  @override
+  Future<void> silentRefresh() async {
+    if (_isLoading || _error != null) return;
+    final result = await _service.fetchParticipants(widget.eventId);
+    if (!mounted) return;
+    setState(() {
+      _participants = result.participants;
+      _stats = result.stats;
+    });
   }
 
   @override
@@ -166,7 +185,11 @@ class _CompanyEventParticipantsPageState
                     children: [
                       _buildBody(colors, topPadding),
                       if (_invitationsOpened)
-                        EventInvitationsTab(eventId: widget.eventId, topPadding: topPadding)
+                        EventInvitationsTab(
+                          eventId: widget.eventId,
+                          topPadding: topPadding,
+                          visible: _tabs!.index == 1,
+                        )
                       else
                         const SizedBox.shrink(),
                     ],
@@ -245,39 +268,44 @@ class _CompanyEventParticipantsPageState
       );
     }
 
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 32),
-      children: [
-        _buildStatsRow(colors),
-        const SizedBox(height: 20),
-        if (_participants.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Center(
-              child: Text(
-                'Aucun participant pour le moment',
-                style:
-                    TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+    return RefreshIndicator(
+      edgeOffset: topPadding,
+      onRefresh: silentRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 32),
+        children: [
+          _buildStatsRow(colors),
+          const SizedBox(height: 20),
+          if (_participants.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text(
+                  'Aucun participant pour le moment',
+                  style:
+                      TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+                ),
+              ),
+            )
+          else
+            ..._participants.map(
+              (p) => ParticipantListTile(
+                displayName: p.displayName,
+                subtitle: [p.jobTitle, p.company]
+                    .where((s) => s?.isNotEmpty == true)
+                    .join(' · '),
+                isPresent: p.isPresent,
+                hasAccount: p.hasAccount,
+                eventHasEnded: widget.eventHasEnded,
+                onTap: () => _openParticipantSheet(p),
+                onTogglePresence: widget.eventHasEnded
+                    ? () => _toggleParticipantPresence(p)
+                    : null,
               ),
             ),
-          )
-        else
-          ..._participants.map(
-            (p) => ParticipantListTile(
-              displayName: p.displayName,
-              subtitle: [p.jobTitle, p.company]
-                  .where((s) => s?.isNotEmpty == true)
-                  .join(' · '),
-              isPresent: p.isPresent,
-              hasAccount: p.hasAccount,
-              eventHasEnded: widget.eventHasEnded,
-              onTap: () => _openParticipantSheet(p),
-              onTogglePresence: widget.eventHasEnded
-                  ? () => _toggleParticipantPresence(p)
-                  : null,
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 

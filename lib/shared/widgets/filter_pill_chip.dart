@@ -26,6 +26,24 @@ class FilterPillChip extends StatelessWidget {
   final IconData? icon;
 
   static const _themeBlue = Color(0xFF3B82F6);
+  static const _verticalPadding = 10.0;
+  static const _labelStyle = TextStyle(fontSize: 13, fontWeight: FontWeight.w600);
+
+  /// Hauteur réelle d'une puce à la taille de police du système, pour les
+  /// rangées de hauteur fixe (en-tête épinglé d'Explorer, filtres de
+  /// Contacts). Une hauteur figée à 36 coupait le texte sur Android dès
+  /// que la police du téléphone était agrandie. Vaut 36 à l'échelle 1.0.
+  static double heightOf(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: 'Ag', style: DefaultTextStyle.of(context).style.merge(_labelStyle)),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final height = (painter.height + 2 * _verticalPadding).ceilToDouble();
+    painter.dispose();
+    return height < 36 ? 36 : height;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +62,7 @@ class FilterPillChip extends StatelessWidget {
           onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: _verticalPadding),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -60,9 +78,8 @@ class FilterPillChip extends StatelessWidget {
               ],
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                maxLines: 1,
+                style: _labelStyle.copyWith(
                   color: active
                       ? Colors.white
                       : colors.onSurface.withValues(alpha: 0.7),
