@@ -2,15 +2,26 @@ name: Build & Deploy iOS App
 
 on:
   push:
-    branches: [main, release/flutter, payment]
+    # Publication : release/flutter uniquement (garde ci-dessous).
+    branches: [release/flutter]
 
 jobs:
   build:
     runs-on: macos-15
 
     steps:
+      - name: Vérifier la branche (release/flutter uniquement)
+        if: github.ref != 'refs/heads/release/flutter'
+        run: |
+          echo "::error::Build refusé : les builds de publication partent uniquement de release/flutter (branche actuelle : ${GITHUB_REF_NAME}). Fusionnez dans release/flutter, puis poussez."
+          exit 1
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Historique complet : la version vient du nombre de commits
+          # (scripts/ci_version.sh), identique au build Android du même commit.
+          fetch-depth: 0
 
       - name: Vérifier les capabilities de l'App ID (Push, Sign in with Apple)
         env:
@@ -135,33 +146,21 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Calculer la version marketing (toujours strictement croissante)
-        # App Store refuse tout nouvel envoi dont la version marketing
-        # (CFBundleShortVersionString) n'est pas strictement supérieure à la
-        # dernière version APPROUVÉE — un simple build number croissant ne
-        # suffit pas. Pour ne plus jamais avoir à bumper pubspec.yaml à la
-        # main avant chaque soumission, on garde MAJOR défini dans
-        # pubspec.yaml (pour les vraies montées de version), et le run number
-        # du workflow (strictement croissant à chaque exécution, par
-        # construction GitHub Actions) alimente MINOR.PATCH — plafonné à 100
-        # comme côté Android (build_release.sh) : au lieu de laisser le run
-        # number grossir indéfiniment en un PATCH à 3+ chiffres (d'où le
-        # 1.0.142 constaté), chaque palier de 100 fait avancer MINOR et le
-        # PATCH repart de 0 (1.0.99 → 1.1.0 → … → 1.1.42 pour le run 142).
-        run: |
-          BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          BASE_MAJOR=$(echo "$BASE_VERSION" | cut -d'.' -f1)
-          BASE_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f2)
-          RUN_NUMBER=${{ github.run_number }}
-          MINOR=$((BASE_MINOR + RUN_NUMBER / 100))
-          PATCH=$((RUN_NUMBER % 100))
-          echo "BUILD_NAME=${BASE_MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_ENV"
+      - name: Calculer la version (commune iOS + Android, toujours croissante)
+        # App Store refuse tout envoi dont la version marketing n'est pas
+        # strictement supérieure à la dernière approuvée. Même calcul que le
+        # workflow Android, à partir du commit : le même commit donne la même
+        # version sur les deux stores. S'arrête si le numéro n'est pas
+        # supérieur au dernier publié (cf. scripts/ci_version.sh).
+        env:
+          ANDROID_LAST_VERSION_CODE: ${{ vars.ANDROID_LAST_VERSION_CODE }}
+        run: ./scripts/ci_version.sh
 
       - name: Générer les fichiers iOS (plugins registrant)
         run: |
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
           echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Debug.xcconfig
-          flutter build ios --release --no-codesign --no-pub --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
+          flutter build ios --release --no-codesign --no-pub --build-number=$BUILD_NUMBER --build-name=$BUILD_NAME
 
       - name: Install Pods
         run: |

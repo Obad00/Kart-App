@@ -7,6 +7,7 @@ import '../../contacts/providers/contacts_provider.dart';
 import '../models/explore_user.dart';
 import '../providers/connection_badge_provider.dart';
 import '../services/explore_service.dart';
+import '../../../shared/widgets/text_scale_clamp.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -201,7 +202,7 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
 
       case ConnectionStatus.pendingSent:
         return SizedBox(
-          height: 34,
+          height: TextScaleClamp.grow(context, 34),
           child: OutlinedButton.icon(
             onPressed: (_busy || _requestId == null)
                 ? null
@@ -224,7 +225,11 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
                         strokeWidth: 2, color: Colors.grey),
                   )
                 : const Icon(Icons.close_rounded, size: 14),
-            label: const Text('Envoyée', style: TextStyle(fontSize: 12.5)),
+            // Rétrécit plutôt que d'être coupé (police agrandie, Android).
+            label: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('Envoyée', maxLines: 1, style: TextStyle(fontSize: 12.5)),
+            ),
           ),
         );
 
@@ -260,7 +265,7 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
       case ConnectionStatus.none:
         if (widget.compact) {
           return SizedBox(
-            height: 34,
+            height: TextScaleClamp.grow(context, 34),
             child: ElevatedButton(
               onPressed: _busy
                   ? null
@@ -283,10 +288,15 @@ class _ConnectActionButtonState extends State<ConnectActionButton> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text(
-                      'Se connecter',
-                      style: TextStyle(
-                          fontSize: 12.5, fontWeight: FontWeight.w700),
+                  // Rétrécit plutôt que d'être coupé (police agrandie, Android).
+                  : const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Se connecter',
+                        maxLines: 1,
+                        style: TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
                     ),
             ),
           );

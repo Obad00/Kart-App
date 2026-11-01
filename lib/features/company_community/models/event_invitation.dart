@@ -115,6 +115,8 @@ class InvitationPage {
   final List<String> categories;
   final int currentPage;
   final int lastPage;
+  /// Événement terminé : liste en lecture seule (plus d'ajout ni d'envoi).
+  final bool eventEnded;
 
   const InvitationPage({
     required this.items,
@@ -122,6 +124,7 @@ class InvitationPage {
     required this.categories,
     required this.currentPage,
     required this.lastPage,
+    this.eventEnded = false,
   });
 
   factory InvitationPage.fromJson(Map<String, dynamic> json) {
@@ -136,6 +139,7 @@ class InvitationPage {
           (json['categories'] as List? ?? []).map((c) => '$c').toList(),
       currentPage: (pagination?['current_page'] as num?)?.toInt() ?? 1,
       lastPage: (pagination?['last_page'] as num?)?.toInt() ?? 1,
+      eventEnded: json['event_ended'] == true,
     );
   }
 }

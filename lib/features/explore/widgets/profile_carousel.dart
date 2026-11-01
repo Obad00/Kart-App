@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/explore_user.dart';
 import 'explore_profile_card.dart';
 import 'explore_section_header.dart';
+import '../../../shared/widgets/text_scale_clamp.dart';
 
 /// Un carrousel horizontal de [ExploreProfileCard] avec son en-tête — même
 /// structure pour Recommandés, Certifiés, Votre secteur, Nouveaux profils,
@@ -44,7 +45,7 @@ class ProfileCarousel extends StatelessWidget {
             // nom + poste + entreprise/ville + bouton) dépasse 214px avec
             // les vraies métriques de police — provoquait un débordement
             // ("RenderFlex overflowed") sur chaque carte.
-            height: 236,
+            height: TextScaleClamp.grow(context, 236),
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,

@@ -93,8 +93,9 @@ class InvitationListTile extends StatelessWidget {
   /// Bouton visible : « Envoyer » (à envoyer) ou « Relancer » (48 h sans réponse).
   final VoidCallback? onSend;
 
-  /// Renvoi depuis le menu, quand aucun bouton n'est affiché.
-  final VoidCallback onResend;
+  /// Renvoi depuis le menu, quand aucun bouton n'est affiché ; null :
+  /// événement terminé, plus d'envoi.
+  final VoidCallback? onResend;
   final VoidCallback onShare;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -182,8 +183,8 @@ class InvitationListTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _MoreMenu(
-                showWhatsApp: onSend == null,
-                onWhatsApp: onResend,
+                showWhatsApp: onSend == null && onResend != null,
+                onWhatsApp: onResend ?? () {},
                 onShare: onShare,
                 onEdit: onEdit,
                 onDelete: onDelete,

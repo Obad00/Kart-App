@@ -1,12 +1,12 @@
 name: Build Android App Bundle
 
-# Déclenchement manuel uniquement pour l'instant — le tout premier envoi
-# vers le Play Store doit être fait à la main depuis la Play Console (Google
-# ne permet pas l'envoi via API tant qu'aucune version n'a jamais été
-# publiée pour l'app). Une fois cette première version en ligne, ce workflow
-# pourra être étendu pour se déclencher sur push (comme ios-build.yml) et
-# envoyer directement à la Play Console via l'API.
+# Lancé au même push sur release/flutter que ios-build.yml, donc sur le
+# même commit, avec la même version (scripts/ci_version.sh). L'AAB signé est
+# déposé en artifact ; l'envoi à la Play Console reste manuel. Lancement à la
+# main toujours possible (workflow_dispatch).
 on:
+  push:
+    branches: [release/flutter]
   workflow_dispatch:
 
 jobs:
@@ -14,8 +14,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Vérifier la branche (release/flutter uniquement)
+        if: github.ref != 'refs/heads/release/flutter'
+        run: |
+          echo "::error::Build refusé : les builds de publication partent uniquement de release/flutter (branche actuelle : ${GITHUB_REF_NAME}). Fusionnez dans release/flutter, puis poussez."
+          exit 1
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Historique complet : la version vient du nombre de commits.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,14 +40,14 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Calculer la version (toujours strictement croissante)
-        # Le versionCode Android doit être strictement croissant entre deux
-        # envois — même logique que pour iOS (voir ios-build.yml) :
-        # MAJOR.MINOR fixé dans pubspec.yaml, PATCH = run number CI.
-        run: |
-          BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          MAJOR_MINOR=$(echo "$BASE_VERSION" | cut -d'.' -f1,2)
-          echo "BUILD_NAME=${MAJOR_MINOR}.${{ github.run_number }}" >> "$GITHUB_ENV"
+      - name: Calculer la version (commune iOS + Android, toujours croissante)
+        # versionCode = nombre de commits, versionName = même formule que
+        # iOS : le même commit donne la même version sur les deux stores.
+        # S'arrête si le numéro n'est pas supérieur à 220 (App Store) ni au
+        # dernier versionCode Play Store (variable ANDROID_LAST_VERSION_CODE).
+        env:
+          ANDROID_LAST_VERSION_CODE: ${{ vars.ANDROID_LAST_VERSION_CODE }}
+        run: ./scripts/ci_version.sh
 
       - name: Préparer le keystore de signature
         env:
@@ -60,7 +69,7 @@ jobs:
           EOF
 
       - name: Build App Bundle signé
-        run: flutter build appbundle --release --build-number=${{ github.run_number }} --build-name=$BUILD_NAME
+        run: flutter build appbundle --release --build-number=$BUILD_NUMBER --build-name=$BUILD_NAME
 
       - name: Sauvegarder l'App Bundle (artifact)
         uses: actions/upload-artifact@v4

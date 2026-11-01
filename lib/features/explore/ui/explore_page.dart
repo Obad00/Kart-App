@@ -9,6 +9,7 @@ import '../../../shared/tour/tab_bar_tour_gate.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/filter_pill_chip.dart';
+import '../../../shared/widgets/text_scale_clamp.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/providers/company_events_provider.dart';
 import '../../company_community/services/company_community_service.dart';
@@ -606,13 +607,16 @@ class _ExplorePageState extends State<ExplorePage> {
 
   // AppSearchBar n'a pas de hauteur fixe (elle dépend du TextField interne)
   // : 58 était trop juste et provoquait un débordement dans l'en-tête
-  // épinglé dès que le champ dépassait de quelques pixels. Marge +6.
-  static const double _searchBarHeight = 64;
-  // 36 (pas 44) : vérifié par mesure avec la vraie police Syne que le
-  // texte des puces (padding vertical 10 dans FilterPillChip) tient
-  // pile dedans sans être rogné — 44 laissait trop d'air, jugé "trop
-  // grand" côté produit.
-  static const double _chipsRowHeight = 36;
+  // épinglé dès que le champ dépassait de quelques pixels. Marge +6, plus
+  // ce que la police du système ajoute à une ligne de 15 px (Android).
+  double _searchBarHeight(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return 64 + (scaler.scale(15) - 15) * 1.3;
+  }
+
+  // Hauteur d'une puce (36 à l'échelle 1.0) : figée, elle coupait le texte
+  // sur Android dès que la police du téléphone était agrandie.
+  double _chipsRowHeight(BuildContext context) => FilterPillChip.heightOf(context);
 
   Widget _buildScrollable(double topPadding) {
     return CustomScrollView(
@@ -625,7 +629,7 @@ class _ExplorePageState extends State<ExplorePage> {
         SliverPersistentHeader(
           pinned: true,
           delegate: StickyHeaderDelegate(
-            height: topPadding + 12 + _searchBarHeight + 8 + _chipsRowHeight,
+            height: topPadding + 12 + _searchBarHeight(context) + 8 + _chipsRowHeight(context),
             blurBackground: true,
             child: Column(
               children: [
@@ -722,7 +726,7 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _buildCategoryChips() {
     return SizedBox(
-      height: _chipsRowHeight,
+      height: _chipsRowHeight(context),
       // Horizontal seulement (pas de padding vertical) : même piège que
       // "Mes demandes"/Contacts avant leur correctif — un padding vertical
       // à l'intérieur d'une hauteur fixe rognait la puce sur les 44px
@@ -864,7 +868,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 onSeeAll: hasMoreThanPreview ? _openAllProfiles : null,
               ),
               SizedBox(
-                height: 236,
+                height: TextScaleClamp.grow(context, 236),
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
@@ -1074,7 +1078,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 onSeeAll: _openCompanyCommunity,
               ),
               SizedBox(
-                height: 176,
+                height: TextScaleClamp.grow(context, 176),
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
@@ -1130,7 +1134,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 onSeeAll: _openCompaniesDiscover,
               ),
               SizedBox(
-                height: 214,
+                height: TextScaleClamp.grow(context, 214),
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
@@ -1325,7 +1329,7 @@ class _CommunitiesSection extends StatelessWidget {
             const SizedBox.shrink()
           else
             SizedBox(
-              height: 196,
+              height: TextScaleClamp.grow(context, 196),
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,

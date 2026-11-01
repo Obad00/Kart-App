@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
@@ -12,6 +11,7 @@ import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
+import '../../../shared/widgets/poster_image.dart';
 
 /// Ouverte en tapant sur un highlight d'événement (voir highlight_bar.dart) :
 /// affiche les infos de l'événement (thème, lieu, date, description) ainsi
@@ -397,35 +397,9 @@ class _EventInfoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Image entière (A4, carré, paysage), jamais recadrée.
             if (imageUrl != null && imageUrl.isNotEmpty)
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                // CachedNetworkImage (pas Image.network) : l'affiche était
-                // retéléchargée en entier à chaque ouverture du highlight,
-                // d'où l'impression qu'elle "tarde à venir" — remonté côté
-                // produit. Un placeholder shimmer comble l'attente au
-                // premier chargement au lieu d'un bloc vide.
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white54),
-                      ),
-                    ),
-                  ),
-                  // Une affiche qui ne charge pas (réseau, image supprimée
-                  // côté serveur) ne doit pas casser le reste de la fiche.
-                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
+              PosterImage(imageUrl: imageUrl),
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(

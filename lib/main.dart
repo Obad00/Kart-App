@@ -11,6 +11,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'shared/utils/session_reset.dart';
 import 'shared/widgets/offline_banner.dart';
+import 'shared/widgets/text_scale_clamp.dart';
 
 import 'features/auth/providers/auth_provider.dart';
 import 'features/digital_card/providers/card_provider.dart';
@@ -179,7 +180,9 @@ class _KartAppState extends State<KartApp> {
                 builder: (context) => Column(
                   children: [
                     const OfflineBanner(),
-                    Expanded(child: child!),
+                    // Police système bornée (1.0–1.3) : tout le Navigator,
+                    // dialogues et feuilles compris.
+                    Expanded(child: TextScaleClamp(child: child!)),
                   ],
                 ),
                 // Débloque les tours secondaires (Profil, Explorer...) qui
