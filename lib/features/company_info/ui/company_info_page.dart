@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../onboarding/providers/company_provider.dart';
+import '../utils/branding_refresh.dart';
 import '../widgets/company_branding_section.dart';
 
 /// Écran "Mon entreprise" : lecture seule, sauf pour un admin le logo et les
@@ -117,7 +118,7 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
                       // Admin : logo et couleurs (extraites du logo, modifiables).
                       if (user?.isCompanyOwnerOrAdmin == true) ...[
                         const SizedBox(height: 24),
-                        CompanyBrandingSection(company: company, onChanged: companyProvider.loadMyCompany),
+                        CompanyBrandingSection(company: company, onChanged: () => refreshAfterBrandingChange(context)),
                       ],
                       if (user?.isCompanyOwnerOrAdmin == true) ...[
                         const SizedBox(height: 32),

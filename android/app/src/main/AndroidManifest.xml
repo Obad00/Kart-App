@@ -58,6 +58,16 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="kart"/>
             </intent-filter>
+            <!-- App Link : bouton « Confirmer mon adresse » de l'email
+                 (https://kart.business/verifier-email/…). Vérifié par
+                 https://kart.business/.well-known/assetlinks.json ; sans ce
+                 fichier, le lien ouvre la page web, qui valide aussi. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="kart.business" android:pathPrefix="/verifier-email/"/>
+            </intent-filter>
         </activity>
         <!-- Notifications push (FCM) — icône et canal par défaut utilisés
              quand l'app est en arrière-plan/fermée. -->

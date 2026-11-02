@@ -23,7 +23,7 @@ jobs:
           # (scripts/ci_version.sh), identique au build Android du même commit.
           fetch-depth: 0
 
-      - name: Vérifier les capabilities de l'App ID (Push, Sign in with Apple)
+      - name: Vérifier les capabilities de l'App ID (Push, Sign in with Apple, Associated Domains)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -121,6 +121,31 @@ jobs:
                   exit(1)
           else:
               print("✅ Sign in with Apple est bien activé sur l'App ID.")
+
+          # 4. Associated Domains (applinks:kart.business dans
+          # Runner.entitlements, lien universel de vérification d'email) :
+          # même raison que Sign in with Apple, activée si elle manque.
+          if "ASSOCIATED_DOMAINS" not in capability_types:
+              print("Associated Domains absent de l'App ID, activation...")
+              try:
+                  api_request("https://api.appstoreconnect.apple.com/v1/bundleIdCapabilities", {
+                      "data": {
+                          "type": "bundleIdCapabilities",
+                          "attributes": {"capabilityType": "ASSOCIATED_DOMAINS"},
+                          "relationships": {
+                              "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}}
+                          }
+                      }
+                  })
+                  print("✅ Associated Domains activé sur l'App ID.")
+              except urllib.error.HTTPError as e:
+                  print(f"::error::Impossible d'activer Associated Domains via l'API ({e.code}): "
+                        f"{e.read().decode()}. Active-le à la main sur "
+                        f"https://developer.apple.com/account/resources/identifiers/list "
+                        f"({bundle_id} > Associated Domains), puis relance le workflow.")
+                  exit(1)
+          else:
+              print("✅ Associated Domains est bien activé sur l'App ID.")
           PYEOF
 
       - name: Sélectionner Xcode latest
