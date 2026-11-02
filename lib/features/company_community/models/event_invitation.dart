@@ -64,8 +64,8 @@ class EventInvitation {
   bool matches({InvitationStatus? status, String? category, String query = ''}) {
     final statusOk = switch (status) {
       null => true,
-      InvitationStatus.sent => sentAt != null,
-      InvitationStatus.opened => openedAt != null,
+      InvitationStatus.sent => sentAt != null || this.status == InvitationStatus.sent,
+      InvitationStatus.opened => openedAt != null || this.status == InvitationStatus.opened,
       _ => this.status == status,
     };
     if (!statusOk) return false;
