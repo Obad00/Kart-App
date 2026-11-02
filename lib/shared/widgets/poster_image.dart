@@ -11,10 +11,39 @@ class PosterImage extends StatelessWidget {
   final String imageUrl;
   final double aspectRatio;
 
-  const PosterImage({super.key, required this.imageUrl, this.aspectRatio = 4 / 3});
+  /// Tap : ouvrir l'affiche en plein écran (zoom). Null : affiche fixe.
+  final VoidCallback? onTap;
+
+  const PosterImage({super.key, required this.imageUrl, this.aspectRatio = 4 / 3, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final poster = _poster();
+    if (onTap == null) return poster;
+    return Semantics(
+      button: true,
+      label: "Voir l'affiche en plein écran",
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(
+          children: [
+            poster,
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), shape: BoxShape.circle),
+                child: const Icon(Icons.zoom_out_map_rounded, color: Colors.white, size: 18),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _poster() {
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: ClipRect(

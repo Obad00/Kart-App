@@ -10,6 +10,7 @@ import '../models/event_participant_summary.dart';
 import '../services/company_community_service.dart';
 import '../widgets/participant_list_widgets.dart';
 import 'event_invitations_tab.dart';
+import 'event_qr_models_page.dart';
 
 /// Détail d'un événement de l'entreprise : statistiques inscrits/présents/
 /// walk-ins + table "Participant / Statut / Profil KART" (cf. maquette
@@ -156,6 +157,15 @@ class _CompanyEventParticipantsPageState
     final glassAppBar = GlassAppBar(
       title: Text(widget.eventName),
       actions: [
+        // QR de check-in en 5 modèles (impression, affichage à l'accueil).
+        if (widget.showInvitations)
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded),
+            tooltip: "QR de l'événement",
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => EventQrModelsPage(eventId: widget.eventId, eventName: widget.eventName),
+            )),
+          ),
         // Un événement terminé n'a plus vocation à être partagé — inutile
         // d'inviter à s'inscrire à quelque chose qui n'a plus lieu.
         if (!widget.eventHasEnded &&

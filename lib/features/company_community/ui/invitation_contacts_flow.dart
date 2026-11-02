@@ -11,6 +11,7 @@ import '../models/event_invitation.dart';
 import '../services/device_contacts.dart';
 import '../services/event_invitations_service.dart';
 import '../utils/phone_display.dart';
+import '../widgets/invitation_category_field.dart';
 import '../widgets/invitation_sheets.dart';
 import '../widgets/invitation_widgets.dart';
 
@@ -462,6 +463,8 @@ class _InvitationContactsPickerPageState extends State<InvitationContactsPickerP
                 _AddBar(
                   count: _selected.length,
                   category: _category,
+                  service: widget.service,
+                  eventId: widget.eventId,
                   busy: _submitting,
                   onSubmit: _submit,
                 ),
@@ -847,7 +850,13 @@ class _InvitationContactsReviewPageState extends State<InvitationContactsReviewP
                   ],
                 ),
               ),
-              _AddBar(count: _choices.length, category: _category, busy: _submitting, onSubmit: _submit),
+              _AddBar(
+                  count: _choices.length,
+                  category: _category,
+                  service: widget.service,
+                  eventId: widget.eventId,
+                  busy: _submitting,
+                  onSubmit: _submit),
             ],
           ),
           Positioned(
@@ -866,14 +875,22 @@ class _InvitationContactsReviewPageState extends State<InvitationContactsReviewP
 class _AddBar extends StatelessWidget {
   final int count;
   final TextEditingController category;
+  final EventInvitationsService service;
+  final int eventId;
   final bool busy;
   final VoidCallback onSubmit;
 
-  const _AddBar({required this.count, required this.category, required this.busy, required this.onSubmit});
+  const _AddBar({
+    required this.count,
+    required this.category,
+    required this.service,
+    required this.eventId,
+    required this.busy,
+    required this.onSubmit,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return GlassSheet(
       borderRadius: BorderRadius.zero,
@@ -882,23 +899,12 @@ class _AddBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
+            InvitationCategoryField(
               controller: category,
-              style: TextStyle(color: colors.onSurface, fontSize: 14),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Catégorie pour tous (facultatif) : VIP, Exposant…',
-                hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.45)),
-                prefixIcon: Icon(Icons.sell_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: colors.onSurface.withValues(alpha: 0.05),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _themeBlue, width: 1.5),
-                ),
-              ),
+              service: service,
+              eventId: eventId,
+              placeholder: 'Catégorie pour tous (facultatif)',
+              dense: true,
             ),
             const SizedBox(height: 10),
             InvitationPrimaryButton(

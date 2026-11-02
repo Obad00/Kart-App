@@ -11,6 +11,7 @@ import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
+import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/poster_image.dart';
 
 /// Ouverte en tapant sur un highlight d'événement (voir highlight_bar.dart) :
@@ -399,7 +400,7 @@ class _EventInfoCard extends StatelessWidget {
           children: [
             // Image entière (A4, carré, paysage), jamais recadrée.
             if (imageUrl != null && imageUrl.isNotEmpty)
-              PosterImage(imageUrl: imageUrl),
+              PosterImage(imageUrl: imageUrl, onTap: () => PhotoViewer.show(context, imageUrl)),
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(

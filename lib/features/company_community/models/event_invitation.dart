@@ -9,6 +9,8 @@ class EventInvitation {
   final String phone;
   final String? email;
   final String? category;
+  /// Numéro de stand d'un exposant (imprimé en grand sur son badge).
+  final String? standNumber;
   final InvitationStatus status;
   final DateTime? sentAt;
   final DateTime? openedAt;
@@ -24,6 +26,7 @@ class EventInvitation {
     required this.phone,
     this.email,
     this.category,
+    this.standNumber,
     required this.status,
     this.sentAt,
     this.openedAt,
@@ -44,6 +47,7 @@ class EventInvitation {
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String?,
       category: json['category'] as String?,
+      standNumber: json['stand_number'] as String?,
       status: InvitationStatus.fromApi(json['status'] as String?),
       sentAt: date('sent_at'),
       openedAt: date('opened_at'),
@@ -117,6 +121,8 @@ class InvitationPage {
   final int lastPage;
   /// Événement terminé : liste en lecture seule (plus d'ajout ni d'envoi).
   final bool eventEnded;
+  /// Catégories d'exposants : le formulaire propose alors le numéro de stand.
+  final List<String> exhibitorCategories;
 
   const InvitationPage({
     required this.items,
@@ -125,6 +131,7 @@ class InvitationPage {
     required this.currentPage,
     required this.lastPage,
     this.eventEnded = false,
+    this.exhibitorCategories = const [],
   });
 
   factory InvitationPage.fromJson(Map<String, dynamic> json) {
@@ -140,6 +147,8 @@ class InvitationPage {
       currentPage: (pagination?['current_page'] as num?)?.toInt() ?? 1,
       lastPage: (pagination?['last_page'] as num?)?.toInt() ?? 1,
       eventEnded: json['event_ended'] == true,
+      exhibitorCategories:
+          (json['exhibitor_categories'] as List? ?? []).map((c) => '$c').toList(),
     );
   }
 }

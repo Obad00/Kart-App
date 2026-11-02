@@ -6,6 +6,7 @@ import '../../../shared/widgets/glass_sheet.dart';
 import '../models/event_invitation.dart';
 import '../services/event_invitations_service.dart';
 import '../utils/phone_display.dart';
+import 'invitation_category_field.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -42,14 +43,17 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   late final _phone = TextEditingController(text: widget.invitation?.phone);
   late final _email = TextEditingController(text: widget.invitation?.email);
   late final _category = TextEditingController(text: widget.invitation?.category);
+  late final _stand = TextEditingController(text: widget.invitation?.standNumber);
   bool _saving = false;
+  // Catégorie d'exposants : numéro de stand proposé.
+  bool _exhibitor = false;
 
   bool get _editing => widget.invitation != null;
   bool get _canSubmit => _name.text.trim().isNotEmpty && _phone.text.trim().isNotEmpty;
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _category]) {
+    for (final c in [_name, _phone, _email, _category, _stand]) {
       c.dispose();
     }
     super.dispose();
@@ -64,10 +68,18 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
     try {
       if (_editing) {
         await widget.service.update(widget.eventId, widget.invitation!.id,
-            name: _name.text.trim(), phone: _phone.text.trim(), email: _clean(_email), category: _clean(_category));
+            name: _name.text.trim(),
+            phone: _phone.text.trim(),
+            email: _clean(_email),
+            category: _clean(_category),
+            standNumber: _exhibitor ? _clean(_stand) : null);
       } else {
         await widget.service.create(widget.eventId,
-            name: _name.text.trim(), phone: _phone.text.trim(), email: _clean(_email), category: _clean(_category));
+            name: _name.text.trim(),
+            phone: _phone.text.trim(),
+            email: _clean(_email),
+            category: _clean(_category),
+            standNumber: _exhibitor ? _clean(_stand) : null);
       }
       if (!mounted) return;
       FeedbackOverlay.showSuccess(
@@ -145,7 +157,16 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
               const SizedBox(height: 12),
               _field(_email, 'Email (facultatif)', colors, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 12),
-              _field(_category, 'Catégorie (facultatif) : VIP, Exposant…', colors),
+              InvitationCategoryField(
+                controller: _category,
+                service: widget.service,
+                eventId: widget.eventId,
+                onExhibitorChanged: (value) => setState(() => _exhibitor = value),
+              ),
+              if (_exhibitor) ...[
+                const SizedBox(height: 12),
+                _field(_stand, 'Numéro de stand (imprimé sur le badge)', colors),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

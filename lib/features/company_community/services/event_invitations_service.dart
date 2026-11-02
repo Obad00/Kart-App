@@ -34,12 +34,14 @@ class EventInvitationsService {
     required String phone,
     String? email,
     String? category,
+    String? standNumber,
   }) async {
     final response = await ApiClient.dio.post(_base(eventId), data: {
       'name': name,
       'phone': phone,
       'email': email,
       'category': category,
+      'stand_number': standNumber,
     });
     return EventInvitation.fromJson(
         response.data['data'] as Map<String, dynamic>);
@@ -52,6 +54,7 @@ class EventInvitationsService {
     required String phone,
     String? email,
     String? category,
+    String? standNumber,
   }) async {
     final response =
         await ApiClient.dio.patch('${_base(eventId)}/$invitationId', data: {
@@ -59,9 +62,17 @@ class EventInvitationsService {
       'phone': phone,
       'email': email,
       'category': category,
+      'stand_number': standNumber,
     });
     return EventInvitation.fromJson(
         response.data['data'] as Map<String, dynamic>);
+  }
+
+  /// Catégories existantes et catégories d'exposants (liste déroulante du
+  /// formulaire et de l'ajout depuis les contacts).
+  Future<({List<String> all, List<String> exhibitors})> categories(int eventId) async {
+    final page = await list(eventId);
+    return (all: page.categories, exhibitors: page.exhibitorCategories);
   }
 
   Future<void> delete(int eventId, int invitationId) =>
