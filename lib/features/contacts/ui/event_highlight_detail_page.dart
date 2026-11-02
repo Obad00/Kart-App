@@ -13,6 +13,8 @@ import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../../../shared/widgets/poster_image.dart';
+import '../models/highlight_model.dart';
+import '../providers/highlight_provider.dart';
 
 /// Ouverte en tapant sur un highlight d'événement (voir highlight_bar.dart) :
 /// affiche les infos de l'événement (thème, lieu, date, description) ainsi
@@ -23,10 +25,15 @@ class EventHighlightDetailPage extends StatefulWidget {
   final int eventId;
   final String fallbackName;
 
+  /// Highlight de la personne pour cet événement : interrupteur « Afficher
+  /// sur ma carte » (retirer puis remettre). Absent : pas d'interrupteur.
+  final HighlightModel? highlight;
+
   const EventHighlightDetailPage({
     super.key,
     required this.eventId,
     required this.fallbackName,
+    this.highlight,
   });
 
   @override
@@ -39,11 +46,36 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
   String? _error;
   Map<String, dynamic>? _event;
   List<ExploreUser> _attendees = [];
+  late bool _onCard = widget.highlight?.isActive ?? false;
+  bool _togglingCard = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// Retire le highlight de la carte ou l'y remet (le serveur désactive
+  /// alors les autres highlights, comme pour un highlight personnel).
+  Future<void> _setOnCard(bool value) async {
+    final highlight = widget.highlight;
+    if (highlight == null || _togglingCard) return;
+    setState(() => _togglingCard = true);
+    try {
+      if (value) {
+        await CardService.activateHighlight(highlight.id);
+      } else {
+        await CardService.deactivateHighlight(highlight.id);
+      }
+      if (!mounted) return;
+      setState(() => _onCard = value);
+      await context.read<HighlightProvider>().loadHighlights();
+    } catch (_) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(context, title: 'Erreur', subtitle: 'Le changement n\'a pas pu être enregistré.');
+    } finally {
+      if (mounted) setState(() => _togglingCard = false);
+    }
   }
 
   Future<void> _load() async {
@@ -276,6 +308,24 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
                     children: [
                       if (event != null)
                         _EventInfoCard(event: event, formatDate: _formatDate),
+                      if (widget.highlight != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
+                          ),
+                          child: SwitchListTile(
+                            key: const Key('event-highlight-on-card'),
+                            title: const Text('Afficher sur ma carte', style: TextStyle(fontWeight: FontWeight.w700)),
+                            subtitle: Text(_onCard
+                                ? 'Votre carte montre cet événement. Vous pouvez le retirer à tout moment.'
+                                : 'Retiré de votre carte. Vous pouvez le remettre à tout moment.'),
+                            value: _onCard,
+                            onChanged: _togglingCard ? null : _setOnCard,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Text(
                         _attendees.isEmpty
