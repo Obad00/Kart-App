@@ -15,6 +15,8 @@ import '../../../../shared/widgets/auth_primary_button.dart';
 import '../../../../shared/widgets/auth_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../digital_card/confirm_card_deactivation.dart';
+import '../../../digital_card/providers/card_provider.dart';
+import '../../../profile_completion/providers/profile_completion_provider.dart';
 import '../../data/profile_setup_api.dart';
 
 /// Onboarding d'un nouveau compte, après l'inscription et le consentement :
@@ -157,8 +159,24 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       return;
     }
     if (!mounted) return;
+    // La carte et le score de profil de l'app suivent tout de suite :
+    // sans ça, l'accueil montrait la carte d'avant l'onboarding (sans poste,
+    // voire « Créez votre carte » si elle n'existait pas encore).
+    await _refreshCard();
+    if (!mounted) return;
     setState(() => _saving = false);
     await _next();
+  }
+
+  Future<void> _refreshCard() async {
+    try {
+      await Future.wait([
+        context.read<CardProvider>().loadCardSummary(),
+        context.read<ProfileCompletionProvider>().load(),
+      ]);
+    } catch (_) {
+      // Rechargées plus tard par l'écran Carte ou le profil.
+    }
   }
 
   void _error() {
