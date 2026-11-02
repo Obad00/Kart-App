@@ -26,6 +26,15 @@
 	     le profil de distribution à partir des capabilities de l'App ID.
 	     Va de pair avec NFCReaderUsageDescription (Info.plist) et
 	     kIosNfcReadingEnabled (nfc_tag_reader.dart). -->
+	<!-- Lien universel : le bouton « Confirmer mon adresse » de l'email
+	     (https://kart.business/verifier-email/…) ouvre l'app. La capability
+	     « Associated Domains » est activée sur l'App ID par le pipeline CI
+	     (ios-build.yml) ; kart.business doit servir
+	     /.well-known/apple-app-site-association. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:kart.business</string>
+	</array>
 	<key>com.apple.developer.nfc.readersession.formats</key>
 	<array>
 		<string>TAG</string>

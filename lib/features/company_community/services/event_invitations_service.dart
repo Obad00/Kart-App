@@ -17,8 +17,9 @@ class EventInvitationsService {
     String? category,
     String? query,
     int page = 1,
+    CancelToken? cancelToken,
   }) async {
-    final response = await ApiClient.dio.get(_base(eventId), queryParameters: {
+    final response = await ApiClient.dio.get(_base(eventId), cancelToken: cancelToken, queryParameters: {
       'page': page,
       'per_page': 50,
       if (status != null) 'status': status.api,

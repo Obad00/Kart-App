@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'auth_text_field.dart';
 import 'glass_sheet.dart';
 
 /// Popup en verre dépoli — remplace les AlertDialog/Dialog à fond plat
@@ -159,6 +160,123 @@ class GlassDialog extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// Saisie d'une valeur (nouvelle catégorie, correction d'email...) : même
+  /// verre, mêmes boutons que [confirm], même champ que les formulaires
+  /// (AuthTextField). Renvoie le texte saisi (sans espaces autour), ou null
+  /// si annulé.
+  static Future<String?> input(
+    BuildContext context, {
+    required String title,
+    String? message,
+    required String label,
+    String? hint,
+    String initialValue = '',
+    IconData? icon,
+    TextInputType keyboardType = TextInputType.text,
+    int? maxLength,
+    String cancelLabel = 'Annuler',
+    String confirmLabel = 'Valider',
+  }) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => _GlassInputDialog(
+        title: title,
+        message: message,
+        label: label,
+        hint: hint,
+        initialValue: initialValue,
+        icon: icon,
+        keyboardType: keyboardType,
+        maxLength: maxLength,
+        cancelLabel: cancelLabel,
+        confirmLabel: confirmLabel,
+      ),
+    );
+  }
+}
+
+class _GlassInputDialog extends StatefulWidget {
+  final String title;
+  final String? message;
+  final String label;
+  final String? hint;
+  final String initialValue;
+  final IconData? icon;
+  final TextInputType keyboardType;
+  final int? maxLength;
+  final String cancelLabel;
+  final String confirmLabel;
+
+  const _GlassInputDialog({
+    required this.title,
+    required this.message,
+    required this.label,
+    required this.hint,
+    required this.initialValue,
+    required this.icon,
+    required this.keyboardType,
+    required this.maxLength,
+    required this.cancelLabel,
+    required this.confirmLabel,
+  });
+
+  @override
+  State<_GlassInputDialog> createState() => _GlassInputDialogState();
+}
+
+class _GlassInputDialogState extends State<_GlassInputDialog> {
+  late final TextEditingController _controller = TextEditingController(text: widget.initialValue);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return GlassDialog(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface)),
+          if (widget.message != null) ...[
+            const SizedBox(height: 10),
+            Text(widget.message!, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.7), height: 1.4)),
+          ],
+          const SizedBox(height: 16),
+          AuthTextField(
+            key: const Key('glass-input-field'),
+            label: widget.label,
+            hint: widget.hint,
+            controller: _controller,
+            keyboardType: widget.keyboardType,
+            prefixIcon: widget.icon,
+            maxLength: widget.maxLength,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(widget.cancelLabel, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                key: const Key('glass-input-confirm'),
+                onPressed: () => Navigator.pop(context, _controller.text.trim()),
+                child: Text(widget.confirmLabel, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

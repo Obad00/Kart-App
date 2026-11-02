@@ -13,11 +13,15 @@ class FeedbackOverlay {
     required String title,
     required String subtitle,
     Duration duration = const Duration(milliseconds: 3500),
+    // Au centre de l'écran, au-dessus de la navigation (ex. « Email vérifié »,
+    // qui doit rester visible pendant l'ouverture de l'accueil).
+    bool centered = false,
   }) {
     _show(
       context,
       title: title,
       subtitle: subtitle,
+      centered: centered,
       icon: Icons.check_circle,
       // greenAccent, très pâle, se voyait mal sur le verre clair.
       iconColor: Theme.of(context).brightness == Brightness.dark
@@ -69,14 +73,16 @@ class FeedbackOverlay {
     required IconData icon,
     required Color iconColor,
     required Duration duration,
+    bool centered = false,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.of(context, rootOverlay: centered);
     late OverlayEntry entry;
     final visible = ValueNotifier<bool>(true);
 
     entry = OverlayEntry(
       builder: (_) => Positioned(
-        top: 60,
+        top: centered ? 0 : 60,
+        bottom: centered ? 0 : null,
         left: 0,
         right: 0,
         child: SafeArea(
@@ -102,11 +108,14 @@ class FeedbackOverlay {
                 child: child,
               );
             },
-            child: SuccessMessage(
-              title: title,
-              subtitle: subtitle,
-              icon: icon,
-              iconColor: iconColor,
+            child: _centerIf(
+              centered,
+              SuccessMessage(
+                title: title,
+                subtitle: subtitle,
+                icon: icon,
+                iconColor: iconColor,
+              ),
             ),
           ),
         ),
@@ -125,4 +134,8 @@ class FeedbackOverlay {
       });
     });
   }
+
+  /// En haut (par défaut) le message garde toute la largeur, comme avant.
+  static Widget _centerIf(bool centered, Widget child) =>
+      centered ? Center(child: child) : child;
 }

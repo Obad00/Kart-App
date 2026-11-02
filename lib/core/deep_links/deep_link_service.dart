@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
+import '../network/api_client.dart';
+import '../ui/feedback/feedback_overlay.dart';
 import '../../shared/utils/jobmatch_access.dart';
 
-/// Gère les liens profonds au format `kart://...` (ex: bouton "Voir mes
-/// offres likées" du mail d'intérêt candidat) — capte le lien qui a servi à
+/// Gère les liens profonds `kart://...` (ex: bouton "Voir mes offres
+/// likées" du mail d'intérêt candidat) et le lien universel de vérification
+/// d'email (https://kart.business/verifier-email/…) — capte le lien qui a servi à
 /// ouvrir l'app (cold start) et ceux reçus pendant qu'elle tourne déjà, et
 /// navigue vers l'écran correspondant via [navigatorKey].
 class DeepLinkService {
@@ -34,7 +38,27 @@ class DeepLinkService {
 
   void dispose() => _subscription?.cancel();
 
+  /// Bouton « Confirmer mon adresse » de l'email : lien universel iOS / App
+  /// Link Android vers https://kart.business/verifier-email/{user}/{hash}?…
+  /// Renvoie l'appel API correspondant (mêmes paramètres signés, dans le
+  /// même ordre), ou null si ce n'est pas ce lien.
+  static String? emailVerificationApiPath(Uri uri) {
+    final segments = uri.pathSegments;
+    final ourHost = uri.host == 'kart.business' || uri.host == 'www.kart.business';
+    if (uri.scheme != 'https' || !ourHost || segments.length != 3 || segments.first != 'verifier-email') {
+      return null;
+    }
+    if (int.tryParse(segments[1]) == null || !RegExp(r'^[0-9a-f]{40}$').hasMatch(segments[2])) return null;
+    return '/auth/verify-email/${segments[1]}/${segments[2]}?${uri.query}';
+  }
+
   void _handle(Uri uri) {
+    final verification = emailVerificationApiPath(uri);
+    if (verification != null) {
+      _verifyEmail(verification);
+      return;
+    }
+
     if (uri.scheme != 'kart') return;
 
     if (uri.host == 'explore' && uri.pathSegments.contains('requests')) {
@@ -64,6 +88,47 @@ class DeepLinkService {
     // bord à ouvrir spécifiquement (pas encore de match/like), juste le
     // fil d'offres où il peut la retrouver et l'aimer.
     _openFeedTab();
+  }
+
+  /// Valide l'adresse sans rien taper (le code reste en secours), puis
+  /// relit le compte : l'écran du code se ferme de lui-même.
+  void _verifyEmail(String apiPath) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = _navigatorKey.currentContext;
+      if (context == null) return;
+      final auth = context.read<AuthProvider>();
+      await auth.waitForInit();
+      try {
+        final response = await ApiClient.dio.get(apiPath,
+            options: Options(headers: {'Accept': 'application/json'}, validateStatus: (_) => true));
+        final ok = response.statusCode == 200;
+        final message = response.data is Map ? (response.data as Map)['message']?.toString() : null;
+        if (ok && auth.isAuthenticated) await auth.loadMe();
+        final readyContext = _navigatorKey.currentContext;
+        if (readyContext == null) return;
+        if (ok) {
+          // ignore: use_build_context_synchronously
+          FeedbackOverlay.showSuccess(readyContext,
+              title: 'Email vérifié',
+              subtitle: 'Votre adresse est confirmée.',
+              duration: const Duration(milliseconds: 2500),
+              centered: true);
+          if (auth.isAuthenticated) {
+            _navigatorKey.currentState?.pushNamedAndRemoveUntil('/home', (route) => false);
+          }
+        } else {
+          // ignore: use_build_context_synchronously
+          FeedbackOverlay.showError(readyContext,
+              title: 'Lien non valide', subtitle: message ?? 'Utilisez le code reçu par email.');
+        }
+      } catch (_) {
+        final readyContext = _navigatorKey.currentContext;
+        if (readyContext == null) return;
+        // ignore: use_build_context_synchronously
+        FeedbackOverlay.showError(readyContext,
+            title: 'Vérification impossible', subtitle: 'Vérifiez votre connexion, ou saisissez le code reçu par email.');
+      }
+    });
   }
 
   void _openExploreRequests() {

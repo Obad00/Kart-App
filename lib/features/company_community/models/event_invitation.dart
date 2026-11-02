@@ -57,6 +57,28 @@ class EventInvitation {
     );
   }
 
+  /// Même règle que le filtre du serveur (EventInvitationController) :
+  /// « Envoyée » = déjà envoyée (sent_at), « Ouverte » = déjà ouverte,
+  /// sinon le statut ; recherche dans le nom, le numéro et l'email. Sert au
+  /// filtrage immédiat, avant la réponse du serveur.
+  bool matches({InvitationStatus? status, String? category, String query = ''}) {
+    final statusOk = switch (status) {
+      null => true,
+      InvitationStatus.sent => sentAt != null || this.status == InvitationStatus.sent,
+      InvitationStatus.opened => openedAt != null || this.status == InvitationStatus.opened,
+      _ => this.status == status,
+    };
+    if (!statusOk) return false;
+    if (category != null && category.isNotEmpty && this.category != category) {
+      return false;
+    }
+    final q = query.trim().toLowerCase();
+    return q.isEmpty ||
+        name.toLowerCase().contains(q) ||
+        phone.toLowerCase().contains(q) ||
+        (email ?? '').toLowerCase().contains(q);
+  }
+
   String get initials {
     final letters = [firstName, lastName]
         .where((part) => part.isNotEmpty)

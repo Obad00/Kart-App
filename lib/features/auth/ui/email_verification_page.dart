@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../data/email_verification_service.dart';
 import '../providers/auth_provider.dart';
@@ -133,8 +134,16 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     await auth.loadMe();
     if (!mounted) return;
 
+    // Au centre, environ 2,5 s, style des messages de succès de l'app ;
+    // reste visible pendant l'ouverture de l'écran suivant.
+    FeedbackOverlay.showSuccess(
+      context,
+      title: 'Email vérifié',
+      subtitle: 'Votre adresse est confirmée.',
+      duration: const Duration(milliseconds: 2500),
+      centered: true,
+    );
     if (!widget.blocking) {
-      FeedbackOverlay.showSuccess(context, title: 'Email vérifié', subtitle: 'Votre adresse est confirmée.');
       Navigator.of(context).pop(true);
       return;
     }
@@ -155,24 +164,16 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   Future<void> _changeEmail(AuthProvider auth) async {
     final user = auth.user;
     if (user == null) return;
-    final ctrl = TextEditingController(text: user.email);
-    final email = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Corriger mon adresse'),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.emailAddress,
-          autofocus: true,
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.alternate_email_rounded)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annuler')),
-          TextButton(onPressed: () => Navigator.pop(dialogContext, ctrl.text.trim()), child: const Text('Envoyer le code')),
-        ],
-      ),
+    final email = await GlassDialog.input(
+      context,
+      title: 'Corriger mon adresse',
+      message: 'Un nouveau code partira à cette adresse.',
+      label: 'Adresse email',
+      initialValue: user.email,
+      icon: Icons.alternate_email_rounded,
+      keyboardType: TextInputType.emailAddress,
+      confirmLabel: 'Envoyer le code',
     );
-    ctrl.dispose();
     if (email == null || email.isEmpty || email == user.email || !mounted) return;
 
     // Un nouveau code part à la nouvelle adresse (PUT /me, autorisé avant

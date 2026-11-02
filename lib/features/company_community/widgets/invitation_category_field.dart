@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/widgets/glass_sheet.dart';
 import '../services/event_invitations_service.dart';
 import 'invitation_sheets.dart';
@@ -86,27 +87,14 @@ class _InvitationCategoryFieldState extends State<InvitationCategoryField> {
     _set(choice);
   }
 
-  Future<String?> _askNewCategory() {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nouvelle catégorie'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 40,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Ex : Presse, Partenaire'),
-          onSubmitted: (value) => Navigator.pop(context, value),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Valider')),
-        ],
-      ),
-    );
-  }
+  Future<String?> _askNewCategory() => GlassDialog.input(
+        context,
+        title: 'Nouvelle catégorie',
+        label: 'Nom de la catégorie',
+        hint: 'Ex : Presse, Partenaire',
+        icon: Icons.sell_outlined,
+        maxLength: 40,
+      );
 
   @override
   Widget build(BuildContext context) {

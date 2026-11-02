@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
@@ -69,8 +70,16 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
   bool _loadedOnce = false;
   bool _eventEnded = false;
   /// Seule la dernière requête lancée s'applique (changements de filtre
-  /// rapides : une réponse lente ne doit pas écraser la liste affichée).
+  /// rapides : une réponse lente ne doit pas écraser la liste affichée) ;
+  /// la précédente est annulée.
   int _requestSeq = 0;
+  CancelToken? _inflight;
+  /// Première page déjà reçue pour chaque filtre (statut, catégorie,
+  /// recherche) : un filtre déjà vu s'affiche tout de suite.
+  final Map<String, InvitationPage> _cache = {};
+  /// Toutes les invitations déjà reçues : filtrage local immédiat d'un
+  /// filtre jamais vu, en attendant la réponse du serveur.
+  final Map<int, EventInvitation> _known = {};
   int? _busyId;
   bool _sendingNext = false;
 
@@ -99,18 +108,55 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     super.dispose();
   }
 
+  String get _filterKey => [_status?.api ?? '', _category ?? '', _search.text.trim().toLowerCase()].join('|');
+
+  /// Affichage immédiat d'un filtre : page en cache, sinon filtrage local
+  /// des invitations déjà reçues. La réponse du serveur suit (_refresh).
+  void _applyLocal() {
+    final cached = _cache[_filterKey];
+    setState(() {
+      if (cached != null) {
+        _items = cached.items;
+        _counts = cached.counts;
+        _page = cached.currentPage;
+        _lastPage = cached.lastPage;
+      } else {
+        _items = _known.values
+            .where((i) => i.matches(status: _status, category: _category, query: _search.text))
+            .toList()
+          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        _page = 1;
+        _lastPage = 1;
+      }
+    });
+  }
+
+  /// Après un envoi, un ajout ou une suppression : les pages en cache ne
+  /// sont plus à jour.
+  Future<void> _reload() {
+    _cache.clear();
+    return _refresh();
+  }
+
   Future<void> _refresh({bool initial = false, bool silent = false}) async {
     final seq = ++_requestSeq;
+    _inflight?.cancel();
+    final token = _inflight = CancelToken();
+    final key = _filterKey;
     if (initial) setState(() => _loading = true);
     try {
       final results = await Future.wait([
         _service.list(widget.eventId,
-            status: _status, category: _category, query: _search.text, page: 1),
+            status: _status, category: _category, query: _search.text, page: 1, cancelToken: token),
         _service.next(widget.eventId),
       ]);
       if (!mounted || seq != _requestSeq) return;
       final page = results[0] as InvitationPage;
       final next = results[1] as ({EventInvitation? next, int remaining});
+      _cache[key] = page;
+      for (final invitation in page.items) {
+        _known[invitation.id] = invitation;
+      }
       setState(() {
         _items = page.items;
         _counts = page.counts;
@@ -127,6 +173,8 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       });
     } catch (e) {
       if (!mounted || seq != _requestSeq) return;
+      // Requête remplacée par un filtre plus récent : rien à signaler.
+      if (e is DioException && CancelToken.isCancel(e)) return;
       final message = EventInvitationsService.errorMessage(e,
           fallback: 'Impossible de charger les invitations.');
       setState(() {
@@ -147,6 +195,9 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       final page = await _service.list(widget.eventId,
           status: _status, category: _category, query: _search.text, page: _page + 1);
       if (!mounted) return;
+      for (final invitation in page.items) {
+        _known[invitation.id] = invitation;
+      }
       setState(() {
         _items = [..._items, ...page.items];
         _page = page.currentPage;
@@ -163,17 +214,22 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
   }
 
   void _onSearch(String _) {
+    // Liste filtrée à chaque lettre ; le serveur est interrogé une fois la
+    // saisie posée.
+    _applyLocal();
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 350), _refresh);
+    _searchDebounce = Timer(const Duration(milliseconds: 250), _refresh);
   }
 
   void _setStatus(InvitationStatus? status) {
-    setState(() => _status = status);
+    _status = status;
+    _applyLocal();
     _refresh();
   }
 
   void _setCategory(String? category) {
-    setState(() => _category = category);
+    _category = category;
+    _applyLocal();
     _refresh();
   }
 
@@ -182,7 +238,7 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     await _sender.sendWhatsApp(context, invitation);
     if (!mounted) return;
     setState(() => _busyId = null);
-    _refresh();
+    _reload();
   }
 
   Future<void> _sendNext() async {
@@ -192,7 +248,7 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     await _sender.sendWhatsApp(context, next);
     if (!mounted) return;
     setState(() => _sendingNext = false);
-    _refresh();
+    _reload();
   }
 
   Future<void> _share(EventInvitation invitation) async {
@@ -200,13 +256,13 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     await _sender.shareInvitation(context, invitation);
     if (!mounted) return;
     setState(() => _busyId = null);
-    _refresh();
+    _reload();
   }
 
   Future<void> _edit(EventInvitation? invitation) async {
     final changed = await showInvitationFormSheet(context,
         service: _service, eventId: widget.eventId, invitation: invitation);
-    if (changed && mounted) _refresh();
+    if (changed && mounted) _reload();
   }
 
   Future<void> _delete(EventInvitation invitation) async {
@@ -222,7 +278,8 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       if (!mounted) return;
       FeedbackOverlay.showSuccess(context,
           title: 'Invité retiré', subtitle: '${invitation.name} a été retiré(e) de la liste.');
-      _refresh();
+      _known.remove(invitation.id);
+      _reload();
     } catch (e) {
       if (mounted) {
         FeedbackOverlay.showError(context,
@@ -235,7 +292,7 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     final report = await openInvitationContactsFlow(context,
         service: _service, eventId: widget.eventId, source: widget.contacts);
     if (report == null || !mounted) return;
-    await _refresh();
+    await _reload();
     if (mounted) await showInvitationReportSheet(context, report);
   }
 
