@@ -415,11 +415,15 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               subtitle: 'Désactivée, votre carte ne s\'ouvre plus pour personne.', value: _isPublic,
               onChanged: _setPublic),
           const SizedBox(height: 10),
-          // Même texte que « Modifier mes infos ».
+          // Allumé par défaut pour une inscription volontaire (serveur :
+          // DigitalCardService::listedByDefault). Éteint : même texte que
+          // « Modifier mes infos ».
           _toggle(t, key: 'onboarding-listed', title: "Visible dans l'annuaire Explorer",
-              subtitle: _isPublic
-                  ? 'Les membres KART peuvent vous trouver. Sinon, votre lien, votre QR code et votre carte NFC fonctionnent quand même.'
-                  : "Activez d'abord votre carte.",
+              subtitle: !_isPublic
+                  ? "Activez d'abord votre carte."
+                  : _listed
+                      ? 'Votre carte apparaîtra dans Explorer. Vous pouvez la masquer à tout moment.'
+                      : 'Les membres KART peuvent vous trouver. Sinon, votre lien, votre QR code et votre carte NFC fonctionnent quand même.',
               value: _isPublic && _listed,
               onChanged: _isPublic ? (v) => setState(() => _listed = v) : null),
         ],
