@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/network/api_client.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
+import 'package:kart_app/features/company_community/models/company_event_summary.dart';
 import 'package:kart_app/features/company_community/ui/company_event_participants_page.dart';
 import 'package:kart_app/features/company_community/ui/event_invitations_tab.dart';
 import 'package:kart_app/features/digital_card/providers/card_provider.dart';
@@ -196,6 +197,12 @@ void main() {
   });
 
   group('Affiche', () {
+    test('organisateur : l\'affiche de l\'événement est lue avec la liste', () {
+      final summary = CompanyEventSummary.fromJson({'id': 1, 'name': 'Retrouvailles Exemple', 'image_url': 'https://example.test/affiche.jpg'});
+      expect(summary.imageUrl, 'https://example.test/affiche.jpg');
+      expect(CompanyEventSummary.fromJson({'id': 2, 'name': 'Sans affiche'}).imageUrl, isNull);
+    });
+
     testWidgets('image entière (contain) sur fond flou (cover) de la même image', (tester) async {
       await tester.pumpWidget(const MaterialApp(
         home: Scaffold(body: PosterImage(imageUrl: 'https://example.test/affiche-a4.jpg')),

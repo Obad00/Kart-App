@@ -6,6 +6,8 @@ import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/utils/silent_refresh.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
+import '../../../shared/widgets/photo_viewer.dart';
+import '../../../shared/widgets/poster_image.dart';
 import '../models/event_participant_summary.dart';
 import '../services/company_community_service.dart';
 import '../widgets/participant_list_widgets.dart';
@@ -24,6 +26,8 @@ class CompanyEventParticipantsPage extends StatefulWidget {
   // antérieure à ce champ : le bouton de partage est alors simplement
   // masqué plutôt que de partager une URL vide.
   final String? publicUrl;
+  // Affiche de l'événement, entière, en tête de la liste des participants.
+  final String? imageUrl;
   // Un événement terminé ne doit plus pouvoir être partagé — inutile
   // d'inviter à s'inscrire à quelque chose qui n'a plus lieu — cf. bouton
   // de partage plus bas, masqué dans ce cas.
@@ -38,6 +42,7 @@ class CompanyEventParticipantsPage extends StatefulWidget {
     required this.eventId,
     required this.eventName,
     this.publicUrl,
+    this.imageUrl,
     this.eventHasEnded = false,
     this.showInvitations = false,
   });
@@ -285,6 +290,10 @@ class _CompanyEventParticipantsPageState
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 32),
         children: [
+          if (widget.imageUrl != null) ...[
+            PosterImage(imageUrl: widget.imageUrl!, onTap: () => PhotoViewer.show(context, widget.imageUrl!)),
+            const SizedBox(height: 16),
+          ],
           _buildStatsRow(colors),
           const SizedBox(height: 20),
           if (_participants.isEmpty)
