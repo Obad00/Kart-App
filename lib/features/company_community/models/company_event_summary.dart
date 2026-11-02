@@ -13,6 +13,8 @@ class CompanyEventSummary {
   // backend) — permet de le partager depuis l'app, comme le fait déjà le
   // CRM (remonté côté produit).
   final String? publicUrl;
+  // Affiche de l'événement (Event::image_url), montrée entière.
+  final String? imageUrl;
   // Invitations WhatsApp (cf. EventController::index) : compteur
   // « X confirmés / Y invités » de la liste des événements.
   final int invitationsCount;
@@ -27,6 +29,7 @@ class CompanyEventSummary {
     required this.isActive,
     required this.participantsCount,
     this.publicUrl,
+    this.imageUrl,
     this.invitationsCount = 0,
     this.invitationsConfirmedCount = 0,
   });
@@ -45,6 +48,7 @@ class CompanyEventSummary {
       isActive: json['is_active'] == true,
       participantsCount: json['participants_count'] as int? ?? 0,
       publicUrl: json['public_url'] as String?,
+      imageUrl: json['image_url'] as String?,
       invitationsCount: (json['invitations_count'] as num?)?.toInt() ?? 0,
       invitationsConfirmedCount:
           (json['invitations_confirmed_count'] as num?)?.toInt() ?? 0,

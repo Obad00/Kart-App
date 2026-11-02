@@ -106,6 +106,7 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
                       eventId: event.id,
                       eventName: event.name,
                       publicUrl: event.publicUrl,
+                      imageUrl: event.imageUrl,
                       eventHasEnded: event.hasEnded,
                       showInvitations: context
                               .read<AuthProvider>()
