@@ -19,6 +19,22 @@ class User {
   // EmailVerificationPage) — absent des anciennes réponses /me en cache,
   // d'où le défaut à true pour ne jamais bloquer un compte existant.
   final bool emailVerified;
+
+  /// Vérification obligatoire pas encore faite (inscription sur le site ou
+  /// depuis un build avec l'écran du code) : HomeShell ouvre l'écran du
+  /// code. Absent d'un serveur plus ancien : false.
+  final bool emailVerificationRequired;
+
+  /// Ancien compte (ou ancien build) non vérifié : bandeau non bloquant avec
+  /// renvoi (cf. EmailVerificationBanner). Absent d'un serveur plus ancien : false.
+  final bool emailVerificationBanner;
+
+  /// Secondes avant le prochain renvoi autorisé par le serveur.
+  final int emailVerificationRetryAfter;
+
+  /// false avec un serveur d'avant le code : l'écran envoie alors lui-même
+  /// le lien à l'ouverture, comme avant.
+  final bool emailVerificationCodeSupported;
   // Compte créé via l'inscription événement avec un code PIN à 4 chiffres
   // comme mot de passe (EventRegistrationService, côté backend) — pilote
   // le nudge non bloquant "Sécurisez votre compte" (cf. SecurePinBanner),
@@ -69,6 +85,10 @@ class User {
     this.companyId,
     this.company,
     this.emailVerified = true,
+    this.emailVerificationRequired = false,
+    this.emailVerificationBanner = false,
+    this.emailVerificationRetryAfter = 0,
+    this.emailVerificationCodeSupported = false,
     this.hasTemporaryPin = false,
     this.canManageCommunity = false,
     this.hasPassword = true,
@@ -123,6 +143,12 @@ class User {
       // considère alors l'email déjà vérifié plutôt que de bloquer un
       // compte existant à tort.
       emailVerified: json['email_verified'] ?? true,
+      emailVerificationRequired: json['email_verification_required'] == true,
+      emailVerificationBanner: json['email_verification_banner'] == true,
+      emailVerificationRetryAfter:
+          int.tryParse('${json['email_verification_retry_after'] ?? 0}') ?? 0,
+      emailVerificationCodeSupported:
+          json.containsKey('email_verification_required'),
       hasTemporaryPin: json['has_temporary_pin'] == true,
       canManageCommunity: json['can_manage_community'] == true,
       hasPassword: json['has_password'] ?? true,
