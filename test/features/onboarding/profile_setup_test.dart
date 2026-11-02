@@ -187,7 +187,7 @@ void main() {
     expect(_switchValue(tester, 'onboarding-show-email'), isFalse);
   });
 
-  testWidgets('visibilité : Explorer jamais activé d\'office, et grisé sans carte publique', (tester) async {
+  testWidgets('visibilité : l\'app suit la valeur du serveur (éteint ici), grisé sans carte publique', (tester) async {
     final auth = _FakeAuth();
     final api = _FakeApi({'is_public': true, 'listed_in_directory': false});
     await _pump(tester, auth, api);
@@ -229,6 +229,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(_switchValue(tester, 'onboarding-public'), isTrue);
     expect(_switchValue(tester, 'onboarding-listed'), isTrue);
+    // Inscription volontaire : allumé par le serveur, avec la phrase qui le dit.
+    expect(find.text('Votre carte apparaîtra dans Explorer. Vous pouvez la masquer à tout moment.'), findsOneWidget);
 
     await tester.tap(publicSwitch);
     await tester.pumpAndSettle();
