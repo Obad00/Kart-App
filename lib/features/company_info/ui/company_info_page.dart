@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../onboarding/providers/company_provider.dart';
+import '../widgets/company_branding_section.dart';
 
-/// Écran consultatif "Mon entreprise" : aucune action de création, d'invitation
-/// ou de gestion de licence — uniquement de la lecture.
+/// Écran "Mon entreprise" : lecture seule, sauf pour un admin le logo et les
+/// couleurs de l'entreprise (aucune création, invitation ni licence ici).
 class CompanyInfoPage extends StatefulWidget {
   const CompanyInfoPage({super.key});
 
@@ -113,6 +114,11 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
                             _InfoRowData(Icons.category_outlined, 'Secteur', company['industry']),
                         ],
                       ),
+                      // Admin : logo et couleurs (extraites du logo, modifiables).
+                      if (user?.isCompanyOwnerOrAdmin == true) ...[
+                        const SizedBox(height: 24),
+                        CompanyBrandingSection(company: company, onChanged: companyProvider.loadMyCompany),
+                      ],
                       if (user?.isCompanyOwnerOrAdmin == true) ...[
                         const SizedBox(height: 32),
                         Text(

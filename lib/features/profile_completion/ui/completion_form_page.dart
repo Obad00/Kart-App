@@ -102,6 +102,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   final _cityCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _whatsappCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _linkedinCtrl = TextEditingController();
   final _instagramCtrl = TextEditingController();
@@ -152,6 +153,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       _cityCtrl.text = m.city ?? '';
       _bioCtrl.text = m.bio ?? '';
       _phoneCtrl.text = m.phone ?? '';
+      _whatsappCtrl.text = m.whatsappPhone ?? '';
       _emailCtrl.text = m.email ?? '';
       _linkedinCtrl.text = m.linkedin ?? '';
       _instagramCtrl.text = m.instagram ?? '';
@@ -232,6 +234,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
     _cityCtrl.dispose();
     _bioCtrl.dispose();
     _phoneCtrl.dispose();
+    _whatsappCtrl.dispose();
     _emailCtrl.dispose();
     _firstnameCtrl.dispose();
     _lastnameCtrl.dispose();
@@ -447,6 +450,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       city: _cityCtrl.text,
       bio: _bioCtrl.text,
       phone: _phoneCtrl.text,
+      whatsappPhone: _whatsappCtrl.text.trim(),
       email: editsBasic ? newEmail : null,
       linkedin: _linkedinCtrl.text,
       instagram: _instagramCtrl.text,
@@ -652,6 +656,15 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   value: _activeFields['phone'] ?? false,
                   onChanged: (v) => setState(() => _activeFields['phone'] = v),
                 ),
+                const SizedBox(height: 12),
+                // Second numéro : le bouton WhatsApp de la carte l'utilise ;
+                // vide, il reprend le numéro d'appel ci-dessus.
+                AuthTextField(
+                    label: 'Numéro WhatsApp (si différent)',
+                    controller: _whatsappCtrl,
+                    prefixIcon: Icons.chat_outlined,
+                    keyboardType: TextInputType.phone,
+                    hint: 'Vide : le même que le téléphone'),
                 const SizedBox(height: 12),
                 AuthTextField(
                     // Email affiché sur la carte, propre à la carte. L'email
