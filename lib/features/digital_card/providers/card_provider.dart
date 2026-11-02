@@ -228,6 +228,8 @@ class CardProvider extends ChangeNotifier {
         city = res.data['city'];
         bio = res.data['bio'];
         phone = res.data['phone'];
+        _isPublic = res.data['is_public'] as bool? ?? true;
+        _listedInDirectory = res.data['listed_in_directory'] == true;
         email = res.data['email'];
         linkedin = res.data['linkedin'];
 
@@ -373,6 +375,26 @@ class CardProvider extends ChangeNotifier {
   /// Renvoie true si un NOUVEAU logo vient d'être envoyé et que le serveur
   /// en a extrait des couleurs : l'écran reste alors ouvert pour les
   /// proposer.
+  bool _isPublic = true;
+  bool _listedInDirectory = true;
+
+  /// Carte existante mais absente d'Explorer (privée, ou retirée de
+  /// l'annuaire) : bannière « Rendre ma carte visible ».
+  bool get isHiddenFromExplore => _status == CardStatus.hasCard && (!_isPublic || !_listedInDirectory);
+
+  /// « Rendre ma carte visible » : publique et listée dans l'annuaire.
+  Future<bool> makeVisibleInExplore() async {
+    try {
+      await ApiClient.dio.put('/me/card-summary', data: {'is_public': true, 'listed_in_directory': true});
+      _isPublic = true;
+      _listedInDirectory = true;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> updatePersonalBranding({
     String? accentColorHex,
     String? localLogoPath,

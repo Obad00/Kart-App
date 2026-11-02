@@ -412,6 +412,16 @@ class PushNotificationService with WidgetsBindingObserver {
           });
           break;
 
+        case 'card_hidden':
+          // Carte invisible dans Explorer : onglet Explorer, où la bannière
+          // « Rendre ma carte visible » attend.
+          navigator.pushNamedAndRemoveUntil(
+            '/home',
+            (route) => false,
+            arguments: {'tab': canAccessJobMatch(authProvider.user?.plan) ? 3 : 2},
+          );
+          break;
+
         case 'jobmatch_new_suggestions':
           // Digest quotidien (côté candidat) — fil d'offres.
           navigator.pushNamedAndRemoveUntil(

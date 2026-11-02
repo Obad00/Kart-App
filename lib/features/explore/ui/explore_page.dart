@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
 import '../../../shared/widgets/filter_pill_chip.dart';
 import '../../../shared/widgets/text_scale_clamp.dart';
+import '../widgets/hidden_card_banner.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/providers/company_events_provider.dart';
 import '../../company_community/services/company_community_service.dart';
@@ -674,6 +675,9 @@ class _ExplorePageState extends State<ExplorePage> {
         // ses propres événements/participants sont plus pertinents pour ce
         // compte que du contenu à découvrir. Invisible (aucun changement
         // de design) pour tout le reste des utilisateurs.
+        // Carte invisible dans Explorer : bannière « Rendre ma carte visible ».
+        const SliverToBoxAdapter(child: HiddenCardBanner()),
+
         if (context.watch<AuthProvider>().user?.canAccessCompanyCommunity == true)
           SliverToBoxAdapter(child: _buildCompanyCommunitySection()),
 

@@ -8,6 +8,8 @@ class ProfileCompletionModel {
   String? city;
   String? bio;
   String? phone;
+  /// Numéro WhatsApp, s'il diffère du numéro d'appel (vide : le même).
+  String? whatsappPhone;
   String? email;
 
   String? linkedin;
@@ -40,6 +42,7 @@ class ProfileCompletionModel {
     this.city,
     this.bio,
     this.phone,
+    this.whatsappPhone,
     this.email,
     this.linkedin,
     this.instagram,
@@ -68,6 +71,7 @@ class ProfileCompletionModel {
       city: json['city'],
       bio: json['bio'],
       phone: json['phone'],
+      whatsappPhone: json['whatsapp_phone'],
       email: json['email'],
       linkedin: json['linkedin'],
       instagram: json['instagram'],
@@ -106,6 +110,7 @@ class ProfileCompletionModel {
       "city": city,
       "bio": bio,
       "phone": phone,
+      "whatsapp_phone": whatsappPhone,
       "email": email,
       "linkedin": linkedin,
       "instagram": instagram,

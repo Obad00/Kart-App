@@ -114,6 +114,9 @@ dependencies:
   crypto: ^3.0.7
   nfc_manager: ^4.2.1
 
+  # Pastille sur l'icône de l'app (demandes de connexion en attente), iOS et Android.
+  app_badge_plus: ^1.3.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
