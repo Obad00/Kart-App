@@ -23,6 +23,7 @@ import '../../../shared/utils/company_color_helper.dart';
 import '../../../shared/utils/initials.dart';
 import '../../auth/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/widgets/email_verification_banner.dart';
 import '../providers/card_provider.dart';
 import '../../nfc_card/nfc_card_entry.dart';
 import '../../contacts/providers/highlight_provider.dart';
@@ -341,6 +342,11 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                     fullName: fullName,
                     onLeadsTap: () => Navigator.pushNamed(context, '/leads'),
                   ),
+                ),
+                // Email non vérifié sans blocage : bandeau avec renvoi.
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: EmailVerificationBanner(),
                 ),
                 const SizedBox(height: 8),
                 // Highlights (catégories) sous le header

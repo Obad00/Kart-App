@@ -27,6 +27,7 @@ class ApiEndpoints {
   static const changePassword = '/auth/change-password';
   static const forgotPassword = '/auth/forgot-password';
   static const resendEmailVerification = '/auth/email/resend';
+  static const verifyEmailCode = '/auth/email/verify-code';
 
   // Entreprise (lecture seule)
   static const companyMe = '/companies/me';

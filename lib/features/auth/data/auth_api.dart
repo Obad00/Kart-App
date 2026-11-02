@@ -104,10 +104,23 @@ class AuthApi {
     );
   }
 
-  /// Écran "Vérifiez votre email" post-inscription — envoyé une fois à
-  /// l'ouverture de l'écran, puis à nouveau sur "Renvoyer l'email".
+  /// Nouveau code et nouveau lien de vérification. 429 avec `retry_after`
+  /// (secondes) tant que le serveur refuse un renvoi (1/min, 5/h).
   Future<Response> resendEmailVerification() {
-    return ApiClient.dio.post(ApiEndpoints.resendEmailVerification);
+    return ApiClient.dio.post(
+      ApiEndpoints.resendEmailVerification,
+      options: Options(validateStatus: (_) => true),
+    );
+  }
+
+  /// Code à 6 chiffres reçu par email : 200 vérifié, 422 sinon (`status` :
+  /// invalid, expired, too_many_attempts, no_code ; `attempts_left`).
+  Future<Response> verifyEmailCode(String code) {
+    return ApiClient.dio.post(
+      ApiEndpoints.verifyEmailCode,
+      data: {'code': code},
+      options: Options(validateStatus: (_) => true),
+    );
   }
 
   Future<Response> forgotPassword(String email) {

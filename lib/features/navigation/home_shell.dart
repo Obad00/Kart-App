@@ -520,6 +520,18 @@ class _HomeShellState extends State<HomeShell>
         );
       }
 
+      // Vérification d'email obligatoire (inscription sur le site ou depuis
+      // un build avec l'écran du code) : écran du code avant tout le reste.
+      if (auth.user!.emailVerificationRequired) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed('/verify-email');
+        });
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       if (auth.user!.mustChangePassword) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/force-change-password');
