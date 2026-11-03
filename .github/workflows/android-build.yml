@@ -153,7 +153,7 @@ jobs:
           packageName: com.kartapp.app
           releaseFiles: dist/*.aab
           releaseName: ${{ env.BUILD_NAME }} (${{ env.BUILD_NUMBER }})
-          track: ${{ github.ref == 'refs/heads/release/flutter' && inputs.track || 'internal' }}
+          tracks: ${{ github.ref == 'refs/heads/release/flutter' && inputs.track || 'internal' }}
           status: completed
           mappingFile: build/app/outputs/mapping/release/mapping.txt
 
