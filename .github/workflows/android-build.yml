@@ -1,17 +1,31 @@
-name: Build Android App Bundle
+name: Build & Deploy Android App
 
 # Lancé au même push sur release/flutter que ios-build.yml, donc sur le
-# même commit, avec la même version (scripts/ci_version.sh). L'AAB signé est
-# déposé en artifact ; l'envoi à la Play Console reste manuel. Lancement à la
-# main toujours possible (workflow_dispatch).
+# même commit, avec la même version (scripts/ci_version.sh). Produit un APK
+# et un AAB signés avec la clé d'upload, les dépose en artifacts, puis envoie
+# l'AAB sur le Play Store (piste interne par défaut). Lancement à la main
+# possible (workflow_dispatch) pour choisir une autre piste.
 on:
   push:
     branches: [release/flutter]
   workflow_dispatch:
+    inputs:
+      track:
+        description: "Piste Play Store"
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+
+# Un seul déploiement Android à la fois : deux pushes rapprochés ne doivent
+# pas envoyer deux AAB en parallèle à la Play Console.
+concurrency:
+  group: android-release
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Vérifier la branche (release/flutter uniquement)
@@ -31,11 +45,13 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+          cache: gradle
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          cache: true
 
       - name: Install Dependencies
         run: flutter pub get
@@ -56,10 +72,12 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::Secret ANDROID_KEYSTORE_BASE64 manquant — voir la documentation de signature Android du projet."
-            exit 1
-          fi
+          for name in KEYSTORE_BASE64 KEY_ALIAS KEY_PASSWORD STORE_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret ANDROID_${name} manquant — voir la documentation de signature Android du projet."
+              exit 1
+            fi
+          done
           echo "$KEYSTORE_BASE64" | base64 --decode > android/kart-release.jks
           cat > android/key.properties <<EOF
           storePassword=$STORE_PASSWORD
@@ -71,8 +89,72 @@ jobs:
       - name: Build App Bundle signé
         run: flutter build appbundle --release --build-number=$BUILD_NUMBER --build-name=$BUILD_NAME
 
+      - name: Build APK signé
+        run: flutter build apk --release --build-number=$BUILD_NUMBER --build-name=$BUILD_NAME
+
+      - name: Vérifier la signature (clé d'upload, pas la clé debug)
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n1)
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee signature.txt
+          if grep -q "CN=Android Debug" signature.txt; then
+            echo "::error::APK signé avec la clé debug : vérifiez key.properties et les secrets."
+            exit 1
+          fi
+          jarsigner -verify build/app/outputs/bundle/release/app-release.aab > /dev/null
+          echo "AAB signé correctement."
+
+      - name: Renommer les binaires avec la version
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/bundle/release/app-release.aab "dist/KartApp-${BUILD_NAME}-${BUILD_NUMBER}.aab"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/KartApp-${BUILD_NAME}-${BUILD_NUMBER}.apk"
+
       - name: Sauvegarder l'App Bundle (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: KartApp-android-aab
-          path: build/app/outputs/bundle/release/*.aab
+          name: KartApp-android-aab-${{ env.BUILD_NAME }}
+          path: dist/*.aab
+
+      - name: Sauvegarder l'APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartApp-android-apk-${{ env.BUILD_NAME }}
+          path: dist/*.apk
+
+      - name: Sauvegarder le mapping R8 (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartApp-android-mapping-${{ env.BUILD_NAME }}
+          path: build/app/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
+
+      - name: Vérifier l'accès Play Store
+        id: play
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_JSON" ]; then
+            echo "::warning::Secret PLAY_STORE_SERVICE_ACCOUNT_JSON manquant : publication Play Store ignorée, binaires disponibles en artifacts."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publier sur le Play Store
+        # Compte de service Google Cloud lié à la Play Console (droit
+        # « Publier sur les pistes de test » au minimum). L'application doit
+        # déjà exister dans la Play Console avec un premier AAB envoyé à la main.
+        if: steps.play.outputs.enabled == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.kartapp.app
+          releaseFiles: dist/*.aab
+          releaseName: ${{ env.BUILD_NAME }} (${{ env.BUILD_NUMBER }})
+          track: ${{ inputs.track || 'internal' }}
+          status: completed
+          mappingFile: build/app/outputs/mapping/release/mapping.txt
+
+      - name: Nettoyer le keystore
+        if: always()
+        run: rm -f android/kart-release.jks android/key.properties
