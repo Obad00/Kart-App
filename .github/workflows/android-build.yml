@@ -3,8 +3,9 @@ name: Build & Deploy Android App
 # Lancé au même push sur release/flutter que ios-build.yml, donc sur le
 # même commit, avec la même version (scripts/ci_version.sh). Produit un APK
 # et un AAB signés avec la clé d'upload, les dépose en artifacts, puis envoie
-# l'AAB sur le Play Store (piste interne par défaut). Lancement à la main
-# possible (workflow_dispatch) pour choisir une autre piste.
+# l'AAB sur le Play Store : en production depuis release/flutter, sur la
+# piste interne depuis ci/android-cicd. Lancement à la main possible
+# (workflow_dispatch) pour choisir une autre piste depuis release/flutter.
 on:
   push:
     branches: [release/flutter, ci/android-cicd]
@@ -13,8 +14,8 @@ on:
       track:
         description: "Piste Play Store"
         type: choice
-        options: [internal, alpha, beta, production]
-        default: internal
+        options: [production, beta, alpha, internal]
+        default: production
 
 # Un seul déploiement Android à la fois : deux pushes rapprochés ne doivent
 # pas envoyer deux AAB en parallèle à la Play Console.
@@ -144,7 +145,7 @@ jobs:
 
       - name: Publier sur le Play Store
         # Compte de service Google Cloud lié à la Play Console (droit
-        # « Publier sur les pistes de test » au minimum). L'application doit
+        # « Publier en production » pour release/flutter). L'application doit
         # déjà exister dans la Play Console avec un premier AAB envoyé à la main.
         if: steps.play.outputs.enabled == 'true'
         uses: r0adkll/upload-google-play@v1
@@ -153,7 +154,7 @@ jobs:
           packageName: com.kartapp.app
           releaseFiles: dist/*.aab
           releaseName: ${{ env.BUILD_NAME }} (${{ env.BUILD_NUMBER }})
-          tracks: ${{ github.ref == 'refs/heads/release/flutter' && inputs.track || 'internal' }}
+          tracks: ${{ github.ref == 'refs/heads/release/flutter' && (inputs.track || 'production') || 'internal' }}
           status: completed
           mappingFile: build/app/outputs/mapping/release/mapping.txt
 
