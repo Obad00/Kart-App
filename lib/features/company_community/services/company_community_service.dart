@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/company_event_summary.dart';
@@ -46,6 +50,16 @@ class CompanyCommunityService {
     );
     final participant = response.data['participant'] as Map<String, dynamic>?;
     return participant?['isPresent'] as bool? ?? present;
+  }
+
+  /// Badge d'un participant : « png » 300 dpi ou « pdf » au format exact
+  /// du badge (cf. EventController::participantBadge()).
+  Future<Uint8List> fetchParticipantBadge(int eventId, int participantId, String format) async {
+    final response = await ApiClient.dio.get<List<int>>(
+      '/events/$eventId/participants/$participantId/badge.$format',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data ?? const []);
   }
 
   /// "Toute personne rattachée à cette entreprise" — 403 silencieux si le

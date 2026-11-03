@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
@@ -332,7 +335,9 @@ class _CompanyEventParticipantsPageState
     final registered = _stats['registered'] as int? ?? 0;
     final present = _stats['present'] as int? ?? 0;
     final walkIns = _stats['walk_ins'] as int? ?? 0;
-    final absent = _stats['not_present'] as int? ?? (registered - present);
+    final notPresent = _stats['not_present'] as int? ?? (registered - present);
+    // « Absents » seulement après la fin ; avant, « Pas encore arrivés ».
+    final ended = _stats['event_ended'] as bool? ?? widget.eventHasEnded;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,8 +356,8 @@ class _CompanyEventParticipantsPageState
             const SizedBox(width: 10),
             Expanded(
                 child: _StatTile(
-                    label: 'Absents',
-                    value: absent,
+                    label: ended ? 'Absents' : 'Pas encore arrivés',
+                    value: notPresent,
                     color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(width: 10),
             Expanded(
@@ -458,11 +463,32 @@ class _CompanyEventParticipantsPageState
         email: participant.email,
         phone: participant.phone,
         isPresent: participant.isPresent,
+        eventHasEnded: widget.eventHasEnded,
+        onBadge: (format) => _shareBadge(participant, format),
         userId: participant.userId,
         connectionStatus: participant.connectionStatus,
         connectionRequestId: participant.connectionRequestId,
       ),
     );
+  }
+
+  /// Badge d'un participant : PNG 300 dpi ou PDF au format exact, ouvert
+  /// dans la feuille de partage (Enregistrer l'image, WhatsApp, Imprimer…).
+  Future<void> _shareBadge(EventParticipantSummary participant, String format) async {
+    try {
+      final bytes = await _service.fetchParticipantBadge(widget.eventId, participant.id, format);
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/badge-${widget.eventId}-${participant.id}.$format');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path, mimeType: format == 'pdf' ? 'application/pdf' : 'image/png')],
+        subject: 'Badge · ${participant.displayName}',
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(context,
+          title: 'Badge indisponible', subtitle: "Le badge n'a pas pu être préparé. Réessayez dans un instant.");
+    }
   }
 }
 

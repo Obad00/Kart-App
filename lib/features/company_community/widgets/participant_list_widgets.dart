@@ -206,6 +206,10 @@ class ParticipantDetailSheet extends StatelessWidget {
   final String? phone;
   // null : la présence n'est pas pertinente pour cette liste (highlight).
   final bool? isPresent;
+  // « Absent » seulement une fois l'événement terminé.
+  final bool eventHasEnded;
+  // Organisateur : télécharger ou partager le badge (« png » ou « pdf »).
+  final Future<void> Function(String format)? onBadge;
   final int? userId;
   final String connectionStatus;
   final int? connectionRequestId;
@@ -223,6 +227,8 @@ class ParticipantDetailSheet extends StatelessWidget {
     this.email,
     this.phone,
     this.isPresent,
+    this.eventHasEnded = false,
+    this.onBadge,
     this.userId,
     this.connectionStatus = 'none',
     this.connectionRequestId,
@@ -344,10 +350,37 @@ class ParticipantDetailSheet extends StatelessWidget {
                 _SheetInfoRow(
                   icon: Icons.event_available_outlined,
                   label: 'Présence',
-                  value: isPresent! ? 'Présent' : 'Pas encore arrivé',
+                  value: isPresent!
+                      ? 'Présent'
+                      : (eventHasEnded ? 'Absent' : 'Pas encore arrivé·e'),
                 ),
               if (email != null || phone != null || isPresent != null)
                 const SizedBox(height: 18),
+              // Badge seul : image 300 dpi (téléphone) ou PDF au format exact.
+              if (onBadge != null) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BadgeButton(
+                        key: const Key('participant-badge-png'),
+                        label: 'Badge PNG',
+                        icon: Icons.image_outlined,
+                        onPressed: () => onBadge!('png'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _BadgeButton(
+                        key: const Key('participant-badge-pdf'),
+                        label: 'Badge PDF',
+                        icon: Icons.picture_as_pdf_outlined,
+                        onPressed: () => onBadge!('pdf'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+              ],
               // Pas de compte KART rattaché (walk-in pas encore inscrit) :
               // rien à quoi se connecter, on l'explique au lieu d'afficher
               // un bouton qui ne pourrait rien faire.
@@ -395,6 +428,46 @@ class ParticipantDetailSheet extends StatelessWidget {
 
 
 
+
+/// Bouton contour du badge, avec indicateur pendant la préparation.
+class _BadgeButton extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final Future<void> Function() onPressed;
+
+  const _BadgeButton({super.key, required this.label, required this.icon, required this.onPressed});
+
+  @override
+  State<_BadgeButton> createState() => _BadgeButtonState();
+}
+
+class _BadgeButtonState extends State<_BadgeButton> {
+  bool _busy = false;
+
+  Future<void> _run() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: _busy ? null : _run,
+      icon: _busy
+          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+          : Icon(widget.icon, size: 18),
+      label: Text(widget.label),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
 
 class _SheetInfoRow extends StatelessWidget {
   final IconData icon;
