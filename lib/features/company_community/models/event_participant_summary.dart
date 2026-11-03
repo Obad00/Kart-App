@@ -44,19 +44,31 @@ class EventParticipantSummary {
     this.cardSlug,
   });
 
+  static const unnamed = 'Participant sans nom';
+
   factory EventParticipantSummary.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>?;
     final digitalCard = user?['digital_card'] as Map<String, dynamic>?;
     final guestLabel = json['guest_label'] as String?;
 
-    final name = user != null
-        ? '${user['firstname'] ?? ''} ${user['lastname'] ?? ''}'.trim()
-        : (guestLabel ?? 'Visiteur');
+    final phone = (json['contact_phone'] as String?) ??
+        (digitalCard?['phone'] as String?) ??
+        (user?['phone'] as String?);
+    // Nom calculé par l'API (nom, sinon téléphone, sinon « Participant sans
+    // nom ») ; même repli ici pour une réponse plus ancienne.
+    final name = (json['display_name'] as String?)?.trim().isNotEmpty == true
+        ? (json['display_name'] as String).trim()
+        : (user != null
+                ? '${user['firstname'] ?? ''} ${user['lastname'] ?? ''}'.trim()
+                : (guestLabel ?? '').trim())
+            .ifEmpty(phone ?? unnamed);
+    final email = (json['contact_email'] as String?) ?? (user?['email'] as String?);
 
     return EventParticipantSummary(
       id: json['id'] as int,
-      displayName: name.isEmpty ? 'Visiteur' : name,
-      email: user?['email'] as String?,
+      displayName: name,
+      // Jamais l'adresse technique d'un compte créé avec un numéro seul.
+      email: email != null && !email.toLowerCase().endsWith('@kart-evenement.local') ? email : null,
       jobTitle: digitalCard?['job_title'] as String?,
       company: digitalCard?['company'] as String?,
       avatar: user?['avatar'] as String?,
@@ -68,7 +80,7 @@ class EventParticipantSummary {
           : null,
       // Le téléphone de la carte d'abord (celui que la personne a choisi
       // d'exposer), sinon celui du compte.
-      phone: (digitalCard?['phone'] as String?) ?? (user?['phone'] as String?),
+      phone: phone,
       userId: user?['id'] as int?,
       connectionStatus: json['connection_status'] as String? ?? 'none',
       connectionRequestId: json['connection_request_id'] as int?,
@@ -95,4 +107,8 @@ class EventParticipantSummary {
       cardSlug: cardSlug,
     );
   }
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
