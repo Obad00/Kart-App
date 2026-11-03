@@ -728,13 +728,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       } else {
         message = e.toString().replaceAll('Exception: ', '');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red[700],
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: message);
     }
   }
 
@@ -821,14 +815,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     } catch (e, stack) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors du partage : $e\n$stack');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Erreur lors du partage: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red[700],
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Partage impossible', subtitle: e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -866,14 +853,7 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors de l\'export de la carte: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Erreur lors du téléchargement: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red[700],
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Téléchargement impossible', subtitle: e.toString().replaceAll('Exception: ', ''));
     }
   }
 }

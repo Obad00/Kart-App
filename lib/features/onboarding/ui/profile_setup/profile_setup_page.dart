@@ -14,13 +14,13 @@ import '../../../../shared/utils/placeholder_email.dart';
 import '../../../../shared/widgets/auth_primary_button.dart';
 import '../../../../shared/widgets/auth_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
-import '../../../digital_card/confirm_card_deactivation.dart';
 import '../../../digital_card/providers/card_provider.dart';
 import '../../../profile_completion/providers/profile_completion_provider.dart';
 import '../../data/profile_setup_api.dart';
+import '../../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Onboarding d'un nouveau compte, après l'inscription et le consentement :
-/// photo, poste et entreprise, un moyen de contact, visibilité. Chaque
+/// photo, poste et entreprise, un moyen de contact, « Apparaître dans Explorer ? ». Chaque
 /// étape se passe avec « Plus tard » ; « Passer » termine tout de suite.
 /// Dans tous les cas, la fin est notée côté serveur (onboarding_completed_at)
 /// et l'écran ne revient plus.
@@ -39,7 +39,7 @@ class ProfileSetupPage extends StatefulWidget {
   final ProfileSetupApi api;
 
   /// Étape seule à afficher : 0 photo, 1 poste et entreprise, 2 contact,
-  /// 3 visibilité. null : le parcours complet.
+  /// 3 « Apparaître dans Explorer ? ». null : le parcours complet.
   final int? singleStep;
 
   /// Choix et recadrage de la photo ; remplaçable dans les tests.
@@ -72,8 +72,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   /// E-mail du compte à proposer ; jamais l'adresse interne.
   String? _email;
 
-  bool _isPublic = true;
-  bool _listed = false;
 
   @override
   void initState() {
@@ -113,9 +111,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       _whatsapp = activated.contains('whatsapp');
       _email = displayableEmail(card['email'] as String?) ?? displayableEmail(user?.email);
       _showEmail = _email != null && activated.contains('email');
-      _isPublic = card['is_public'] as bool? ?? true;
-      // Jamais activé d'office : seulement si l'utilisateur l'a déjà choisi.
-      _listed = card['listed_in_directory'] == true;
       _loading = false;
     });
   }
@@ -180,9 +175,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   void _error() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text("Impossible d'enregistrer pour le moment. Réessayez."),
-    ));
+    FeedbackOverlay.showError(context, title: 'Profil non enregistré', subtitle: "Impossible d'enregistrer pour le moment. Réessayez.");
   }
 
   // ── Étapes ─────────────────────────────────────────────────────────────
@@ -234,12 +227,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     });
   }
 
-  void _saveVisibility() {
-    _saveAndNext({
-      'is_public': _isPublic,
-      // Une carte non publique n'est jamais dans l'annuaire.
-      'listed_in_directory': _isPublic && _listed,
-    });
+  /// « Oui, me rendre visible » : carte active et listée dans Explorer.
+  /// « Plus tard » (bouton du bas) n'enregistre rien : la carte reste
+  /// masquée (défaut serveur) et les rappels existants s'appliquent.
+  void _appearInExplorer() {
+    _saveAndNext({'is_public': true, 'listed_in_directory': true});
   }
 
   // ── Affichage ──────────────────────────────────────────────────────────
@@ -341,7 +333,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       case 2:
         return _contactStep(t);
       default:
-        return _visibilityStep(t);
+        return _explorerStep(t);
     }
   }
 
@@ -407,33 +399,30 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         ],
       );
 
-  Widget _visibilityStep(KartTokens t) => Column(
+  /// Vraie étape de choix, sans réponse présélectionnée : les deux
+  /// boutons du bas (« Oui, me rendre visible », « Plus tard ») ont le
+  /// même poids.
+  Widget _explorerStep(KartTokens t) => Column(
+        key: const Key('onboarding-explorer-step'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _title(t, 'Qui peut voir votre carte', 'Vous pourrez changer ces réglages à tout moment dans « Modifier mes infos ».'),
-          _toggle(t, key: 'onboarding-public', title: 'Carte active (lien, QR code et carte NFC)',
-              subtitle: 'Désactivée, votre carte ne s\'ouvre plus pour personne.', value: _isPublic,
-              onChanged: _setPublic),
-          const SizedBox(height: 10),
-          // Allumé par défaut pour une inscription volontaire (serveur :
-          // DigitalCardService::listedByDefault). Éteint : même texte que
-          // « Modifier mes infos ».
-          _toggle(t, key: 'onboarding-listed', title: "Visible dans l'annuaire Explorer",
-              subtitle: !_isPublic
-                  ? "Activez d'abord votre carte."
-                  : _listed
-                      ? 'Votre carte apparaîtra dans Explorer. Vous pouvez la masquer à tout moment.'
-                      : 'Les membres KART peuvent vous trouver. Sinon, votre lien, votre QR code et votre carte NFC fonctionnent quand même.',
-              value: _isPublic && _listed,
-              onChanged: _isPublic ? (v) => setState(() => _listed = v) : null),
+          Center(
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(color: t.softFill, shape: BoxShape.circle, border: Border.all(color: t.softBorder)),
+              child: Icon(Icons.travel_explore_rounded, size: 44, color: t.textPrimary),
+            ),
+          ),
+          const SizedBox(height: 28),
+          _title(
+            t,
+            'Apparaître dans Explorer ?',
+            'Les autres membres pourront trouver votre carte et vous envoyer une demande de connexion. '
+                'Vous pourrez changer d\'avis à tout moment dans votre profil.',
+          ),
         ],
       );
-
-  /// Désactiver la carte demande une confirmation ; l'activer, non.
-  Future<void> _setPublic(bool value) async {
-    if (!value && !await confirmCardDeactivation(context)) return;
-    if (mounted) setState(() => _isPublic = value);
-  }
 
   Widget _toggle(KartTokens t,
       {required String key, required String title, String? subtitle, required bool value, required ValueChanged<bool>? onChanged}) {
@@ -472,11 +461,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     final user = context.watch<AuthProvider>().user;
     final hasPhoto = (user?.avatar ?? '').trim().isNotEmpty;
 
+    if (_step == _steps - 1) return _explorerActions(t);
+
     final (String label, VoidCallback? onTap) = switch (_step) {
       0 => hasPhoto ? ('Continuer', _next) : ('Ajouter une photo', _pickPhoto),
       1 => ('Continuer', _saveJob),
-      2 => ('Continuer', _contactChosen ? _saveContact : null),
-      _ => (_single ? 'Enregistrer' : 'Terminer', _saveVisibility),
+      _ => ('Continuer', _contactChosen ? _saveContact : null),
     };
 
     return Column(
@@ -489,6 +479,31 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           onPressed: _saving ? null : _next,
           child: Text('Plus tard', style: TextStyle(color: t.textSecondary)),
         ),
+      ],
+    );
+  }
+
+  /// Deux réponses de même poids : aucune n'est mise en avant.
+  Widget _explorerActions(KartTokens t) {
+    Widget choice(String key, String label, VoidCallback onTap) => OutlinedButton(
+          key: Key(key),
+          onPressed: _saving ? null : onTap,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: t.textPrimary,
+            side: BorderSide(color: t.softBorder),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_saving) const Padding(padding: EdgeInsets.only(bottom: 12), child: Center(child: CircularProgressIndicator())),
+        choice('onboarding-explorer-yes', 'Oui, me rendre visible', _appearInExplorer),
+        const SizedBox(height: 10),
+        choice('onboarding-later', 'Plus tard', _next),
       ],
     );
   }

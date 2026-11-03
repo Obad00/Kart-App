@@ -6,6 +6,7 @@ import '../../../shared/widgets/glass_app_bar.dart';
 import '../../jobmatch/widgets/job_details_sheet.dart';
 import '../models/company_job.dart';
 import '../services/company_discovery_service.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -88,9 +89,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Une erreur est survenue, réessayez.")),
-      );
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: "Une erreur est survenue, réessayez.");
     } finally {
       if (mounted) setState(() => _isTogglingFollow = false);
     }

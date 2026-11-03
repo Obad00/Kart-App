@@ -1,6 +1,6 @@
 // Retours du 2 novembre : couleurs de l'entreprise appliquées tout de suite,
 // fenêtres de saisie en verre dépoli, filtres instantanés (local, cache,
-// annulation), message « Email vérifié » centré, lien universel de
+// annulation), message « Email vérifié » au style commun, lien universel de
 // vérification d'email. Données fictives.
 import 'dart:async';
 
@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kart_app/core/deep_links/deep_link_service.dart';
 import 'package:kart_app/core/theme/app_theme.dart';
 import 'package:kart_app/core/ui/feedback/feedback_overlay.dart';
+import 'package:kart_app/core/ui/feedback/success_message.dart';
 import 'package:kart_app/features/auth/models/user.dart';
 import 'package:kart_app/features/auth/providers/auth_provider.dart';
 import 'package:kart_app/features/company_community/models/event_invitation.dart';
@@ -183,30 +184,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('« Email vérifié » : au centre de l\'écran, environ 2,5 s', (tester) async {
+  testWidgets('« Email vérifié » : même message que la déconnexion (en haut, 3,5 s)', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.dark(),
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
-          onPressed: () => FeedbackOverlay.showSuccess(context,
-              title: 'Email vérifié',
-              subtitle: 'Votre adresse est confirmée.',
-              duration: const Duration(milliseconds: 2500),
-              centered: true),
-          child: const Text('Valider'),
-        ),
+            onPressed: () => FeedbackOverlay.showSuccess(context,
+                title: 'Email vérifié', subtitle: 'Votre adresse est confirmée.'),
+            child: const Text('Valider'),
+          ),
         ),
       ),
     ));
     await tester.tap(find.text('Valider'));
     await tester.pump(const Duration(milliseconds: 500));
 
-    final center = tester.getCenter(find.text('Email vérifié'));
-    final screen = tester.getSize(find.byType(MaterialApp));
-    expect((center.dy - screen.height / 2).abs(), lessThan(80));
-    // Encore là à 2,4 s, parti après 2,5 s et le fondu de sortie.
-    await tester.pump(const Duration(milliseconds: 1900));
+    expect(find.byType(SuccessMessage), findsOneWidget);
+    // En haut de l'écran, comme le message de déconnexion.
+    final top = tester.getTopLeft(find.byType(SuccessMessage)).dy;
+    expect(top, lessThan(140));
+    await tester.pump(const Duration(milliseconds: 2900));
     expect(find.text('Email vérifié'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 300));

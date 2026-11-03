@@ -378,12 +378,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                               onExport: () {
                                 if (selectedContacts.isEmpty) {
                                   widget.onEnterSelectionMode?.call();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Sélectionnez les contacts à exporter, puis validez en bas.'),
-                                    ),
-                                  );
+                                  FeedbackOverlay.showInfo(context, title: 'Exporter des contacts', subtitle: 'Sélectionnez les contacts à exporter, puis validez en bas.');
                                 } else {
                                   exportSelectedContacts();
                                 }
@@ -391,12 +386,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                               onDelete: () {
                                 if (selectedContacts.isEmpty) {
                                   widget.onEnterSelectionMode?.call();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Sélectionnez les contacts à supprimer, puis validez en bas.'),
-                                    ),
-                                  );
+                                  FeedbackOverlay.showInfo(context, title: 'Supprimer des contacts', subtitle: 'Sélectionnez les contacts à supprimer, puis validez en bas.');
                                 } else {
                                   deleteSelectedContacts();
                                 }
@@ -441,13 +431,7 @@ class ContactsGroupedViewState extends State<ContactsGroupedView> {
                     HapticFeedback.lightImpact();
                     final slug = contact.cardSlug;
                     if (slug == null || slug.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Ce contact n\'a pas de carte associée.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      FeedbackOverlay.showInfo(context, title: 'Carte introuvable', subtitle: 'Ce contact n\'a pas de carte associée.');
                       return;
                     }
                     Navigator.push(

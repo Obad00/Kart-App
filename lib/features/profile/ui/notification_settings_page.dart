@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/services/notification_prefs.dart';
 import '../../../core/services/push_notification_service.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Écran "Notifications" des Réglages — jusqu'ici l'entrée existait dans le
 /// menu mais ne faisait littéralement rien (onTap vide). Ici, un vrai
@@ -65,9 +66,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     if (!mounted) return;
     setState(() => _reminderBusy = false);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Impossible d'enregistrer ce réglage. Réessayez."),
-      ));
+      FeedbackOverlay.showError(context, title: 'Réglage non enregistré', subtitle: "Impossible d'enregistrer ce réglage. Réessayez.");
     }
   }
 

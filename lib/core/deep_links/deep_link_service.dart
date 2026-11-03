@@ -110,9 +110,7 @@ class DeepLinkService {
           // ignore: use_build_context_synchronously
           FeedbackOverlay.showSuccess(readyContext,
               title: 'Email vérifié',
-              subtitle: 'Votre adresse est confirmée.',
-              duration: const Duration(milliseconds: 2500),
-              centered: true);
+              subtitle: 'Votre adresse est confirmée.');
           if (auth.isAuthenticated) {
             _navigatorKey.currentState?.pushNamedAndRemoveUntil('/home', (route) => false);
           }

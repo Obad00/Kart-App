@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/kart_tokens.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../../../shared/utils/relative_time.dart';
 import '../data/nfc_card_service.dart';
@@ -103,10 +104,13 @@ class _NfcCardView extends StatelessWidget {
 
   // ───────────── Actions ─────────────
 
-  void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+  // Même message que le reste de l'app (celui de la déconnexion).
+  void _snack(BuildContext context, String message, {bool error = false}) {
+    if (error) {
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: message);
+    } else {
+      FeedbackOverlay.showSuccess(context, title: 'Carte NFC', subtitle: message);
+    }
   }
 
   /// Ouvre WhatsApp sur le numéro du support renvoyé par le serveur.
@@ -122,7 +126,7 @@ class _NfcCardView extends StatelessWidget {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (_) {
-      if (context.mounted) _snack(context, "WhatsApp n'a pas pu s'ouvrir.");
+      if (context.mounted) _snack(context, "WhatsApp n'a pas pu s'ouvrir.", error: true);
     }
   }
 
@@ -205,7 +209,7 @@ class _NfcCardView extends StatelessWidget {
 
     final error = await provider.disable();
     if (context.mounted) {
-      _snack(context, error ?? 'Carte NFC désactivée.');
+      _snack(context, error ?? 'Carte NFC désactivée.', error: error != null);
     }
   }
 

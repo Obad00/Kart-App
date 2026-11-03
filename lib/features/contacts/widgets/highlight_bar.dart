@@ -10,6 +10,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/widgets/glass_dialog.dart';
 import '../../../core/theme/kart_tokens.dart';
 import '../../../shared/widgets/glass_sheet.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Diamètre des cercles de la barre (catégories) et hauteur de la barre.
 const double _circleSize = 64;
@@ -441,7 +442,6 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
 
     final provider = widget.parentContext.read<HighlightProvider>();
     final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(widget.parentContext);
 
     try {
       if (widget.existing != null) {
@@ -456,13 +456,8 @@ class _CreateHighlightSheetState extends State<_CreateHighlightSheet> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-              'Erreur: ${e.toString().replaceAll('DioException [bad response]: ', '')}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!widget.parentContext.mounted) return;
+      FeedbackOverlay.showError(widget.parentContext, title: 'Highlight non enregistré', subtitle: e.toString().replaceAll('DioException [bad response]: ', '').replaceFirst('Exception: ', ''));
     }
   }
 

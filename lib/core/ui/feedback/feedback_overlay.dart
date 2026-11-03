@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'success_message.dart';
 
 class FeedbackOverlay {
+  /// Même durée pour tous les messages (succès, information, erreur).
+  static const _duration = Duration(milliseconds: 3500);
+
   // 2s ne laissait quasiment pas le temps de lire le message (surtout
   // "subtitle" en plus du titre) avant qu'il ne disparaisse d'un coup —
   // remonté comme "la notification se ferme trop vite". Porté à 3.5s, avec
@@ -12,22 +15,17 @@ class FeedbackOverlay {
     BuildContext context, {
     required String title,
     required String subtitle,
-    Duration duration = const Duration(milliseconds: 3500),
-    // Au centre de l'écran, au-dessus de la navigation (ex. « Email vérifié »,
-    // qui doit rester visible pendant l'ouverture de l'accueil).
-    bool centered = false,
   }) {
     _show(
       context,
       title: title,
       subtitle: subtitle,
-      centered: centered,
       icon: Icons.check_circle,
       // greenAccent, très pâle, se voyait mal sur le verre clair.
       iconColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.greenAccent
           : Colors.green.shade600,
-      duration: duration,
+      duration: _duration,
     );
   }
 
@@ -35,7 +33,6 @@ class FeedbackOverlay {
     BuildContext context, {
     required String title,
     required String subtitle,
-    Duration duration = const Duration(milliseconds: 3500),
   }) {
     _show(
       context,
@@ -45,7 +42,7 @@ class FeedbackOverlay {
       // colors.onSurface (pas Colors.black) : la carte est en verre dépoli
       // désormais, un icône noir fixe disparaîtrait en thème sombre.
       iconColor: Theme.of(context).colorScheme.onSurface,
-      duration: duration,
+      duration: _duration,
     );
   }
 
@@ -53,7 +50,6 @@ class FeedbackOverlay {
     BuildContext context, {
     required String title,
     required String subtitle,
-    Duration duration = const Duration(milliseconds: 3500),
   }) {
     _show(
       context,
@@ -61,7 +57,7 @@ class FeedbackOverlay {
       subtitle: subtitle,
       icon: Icons.error_rounded,
       iconColor: Colors.redAccent,
-      duration: duration,
+      duration: _duration,
     );
   }
 
@@ -73,16 +69,17 @@ class FeedbackOverlay {
     required IconData icon,
     required Color iconColor,
     required Duration duration,
-    bool centered = false,
   }) {
-    final overlay = Overlay.of(context, rootOverlay: centered);
+    // Un seul style de message dans toute l'app (celui de la déconnexion) :
+    // en haut, pleine largeur, posé sur l'Overlay du Navigator pour rester
+    // visible pendant un changement d'écran.
+    final overlay = Overlay.of(context);
     late OverlayEntry entry;
     final visible = ValueNotifier<bool>(true);
 
     entry = OverlayEntry(
       builder: (_) => Positioned(
-        top: centered ? 0 : 60,
-        bottom: centered ? 0 : null,
+        top: 60,
         left: 0,
         right: 0,
         child: SafeArea(
@@ -108,14 +105,11 @@ class FeedbackOverlay {
                 child: child,
               );
             },
-            child: _centerIf(
-              centered,
-              SuccessMessage(
-                title: title,
-                subtitle: subtitle,
-                icon: icon,
-                iconColor: iconColor,
-              ),
+            child: SuccessMessage(
+              title: title,
+              subtitle: subtitle,
+              icon: icon,
+              iconColor: iconColor,
             ),
           ),
         ),
@@ -134,8 +128,4 @@ class FeedbackOverlay {
       });
     });
   }
-
-  /// En haut (par défaut) le message garde toute la largeur, comme avant.
-  static Widget _centerIf(bool centered, Widget child) =>
-      centered ? Center(child: child) : child;
 }

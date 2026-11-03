@@ -11,6 +11,7 @@ import '../../../shared/widgets/filter_pill_chip.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// "Mes demandes" — accepter/refuser une demande de connexion reçue,
 /// suivre celles envoyées. Anciennement un onglet de la page Explorer
@@ -243,9 +244,7 @@ class _MyRequestRow extends StatelessWidget {
         .respondFromMyRequests(item.id, action);
     if (error != null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: Colors.red),
-        );
+        FeedbackOverlay.showError(context, title: 'Demande non traitée', subtitle: error);
       }
       return;
     }

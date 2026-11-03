@@ -6,6 +6,7 @@ import '../services/community_service.dart';
 import '../widgets/explore_user_row.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/bottom_nav_metrics.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Membres d'une communauté — ouvert en tapant sur une carte "Réseaux
 /// populaires"/"à rejoindre" (Explorer), y compris avant de l'avoir
@@ -169,10 +170,7 @@ class _CommunityMembersPageState extends State<CommunityMembersPage> {
                       _load();
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Une erreur est survenue, réessayez.')),
-                      );
+                      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: 'Une erreur est survenue, réessayez.');
                     }
                   },
                   style: OutlinedButton.styleFrom(

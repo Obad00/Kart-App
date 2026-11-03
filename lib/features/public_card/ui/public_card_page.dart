@@ -33,6 +33,7 @@ import '../../../shared/utils/status_bar_style.dart';
 import '../../explore/widgets/connect_action_button.dart';
 import '../../../shared/widgets/expandable_text.dart';
 import '../../../shared/widgets/glass_sheet.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 // Même bleu (indigo) que CompletionSections._interestsAccentColor côté
 // profil — cohérence entre l'affichage lecture seule ici et l'éditeur.
@@ -331,15 +332,7 @@ class _PublicCardPageState extends State<PublicCardPage>
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Enregistrement du contact impossible : $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e is DioException
-              ? getErrorMessage(e,
-                  fallback: "Impossible de récupérer la fiche de ce contact.")
-              : "Impossible de récupérer la fiche de ce contact."),
-          backgroundColor: Colors.red[700],
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Fiche indisponible', subtitle: e is DioException ? getErrorMessage(e, fallback: "Impossible de récupérer la fiche de ce contact.") : "Impossible de récupérer la fiche de ce contact.");
     }
   }
 
@@ -1231,17 +1224,12 @@ class _PublicCardPageState extends State<PublicCardPage>
     int? highlightId,
   ) async {
     final navigator = Navigator.of(sheetContext);
-    final scaffoldMessenger = ScaffoldMessenger.of(sheetContext);
     try {
       await contactsProvider.moveContactToHighlight(contactId, highlightId);
       if (navigator.mounted) navigator.pop();
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors du déplacement du contact'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!sheetContext.mounted) return;
+      FeedbackOverlay.showError(sheetContext, title: 'Contact non déplacé', subtitle: 'Erreur lors du déplacement du contact');
     }
   }
 

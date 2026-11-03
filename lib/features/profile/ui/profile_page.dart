@@ -815,8 +815,6 @@ class _ProfilePageState extends State<ProfilePage>
     HapticFeedback.lightImpact();
     final cardProvider = context.read<CardProvider>();
     final authProvider = context.read<AuthProvider>();
-    final messenger = ScaffoldMessenger.of(context);
-
     try {
       if ((cardProvider.shareUrl == null || cardProvider.shareUrl!.isEmpty) &&
           (cardProvider.slug == null || cardProvider.slug!.isEmpty)) {
@@ -853,13 +851,8 @@ class _ProfilePageState extends State<ProfilePage>
 
       await SharePlus.instance.share(ShareParams(text: buffer.toString()));
     } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red[700],
-        ),
-      );
+      if (!context.mounted) return;
+      FeedbackOverlay.showError(context, title: 'Partage impossible', subtitle: e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -1756,16 +1749,12 @@ class _ProfilePageState extends State<ProfilePage>
     if (cropped == null || !mounted) return;
 
     final authProvider = context.read<AuthProvider>();
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     try {
       final bytes = await cropped.readAsBytes();
       await authProvider.updateAvatar(bytes, picked.name);
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      FeedbackOverlay.showError(context, title: 'Photo non enregistrée', subtitle: e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }
@@ -1848,11 +1837,7 @@ class _BrandingEditorState extends State<_BrandingEditor> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-          ),
-        );
+        FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: e.toString().replaceFirst('Exception: ', ''));
       }
     }
   }

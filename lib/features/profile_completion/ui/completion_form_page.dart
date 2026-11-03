@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_error.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../providers/profile_completion_provider.dart';
 import '../../digital_card/confirm_card_deactivation.dart';
 import '../../digital_card/providers/card_provider.dart';
@@ -129,7 +130,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
   final List<Map<String, TextEditingController>> _educations = [];
 
   bool loading = false;
-  String? _successMessage;
   String? _errorMessage;
 
   bool _showSection(String key) =>
@@ -377,7 +377,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
     setState(() {
       loading = true;
-      _successMessage = null;
       _errorMessage = null;
     });
 
@@ -500,13 +499,18 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        _successMessage = !ok ? null : 'Profil mis à jour avec succès';
         _errorMessage = ok ? null : 'Une erreur est survenue';
       });
 
+      // Même message que la déconnexion, en haut de l'écran, visible après
+      // la fermeture de la fiche (il est posé sur l'Overlay du Navigator).
       if (ok) {
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) Navigator.of(context).pop(true);
+        FeedbackOverlay.showSuccess(
+          context,
+          title: 'Profil mis à jour',
+          subtitle: 'Vos modifications sont enregistrées.',
+        );
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (!mounted) return;
@@ -589,9 +593,6 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              if (_successMessage != null)
-                _buildAlert(
-                    _successMessage!, Colors.green, Icons.check_circle_outline),
               if (_errorMessage != null)
                 _buildAlert(_errorMessage!, Colors.red, Icons.error_outline),
               if (_showSection('basic')) ...[

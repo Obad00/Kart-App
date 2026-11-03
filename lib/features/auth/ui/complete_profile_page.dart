@@ -5,6 +5,7 @@ import '../../digital_card/providers/card_provider.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   const CompleteProfilePage({super.key});
@@ -89,12 +90,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
       await _proceed();
     } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.error ?? 'Une erreur est survenue'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Profil non enregistré', subtitle: auth.error ?? 'Une erreur est survenue');
     }
   }
 

@@ -42,6 +42,7 @@ import 'section_profiles_page.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../../../shared/widgets/sticky_header_delegate.dart';
 import '../../../shared/widgets/glass_sheet.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 const _themeBlue = exploreThemeBlue;
 
@@ -256,12 +257,7 @@ class _ExplorePageState extends State<ExplorePage> {
   void _onOpportunitiesTap(BuildContext context) {
     HapticFeedback.selectionClick();
     if (!context.read<AuthProvider>().isPro) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Les opportunités JobMatch sont réservées au plan Pro.'),
-        ),
-      );
+      FeedbackOverlay.showInfo(context, title: 'Réservé au plan Pro', subtitle: 'Les opportunités JobMatch sont réservées au plan Pro.');
       return;
     }
     Navigator.push(
@@ -1388,9 +1384,7 @@ class _CreateNetworkBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: () {
             HapticFeedback.lightImpact();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Bientôt disponible')),
-            );
+            FeedbackOverlay.showInfo(context, title: 'Bientôt disponible', subtitle: 'Cette fonctionnalité arrive prochainement.');
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

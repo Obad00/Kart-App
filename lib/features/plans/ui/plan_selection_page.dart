@@ -149,7 +149,6 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
           title: 'Vérification requise',
           subtitle:
               'Un email de validation vous a été envoyé. Vérifiez votre boîte mail puis revenez continuer.',
-          duration: const Duration(seconds: 8),
         );
         return;
       }
@@ -219,15 +218,7 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
         }
 
         if (planId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                backendMessage ??
-                    'Une erreur est survenue. Veuillez réessayer.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
+          FeedbackOverlay.showError(context, title: 'Abonnement impossible', subtitle: backendMessage ?? 'Une erreur est survenue. Veuillez réessayer.');
           return;
         }
 
@@ -277,24 +268,14 @@ class _PlanSelectionPageState extends State<PlanSelectionPage>
       }
 
       if (backendMessage != null && backendMessage.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(backendMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackOverlay.showError(context, title: 'Abonnement impossible', subtitle: backendMessage);
         return;
       }
 
       throw Exception('activation_failed');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Une erreur est survenue. Veuillez réessayer.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Abonnement impossible', subtitle: 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

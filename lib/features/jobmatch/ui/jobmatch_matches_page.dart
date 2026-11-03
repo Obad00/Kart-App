@@ -8,6 +8,7 @@ import '../model/job_feed_item.dart';
 import '../providers/jobmatch_provider.dart';
 import '../services/jobmatch_service.dart';
 import 'job_detail_page.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 const _accentBlue = jobMatchAccent;
 
@@ -114,9 +115,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
           _summary = _summary!.copyWith(saved: _summary!.saved + 1);
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur, réessayez')),
-      );
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: 'Une erreur est survenue, réessayez.');
     }
   }
 
@@ -174,12 +173,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       // (JobMatchProvider, une instance globale et durable) qu'après un
       // redémarrage complet de l'app.
       if (mounted) context.read<JobMatchProvider>().loadFeed();
-      ScaffoldMessenger.of(context).showSnackBar(
-        // Le nom de l'offre en premier (comme pour _reconsider ci-dessous)
-        // — "'J'aime' retiré de [offre]" se lisait comme si "j'aime" était
-        // le sujet qu'on retirait DE l'offre, pas l'inverse.
-        SnackBar(content: Text('${job.jobTitle} retiré de vos j\'aime')),
-      );
+      FeedbackOverlay.showSuccess(context, title: 'Retiré de vos j\'aime', subtitle: '${job.jobTitle} ne fait plus partie de vos j\'aime.');
     } catch (e) {
       // Erreur non identifiée statiquement (l'endpoint DELETE est
       // pourtant générique et identique pour un rejet ou un "j'aime") —
@@ -187,9 +181,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       // reproduit.
       debugPrint('⚠️ Échec unswipe: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur, réessayez')),
-      );
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: 'Une erreur est survenue, réessayez.');
     }
   }
 
@@ -209,9 +201,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       // complet de l'app — ce qui donnait l'impression que "reconsidérer"
       // ne marchait pas vraiment.
       if (mounted) context.read<JobMatchProvider>().loadFeed();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${job.jobTitle} est de retour dans votre fil')),
-      );
+      FeedbackOverlay.showSuccess(context, title: 'De retour dans votre fil', subtitle: '${job.jobTitle} est de retour dans votre fil.');
     } catch (e) {
       // Erreur non identifiée statiquement (l'endpoint DELETE est
       // pourtant générique et identique pour un rejet ou un "j'aime") —
@@ -219,9 +209,7 @@ class _JobMatchMatchesPageState extends State<JobMatchMatchesPage>
       // reproduit.
       debugPrint('⚠️ Échec unswipe: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur, réessayez')),
-      );
+      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: 'Une erreur est survenue, réessayez.');
     }
   }
 

@@ -89,12 +89,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         (route) => false,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.error ?? 'Erreur lors de l\'enregistrement'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Contact non enregistré', subtitle: provider.error ?? 'Erreur lors de l\'enregistrement');
     }
   }
 
