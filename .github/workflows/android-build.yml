@@ -7,7 +7,7 @@ name: Build & Deploy Android App
 # possible (workflow_dispatch) pour choisir une autre piste.
 on:
   push:
-    branches: [release/flutter,ci/android-cicd]
+    branches: [release/flutter, ci/android-cicd]
   workflow_dispatch:
     inputs:
       track:
@@ -28,10 +28,12 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Vérifier la branche (release/flutter uniquement)
-        if: github.ref != 'refs/heads/release/flutter'
+      - name: Vérifier la branche (release/flutter, ou ci/android-cicd pour tester)
+        # ci/android-cicd sert à tester ce workflow sans relancer le build
+        # iOS de release/flutter ; il ne publie que sur la piste interne.
+        if: github.ref != 'refs/heads/release/flutter' && github.ref != 'refs/heads/ci/android-cicd'
         run: |
-          echo "::error::Build refusé : les builds de publication partent uniquement de release/flutter (branche actuelle : ${GITHUB_REF_NAME}). Fusionnez dans release/flutter, puis poussez."
+          echo "::error::Build refusé : les builds de publication partent uniquement de release/flutter ou ci/android-cicd (branche actuelle : ${GITHUB_REF_NAME}). Fusionnez dans release/flutter, puis poussez."
           exit 1
 
       - name: Checkout repository
@@ -151,7 +153,7 @@ jobs:
           packageName: com.kartapp.app
           releaseFiles: dist/*.aab
           releaseName: ${{ env.BUILD_NAME }} (${{ env.BUILD_NUMBER }})
-          track: ${{ inputs.track || 'internal' }}
+          track: ${{ github.ref == 'refs/heads/release/flutter' && inputs.track || 'internal' }}
           status: completed
           mappingFile: build/app/outputs/mapping/release/mapping.txt
 
