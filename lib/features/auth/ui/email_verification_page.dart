@@ -11,6 +11,7 @@ import '../../../shared/widgets/glass_dialog.dart';
 import '../../digital_card/providers/card_provider.dart';
 import '../data/email_verification_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/email_verified_transition.dart';
 
 /// Vérification de l'email : code à 6 chiffres reçu par email (ou lien du
 /// même email). Le compte à rebours du renvoi vient du serveur (1 renvoi par
@@ -129,19 +130,18 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   Future<void> _onVerified() async {
     if (_proceeding) return;
     _pollTimer?.cancel();
+    // L'écran de transition reste au moins 2 s (EmailVerifiedTransition).
+    final shown = Stopwatch()..start();
     setState(() => _proceeding = true);
     final auth = context.read<AuthProvider>();
     await auth.loadMe();
     if (!mounted) return;
 
-    // Au centre, environ 2,5 s, style des messages de succès de l'app ;
-    // reste visible pendant l'ouverture de l'écran suivant.
+    // Même message que le reste de l'app (celui de la déconnexion).
     FeedbackOverlay.showSuccess(
       context,
       title: 'Email vérifié',
       subtitle: 'Votre adresse est confirmée.',
-      duration: const Duration(milliseconds: 2500),
-      centered: true,
     );
     if (!widget.blocking) {
       Navigator.of(context).pop(true);
@@ -157,6 +157,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     }
     if (!mounted) return;
     await context.read<CardProvider>().loadCardSummary();
+    await EmailVerifiedTransition.waitRemaining(shown);
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
@@ -206,7 +207,9 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
             ? null
             : AppBar(backgroundColor: colors.surface, elevation: 0, foregroundColor: colors.onSurface),
         body: SafeArea(
-          child: SingleChildScrollView(
+          child: _proceeding && widget.blocking
+              ? const EmailVerifiedTransition()
+              : SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
             child: Column(
               children: [

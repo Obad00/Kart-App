@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import '../providers/card_scan_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 class CardScannerScreen extends StatefulWidget {
   const CardScannerScreen({super.key});
@@ -84,12 +85,7 @@ Future<void> _capturePhoto() async {
   } catch (e) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Impossible de prendre la photo"),
-        backgroundColor: Colors.red,
-      ),
-    );
+    FeedbackOverlay.showError(context, title: 'Photo impossible', subtitle: "Impossible de prendre la photo");
   } finally {
     if (mounted) {
       setState(() => _isCapturing = false);
@@ -122,12 +118,7 @@ Future<void> _pickFromGallery() async {
   } catch (e) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Impossible d'accéder à la galerie"),
-        backgroundColor: Colors.red,
-      ),
-    );
+    FeedbackOverlay.showError(context, title: 'Galerie inaccessible', subtitle: "Impossible d'accéder à la galerie");
   }
 }
 

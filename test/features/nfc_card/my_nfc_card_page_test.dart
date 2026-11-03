@@ -166,9 +166,16 @@ Future<_Harness> _pump(
   return harness;
 }
 
+/// Les messages (FeedbackOverlay) restent 3,5 s : on les laisse partir
+/// avant la fin de chaque test, sinon leur minuteur est encore en attente.
+void _testWidgets(String description, WidgetTesterCallback body) => testWidgets(description, (tester) async {
+      await body(tester);
+      await tester.pump(const Duration(seconds: 4));
+    });
+
 void main() {
   group('none', () {
-    testWidgets('présente la carte, sans prix, avec commande et QR',
+    _testWidgets('présente la carte, sans prix, avec commande et QR',
         (tester) async {
       final service = _FakeService(_status(NfcCardState.none));
       final harness = await _pump(tester, service);
@@ -199,7 +206,7 @@ void main() {
       expect(harness.qrOpened, 1);
     });
 
-    testWidgets('signale une dernière commande annulée', (tester) async {
+    _testWidgets('signale une dernière commande annulée', (tester) async {
       final service = _FakeService(_status(
         NfcCardState.none,
         cancelledOrder: const NfcOrderInfo(
@@ -213,7 +220,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('sans carte digitale, on ne peut pas commander',
+    _testWidgets('sans carte digitale, on ne peut pas commander',
         (tester) async {
       await _pump(
         tester,
@@ -225,7 +232,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('commande : téléphone et adresse, sans quantité ni prix',
+    _testWidgets('commande : téléphone et adresse, sans quantité ni prix',
         (tester) async {
       final service = _FakeService(_status(NfcCardState.none));
       final harness = await _pump(tester, service);
@@ -268,7 +275,7 @@ void main() {
       expect(find.text('Votre commande est en préparation'), findsOneWidget);
     });
 
-    testWidgets('« J\'ai déjà une carte » active avec le code saisi',
+    _testWidgets('« J\'ai déjà une carte » active avec le code saisi',
         (tester) async {
       final service = _FakeService(_status(NfcCardState.none));
       await _pump(tester, service);
@@ -294,7 +301,7 @@ void main() {
   });
 
   group('ordered', () {
-    testWidgets('affiche la frise et la livraison', (tester) async {
+    _testWidgets('affiche la frise et la livraison', (tester) async {
       await _pump(
         tester,
         _FakeService(_status(
@@ -331,7 +338,7 @@ void main() {
   });
 
   group('ready', () {
-    testWidgets('propose d\'activer avec le code, ou plus tard',
+    _testWidgets('propose d\'activer avec le code, ou plus tard',
         (tester) async {
       final service = _FakeService(_status(
         NfcCardState.ready,
@@ -353,7 +360,7 @@ void main() {
       expect(find.text('Active'), findsOneWidget);
     });
 
-    testWidgets('affiche l\'erreur du serveur sous le champ', (tester) async {
+    _testWidgets('affiche l\'erreur du serveur sous le champ', (tester) async {
       final service = _FakeService(
         _status(NfcCardState.ready, tag: const NfcTagInfo(id: 7)),
         failWith: 'refus',
@@ -377,7 +384,7 @@ void main() {
     NfcCardStatus ready() =>
         _status(NfcCardState.ready, tag: const NfcTagInfo(id: 7));
 
-    testWidgets('taper la carte l\'active avec le code lu dans son lien',
+    _testWidgets('taper la carte l\'active avec le code lu dans son lien',
         (tester) async {
       final service = _FakeService(ready());
       final reader = _FakeReader(NfcReaderAvailability.enabled);
@@ -397,7 +404,7 @@ void main() {
       expect(find.text('Active'), findsOneWidget);
     });
 
-    testWidgets('une puce qui n\'est pas une carte KART est refusée sans appel',
+    _testWidgets('une puce qui n\'est pas une carte KART est refusée sans appel',
         (tester) async {
       final service = _FakeService(ready());
       final reader = _FakeReader(NfcReaderAvailability.enabled);
@@ -426,7 +433,7 @@ void main() {
       expect(find.text('Active'), findsOneWidget);
     });
 
-    testWidgets('le refus du serveur s\'affiche et la lecture continue',
+    _testWidgets('le refus du serveur s\'affiche et la lecture continue',
         (tester) async {
       final service = _FakeService(ready(), failWith: 'refus');
       final reader = _FakeReader(NfcReaderAvailability.enabled);
@@ -443,7 +450,7 @@ void main() {
       expect(reader.listening, isTrue);
     });
 
-    testWidgets('sans NFC, on passe directement à la saisie du code',
+    _testWidgets('sans NFC, on passe directement à la saisie du code',
         (tester) async {
       final service = _FakeService(ready());
       final reader = _FakeReader(NfcReaderAvailability.unsupported);
@@ -461,7 +468,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('NFC coupé : saisie du code, avec une explication',
+    _testWidgets('NFC coupé : saisie du code, avec une explication',
         (tester) async {
       await _pump(tester, _FakeService(ready()),
           reader: _FakeReader(NfcReaderAvailability.disabled));
@@ -474,7 +481,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('lecture refusée par le téléphone : repli sur la saisie',
+    _testWidgets('lecture refusée par le téléphone : repli sur la saisie',
         (tester) async {
       // Cas d'un iPhone dont l'app n'a pas (encore) le droit de lire le NFC.
       final reader = _FakeReader(NfcReaderAvailability.enabled)
@@ -488,7 +495,7 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('réactiver en tapant la carte retrouvée', (tester) async {
+    _testWidgets('réactiver en tapant la carte retrouvée', (tester) async {
       final service = _FakeService(_status(
         NfcCardState.disabled,
         tag: const NfcTagInfo(id: 7, code: 'ABCD2345', canReactivate: true),
@@ -510,7 +517,7 @@ void main() {
   });
 
   group('active', () {
-    testWidgets('affiche les taps et désactive après confirmation',
+    _testWidgets('affiche les taps et désactive après confirmation',
         (tester) async {
       final service = _FakeService(_status(
         NfcCardState.active,
@@ -564,7 +571,7 @@ void main() {
       expect(NfcTagInfo.fromJson({'id': 7, 'assistance_until': null}).assistanceUntil, isNull);
     });
 
-    testWidgets('carte active : date d\'assistance affichée, sans prix', (tester) async {
+    _testWidgets('carte active : date d\'assistance affichée, sans prix', (tester) async {
       final until = DateTime.now().add(const Duration(days: 200));
       await _pump(tester, _FakeService(_status(
         NfcCardState.active,
@@ -575,7 +582,7 @@ void main() {
       expect(find.textContaining(RegExp(r'\d\s?F\b|FCFA|[Pp]rix|[Pp]ayer')), findsNothing, reason: 'aucun prix');
     });
 
-    testWidgets('échéance passée : « Assistance terminée … contactez KART »', (tester) async {
+    _testWidgets('échéance passée : « Assistance terminée … contactez KART »', (tester) async {
       await _pump(tester, _FakeService(_status(
         NfcCardState.active,
         tag: NfcTagInfo(id: 7, code: 'ZWLC8FDH', assistanceUntil: DateTime(2025, 1, 10)),
@@ -584,7 +591,7 @@ void main() {
       expect(find.text('Assistance terminée le 10/01/2025. Pour la renouveler, contactez KART.'), findsOneWidget);
     });
 
-    testWidgets('sans assistance_until (serveur actuel) : rien ne s\'affiche', (tester) async {
+    _testWidgets('sans assistance_until (serveur actuel) : rien ne s\'affiche', (tester) async {
       await _pump(tester, _FakeService(_status(
         NfcCardState.active,
         tag: NfcTagInfo.fromJson({'id': 7, 'code': 'ZWLC8FDH', 'tap_count': 3}),
@@ -597,7 +604,7 @@ void main() {
   });
 
   group('disabled', () {
-    testWidgets('réactiver exige le code de la carte', (tester) async {
+    _testWidgets('réactiver exige le code de la carte', (tester) async {
       final service = _FakeService(_status(
         NfcCardState.disabled,
         tag: const NfcTagInfo(id: 7, code: 'ABCD2345', canReactivate: true),
@@ -626,7 +633,7 @@ void main() {
       expect(find.text('Active'), findsOneWidget);
     });
 
-    testWidgets(
+    _testWidgets(
         'réponse réelle de l\'API après désactivation : bouton Réactiver',
         (tester) async {
       // Corps renvoyé par GET /me/nfc juste après PATCH status=disabled
@@ -654,7 +661,7 @@ void main() {
       expect(find.textContaining('désactivée par KART'), findsNothing);
     });
 
-    testWidgets('désactivée par KART : pas de bouton Réactiver',
+    _testWidgets('désactivée par KART : pas de bouton Réactiver',
         (tester) async {
       await _pump(
         tester,
@@ -670,7 +677,7 @@ void main() {
   });
 
   group('support WhatsApp', () {
-    testWidgets('ouvre wa.me sur le numéro reçu du serveur', (tester) async {
+    _testWidgets('ouvre wa.me sur le numéro reçu du serveur', (tester) async {
       final harness = await _pump(
         tester,
         _FakeService(_status(
@@ -686,7 +693,7 @@ void main() {
       expect(harness.opened.single.path, '/$_whatsapp');
     });
 
-    testWidgets('assistance terminée : le message WhatsApp ne parle ni de renouvellement, ni de prix, ni de paiement',
+    _testWidgets('assistance terminée : le message WhatsApp ne parle ni de renouvellement, ni de prix, ni de paiement',
         (tester) async {
       final harness = await _pump(
         tester,
@@ -704,7 +711,7 @@ void main() {
       expect(text, isNot(matches(RegExp(r'renouvel|prix|tarif|pay|paie|\d\s?F\b|FCFA', caseSensitive: false))));
     });
 
-    testWidgets('bouton masqué si aucun numéro n\'est configuré',
+    _testWidgets('bouton masqué si aucun numéro n\'est configuré',
         (tester) async {
       await _pump(
         tester,
@@ -720,7 +727,7 @@ void main() {
   });
 
   group('chargement', () {
-    testWidgets('erreur réseau : message et « Réessayer »', (tester) async {
+    _testWidgets('erreur réseau : message et « Réessayer »', (tester) async {
       final service = _FakeService(_status(NfcCardState.none))
         ..fetchFails = true;
       await _pump(tester, service);
@@ -736,7 +743,7 @@ void main() {
     });
   });
 
-  testWidgets('les cinq états s\'affichent sans débordement, clair et sombre',
+  _testWidgets('les cinq états s\'affichent sans débordement, clair et sombre',
       (tester) async {
     final states = {
       NfcCardState.none: _status(NfcCardState.none),

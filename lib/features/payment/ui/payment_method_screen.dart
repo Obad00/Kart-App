@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/payment_provider.dart';
 import '../models/payment_method.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -29,12 +30,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     if (success) {
       Navigator.pushNamed(context, '/payment/processing');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.error ?? 'Erreur'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Paiement impossible', subtitle: provider.error ?? 'Erreur');
     }
   }
 

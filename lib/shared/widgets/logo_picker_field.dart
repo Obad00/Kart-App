@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme/kart_tokens.dart';
 import '../utils/crop_image.dart';
 import '../../shared/widgets/glass_sheet.dart';
+import '../../core/ui/feedback/feedback_overlay.dart';
 
 /// Choix proposé après la sélection d'un logo.
 enum _LogoMode {
@@ -185,15 +186,7 @@ class _LogoPickerFieldState extends State<LogoPickerField> {
     } catch (e) {
       debugPrint('Erreur image picker: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red[600],
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        FeedbackOverlay.showError(context, title: 'Logo non envoyé', subtitle: e.toString().replaceFirst('Exception: ', ''));
       }
     }
   }

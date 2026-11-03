@@ -205,12 +205,7 @@ void _showComingSoonDialog() {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    FeedbackOverlay.showError(context, title: 'Scan impossible', subtitle: message);
   }
 
   void _goToContacts() async {

@@ -5,6 +5,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/initials.dart';
 import '../models/contact_model.dart';
 import '../../public_card/ui/public_card_page.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
@@ -58,12 +59,7 @@ class ContactRow extends StatelessWidget {
   void _openPublicCard(BuildContext context) {
     final slug = contact.cardSlug;
     if (slug == null || slug.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ce contact n\'a pas de carte associée.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showInfo(context, title: 'Carte introuvable', subtitle: 'Ce contact n\'a pas de carte associée.');
       return;
     }
     Navigator.push(

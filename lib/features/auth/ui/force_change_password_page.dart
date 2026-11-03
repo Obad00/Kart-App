@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Écran non-contournable affiché tant que l'utilisateur n'a pas remplacé
 /// son mot de passe temporaire (invitation entreprise).
@@ -50,12 +51,7 @@ class _ForceChangePasswordPageState extends State<ForceChangePasswordPage> {
     if (success) {
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.error ?? 'Une erreur est survenue'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Mot de passe non modifié', subtitle: auth.error ?? 'Une erreur est survenue');
     }
   }
 

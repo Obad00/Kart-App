@@ -5,6 +5,7 @@ import '../../../core/theme/kart_tokens.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/legal_consent_checkbox.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 /// Affiché à la connexion quand /me renvoie consent_required : comptes
 /// créés avant la case, par l'admin ou la commande NFC, par Google/Apple,
@@ -31,9 +32,7 @@ class _ConsentPageState extends State<ConsentPage> {
     if (ok) {
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Impossible d'enregistrer votre accord. Réessayez."),
-      ));
+      FeedbackOverlay.showError(context, title: 'Accord non enregistré', subtitle: "Impossible d'enregistrer votre accord. Réessayez.");
     }
   }
 

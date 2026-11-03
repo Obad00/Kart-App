@@ -83,12 +83,7 @@ class _LeadCaptureSheetState extends State<LeadCaptureSheet> {
 
   Future<void> _submit() async {
     if (_alreadySubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vous avez déjà envoyé vos coordonnées'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      FeedbackOverlay.showInfo(context, title: 'Déjà envoyé', subtitle: 'Vous avez déjà envoyé vos coordonnées');
       return;
     }
 

@@ -57,12 +57,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.error ?? 'Une erreur est survenue'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackOverlay.showError(context, title: 'Mot de passe non modifié', subtitle: auth.error ?? 'Une erreur est survenue');
     }
   }
 

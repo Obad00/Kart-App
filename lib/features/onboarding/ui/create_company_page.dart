@@ -6,6 +6,7 @@ import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
 import '../../../shared/widgets/color_picker_field.dart';
 import '../../../shared/widgets/logo_picker_field.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 class CreateCompanyPage extends StatefulWidget {
   const CreateCompanyPage({super.key});
@@ -103,21 +104,7 @@ final argb = color.toARGB32();
 
   void _showError(String message) {
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    FeedbackOverlay.showError(context, title: 'Entreprise non créée', subtitle: message);
   }
 
   void _nextStep() {

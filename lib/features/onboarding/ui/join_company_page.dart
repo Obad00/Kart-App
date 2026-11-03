@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../onboarding/providers/company_provider.dart';
 import '../../../shared/widgets/auth_text_field.dart';
 import '../../../shared/widgets/auth_primary_button.dart';
+import '../../../core/ui/feedback/feedback_overlay.dart';
 
 class JoinCompanyPage extends StatefulWidget {
   const JoinCompanyPage({super.key});
@@ -33,9 +34,7 @@ class _JoinCompanyPageState extends State<JoinCompanyPage> {
     if (!mounted) return;
 
     if (provider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error!)),
-      );
+      FeedbackOverlay.showError(context, title: 'Adhésion impossible', subtitle: provider.error!);
     } else {
       Navigator.pushReplacementNamed(context, '/home');
     }
