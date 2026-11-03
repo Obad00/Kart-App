@@ -7,7 +7,7 @@ name: Build & Deploy Android App
 # possible (workflow_dispatch) pour choisir une autre piste.
 on:
   push:
-    branches: [release/flutter]
+    branches: [release/flutter,ci/android-cicd]
   workflow_dispatch:
     inputs:
       track:
