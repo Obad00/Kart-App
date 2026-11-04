@@ -19,7 +19,8 @@ class EventInvitationsService {
     int page = 1,
     CancelToken? cancelToken,
   }) async {
-    final response = await ApiClient.dio.get(_base(eventId), cancelToken: cancelToken, queryParameters: {
+    final response = await ApiClient.dio
+        .get(_base(eventId), cancelToken: cancelToken, queryParameters: {
       'page': page,
       'per_page': 50,
       if (status != null) 'status': status.api,
@@ -48,6 +49,27 @@ class EventInvitationsService {
         response.data['data'] as Map<String, dynamic>);
   }
 
+  Future<EventInvitation> createHonor(
+    int eventId, {
+    required String civility,
+    required String name,
+    required String honorMessage,
+    String? guestTitle,
+    String? phone,
+  }) async {
+    final response = await ApiClient.dio.post('${_base(eventId)}/honor', data: {
+      'civility': civility,
+      'name': name,
+      'guest_title': guestTitle,
+      'phone': phone,
+      'honor_message': honorMessage,
+    });
+    return EventInvitation.fromJson({
+      ...(response.data['data'] as Map<String, dynamic>),
+      'created': response.data['created'],
+    });
+  }
+
   Future<EventInvitation> update(
     int eventId,
     int invitationId, {
@@ -69,9 +91,40 @@ class EventInvitationsService {
         response.data['data'] as Map<String, dynamic>);
   }
 
+  Future<EventInvitation> updateHonor(
+    int eventId,
+    int invitationId, {
+    required String civility,
+    required String name,
+    required String honorMessage,
+    String? guestTitle,
+    String? phone,
+  }) async {
+    final response =
+        await ApiClient.dio.patch('${_base(eventId)}/$invitationId', data: {
+      'civility': civility,
+      'name': name,
+      'guest_title': guestTitle,
+      'phone': phone,
+      'honor_message': honorMessage,
+    });
+    return EventInvitation.fromJson(
+        response.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, String>> honorDefaultMessages(int eventId) async {
+    final response =
+        await ApiClient.dio.get('/events/$eventId/invitation-settings');
+    final messages = (response.data['data']['honor_default_messages'] as Map?)
+            ?.cast<String, dynamic>() ??
+        {};
+    return messages.map((key, value) => MapEntry(key, value as String));
+  }
+
   /// Catégories existantes et catégories d'exposants (liste déroulante du
   /// formulaire et de l'ajout depuis les contacts).
-  Future<({List<String> all, List<String> exhibitors})> categories(int eventId) async {
+  Future<({List<String> all, List<String> exhibitors})> categories(
+      int eventId) async {
     final page = await list(eventId);
     return (all: page.categories, exhibitors: page.exhibitorCategories);
   }
@@ -121,7 +174,8 @@ class EventInvitationsService {
   }
 
   /// Message lisible d'une erreur d'API (validation 422 comprise).
-  static String errorMessage(Object error, {String fallback = 'Une erreur est survenue. Réessayez.'}) {
+  static String errorMessage(Object error,
+      {String fallback = 'Une erreur est survenue. Réessayez.'}) {
     if (error is DioException) {
       final data = error.response?.data;
       if (error.response == null) {

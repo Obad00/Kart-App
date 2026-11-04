@@ -32,23 +32,30 @@ class _FakeApi implements HttpClientAdapter {
   _FakeApi(this.routes);
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
-    final key = '${options.method} ${options.uri.path.replaceFirst(RegExp(r'^.*/api'), '')}';
+  Future<ResponseBody> fetch(RequestOptions options,
+      Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+    final key =
+        '${options.method} ${options.uri.path.replaceFirst(RegExp(r'^.*/api'), '')}';
     calls.add(key);
     bodies[key] = options.data;
     final (status, body) = routes[key] ?? (404, {'message': 'absent'});
     if (body is List<int>) {
-      return ResponseBody.fromBytes(body, status, headers: {Headers.contentTypeHeader: ['image/png']});
+      return ResponseBody.fromBytes(body, status, headers: {
+        Headers.contentTypeHeader: ['image/png']
+      });
     }
-    return ResponseBody.fromString(jsonEncode(body), status,
-        headers: {Headers.contentTypeHeader: [Headers.jsonContentType]});
+    return ResponseBody.fromString(jsonEncode(body), status, headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType]
+    });
   }
 
   @override
   void close({bool force = false}) {}
 }
 
-Map<String, dynamic> _invitation(int id, String status, {bool reminder = false}) => {
+Map<String, dynamic> _invitation(int id, String status,
+        {bool reminder = false}) =>
+    {
       'id': id,
       'name': 'Awa Exemple Diallo',
       'first_name': 'Awa',
@@ -65,13 +72,27 @@ Map<String, (int, Object?)> _listRoutes({List<Map<String, dynamic>>? data}) => {
       'GET /events/1/invitations': (
         200,
         {
-          'data': data ?? [_invitation(1, 'pending'), _invitation(2, 'sent', reminder: true)],
+          'data': data ??
+              [
+                _invitation(1, 'pending'),
+                _invitation(2, 'sent', reminder: true)
+              ],
           'pagination': {'current_page': 1, 'last_page': 1},
-          'counts': {'invited': 2, 'pending': 1, 'sent': 1, 'opened': 0, 'confirmed': 0, 'declined': 0},
+          'counts': {
+            'invited': 2,
+            'pending': 1,
+            'sent': 1,
+            'opened': 0,
+            'confirmed': 0,
+            'declined': 0
+          },
           'categories': ['VIP'],
         }
       ),
-      'GET /events/1/invitations/next': (200, {'data': _invitation(1, 'pending'), 'remaining': 1}),
+      'GET /events/1/invitations/next': (
+        200,
+        {'data': _invitation(1, 'pending'), 'remaining': 1}
+      ),
       'POST /events/1/invitations/1/send': (200, {}),
       'POST /events/1/invitations/2/send': (200, {}),
     };
@@ -90,7 +111,8 @@ Widget _app(Widget child) => ChangeNotifierProvider<CardProvider>(
 /// Laisse passer les réponses simulées (vrais Future) entre deux images.
 Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 10; i++) {
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
+    await tester
+        .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
     await tester.pump(const Duration(milliseconds: 50));
   }
 }
@@ -122,17 +144,21 @@ class _FakeContacts implements DeviceContactsSource {
 DeviceContact _contact(String id, String name, String number) => DeviceContact(
       id: id,
       name: name,
-      phones: [DeviceContactPhone(number: number, label: 'Mobile', isMobile: true)],
+      phones: [
+        DeviceContactPhone(number: number, label: 'Mobile', isMobile: true)
+      ],
     );
 
 void main() {
   group('Réponses de l\'API', () {
     test('une invitation garde le lien wa.me et le message du backend', () {
-      final invitation = EventInvitation.fromJson(_invitation(1, 'opened', reminder: true));
+      final invitation =
+          EventInvitation.fromJson(_invitation(1, 'opened', reminder: true));
       expect(invitation.status, InvitationStatus.opened);
       expect(invitation.status.label, 'Ouverte');
       expect(invitation.needsReminder, isTrue);
-      expect(invitation.whatsappUrl, 'https://wa.me/221770000001?text=Bonjour%20Awa');
+      expect(invitation.whatsappUrl,
+          'https://wa.me/221770000001?text=Bonjour%20Awa');
       expect(invitation.initials, 'AE');
     });
 
@@ -141,7 +167,11 @@ void main() {
         'created': 2,
         'duplicates': 1,
         'invalid': [
-          {'line': 3, 'name': 'Ibrahima Exemple', 'reason': 'Téléphone invalide.'},
+          {
+            'line': 3,
+            'name': 'Ibrahima Exemple',
+            'reason': 'Téléphone invalide.'
+          },
         ],
       });
       expect(report.created, 2);
@@ -162,13 +192,21 @@ void main() {
   });
 
   group('Ajout en lot', () {
-    test('une seule requête, numéros tels qu\'enregistrés dans le téléphone', () async {
+    test('une seule requête, numéros tels qu\'enregistrés dans le téléphone',
+        () async {
       final api = _useApi({
-        'POST /events/1/invitations/batch': (200, {'created': 2, 'duplicates': 0, 'invalid': []}),
+        'POST /events/1/invitations/batch': (
+          200,
+          {'created': 2, 'duplicates': 0, 'invalid': []}
+        ),
       });
+
       final report = await EventInvitationsService().batch(
         1,
-        [(name: 'Awa Exemple', phone: '+221 77 000 00 01'), (name: 'Moussa Exemple', phone: '77-000-00-02')],
+        [
+          (name: 'Awa Exemple', phone: '+221 77 000 00 01'),
+          (name: 'Moussa Exemple', phone: '77-000-00-02')
+        ],
         category: ' Partenaires ',
       );
       expect(report.created, 2);
@@ -183,12 +221,70 @@ void main() {
     });
   });
 
+  group('Invitation d’honneur', () {
+    test('charge les messages proposés et crée via la route honor', () async {
+      final api = _useApi({
+        'GET /events/1/invitation-settings': (
+          200,
+          {
+            'data': {
+              'honor_default_messages': {
+                'Mme': 'Message protocolaire exemple.',
+                'M.': 'Message protocolaire exemple.',
+              },
+            },
+          }
+        ),
+        'POST /events/1/invitations/honor': (
+          201,
+          {
+            'created': true,
+            'data': {
+              ..._invitation(3, 'pending'),
+              'type': 'honneur',
+              'civility': 'Mme',
+              'guest_title': 'Directrice (fictive)',
+              'honor_message': 'Message protocolaire exemple.',
+              'short_url':
+                  'https://kart.business/invitations/ExempleToken12345',
+            },
+          }
+        ),
+      });
+      final service = EventInvitationsService();
+      expect(await service.honorDefaultMessages(1), {
+        'Mme': 'Message protocolaire exemple.',
+        'M.': 'Message protocolaire exemple.',
+      });
+
+      final invitation = await service.createHonor(1,
+          civility: 'Mme',
+          name: 'Awa Exemple',
+          phone: '+221 77 000 00 01',
+          guestTitle: 'Directrice (fictive)',
+          honorMessage: 'Message protocolaire exemple.');
+
+      expect(invitation.type, 'honneur');
+      expect(invitation.civility, 'Mme');
+      expect(invitation.honorMessage, 'Message protocolaire exemple.');
+      expect(invitation.createdNow, isTrue);
+      expect(api.calls, [
+        'GET /events/1/invitation-settings',
+        'POST /events/1/invitations/honor',
+      ]);
+    });
+  });
+
   group('Envoi', () {
-    testWidgets('WhatsApp s\'ouvre avec le lien du backend, puis /send', (tester) async {
+    testWidgets('WhatsApp s\'ouvre avec le lien du backend, puis /send',
+        (tester) async {
       final api = _useApi(_listRoutes());
       final opened = <Uri>[];
       late BuildContext context;
-      await tester.pumpWidget(_app(Builder(builder: (c) { context = c; return const SizedBox(); })));
+      await tester.pumpWidget(_app(Builder(builder: (c) {
+        context = c;
+        return const SizedBox();
+      })));
       final sender = InvitationSender(
         service: EventInvitationsService(),
         eventId: 1,
@@ -198,27 +294,43 @@ void main() {
         },
       );
 
-      final ok = await tester.runAsync(() => sender.sendWhatsApp(context, EventInvitation.fromJson(_invitation(1, 'pending'))));
+      final ok = await tester.runAsync(() => sender.sendWhatsApp(
+          context, EventInvitation.fromJson(_invitation(1, 'pending'))));
       expect(ok, isTrue);
-      expect(opened.single.toString(), 'https://wa.me/221770000001?text=Bonjour%20Awa');
+      expect(opened.single.toString(),
+          'https://wa.me/221770000001?text=Bonjour%20Awa');
       expect(api.calls, ['POST /events/1/invitations/1/send']);
     });
 
     testWidgets('si /send échoue, l\'envoi n\'est pas bloqué', (tester) async {
-      _useApi({'POST /events/1/invitations/1/send': (500, {'message': 'erreur'})});
+      _useApi({
+        'POST /events/1/invitations/1/send': (500, {'message': 'erreur'})
+      });
       late BuildContext context;
-      await tester.pumpWidget(_app(Scaffold(body: Builder(builder: (c) { context = c; return const SizedBox(); }))));
-      final sender = InvitationSender(service: EventInvitationsService(), eventId: 1, openExternal: (_) async => true);
+      await tester.pumpWidget(_app(Scaffold(body: Builder(builder: (c) {
+        context = c;
+        return const SizedBox();
+      }))));
+      final sender = InvitationSender(
+          service: EventInvitationsService(),
+          eventId: 1,
+          openExternal: (_) async => true);
 
-      final ok = await tester.runAsync(() => sender.sendWhatsApp(context, EventInvitation.fromJson(_invitation(1, 'pending'))));
+      final ok = await tester.runAsync(() => sender.sendWhatsApp(
+          context, EventInvitation.fromJson(_invitation(1, 'pending'))));
       expect(ok, isTrue);
       await tester.pump(const Duration(seconds: 4));
     });
 
     testWidgets('un partage annulé ne compte pas comme envoyé', (tester) async {
-      final api = _useApi({'GET /events/1/invitations/1/image.png': (200, List<int>.filled(8, 1))});
+      final api = _useApi({
+        'GET /events/1/invitations/1/image.png': (200, List<int>.filled(8, 1))
+      });
       late BuildContext context;
-      await tester.pumpWidget(_app(Builder(builder: (c) { context = c; return const SizedBox(); })));
+      await tester.pumpWidget(_app(Builder(builder: (c) {
+        context = c;
+        return const SizedBox();
+      })));
       ShareParams? shared;
       final sender = InvitationSender(
         service: EventInvitationsService(),
@@ -230,7 +342,8 @@ void main() {
         tempDir: () => Directory.systemTemp.createTemp('kart-test'),
       );
 
-      await tester.runAsync(() => sender.shareInvitation(context, EventInvitation.fromJson(_invitation(1, 'pending'))));
+      await tester.runAsync(() => sender.shareInvitation(
+          context, EventInvitation.fromJson(_invitation(1, 'pending'))));
       expect(shared?.text, startsWith('Bonjour Awa'));
       expect(shared?.files?.single.mimeType, 'image/png');
       expect(api.calls, ['GET /events/1/invitations/1/image.png']);
@@ -242,7 +355,10 @@ void main() {
         'POST /events/1/invitations/1/send': (200, {}),
       });
       late BuildContext context;
-      await tester.pumpWidget(_app(Builder(builder: (c) { context = c; return const SizedBox(); })));
+      await tester.pumpWidget(_app(Builder(builder: (c) {
+        context = c;
+        return const SizedBox();
+      })));
       final sender = InvitationSender(
         service: EventInvitationsService(),
         eventId: 1,
@@ -250,15 +366,23 @@ void main() {
         tempDir: () => Directory.systemTemp.createTemp('kart-test'),
       );
 
-      await tester.runAsync(() => sender.shareInvitation(context, EventInvitation.fromJson(_invitation(1, 'pending'))));
-      expect(api.calls, ['GET /events/1/invitations/1/image.png', 'POST /events/1/invitations/1/send']);
+      await tester.runAsync(() => sender.shareInvitation(
+          context, EventInvitation.fromJson(_invitation(1, 'pending'))));
+      expect(api.calls, [
+        'GET /events/1/invitations/1/image.png',
+        'POST /events/1/invitations/1/send'
+      ]);
     });
   });
 
   group('Sélecteur Android enchaîné', () {
-    testWidgets('se rouvre après chaque contact, Retour termine, sans doublon', (tester) async {
+    testWidgets('se rouvre après chaque contact, Retour termine, sans doublon',
+        (tester) async {
       late BuildContext context;
-      await tester.pumpWidget(_app(Builder(builder: (c) { context = c; return const SizedBox(); })));
+      await tester.pumpWidget(_app(Builder(builder: (c) {
+        context = c;
+        return const SizedBox();
+      })));
       final source = _FakeContacts([
         _contact('a', 'Awa Exemple', '77 000 00 01'),
         _contact('b', 'Moussa Exemple', '77 000 00 02'),
@@ -267,14 +391,16 @@ void main() {
         _contact('c', 'Jamais choisi', '77 000 00 03'),
       ]);
 
-      final picked = await tester.runAsync(() => pickContactsOneByOne(context, source));
+      final picked =
+          await tester.runAsync(() => pickContactsOneByOne(context, source));
       expect(picked!.map((c) => c.name), ['Awa Exemple', 'Moussa Exemple']);
       expect(source.pickCalls, 4);
     });
   });
 
   group('Onglet Invitations', () {
-    testWidgets('compteurs, envoi au suivant et actions par statut', (tester) async {
+    testWidgets('compteurs, envoi au suivant et actions par statut',
+        (tester) async {
       _useApi(_listRoutes());
       final opened = <Uri>[];
       final service = EventInvitationsService();
@@ -303,27 +429,35 @@ void main() {
 
       await tester.tap(find.text('Envoyer au suivant (1)'));
       await _settle(tester);
-      expect(opened.single.toString(), 'https://wa.me/221770000001?text=Bonjour%20Awa');
+      expect(opened.single.toString(),
+          'https://wa.me/221770000001?text=Bonjour%20Awa');
     });
   });
 
   group('Page de l\'événement', () {
     Map<String, (int, Object?)> participants() => {
-          'GET /events/1/participants': (200, {'participants': [], 'count': 0, 'stats': {}}),
+          'GET /events/1/participants': (
+            200,
+            {'participants': [], 'count': 0, 'stats': {}}
+          ),
         };
 
-    testWidgets('sans accès aux invitations : l\'écran des participants d\'avant', (tester) async {
+    testWidgets(
+        'sans accès aux invitations : l\'écran des participants d\'avant',
+        (tester) async {
       _useApi(participants());
-      await tester.pumpWidget(_app(const CompanyEventParticipantsPage(eventId: 1, eventName: 'Salon Exemple')));
+      await tester.pumpWidget(_app(const CompanyEventParticipantsPage(
+          eventId: 1, eventName: 'Salon Exemple')));
       await _settle(tester);
       expect(find.text('Invitations'), findsNothing);
       expect(find.text('Inscrits'), findsOneWidget);
     });
 
-    testWidgets('avec accès : onglets Participants et Invitations', (tester) async {
+    testWidgets('avec accès : onglets Participants et Invitations',
+        (tester) async {
       final api = _useApi({...participants(), ..._listRoutes()});
-      await tester.pumpWidget(_app(
-          const CompanyEventParticipantsPage(eventId: 1, eventName: 'Salon Exemple', showInvitations: true)));
+      await tester.pumpWidget(_app(const CompanyEventParticipantsPage(
+          eventId: 1, eventName: 'Salon Exemple', showInvitations: true)));
       await _settle(tester);
       expect(find.text('Participants'), findsOneWidget);
       // L'onglet Invitations n'est chargé qu'à son ouverture.

@@ -11,11 +11,16 @@ const whatsappGreen = Color(0xFF25D366);
 Color invitationStatusColor(InvitationStatus status, Brightness brightness) {
   final dark = brightness == Brightness.dark;
   return switch (status) {
-    InvitationStatus.pending => dark ? const Color(0xFFB0B4BA) : const Color(0xFF5F6368),
-    InvitationStatus.sent => dark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-    InvitationStatus.opened => dark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-    InvitationStatus.confirmed => dark ? const Color(0xFF34D399) : const Color(0xFF047857),
-    InvitationStatus.declined => dark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+    InvitationStatus.pending =>
+      dark ? const Color(0xFFB0B4BA) : const Color(0xFF5F6368),
+    InvitationStatus.sent =>
+      dark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+    InvitationStatus.opened =>
+      dark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+    InvitationStatus.confirmed =>
+      dark ? const Color(0xFF34D399) : const Color(0xFF047857),
+    InvitationStatus.declined =>
+      dark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
   };
 }
 
@@ -36,7 +41,8 @@ class InvitationStatusPill extends StatelessWidget {
       ),
       child: Text(
         status.label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+        style:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
@@ -70,14 +76,19 @@ class InvitationCountTile extends StatelessWidget {
           Text(
             '$value',
             style: TextStyle(
-                fontFamily: 'Syne', fontSize: 20, fontWeight: FontWeight.w800, color: color),
+                fontFamily: 'Syne',
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: color),
           ),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               label,
-              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.55)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: colors.onSurface.withValues(alpha: 0.55)),
             ),
           ),
         ],
@@ -90,6 +101,7 @@ class InvitationCountTile extends StatelessWidget {
 class InvitationListTile extends StatelessWidget {
   final EventInvitation invitation;
   final bool busy;
+
   /// Bouton visible : « Envoyer » (à envoyer) ou « Relancer » (48 h sans réponse).
   final VoidCallback? onSend;
 
@@ -115,9 +127,10 @@ class InvitationListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final pending = invitation.status == InvitationStatus.pending;
-    final subtitle = [formatPhoneForDisplay(invitation.phone), invitation.category]
-        .where((s) => s != null && s.isNotEmpty)
-        .join(' · ');
+    final subtitle = [
+      formatPhoneForDisplay(invitation.phone),
+      invitation.category
+    ].where((s) => s != null && s.isNotEmpty).join(' · ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -130,7 +143,10 @@ class InvitationListTile extends StatelessWidget {
             child: Text(
               invitation.initials,
               style: const TextStyle(
-                  fontFamily: 'Syne', fontWeight: FontWeight.w800, fontSize: 13, color: _themeBlue),
+                  fontFamily: 'Syne',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: _themeBlue),
             ),
           ),
           const SizedBox(width: 12),
@@ -148,13 +164,23 @@ class InvitationListTile extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       color: colors.onSurface),
                 ),
+                if (invitation.type == 'honneur')
+                  Text('Invitation d’honneur',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.amber.shade200
+                              : Colors.amber.shade900)),
                 if (subtitle.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.55)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.55)),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -169,7 +195,8 @@ class InvitationListTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5)),
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.5)),
                         ),
                       ),
                     ],
@@ -220,12 +247,15 @@ class _SendChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final outlineText = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
+    final outlineText =
+        isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
     return Material(
       color: filled ? whatsappGreen : whatsappGreen.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: filled ? BorderSide.none : BorderSide(color: whatsappGreen.withValues(alpha: 0.5)),
+        side: filled
+            ? BorderSide.none
+            : BorderSide(color: whatsappGreen.withValues(alpha: 0.5)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -245,7 +275,9 @@ class _SendChip extends StatelessWidget {
                   ),
                 )
               else
-                Icon(Icons.send_rounded, size: 14, color: filled ? const Color(0xFF072E16) : outlineText),
+                Icon(Icons.send_rounded,
+                    size: 14,
+                    color: filled ? const Color(0xFF072E16) : outlineText),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -293,15 +325,26 @@ class _MoreMenu extends StatelessWidget {
       },
       itemBuilder: (_) => [
         if (showWhatsApp)
-          const GlassMenuItem(value: 'whatsapp', icon: Icons.send_rounded, title: 'Renvoyer sur WhatsApp'),
-        const GlassMenuItem(value: 'share', icon: Icons.ios_share_rounded, title: "Partager l'invitation"),
-        const GlassMenuItem(value: 'edit', icon: Icons.edit_outlined, title: 'Modifier'),
+          const GlassMenuItem(
+              value: 'whatsapp',
+              icon: Icons.send_rounded,
+              title: 'Renvoyer sur WhatsApp'),
         const GlassMenuItem(
-            value: 'delete', icon: Icons.delete_outline_rounded, title: 'Retirer de la liste', destructive: true),
+            value: 'share',
+            icon: Icons.ios_share_rounded,
+            title: "Partager l'invitation"),
+        const GlassMenuItem(
+            value: 'edit', icon: Icons.edit_outlined, title: 'Modifier'),
+        const GlassMenuItem(
+            value: 'delete',
+            icon: Icons.delete_outline_rounded,
+            title: 'Retirer de la liste',
+            destructive: true),
       ],
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: Icon(Icons.more_horiz_rounded, color: colors.onSurface.withValues(alpha: 0.6)),
+        child: Icon(Icons.more_horiz_rounded,
+            color: colors.onSurface.withValues(alpha: 0.6)),
       ),
     );
   }
@@ -315,7 +358,8 @@ class InvitationPrimaryButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool loading;
 
-  const InvitationPrimaryButton({super.key, required this.label, this.onTap, this.loading = false});
+  const InvitationPrimaryButton(
+      {super.key, required this.label, this.onTap, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -333,12 +377,20 @@ class InvitationPrimaryButton extends StatelessWidget {
           disabledForegroundColor: colors.onSurface.withValues(alpha: 0.4),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         onPressed: loading ? () {} : onTap,
         child: loading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: foreground))
-            : Text(label, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: foreground))
+            : Text(label,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
       ),
     );
   }
@@ -350,7 +402,8 @@ class InvitationOutlineButton extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onTap;
 
-  const InvitationOutlineButton({super.key, required this.label, this.icon, this.onTap});
+  const InvitationOutlineButton(
+      {super.key, required this.label, this.icon, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -362,17 +415,22 @@ class InvitationOutlineButton extends StatelessWidget {
           foregroundColor: colors.onSurface,
           side: BorderSide(color: colors.onSurface.withValues(alpha: 0.18)),
           padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         onPressed: onTap,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
+            if (icon != null) ...[
+              Icon(icon, size: 18),
+              const SizedBox(width: 8)
+            ],
             Flexible(
               child: Text(label,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ],
         ),

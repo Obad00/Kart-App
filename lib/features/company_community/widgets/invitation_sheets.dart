@@ -10,21 +10,23 @@ import 'invitation_category_field.dart';
 
 const _themeBlue = Color(0xFF3B82F6);
 
-/// Ajout ([invitation] null) ou modification d'un invité. Renvoie true si
-/// la liste doit être rechargée (ajout, modification ou retrait).
-Future<bool> showInvitationFormSheet(
+/// Ajout ([invitation] null) ou modification d'un invité.
+typedef InvitationFormResult = ({bool changed, EventInvitation? created});
+
+Future<InvitationFormResult> showInvitationFormSheet(
   BuildContext context, {
   required EventInvitationsService service,
   required int eventId,
   EventInvitation? invitation,
 }) async {
-  final changed = await showModalBottomSheet<bool>(
+  final result = await showModalBottomSheet<InvitationFormResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _InvitationFormSheet(service: service, eventId: eventId, invitation: invitation),
+    builder: (_) => _InvitationFormSheet(
+        service: service, eventId: eventId, invitation: invitation),
   );
-  return changed ?? false;
+  return result ?? (changed: false, created: null);
 }
 
 class _InvitationFormSheet extends StatefulWidget {
@@ -32,7 +34,8 @@ class _InvitationFormSheet extends StatefulWidget {
   final int eventId;
   final EventInvitation? invitation;
 
-  const _InvitationFormSheet({required this.service, required this.eventId, this.invitation});
+  const _InvitationFormSheet(
+      {required this.service, required this.eventId, this.invitation});
 
   @override
   State<_InvitationFormSheet> createState() => _InvitationFormSheetState();
@@ -42,39 +45,116 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   late final _name = TextEditingController(text: widget.invitation?.name);
   late final _phone = TextEditingController(text: widget.invitation?.phone);
   late final _email = TextEditingController(text: widget.invitation?.email);
-  late final _category = TextEditingController(text: widget.invitation?.category);
-  late final _stand = TextEditingController(text: widget.invitation?.standNumber);
+  late final _category =
+      TextEditingController(text: widget.invitation?.category);
+  late final _stand =
+      TextEditingController(text: widget.invitation?.standNumber);
+  late final _guestTitle =
+      TextEditingController(text: widget.invitation?.guestTitle);
+  late final _honorMessage =
+      TextEditingController(text: widget.invitation?.honorMessage);
+  late String _type = widget.invitation?.type ?? 'standard';
+  late String _civility = widget.invitation?.civility ?? 'Mme';
+  Map<String, String> _honorDefaults = {};
+  String _oldCivilityDefault = '';
   bool _saving = false;
   // Catégorie d'exposants : numéro de stand proposé.
   bool _exhibitor = false;
 
   bool get _editing => widget.invitation != null;
-  bool get _canSubmit => _name.text.trim().isNotEmpty && _phone.text.trim().isNotEmpty;
+  bool get _isHonor => _type == 'honneur';
+  bool get _canSubmit =>
+      _name.text.trim().isNotEmpty &&
+      (_isHonor || _phone.text.trim().isNotEmpty);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHonorDefaults();
+  }
+
+  Future<void> _loadHonorDefaults() async {
+    try {
+      final defaults =
+          await widget.service.honorDefaultMessages(widget.eventId);
+      if (!mounted) return;
+      setState(() {
+        _honorDefaults = defaults;
+        if (_honorMessage.text.trim().isEmpty) {
+          _honorMessage.text = defaults[_civility] ?? '';
+        }
+        _oldCivilityDefault = defaults[_civility] ?? '';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(context,
+          title: 'Message indisponible',
+          subtitle: EventInvitationsService.errorMessage(e));
+    }
+  }
+
+  void _changeCivility(String? value) {
+    if (value == null) return;
+    setState(() {
+      if (_honorMessage.text.trim().isEmpty ||
+          _honorMessage.text == _oldCivilityDefault) {
+        _honorMessage.text = _honorDefaults[value] ?? '';
+      }
+      _civility = value;
+      _oldCivilityDefault = _honorDefaults[value] ?? '';
+    });
+  }
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _category, _stand]) {
+    for (final c in [
+      _name,
+      _phone,
+      _email,
+      _category,
+      _stand,
+      _guestTitle,
+      _honorMessage
+    ]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  String? _clean(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
+  String? _clean(TextEditingController c) =>
+      c.text.trim().isEmpty ? null : c.text.trim();
 
   Future<void> _submit() async {
     if (!_canSubmit || _saving) return;
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
     try {
-      if (_editing) {
-        await widget.service.update(widget.eventId, widget.invitation!.id,
+      final EventInvitation saved;
+      if (_isHonor && _editing) {
+        saved = await widget.service.updateHonor(
+            widget.eventId, widget.invitation!.id,
+            civility: _civility,
+            name: _name.text.trim(),
+            phone: _clean(_phone),
+            guestTitle: _clean(_guestTitle),
+            honorMessage: _honorMessage.text.trim());
+      } else if (_isHonor) {
+        saved = await widget.service.createHonor(widget.eventId,
+            civility: _civility,
+            name: _name.text.trim(),
+            phone: _clean(_phone),
+            guestTitle: _clean(_guestTitle),
+            honorMessage: _honorMessage.text.trim());
+      } else if (_editing) {
+        saved = await widget.service.update(
+            widget.eventId, widget.invitation!.id,
             name: _name.text.trim(),
             phone: _phone.text.trim(),
             email: _clean(_email),
             category: _clean(_category),
             standNumber: _exhibitor ? _clean(_stand) : null);
       } else {
-        await widget.service.create(widget.eventId,
+        saved = await widget.service.create(widget.eventId,
             name: _name.text.trim(),
             phone: _phone.text.trim(),
             email: _clean(_email),
@@ -89,7 +169,7 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
             ? '${_name.text.trim()} a été mis(e) à jour.'
             : '${_name.text.trim()} est dans la liste, prêt(e) à recevoir son invitation.',
       );
-      navigator.pop(true);
+      navigator.pop((changed: true, created: _editing ? null : saved));
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -103,7 +183,8 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
     final confirmed = await GlassDialog.confirm(
       context,
       title: 'Retirer de la liste ?',
-      message: '${invitation.name} ne fera plus partie des invités. Son lien d\'invitation ne fonctionnera plus.',
+      message:
+          '${invitation.name} ne fera plus partie des invités. Son lien d\'invitation ne fonctionnera plus.',
       confirmLabel: 'Retirer',
     );
     if (!confirmed || !mounted) return;
@@ -113,8 +194,9 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
       await widget.service.delete(widget.eventId, invitation.id);
       if (!mounted) return;
       FeedbackOverlay.showSuccess(context,
-          title: 'Invité retiré', subtitle: '${invitation.name} a été retiré(e) de la liste.');
-      navigator.pop(true);
+          title: 'Invité retiré',
+          subtitle: '${invitation.name} a été retiré(e) de la liste.');
+      navigator.pop((changed: true, created: null));
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -143,29 +225,99 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
               const SheetHandle(),
               Text(
                 _editing ? "Modifier l'invité" : 'Ajouter un invité',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: colors.onSurface),
               ),
               const SizedBox(height: 4),
               Text(
-                'Sans indicatif, le numéro est considéré comme sénégalais (+221).',
-                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.55)),
+                _isHonor
+                    ? 'Le téléphone est facultatif. Sans numéro, le lien pourra être copié.'
+                    : 'Sans indicatif, le numéro est considéré comme sénégalais (+221).',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.55)),
               ),
               const SizedBox(height: 20),
+              if (!_editing) ...[
+                DropdownButtonFormField<String>(
+                  initialValue: _type,
+                  decoration: _decoration('Type d’invitation', colors),
+                  dropdownColor: colors.surface,
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'standard', child: Text('Invitation classique')),
+                    DropdownMenuItem(
+                        value: 'honneur', child: Text('Invitation d’honneur')),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _type = value ?? 'standard'),
+                ),
+                const SizedBox(height: 12),
+              ] else if (_isHonor) ...[
+                Text('Invitation d’honneur',
+                    style: TextStyle(
+                        color: Colors.amber.shade700,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+              ],
               _field(_name, 'Nom complet', colors),
               const SizedBox(height: 12),
-              _field(_phone, 'Téléphone WhatsApp', colors, keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              _field(_email, 'Email (facultatif)', colors, keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 12),
-              InvitationCategoryField(
-                controller: _category,
-                service: widget.service,
-                eventId: widget.eventId,
-                onExhibitorChanged: (value) => setState(() => _exhibitor = value),
-              ),
-              if (_exhibitor) ...[
+              _field(
+                  _phone,
+                  _isHonor
+                      ? 'Téléphone WhatsApp (facultatif)'
+                      : 'Téléphone WhatsApp',
+                  colors,
+                  keyboardType: TextInputType.phone),
+              if (_isHonor) ...[
                 const SizedBox(height: 12),
-                _field(_stand, 'Numéro de stand (imprimé sur le badge)', colors),
+                DropdownButtonFormField<String>(
+                  initialValue: _civility,
+                  decoration: _decoration('Civilité', colors),
+                  dropdownColor: colors.surface,
+                  items: const [
+                    DropdownMenuItem(value: 'Mme', child: Text('Mme')),
+                    DropdownMenuItem(value: 'M.', child: Text('M.')),
+                  ],
+                  onChanged: _saving ? null : _changeCivility,
+                ),
+                const SizedBox(height: 12),
+                _field(_guestTitle, 'Fonction ou titre (facultatif)', colors),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _honorMessage,
+                  minLines: 4,
+                  maxLines: 7,
+                  maxLength: 2000,
+                  onChanged: (_) => setState(() {}),
+                  style: TextStyle(color: colors.onSurface, fontSize: 14),
+                  decoration:
+                      _decoration('Message protocolaire', colors).copyWith(
+                    helperText:
+                        'Proposition KART modifiable ; affichée sur la page et dans WhatsApp.',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (!_isHonor) ...[
+                _field(_email, 'Email (facultatif)', colors,
+                    keyboardType: TextInputType.emailAddress),
+                const SizedBox(height: 12),
+                InvitationCategoryField(
+                  controller: _category,
+                  service: widget.service,
+                  eventId: widget.eventId,
+                  onExhibitorChanged: (value) =>
+                      setState(() => _exhibitor = value),
+                ),
+                if (_exhibitor) ...[
+                  const SizedBox(height: 12),
+                  _field(
+                      _stand, 'Numéro de stand (imprimé sur le badge)', colors),
+                ],
               ],
               const SizedBox(height: 20),
               SizedBox(
@@ -175,13 +327,22 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
                     backgroundColor: _themeBlue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _canSubmit && !_saving ? _submit : null,
                   child: _saving
                       ? const SizedBox(
-                          width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(_editing ? 'Enregistrer' : 'Ajouter',
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Text(
+                          _editing
+                              ? 'Enregistrer'
+                              : (_phone.text.trim().isEmpty
+                                  ? 'Ajouter'
+                                  : 'Ajouter et ouvrir WhatsApp'),
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
@@ -191,7 +352,9 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
                   child: TextButton(
                     onPressed: _saving ? null : _delete,
                     child: const Text('Retirer de la liste',
-                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -203,7 +366,8 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   }
 
   // Même champ que « Ajouter un contact » (fond léger, bordure bleue au focus).
-  Widget _field(TextEditingController controller, String label, ColorScheme colors,
+  Widget _field(
+      TextEditingController controller, String label, ColorScheme colors,
       {TextInputType? keyboardType}) {
     return TextField(
       controller: controller,
@@ -215,8 +379,11 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
         labelStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
         filled: true,
         fillColor: colors.onSurface.withValues(alpha: 0.05),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _themeBlue, width: 1.5),
@@ -224,10 +391,28 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
       ),
     );
   }
+
+  InputDecoration _decoration(String label, ColorScheme colors) =>
+      InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+        filled: true,
+        fillColor: colors.onSurface.withValues(alpha: 0.05),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _themeBlue, width: 1.5),
+        ),
+      );
 }
 
 /// Rapport d'ajout depuis les contacts : ajoutés, déjà invités, invalides.
-Future<void> showInvitationReportSheet(BuildContext context, InvitationReport report) {
+Future<void> showInvitationReportSheet(
+    BuildContext context, InvitationReport report) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -251,7 +436,8 @@ class _InvitationReportSheet extends StatelessWidget {
 
     return GlassSheet(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset > 24 ? bottomInset : 24),
+        padding: EdgeInsets.fromLTRB(
+            20, 24, 20, bottomInset > 24 ? bottomInset : 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,29 +445,41 @@ class _InvitationReportSheet extends StatelessWidget {
             const SheetHandle(),
             Text(
               report.created > 0 ? 'Invités ajoutés' : 'Aucun invité ajouté',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: colors.onSurface),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _ReportCount(value: report.created, label: 'ajouté(s)', color: green)),
+                Expanded(
+                    child: _ReportCount(
+                        value: report.created,
+                        label: 'ajouté(s)',
+                        color: green)),
                 const SizedBox(width: 10),
                 Expanded(
                     child: _ReportCount(
-                        value: report.duplicates, label: 'déjà invité(s)', color: colors.onSurface)),
+                        value: report.duplicates,
+                        label: 'déjà invité(s)',
+                        color: colors.onSurface)),
                 const SizedBox(width: 10),
                 Expanded(
                     child: _ReportCount(
                         value: report.invalid.length,
                         label: 'numéro(s) invalide(s)',
-                        color: report.invalid.isEmpty ? colors.onSurface : red)),
+                        color:
+                            report.invalid.isEmpty ? colors.onSurface : red)),
               ],
             ),
             if (report.invalid.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text('Non ajoutés',
                   style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.6))),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(height: 6),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 220),
@@ -301,19 +499,30 @@ class _InvitationReportSheet extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                          fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                                  if (report.phonesByLine[row.line]?.isNotEmpty ?? false)
-                                    Text(formatPhoneForDisplay(report.phonesByLine[row.line]!),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: colors.onSurface)),
+                                  if (report
+                                          .phonesByLine[row.line]?.isNotEmpty ??
+                                      false)
+                                    Text(
+                                        formatPhoneForDisplay(
+                                            report.phonesByLine[row.line]!),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                            fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+                                            fontSize: 12,
+                                            color: colors.onSurface
+                                                .withValues(alpha: 0.5))),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
                             Text(row.reason,
-                                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.55))),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: colors.onSurface
+                                        .withValues(alpha: 0.55))),
                           ],
                         ),
                       ),
@@ -329,10 +538,12 @@ class _InvitationReportSheet extends StatelessWidget {
                   backgroundColor: _themeBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Terminé', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: const Text('Terminé',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -347,7 +558,8 @@ class _ReportCount extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _ReportCount({required this.value, required this.label, required this.color});
+  const _ReportCount(
+      {required this.value, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -362,11 +574,17 @@ class _ReportCount extends StatelessWidget {
       child: Column(
         children: [
           Text('$value',
-              style: TextStyle(fontFamily: 'Syne', fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+              style: TextStyle(
+                  fontFamily: 'Syne',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: color)),
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.55))),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: colors.onSurface.withValues(alpha: 0.55))),
         ],
       ),
     );
