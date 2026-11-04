@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/app_loader.dart';
@@ -23,6 +24,7 @@ import 'invitation_sender.dart';
 class EventInvitationsTab extends StatefulWidget {
   final int eventId;
   final double topPadding;
+
   /// Onglet affiché (il vit dans un IndexedStack) : l'actualisation
   /// silencieuse ne tourne que lorsqu'il est à l'écran.
   final bool visible;
@@ -44,10 +46,12 @@ class EventInvitationsTab extends StatefulWidget {
   State<EventInvitationsTab> createState() => _EventInvitationsTabState();
 }
 
-class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRefreshMixin {
-  late final EventInvitationsService _service = widget.service ?? EventInvitationsService();
-  late final InvitationSender _sender =
-      widget.sender ?? InvitationSender(service: _service, eventId: widget.eventId);
+class _EventInvitationsTabState extends State<EventInvitationsTab>
+    with SilentRefreshMixin {
+  late final EventInvitationsService _service =
+      widget.service ?? EventInvitationsService();
+  late final InvitationSender _sender = widget.sender ??
+      InvitationSender(service: _service, eventId: widget.eventId);
   final _search = TextEditingController();
   Timer? _searchDebounce;
 
@@ -63,20 +67,25 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
 
   bool _loading = true;
   bool _loadingMore = false;
+
   /// Erreur du premier chargement : écran d'erreur.
   String? _error;
+
   /// Erreur après un chargement réussi : bandeau, liste et filtres gardés.
   String? _staleError;
   bool _loadedOnce = false;
   bool _eventEnded = false;
+
   /// Seule la dernière requête lancée s'applique (changements de filtre
   /// rapides : une réponse lente ne doit pas écraser la liste affichée) ;
   /// la précédente est annulée.
   int _requestSeq = 0;
   CancelToken? _inflight;
+
   /// Première page déjà reçue pour chaque filtre (statut, catégorie,
   /// recherche) : un filtre déjà vu s'affiche tout de suite.
   final Map<String, InvitationPage> _cache = {};
+
   /// Toutes les invitations déjà reçues : filtrage local immédiat d'un
   /// filtre jamais vu, en attendant la réponse du serveur.
   final Map<int, EventInvitation> _known = {};
@@ -108,7 +117,11 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     super.dispose();
   }
 
-  String get _filterKey => [_status?.api ?? '', _category ?? '', _search.text.trim().toLowerCase()].join('|');
+  String get _filterKey => [
+        _status?.api ?? '',
+        _category ?? '',
+        _search.text.trim().toLowerCase()
+      ].join('|');
 
   /// Affichage immédiat d'un filtre : page en cache, sinon filtrage local
   /// des invitations déjà reçues. La réponse du serveur suit (_refresh).
@@ -122,9 +135,11 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
         _lastPage = cached.lastPage;
       } else {
         _items = _known.values
-            .where((i) => i.matches(status: _status, category: _category, query: _search.text))
+            .where((i) => i.matches(
+                status: _status, category: _category, query: _search.text))
             .toList()
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         _page = 1;
         _lastPage = 1;
       }
@@ -147,7 +162,11 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     try {
       final results = await Future.wait([
         _service.list(widget.eventId,
-            status: _status, category: _category, query: _search.text, page: 1, cancelToken: token),
+            status: _status,
+            category: _category,
+            query: _search.text,
+            page: 1,
+            cancelToken: token),
         _service.next(widget.eventId),
       ]);
       if (!mounted || seq != _requestSeq) return;
@@ -193,7 +212,10 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
     setState(() => _loadingMore = true);
     try {
       final page = await _service.list(widget.eventId,
-          status: _status, category: _category, query: _search.text, page: _page + 1);
+          status: _status,
+          category: _category,
+          query: _search.text,
+          page: _page + 1);
       if (!mounted) return;
       for (final invitation in page.items) {
         _known[invitation.id] = invitation;
@@ -260,16 +282,36 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
   }
 
   Future<void> _edit(EventInvitation? invitation) async {
-    final changed = await showInvitationFormSheet(context,
+    final result = await showInvitationFormSheet(context,
         service: _service, eventId: widget.eventId, invitation: invitation);
-    if (changed && mounted) _reload();
+    if (!result.changed || !mounted) return;
+    final created = result.created;
+    if (created?.createdNow == true && created?.whatsappUrl != null) {
+      await _sendWhatsApp(created!);
+      return;
+    }
+    if (created?.createdNow == false) {
+      FeedbackOverlay.showInfo(context,
+          title: 'Invitation déjà créée',
+          subtitle: 'Une invitation existe déjà pour ce nom.');
+    } else if (created?.type == 'honneur' && created?.shortUrl != null) {
+      await Clipboard.setData(ClipboardData(text: created!.shortUrl!));
+      if (mounted) {
+        FeedbackOverlay.showInfo(context,
+            title: 'Invitation créée',
+            subtitle:
+                'Le lien a été copié. Vous pouvez le coller dans votre message.');
+      }
+    }
+    _reload();
   }
 
   Future<void> _delete(EventInvitation invitation) async {
     final confirmed = await GlassDialog.confirm(
       context,
       title: 'Retirer de la liste ?',
-      message: "${invitation.name} ne fera plus partie des invités. Son lien d'invitation ne fonctionnera plus.",
+      message:
+          "${invitation.name} ne fera plus partie des invités. Son lien d'invitation ne fonctionnera plus.",
       confirmLabel: 'Retirer',
     );
     if (!confirmed || !mounted) return;
@@ -277,7 +319,8 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       await _service.delete(widget.eventId, invitation.id);
       if (!mounted) return;
       FeedbackOverlay.showSuccess(context,
-          title: 'Invité retiré', subtitle: '${invitation.name} a été retiré(e) de la liste.');
+          title: 'Invité retiré',
+          subtitle: '${invitation.name} a été retiré(e) de la liste.');
       _known.remove(invitation.id);
       _reload();
     } catch (e) {
@@ -318,7 +361,9 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
               children: [
                 Text(_error!, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: () => _refresh(initial: true), child: const Text('Réessayer')),
+                ElevatedButton(
+                    onPressed: () => _refresh(initial: true),
+                    child: const Text('Réessayer')),
               ],
             ),
           ),
@@ -326,7 +371,8 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       );
     }
 
-    final hasFilters = _status != null || _category != null || _search.text.trim().isNotEmpty;
+    final hasFilters =
+        _status != null || _category != null || _search.text.trim().isNotEmpty;
 
     return RefreshIndicator(
       edgeOffset: widget.topPadding,
@@ -386,15 +432,19 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
                 child: Column(
                   children: [
                     Text(
-                      hasFilters ? 'Aucun invité ne correspond' : 'Aucun invité pour le moment',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: colors.onSurface),
+                      hasFilters
+                          ? 'Aucun invité ne correspond'
+                          : 'Aucun invité pour le moment',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: colors.onSurface),
                     ),
                     if (!hasFilters) ...[
                       const SizedBox(height: 6),
                       Text(
                         'Ajoutez vos invités à la main ou depuis vos contacts.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5)),
+                        style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ],
@@ -405,10 +455,15 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
                 InvitationListTile(
                   invitation: invitation,
                   busy: _busyId == invitation.id,
-                  onSend: !_eventEnded && (invitation.status == InvitationStatus.pending || invitation.needsReminder)
+                  onSend: !_eventEnded &&
+                          invitation.whatsappUrl != null &&
+                          (invitation.status == InvitationStatus.pending ||
+                              invitation.needsReminder)
                       ? () => _sendWhatsApp(invitation)
                       : null,
-                  onResend: _eventEnded ? null : () => _sendWhatsApp(invitation),
+                  onResend: _eventEnded || invitation.whatsappUrl == null
+                      ? null
+                      : () => _sendWhatsApp(invitation),
                   onShare: () => _share(invitation),
                   onEdit: () => _edit(invitation),
                   onDelete: () => _delete(invitation),
@@ -422,7 +477,9 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
             Text(
               'Le message des invitations se personnalise depuis le site, dans le détail de l\'événement.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, color: colors.onSurface.withValues(alpha: 0.45)),
+              style: TextStyle(
+                  fontSize: 11.5,
+                  color: colors.onSurface.withValues(alpha: 0.45)),
             ),
           ],
         ),
@@ -440,7 +497,9 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
           children: [
             Icon(Icons.error_outline_rounded, size: 18, color: colors.error),
             const SizedBox(width: 10),
-            Expanded(child: Text(_staleError!, style: TextStyle(fontSize: 13, color: colors.onSurface))),
+            Expanded(
+                child: Text(_staleError!,
+                    style: TextStyle(fontSize: 13, color: colors.onSurface))),
             TextButton(onPressed: _refresh, child: const Text('Réessayer')),
           ],
         ),
@@ -478,7 +537,9 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
       children: [
         for (var i = 0; i < tiles.length; i++) ...[
           if (i > 0) const SizedBox(width: 6),
-          Expanded(child: InvitationCountTile(label: tiles[i].$1, value: tiles[i].$2, color: tiles[i].$3)),
+          Expanded(
+              child: InvitationCountTile(
+                  label: tiles[i].$1, value: tiles[i].$2, color: tiles[i].$3)),
         ],
       ],
     );
@@ -499,23 +560,31 @@ class _EventInvitationsTabState extends State<EventInvitationsTab> with SilentRe
               disabledForegroundColor: colors.onSurface.withValues(alpha: 0.4),
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: enabled ? _sendNext : null,
             icon: _sendingNext
                 ? const SizedBox(
-                    width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF072E16)))
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Color(0xFF072E16)))
                 : const Icon(Icons.send_rounded, size: 18),
             label: Text('Envoyer au suivant ($_remaining)',
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
           ),
         ),
         const SizedBox(height: 6),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            _next != null ? 'Prochain : ${_next!.name}' : 'Toutes les invitations ont été envoyées.',
-            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.55)),
+            _next != null
+                ? 'Prochain : ${_next!.name}'
+                : 'Toutes les invitations ont été envoyées.',
+            style: TextStyle(
+                fontSize: 12, color: colors.onSurface.withValues(alpha: 0.55)),
           ),
         ),
       ],
