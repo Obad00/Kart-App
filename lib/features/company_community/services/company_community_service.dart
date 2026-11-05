@@ -52,6 +52,11 @@ class CompanyCommunityService {
     return participant?['isPresent'] as bool? ?? present;
   }
 
+  /// Retire la participation de l'événement sans supprimer le compte KART.
+  Future<void> removeParticipant(int eventId, int participantId) async {
+    await ApiClient.dio.delete('/events/$eventId/participants/$participantId');
+  }
+
   /// Badge d'un participant : « png » 300 dpi ou « pdf » au format exact
   /// du badge (cf. EventController::participantBadge()).
   Future<Uint8List> fetchParticipantBadge(int eventId, int participantId, String format) async {

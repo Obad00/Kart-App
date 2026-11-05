@@ -39,6 +39,7 @@ class CompanyEventParticipantsPage extends StatefulWidget {
   // ouvrent cette page (User.canAccessCompanyCommunity). Sans eux, la page
   // reste exactement l'écran des participants d'avant.
   final bool showInvitations;
+  final bool canManageParticipants;
 
   const CompanyEventParticipantsPage({
     super.key,
@@ -48,6 +49,7 @@ class CompanyEventParticipantsPage extends StatefulWidget {
     this.imageUrl,
     this.eventHasEnded = false,
     this.showInvitations = false,
+    this.canManageParticipants = false,
   });
 
   @override
@@ -67,6 +69,7 @@ class _CompanyEventParticipantsPageState
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
   String? _error;
+  int? _removingParticipantId;
 
   @override
   void initState() {
@@ -166,7 +169,7 @@ class _CompanyEventParticipantsPageState
       title: Text(widget.eventName),
       actions: [
         // QR de check-in en 5 modèles (impression, affichage à l'accueil).
-        if (widget.showInvitations)
+        if (widget.showInvitations && !widget.eventHasEnded)
           IconButton(
             icon: const Icon(Icons.qr_code_2_rounded),
             tooltip: "QR de l'événement",
@@ -468,8 +471,78 @@ class _CompanyEventParticipantsPageState
         userId: participant.userId,
         connectionStatus: participant.connectionStatus,
         connectionRequestId: participant.connectionRequestId,
+        onDelete: widget.canManageParticipants
+            ? () {
+                Navigator.of(context).pop();
+                _removeParticipant(participant);
+              }
+            : null,
       ),
     );
+  }
+
+  Future<void> _removeParticipant(EventParticipantSummary participant) async {
+    if (_removingParticipantId != null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Retirer ce participant ?'),
+        content: Text(
+          '${participant.displayName} ne figurera plus dans cet événement. Son compte KART ne sera pas supprimé.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _removingParticipantId = participant.id);
+    try {
+      await _service.removeParticipant(widget.eventId, participant.id);
+      if (!mounted) return;
+      try {
+        final result = await _service.fetchParticipants(widget.eventId);
+        if (!mounted) return;
+        setState(() {
+          _participants = result.participants;
+          _stats = result.stats;
+        });
+      } on DioException catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _participants =
+              _participants.where((item) => item.id != participant.id).toList();
+        });
+        FeedbackOverlay.showError(
+          context,
+          title: 'Liste non actualisée',
+          subtitle: _messageFor(error),
+        );
+        return;
+      }
+      FeedbackOverlay.showSuccess(
+        context,
+        title: 'Participation retirée',
+        subtitle: 'Le compte KART de ${participant.displayName} est conservé.',
+      );
+    } on DioException catch (error) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(
+        context,
+        title: 'Suppression impossible',
+        subtitle: _messageFor(error),
+      );
+    } finally {
+      if (mounted) setState(() => _removingParticipantId = null);
+    }
   }
 
   /// Badge d'un participant : PNG 300 dpi ou PDF au format exact, ouvert
@@ -505,6 +578,7 @@ class _StatTile extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
+      height: 96,
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -523,6 +597,9 @@ class _StatTile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
                 fontSize: 11, color: colors.onSurface.withValues(alpha: 0.55)),
           ),
@@ -531,4 +608,3 @@ class _StatTile extends StatelessWidget {
     );
   }
 }
-

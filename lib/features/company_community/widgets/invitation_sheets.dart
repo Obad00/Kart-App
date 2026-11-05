@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
@@ -309,7 +310,13 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
                   eventId: widget.eventId,
                 ),
                 const SizedBox(height: 12),
-                _field(_stand, 'Numéro de stand (facultatif)', colors),
+                _field(
+                  _stand,
+                  'Numéro de stand (facultatif)',
+                  colors,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Un numéro de stand suffit pour identifier l’invité comme exposant.',
@@ -368,10 +375,12 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   // Même champ que « Ajouter un contact » (fond léger, bordure bleue au focus).
   Widget _field(
       TextEditingController controller, String label, ColorScheme colors,
-      {TextInputType? keyboardType}) {
+      {TextInputType? keyboardType,
+      List<TextInputFormatter>? inputFormatters}) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       onChanged: (_) => setState(() {}),
       style: TextStyle(color: colors.onSurface, fontSize: 15),
       decoration: InputDecoration(
