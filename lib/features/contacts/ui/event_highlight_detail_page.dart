@@ -5,7 +5,9 @@ import 'package:dio/dio.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../company_community/ui/event_participant_scan_page.dart';
+import '../../company_community/services/company_community_service.dart';
 import '../../company_community/widgets/participant_list_widgets.dart';
+import '../../../shared/utils/file_share.dart';
 import '../../explore/models/explore_user.dart';
 import '../../../shared/services/card_service.dart';
 import '../../../shared/widgets/app_loader.dart';
@@ -142,12 +144,40 @@ class _EventHighlightDetailPageState extends State<EventHighlightDetailPage> {
         email: user.email,
         phone: user.phone,
         isPresent: user.isPresent,
+        eventHasEnded: _eventHasEnded(),
+        onBadge: _isCompanyStaff(context) && user.eventParticipantId != null
+            ? (format) => _downloadBadge(user, format)
+            : null,
         userId: user.id,
         connectionStatus: _statusToString(user.connectionStatus),
         connectionRequestId: user.connectionRequestId,
         onResolved: _load,
       ),
     );
+  }
+
+  /// Badge d'un participant (équipe organisatrice), disponible avant comme
+  /// après l'événement.
+  Future<void> _downloadBadge(ExploreUser user, String format) async {
+    final participantId = user.eventParticipantId;
+    if (participantId == null) return;
+    try {
+      final bytes = await CompanyCommunityService().fetchParticipantBadge(widget.eventId, participantId, format);
+      if (!mounted) return;
+      await shareDownloadedFile(
+        context,
+        bytes: bytes,
+        fileName: 'badge-${widget.eventId}-$participantId',
+        format: format,
+        subject: 'Badge · ${user.name}',
+        successTitle: 'Badge téléchargé',
+        successSubtitle: 'Le badge de ${user.name} est prêt.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(context,
+          title: 'Badge indisponible', subtitle: "Le badge n'a pas pu être préparé. Réessayez dans un instant.");
+    }
   }
 
   /// Bascule présent/absent — le backend refuse tant que l'événement n'est
