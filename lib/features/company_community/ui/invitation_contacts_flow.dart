@@ -443,6 +443,7 @@ class _InvitationContactsPickerPageState extends State<InvitationContactsPickerP
                           onPickOthers: _pickOthers,
                         )
                       : ListView.builder(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                           padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
                           itemCount: visible.length,
                           itemBuilder: (_, index) {
