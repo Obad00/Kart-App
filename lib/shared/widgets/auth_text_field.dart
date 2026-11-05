@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AuthTextField extends StatefulWidget {
   final String label;
@@ -20,6 +21,7 @@ class AuthTextField extends StatefulWidget {
   // affiche un compteur "x/max" et bloque la saisie au-delà, pour ne plus
   // découvrir le dépassement seulement après un 422 à l'enregistrement.
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AuthTextField({
     super.key,
@@ -36,6 +38,7 @@ class AuthTextField extends StatefulWidget {
     this.maxLines = 1,
     this.minLines = 1,
     this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -159,6 +162,7 @@ class _AuthTextFieldState extends State<AuthTextField>
               ),
               child: TextField(
                 controller: widget.controller,
+                inputFormatters: widget.inputFormatters,
                 focusNode: _focusNode,
                 obscureText: _obscure,
                 keyboardType: widget.keyboardType,

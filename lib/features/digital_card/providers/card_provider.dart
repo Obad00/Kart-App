@@ -144,6 +144,7 @@ class CardProvider extends ChangeNotifier {
   bool get hasError => _error != null;
   bool get hasQrCode => _qrSvg != null && _qrSvg!.isNotEmpty;
   bool get isReady => _status == CardStatus.hasCard && hasQrCode;
+  bool get catalogEntryEnabled => _catalogEntryEnabled;
 
   /// Remet le provider à zéro — appelé à la déconnexion pour qu'un nouveau
   /// compte connecté sur le même appareil ne voie jamais, même un instant,
@@ -153,6 +154,7 @@ class CardProvider extends ChangeNotifier {
     _status = CardStatus.idle;
     _qrSvg = null;
     _error = null;
+    _catalogEntryEnabled = false;
     jobTitle = null;
     company = null;
     city = null;
@@ -211,6 +213,7 @@ class CardProvider extends ChangeNotifier {
 
       if (!hasCard) {
         _status = CardStatus.noCard;
+        _catalogEntryEnabled = false;
         jobTitle = null;
         company = null;
         city = null;
@@ -230,6 +233,7 @@ class CardProvider extends ChangeNotifier {
         phone = res.data['phone'];
         _isPublic = res.data['is_public'] as bool? ?? true;
         _listedInDirectory = res.data['listed_in_directory'] == true;
+        _catalogEntryEnabled = res.data['catalog_entry_enabled'] == true;
         email = res.data['email'];
         linkedin = res.data['linkedin'];
 
@@ -377,6 +381,7 @@ class CardProvider extends ChangeNotifier {
   /// proposer.
   bool _isPublic = true;
   bool _listedInDirectory = true;
+  bool _catalogEntryEnabled = false;
 
   /// Carte existante mais absente d'Explorer (privée, ou retirée de
   /// l'annuaire) : bannière « Rendre ma carte visible ».
