@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_error.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/widgets/auth_text_field.dart';
+import '../../../shared/widgets/glass_sheet.dart';
 import '../data/product_catalog_service.dart';
 
 class ProductCatalogPage extends StatefulWidget {
@@ -113,9 +115,13 @@ class _ProductCatalogPageState extends State<ProductCatalogPage> {
   }
 
   Future<void> _editProduct([CatalogProduct? product]) async {
-    final draft = await showDialog<_ProductDraft>(
+    final draft = await showModalBottomSheet<_ProductDraft>(
       context: context,
-      builder: (_) => _ProductEditorDialog(product: product),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => GlassSheet(
+        child: _ProductEditorSheet(product: product),
+      ),
     );
     if (draft == null || !mounted) return;
 
@@ -203,58 +209,14 @@ class _ProductCatalogPageState extends State<ProductCatalogPage> {
     final maxRequest = catalog.maxAllowedProducts - catalog.maxProducts;
     if (maxRequest <= 0) return;
 
-    final controller = TextEditingController(text: '1');
-    final requestedProducts = await showDialog<int>(
+    final requestedProducts = await showModalBottomSheet<int>(
       context: context,
-      builder: (context) {
-        String? errorText;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Demander des places'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Vous pouvez demander jusqu’à $maxRequest place(s).'),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: 'Nombre de places',
-                    errorText: errorText,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Annuler'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final count = int.tryParse(controller.text);
-                  if (count == null || count < 1 || count > maxRequest) {
-                    setDialogState(() {
-                      errorText =
-                          'Choisissez un nombre entre 1 et $maxRequest.';
-                    });
-                    return;
-                  }
-                  Navigator.pop(context, count);
-                },
-                child: const Text('Envoyer la demande'),
-              ),
-            ],
-          ),
-        );
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => GlassSheet(
+        child: _RequestProductSlotsSheet(maxRequest: maxRequest),
+      ),
     );
-    controller.dispose();
     if (requestedProducts == null || !mounted) return;
 
     setState(() => _requesting = true);
@@ -305,7 +267,7 @@ class _ProductCatalogPageState extends State<ProductCatalogPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Ajoutez jusqu’à 20 produits au total. Votre catalogue reste privé tant que vous ne l’activez pas. Les prix affichés sont indicatifs : KART ne prend pas de commande et ne traite aucun paiement.',
+                            '10 produits sont inclus. Vous pouvez demander des places supplémentaires, jusqu’à 50 produits au total. La publication reste séparée : les prix sont indicatifs et KART ne prend ni commande ni paiement.',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -347,33 +309,30 @@ class _ProductCatalogPageState extends State<ProductCatalogPage> {
                                 ),
                           ),
                           const SizedBox(height: 12),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final columns =
-                                  constraints.maxWidth < 380 ? 1 : 2;
-                              return GridView.count(
-                                crossAxisCount: columns,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: columns == 1 ? 2.2 : 1.12,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: CatalogLayout.values
-                                    .map(
-                                      (layout) => _CatalogLayoutChoice(
-                                        layout: layout,
-                                        selected: catalog.layout == layout,
-                                        saving: _layoutSaving,
-                                        accent: _catalogAccent(
-                                          catalog.accentColor,
-                                          colors.primary,
-                                        ),
-                                        onTap: () => _setLayout(layout),
-                                      ),
-                                    )
-                                    .toList(),
-                              );
-                            },
+                          SizedBox(
+                            height: 174,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: CatalogLayout.values.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
+                              itemBuilder: (context, index) {
+                                final layout = CatalogLayout.values[index];
+                                return SizedBox(
+                                  width: 156,
+                                  child: _CatalogLayoutChoice(
+                                    layout: layout,
+                                    selected: catalog.layout == layout,
+                                    saving: _layoutSaving,
+                                    accent: _catalogAccent(
+                                      catalog.accentColor,
+                                      colors.primary,
+                                    ),
+                                    onTap: () => _setLayout(layout),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                           const SizedBox(height: 20),
                           Row(
@@ -872,23 +831,139 @@ class _ProductDraft {
   });
 }
 
-class _ProductEditorDialog extends StatefulWidget {
-  final CatalogProduct? product;
+class _RequestProductSlotsSheet extends StatefulWidget {
+  final int maxRequest;
 
-  const _ProductEditorDialog({this.product});
+  const _RequestProductSlotsSheet({required this.maxRequest});
 
   @override
-  State<_ProductEditorDialog> createState() => _ProductEditorDialogState();
+  State<_RequestProductSlotsSheet> createState() =>
+      _RequestProductSlotsSheetState();
 }
 
-class _ProductEditorDialogState extends State<_ProductEditorDialog> {
-  final _formKey = GlobalKey<FormState>();
+class _RequestProductSlotsSheetState extends State<_RequestProductSlotsSheet> {
+  final _count = TextEditingController(text: '1');
+  String? _error;
+
+  @override
+  void dispose() {
+    _count.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final count = int.tryParse(_count.text);
+    if (count == null || count < 1 || count > widget.maxRequest) {
+      setState(() {
+        _error = 'Choisissez un nombre entre 1 et ${widget.maxRequest}.';
+      });
+      return;
+    }
+    Navigator.pop(context, count);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final availableHeight = (MediaQuery.sizeOf(context).height -
+            MediaQuery.viewInsetsOf(context).bottom)
+        .clamp(300.0, 720.0);
+
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: availableHeight,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Demander des places',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              Text(
+                'Vous pouvez demander jusqu’à ${widget.maxRequest} place(s).',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              AuthTextField(
+                label: 'Nombre de places',
+                controller: _count,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                prefixIcon: Icons.add_box_outlined,
+                errorText: _error,
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Annuler'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _submit,
+                      child: const Text('Envoyer la demande'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductEditorSheet extends StatefulWidget {
+  final CatalogProduct? product;
+
+  const _ProductEditorSheet({this.product});
+
+  @override
+  State<_ProductEditorSheet> createState() => _ProductEditorSheetState();
+}
+
+class _ProductEditorSheetState extends State<_ProductEditorSheet> {
   late final TextEditingController _name;
   late final TextEditingController _description;
   late final TextEditingController _price;
   File? _photo;
   bool _removePhoto = false;
   late bool _isAvailable;
+  String? _nameError;
+  String? _priceError;
 
   @override
   void initState() {
@@ -926,15 +1001,25 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
+    final name = _name.text.trim();
+    final priceText = _price.text.trim();
+    final price = priceText.isEmpty ? null : int.tryParse(priceText);
+    setState(() {
+      _nameError = name.isEmpty ? 'Saisissez le nom du produit.' : null;
+      _priceError =
+          priceText.isNotEmpty && (price == null || price > 1000000000)
+              ? 'Saisissez un montant valide.'
+              : null;
+    });
+    if (_nameError != null || _priceError != null) return;
+
     Navigator.pop(
       context,
       _ProductDraft(
-        name: _name.text.trim(),
+        name: name,
         description:
             _description.text.trim().isEmpty ? null : _description.text.trim(),
-        price:
-            _price.text.trim().isEmpty ? null : int.parse(_price.text.trim()),
+        price: price,
         isAvailable: _isAvailable,
         photo: _photo,
         removePhoto: _removePhoto,
@@ -945,113 +1030,161 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    final colors = Theme.of(context).colorScheme;
+    final availableHeight = (MediaQuery.sizeOf(context).height -
+            MediaQuery.viewInsetsOf(context).bottom)
+        .clamp(360.0, 760.0);
 
-    return AlertDialog(
-      title:
-          Text(product == null ? 'Ajouter un produit' : 'Modifier le produit'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _name,
-                autofocus: true,
-                maxLength: 120,
-                decoration: const InputDecoration(labelText: 'Nom du produit'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Obligatoire'
-                    : null,
-              ),
-              TextFormField(
-                controller: _description,
-                maxLength: 2000,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description (facultative)',
-                ),
-              ),
-              TextFormField(
-                controller: _price,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Prix indicatif en FCFA (facultatif)',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return null;
-                  final price = int.tryParse(value);
-                  if (price == null || price > 1000000000) {
-                    return 'Saisissez un montant valide.';
-                  }
-                  return null;
-                },
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text(_isAvailable ? 'En stock' : 'Indisponible'),
-                subtitle: const Text(
-                  'Cette disponibilité sera visible dans votre catalogue public.',
-                ),
-                value: _isAvailable,
-                onChanged: (value) => setState(() => _isAvailable = value),
-              ),
-              const SizedBox(height: 12),
-              if (_photo != null ||
-                  (product?.photoUrl != null && !_removePhoto))
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _photo != null
-                      ? Image.file(_photo!,
-                          width: 112, height: 112, fit: BoxFit.cover)
-                      : Image.network(
-                          product!.photoUrl!,
-                          width: 112,
-                          height: 112,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.broken_image_outlined),
-                        ),
-                ),
-              Wrap(
-                spacing: 8,
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: availableHeight,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+              child: Row(
                 children: [
-                  TextButton.icon(
-                    onPressed: _pickPhoto,
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: Text(_photo == null && product?.photoUrl == null
-                        ? 'Ajouter une photo'
-                        : 'Changer la photo'),
-                  ),
-                  if (_photo != null || product?.photoUrl != null)
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _photo = null;
-                        _removePhoto = true;
-                      }),
-                      child: const Text('Retirer'),
+                  Expanded(
+                    child: Text(
+                      product == null
+                          ? 'Ajouter un produit'
+                          : 'Modifier le produit',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
                 ],
               ),
-              Text(
-                'JPG, PNG ou WebP · 5 Mo maximum',
-                style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                children: [
+                  AuthTextField(
+                    label: 'Nom du produit',
+                    hint: 'Ex. Sac en cuir',
+                    controller: _name,
+                    maxLength: 120,
+                    prefixIcon: Icons.storefront_outlined,
+                    errorText: _nameError,
+                    onChanged: (_) {
+                      if (_nameError != null) {
+                        setState(() => _nameError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  AuthTextField(
+                    label: 'Description (facultative)',
+                    hint: 'Présentez votre produit',
+                    controller: _description,
+                    maxLength: 2000,
+                    maxLines: 4,
+                    minLines: 3,
+                    prefixIcon: Icons.notes_outlined,
+                  ),
+                  const SizedBox(height: 14),
+                  AuthTextField(
+                    label: 'Prix indicatif en FCFA (facultatif)',
+                    controller: _price,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    prefixIcon: Icons.payments_outlined,
+                    errorText: _priceError,
+                    onChanged: (_) {
+                      if (_priceError != null) {
+                        setState(() => _priceError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(_isAvailable ? 'En stock' : 'Indisponible'),
+                    subtitle: const Text(
+                      'Cette disponibilité sera visible dans votre catalogue public.',
+                    ),
+                    value: _isAvailable,
+                    onChanged: (value) => setState(() => _isAvailable = value),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_photo != null ||
+                      (product?.photoUrl != null && !_removePhoto))
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: _photo != null
+                            ? Image.file(_photo!,
+                                width: 128, height: 128, fit: BoxFit.cover)
+                            : Image.network(
+                                product!.photoUrl!,
+                                width: 128,
+                                height: 128,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox(
+                                  width: 128,
+                                  height: 128,
+                                  child: Icon(Icons.broken_image_outlined),
+                                ),
+                              ),
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _pickPhoto,
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: Text(_photo == null && product?.photoUrl == null
+                            ? 'Ajouter une photo'
+                            : 'Changer la photo'),
+                      ),
+                      if (_photo != null || product?.photoUrl != null)
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _photo = null;
+                            _removePhoto = true;
+                          }),
+                          child: const Text('Retirer'),
+                        ),
+                    ],
+                  ),
+                  Text(
+                    'JPG, PNG ou WebP · 5 Mo maximum',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Annuler'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: const Text('Enregistrer'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
-        ),
-        FilledButton(
-          onPressed: _save,
-          child: const Text('Enregistrer'),
-        ),
-      ],
     );
   }
 }

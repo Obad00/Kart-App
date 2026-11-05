@@ -125,6 +125,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
 
   bool _isPublic = true;
   bool _listedInDirectory = false;
+  bool _catalogEntryEnabled = false;
 
   final List<Map<String, TextEditingController>> _experiences = [];
   final List<Map<String, TextEditingController>> _educations = [];
@@ -169,6 +170,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       }
       _isPublic = m.isPublic;
       _listedInDirectory = m.listedInDirectory;
+      _catalogEntryEnabled = m.catalogEntryEnabled;
 
       // addOnly : on ne recharge PAS les entrées déjà existantes de la
       // section concernée — seulement une carte vierge, pour que "+"
@@ -473,6 +475,7 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
       isPublic: _isPublic,
       // Une carte non publique n'est jamais dans l'annuaire.
       listedInDirectory: _isPublic && _listedInDirectory,
+      catalogEntryEnabled: _catalogEntryEnabled,
     );
 
     try {
@@ -712,6 +715,16 @@ class _CompletionFormPageState extends State<CompletionFormPage> {
                   onChanged: _isPublic
                       ? (v) => setState(() => _listedInDirectory = v)
                       : null,
+                ),
+                const SizedBox(height: 12),
+                _buildPremiumSwitch(
+                  key: const Key('catalog-entry-enabled'),
+                  title: 'Je vends des produits',
+                  subtitle:
+                      'Active le raccourci Catalogue dans « Ma carte ». La publication de vos produits reste un réglage séparé.',
+                  value: _catalogEntryEnabled,
+                  onChanged: (v) =>
+                      setState(() => _catalogEntryEnabled = v),
                 ),
                 const SizedBox(height: 24),
               ],

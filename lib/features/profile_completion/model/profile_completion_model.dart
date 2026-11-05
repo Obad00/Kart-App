@@ -8,6 +8,7 @@ class ProfileCompletionModel {
   String? city;
   String? bio;
   String? phone;
+
   /// Numéro WhatsApp, s'il diffère du numéro d'appel (vide : le même).
   String? whatsappPhone;
   String? email;
@@ -30,6 +31,7 @@ class ProfileCompletionModel {
   /// une carte absente de l'annuaire reste accessible par lien, QR et NFC).
   /// Absent d'un serveur plus ancien : false.
   bool listedInDirectory;
+  bool catalogEntryEnabled;
   List<ExperienceModel> experiences;
   List<EducationModel> educations;
   List<String> interests;
@@ -56,6 +58,7 @@ class ProfileCompletionModel {
     List<String>? activatedFields,
     this.isPublic = true,
     this.listedInDirectory = false,
+    this.catalogEntryEnabled = false,
     List<ExperienceModel>? experiences,
     List<EducationModel>? educations,
     List<String>? interests,
@@ -88,6 +91,7 @@ class ProfileCompletionModel {
           [],
       isPublic: json['is_public'] as bool? ?? true,
       listedInDirectory: json['listed_in_directory'] == true,
+      catalogEntryEnabled: json['catalog_entry_enabled'] == true,
       experiences: (json['experiences'] as List?)
               ?.map((e) => ExperienceModel.fromJson(e))
               .toList() ??
@@ -121,6 +125,7 @@ class ProfileCompletionModel {
       "activated_fields": activatedFields,
       "is_public": isPublic,
       "listed_in_directory": listedInDirectory,
+      "catalog_entry_enabled": catalogEntryEnabled,
       "experiences": experiences.map((e) => e.toJson()).toList(),
       "educations": educations.map((e) => e.toJson()).toList(),
       "interests": interests,

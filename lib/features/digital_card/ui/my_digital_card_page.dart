@@ -634,17 +634,18 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                             Navigator.of(context).push(myNfcCardRoute());
                           },
                         ),
-                        CardQuickAction(
-                          icon: Icons.storefront_outlined,
-                          label: 'Catalogue',
-                          onTap: () async {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ProductCatalogPage(),
-                              ),
-                            );
-                          },
-                        ),
+                        if (state.catalogEntryEnabled)
+                          CardQuickAction(
+                            icon: Icons.storefront_outlined,
+                            label: 'Catalogue',
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ProductCatalogPage(),
+                                ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),
