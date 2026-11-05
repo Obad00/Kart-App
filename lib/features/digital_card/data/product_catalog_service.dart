@@ -45,6 +45,7 @@ class CatalogProduct {
   final String? description;
   final int? price;
   final String? photoUrl;
+  final bool isAvailable;
 
   const CatalogProduct({
     required this.id,
@@ -52,6 +53,7 @@ class CatalogProduct {
     this.description,
     this.price,
     this.photoUrl,
+    this.isAvailable = true,
   });
 
   factory CatalogProduct.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,7 @@ class CatalogProduct {
       description: json['description']?.toString(),
       price: json['price'] == null ? null : int.parse(json['price'].toString()),
       photoUrl: json['photo_url']?.toString(),
+      isAvailable: json['is_available'] != false,
     );
   }
 }
@@ -144,6 +147,7 @@ class ProductCatalogService {
     required String name,
     String? description,
     int? price,
+    required bool isAvailable,
     File? photo,
     bool removePhoto = false,
   }) async {
@@ -151,6 +155,7 @@ class ProductCatalogService {
       'name': name,
       'description': description ?? '',
       'price': price?.toString() ?? '',
+      'is_available': isAvailable ? '1' : '0',
       'remove_photo': removePhoto ? '1' : '0',
     };
     if (photo != null) {

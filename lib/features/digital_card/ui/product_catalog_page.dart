@@ -126,6 +126,7 @@ class _ProductCatalogPageState extends State<ProductCatalogPage> {
         name: draft.name,
         description: draft.description,
         price: draft.price,
+        isAvailable: draft.isAvailable,
         photo: draft.photo,
         removePhoto: draft.removePhoto,
       );
@@ -721,14 +722,28 @@ class _ProductTile extends StatelessWidget {
         contentPadding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
         leading: _ProductImage(url: product.photoUrl, size: 56),
         title: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text(
-          [
-            if (product.price != null) _formatPrice(product.price!),
-            if (product.description?.isNotEmpty == true) product.description!,
-          ].join(' · '),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: colors.onSurfaceVariant),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              product.isAvailable ? 'En stock' : 'Indisponible',
+              style: TextStyle(
+                color: product.isAvailable ? colors.primary : colors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              [
+                if (product.price != null) _formatPrice(product.price!),
+                if (product.description?.isNotEmpty == true)
+                  product.description!,
+              ].join(' · '),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ],
         ),
         trailing: PopupMenuButton<String>(
           onSelected: (value) => value == 'edit' ? onEdit() : onDelete(),
@@ -843,6 +858,7 @@ class _ProductDraft {
   final String name;
   final String? description;
   final int? price;
+  final bool isAvailable;
   final File? photo;
   final bool removePhoto;
 
@@ -850,6 +866,7 @@ class _ProductDraft {
     required this.name,
     required this.description,
     required this.price,
+    required this.isAvailable,
     required this.photo,
     required this.removePhoto,
   });
@@ -871,6 +888,7 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
   late final TextEditingController _price;
   File? _photo;
   bool _removePhoto = false;
+  late bool _isAvailable;
 
   @override
   void initState() {
@@ -881,6 +899,7 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
     _price = TextEditingController(
       text: widget.product?.price?.toString() ?? '',
     );
+    _isAvailable = widget.product?.isAvailable ?? true;
   }
 
   @override
@@ -916,6 +935,7 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
             _description.text.trim().isEmpty ? null : _description.text.trim(),
         price:
             _price.text.trim().isEmpty ? null : int.parse(_price.text.trim()),
+        isAvailable: _isAvailable,
         photo: _photo,
         removePhoto: _removePhoto,
       ),
@@ -967,6 +987,15 @@ class _ProductEditorDialogState extends State<_ProductEditorDialog> {
                   }
                   return null;
                 },
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_isAvailable ? 'En stock' : 'Indisponible'),
+                subtitle: const Text(
+                  'Cette disponibilité sera visible dans votre catalogue public.',
+                ),
+                value: _isAvailable,
+                onChanged: (value) => setState(() => _isAvailable = value),
               ),
               const SizedBox(height: 12),
               if (_photo != null ||

@@ -1317,6 +1317,7 @@ class _PublicCardPageState extends State<PublicCardPage>
               final product = products[index];
               final name = product['name']?.toString() ?? '';
               final photoUrl = product['photo_url']?.toString();
+              final isAvailable = product['is_available'] != false;
 
               return SizedBox(
                 width: 138,
@@ -1371,6 +1372,19 @@ class _PublicCardPageState extends State<PublicCardPage>
                                   color: colors.onSurface,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                isAvailable ? 'En stock' : 'Indisponible',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isAvailable
+                                      ? colors.primary
+                                      : colors.error,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
