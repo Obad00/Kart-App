@@ -359,7 +359,7 @@ class ParticipantDetailSheet extends StatelessWidget {
               if (email != null || phone != null || isPresent != null)
                 const SizedBox(height: 18),
               // Badge seul : image 300 dpi (téléphone) ou PDF au format exact.
-              if (onBadge != null) ...[
+              if (onBadge != null && !eventHasEnded) ...[
                 Row(
                   children: [
                     Expanded(

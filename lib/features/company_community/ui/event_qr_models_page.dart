@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/utils/file_share.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
 import '../services/event_qr_cards_service.dart';
 
@@ -51,13 +49,16 @@ class _EventQrModelsPageState extends State<EventQrModelsPage> {
       final bytes = format == 'png' && _previews[model.key] != null
           ? _previews[model.key]!
           : await _service.fetch(widget.eventId, model.key, format: format);
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/qr-evenement-${model.key}.$format');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: format == 'pdf' ? 'application/pdf' : 'image/png')],
+      if (!mounted) return;
+      await shareDownloadedFile(
+        context,
+        bytes: bytes,
+        fileName: 'qr-evenement-${model.key}',
+        format: format,
         subject: 'QR de check-in · ${widget.eventName}',
-      ));
+        successTitle: 'QR téléchargé',
+        successSubtitle: 'Le QR de l\'événement est prêt.',
+      );
     } catch (_) {
       if (mounted) {
         FeedbackOverlay.showError(context,

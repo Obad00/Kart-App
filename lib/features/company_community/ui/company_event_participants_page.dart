@@ -1,11 +1,10 @@
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
+import '../../../shared/utils/file_share.dart';
 import '../../../shared/utils/silent_refresh.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
@@ -550,13 +549,16 @@ class _CompanyEventParticipantsPageState
   Future<void> _shareBadge(EventParticipantSummary participant, String format) async {
     try {
       final bytes = await _service.fetchParticipantBadge(widget.eventId, participant.id, format);
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/badge-${widget.eventId}-${participant.id}.$format');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: format == 'pdf' ? 'application/pdf' : 'image/png')],
+      if (!mounted) return;
+      await shareDownloadedFile(
+        context,
+        bytes: bytes,
+        fileName: 'badge-${widget.eventId}-${participant.id}',
+        format: format,
         subject: 'Badge · ${participant.displayName}',
-      ));
+        successTitle: 'Badge téléchargé',
+        successSubtitle: 'Le badge de ${participant.displayName} est prêt.',
+      );
     } catch (_) {
       if (!mounted) return;
       FeedbackOverlay.showError(context,
