@@ -1033,7 +1033,7 @@ class _ProductEditorSheetState extends State<_ProductEditorSheet> {
     final colors = Theme.of(context).colorScheme;
     final availableHeight = (MediaQuery.sizeOf(context).height -
             MediaQuery.viewInsetsOf(context).bottom)
-        .clamp(360.0, 760.0);
+        .clamp(0.0, 760.0);
 
     return SafeArea(
       top: false,

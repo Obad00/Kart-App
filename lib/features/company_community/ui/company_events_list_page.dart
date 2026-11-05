@@ -108,6 +108,11 @@ class _CompanyEventsListPageState extends State<CompanyEventsListPage> {
                       publicUrl: event.publicUrl,
                       imageUrl: event.imageUrl,
                       eventHasEnded: event.hasEnded,
+                      canManageParticipants: context
+                              .read<AuthProvider>()
+                              .user
+                              ?.isCompanyOwnerOrAdmin ==
+                          true,
                       showInvitations: context
                               .read<AuthProvider>()
                               .user

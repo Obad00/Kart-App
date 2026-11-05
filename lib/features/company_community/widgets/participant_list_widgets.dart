@@ -219,6 +219,7 @@ class ParticipantDetailSheet extends StatelessWidget {
   // vraiment, contact ou non), contrairement à la fiche d'un highlight,
   // pensée comme une liste de découverte.
   final VoidCallback? onResolved;
+  final VoidCallback? onDelete;
 
   const ParticipantDetailSheet({
     super.key,
@@ -233,6 +234,7 @@ class ParticipantDetailSheet extends StatelessWidget {
     this.connectionStatus = 'none',
     this.connectionRequestId,
     this.onResolved,
+    this.onDelete,
   });
 
   ConnectionStatus get _status {
@@ -418,6 +420,21 @@ class ParticipantDetailSheet extends StatelessWidget {
                   compact: true,
                   onResolved: onResolved,
                 ),
+              if (onDelete != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.person_remove_alt_1_outlined),
+                    label: const Text('Retirer de l’événement'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.error,
+                      side: BorderSide(color: colors.error.withValues(alpha: 0.45)),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
