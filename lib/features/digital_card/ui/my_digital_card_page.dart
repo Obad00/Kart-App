@@ -40,6 +40,7 @@ import '../widgets/kart_flip_card.dart';
 import '../widgets/no_card_cta.dart';
 import '../widgets/card_error_state.dart';
 import 'create_card_page.dart';
+import 'product_catalog_page.dart';
 import '../../../shared/widgets/qr_fullscreen_view.dart';
 import '../../scan/ui/scan_page.dart';
 import '../../public_card_settings/public_card_settings_entry.dart';
@@ -295,7 +296,6 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
         : 'Utilisateur';
 
     final initials = getInitials(fullName);
-
 
     final topInset = MediaQuery.of(context).padding.top;
 
@@ -634,6 +634,17 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
                             Navigator.of(context).push(myNfcCardRoute());
                           },
                         ),
+                        CardQuickAction(
+                          icon: Icons.storefront_outlined,
+                          label: 'Catalogue',
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ProductCatalogPage(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -728,7 +739,8 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
       } else {
         message = e.toString().replaceAll('Exception: ', '');
       }
-      FeedbackOverlay.showError(context, title: 'Action impossible', subtitle: message);
+      FeedbackOverlay.showError(context,
+          title: 'Action impossible', subtitle: message);
     }
   }
 
@@ -815,7 +827,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     } catch (e, stack) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors du partage : $e\n$stack');
-      FeedbackOverlay.showError(context, title: 'Partage impossible', subtitle: e.toString().replaceAll('Exception: ', ''));
+      FeedbackOverlay.showError(context,
+          title: 'Partage impossible',
+          subtitle: e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -853,7 +867,9 @@ class _MyDigitalCardPageState extends State<MyDigitalCardPage>
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Erreur lors de l\'export de la carte: $e');
-      FeedbackOverlay.showError(context, title: 'Téléchargement impossible', subtitle: e.toString().replaceAll('Exception: ', ''));
+      FeedbackOverlay.showError(context,
+          title: 'Téléchargement impossible',
+          subtitle: e.toString().replaceAll('Exception: ', ''));
     }
   }
 }
