@@ -332,7 +332,12 @@ class _PublicCardPageState extends State<PublicCardPage>
     } catch (e) {
       if (!mounted) return;
       debugPrint('❌ Enregistrement du contact impossible : $e');
-      FeedbackOverlay.showError(context, title: 'Fiche indisponible', subtitle: e is DioException ? getErrorMessage(e, fallback: "Impossible de récupérer la fiche de ce contact.") : "Impossible de récupérer la fiche de ce contact.");
+      FeedbackOverlay.showError(context,
+          title: 'Fiche indisponible',
+          subtitle: e is DioException
+              ? getErrorMessage(e,
+                  fallback: "Impossible de récupérer la fiche de ce contact.")
+              : "Impossible de récupérer la fiche de ce contact.");
     }
   }
 
@@ -449,6 +454,7 @@ class _PublicCardPageState extends State<PublicCardPage>
       phone: phone,
       location: location,
     );
+    final catalogSection = _buildCatalogSection(colors);
 
     // Même chrome que ProfilePage (AppBar en verre dépoli + carte d'en-tête
     // + sections en cartes arrondies) — plutôt que l'ancien design "carte
@@ -540,6 +546,10 @@ class _PublicCardPageState extends State<PublicCardPage>
                           infoSection,
                           const SizedBox(height: 16),
                         ],
+                        if (catalogSection != null) ...[
+                          catalogSection,
+                          const SizedBox(height: 16),
+                        ],
                         _buildExperiencesSection(colors, experiences),
                         const SizedBox(height: 16),
                         _buildEducationsSection(colors, educations),
@@ -605,18 +615,17 @@ class _PublicCardPageState extends State<PublicCardPage>
                   ),
                 ),
                 child: _buildAvatarCircle(
-                  avatarUrl: avatarUrl,
-                  radius: 32,
-                  backgroundColor: avatarBackground,
-                  child: AvatarInitials(
+                    avatarUrl: avatarUrl,
+                    radius: 32,
+                    backgroundColor: avatarBackground,
+                    child: AvatarInitials(
                       initials: getInitials(fullName),
                       // Couleur d'accent du PROPRIÉTAIRE de la carte :
                       // on ne la choisit pas, elle peut être sombre.
                       accent: _accentColor,
                       background: avatarBackground,
                       fontSize: 20,
-                    )
-                ),
+                    )),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -924,8 +933,9 @@ class _PublicCardPageState extends State<PublicCardPage>
           // ("Partager") n'a plus de sens — on propose plutôt d'enregistrer
           // SA fiche dans le répertoire du téléphone. Sinon, "Partager" reste.
           child: OutlinedButton.icon(
-            onPressed:
-                widget.contactId != null ? _saveToPhoneContacts : _showContactForm,
+            onPressed: widget.contactId != null
+                ? _saveToPhoneContacts
+                : _showContactForm,
             icon: Icon(
                 widget.contactId != null
                     ? Icons.person_add_alt_1_outlined
@@ -1229,7 +1239,9 @@ class _PublicCardPageState extends State<PublicCardPage>
       if (navigator.mounted) navigator.pop();
     } catch (e) {
       if (!sheetContext.mounted) return;
-      FeedbackOverlay.showError(sheetContext, title: 'Contact non déplacé', subtitle: 'Erreur lors du déplacement du contact');
+      FeedbackOverlay.showError(sheetContext,
+          title: 'Contact non déplacé',
+          subtitle: 'Erreur lors du déplacement du contact');
     }
   }
 
@@ -1281,6 +1293,114 @@ class _PublicCardPageState extends State<PublicCardPage>
         ),
         ...children,
         const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget? _buildCatalogSection(ColorScheme colors) {
+    final rawProducts = card?['catalog_preview'];
+    if (rawProducts is! List || rawProducts.isEmpty) return null;
+    final products = rawProducts.whereType<Map>().toList();
+
+    return _buildSection(
+      colors: colors,
+      icon: Icons.storefront_outlined,
+      title: 'Catalogue',
+      children: [
+        SizedBox(
+          height: 164,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              final name = product['name']?.toString() ?? '';
+              final photoUrl = product['photo_url']?.toString();
+
+              return SizedBox(
+                width: 138,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.outlineVariant),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: photoUrl == null || photoUrl.isEmpty
+                              ? ColoredBox(
+                                  color: colors.primaryContainer,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: colors.primary,
+                                      size: 28,
+                                    ),
+                                  ),
+                                )
+                              : Image.network(
+                                  photoUrl,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => ColoredBox(
+                                    color: colors.primaryContainer,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.inventory_2_outlined,
+                                        color: colors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colors.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final uri =
+                Uri.parse('https://kart.business/catalogue/${widget.slug}');
+            if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+                mounted) {
+              FeedbackOverlay.showError(
+                context,
+                title: 'Catalogue indisponible',
+                subtitle: 'Impossible d’ouvrir le catalogue pour le moment.',
+              );
+            }
+          },
+          icon: const Icon(Icons.open_in_new, size: 16),
+          label: const Text('Voir le catalogue complet'),
+        ),
       ],
     );
   }
