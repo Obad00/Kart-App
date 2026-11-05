@@ -58,9 +58,6 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   Map<String, String> _honorDefaults = {};
   String _oldCivilityDefault = '';
   bool _saving = false;
-  // Catégorie d'exposants : numéro de stand proposé.
-  bool _exhibitor = false;
-
   bool get _editing => widget.invitation != null;
   bool get _isHonor => _type == 'honneur';
   bool get _canSubmit =>
@@ -152,14 +149,14 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
             phone: _phone.text.trim(),
             email: _clean(_email),
             category: _clean(_category),
-            standNumber: _exhibitor ? _clean(_stand) : null);
+            standNumber: _clean(_stand));
       } else {
         saved = await widget.service.create(widget.eventId,
             name: _name.text.trim(),
             phone: _phone.text.trim(),
             email: _clean(_email),
             category: _clean(_category),
-            standNumber: _exhibitor ? _clean(_stand) : null);
+            standNumber: _clean(_stand));
       }
       if (!mounted) return;
       FeedbackOverlay.showSuccess(
@@ -310,14 +307,17 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
                   controller: _category,
                   service: widget.service,
                   eventId: widget.eventId,
-                  onExhibitorChanged: (value) =>
-                      setState(() => _exhibitor = value),
                 ),
-                if (_exhibitor) ...[
-                  const SizedBox(height: 12),
-                  _field(
-                      _stand, 'Numéro de stand (imprimé sur le badge)', colors),
-                ],
+                const SizedBox(height: 12),
+                _field(_stand, 'Numéro de stand (facultatif)', colors),
+                const SizedBox(height: 4),
+                Text(
+                  'Un numéro de stand suffit pour identifier l’invité comme exposant.',
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
               ],
               const SizedBox(height: 20),
               SizedBox(
