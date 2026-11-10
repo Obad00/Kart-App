@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/ui/feedback/feedback_overlay.dart';
 import '../../../shared/widgets/glass_dialog.dart';
@@ -19,13 +20,17 @@ Future<InvitationFormResult> showInvitationFormSheet(
   required EventInvitationsService service,
   required int eventId,
   EventInvitation? invitation,
+  Future<XFile?> Function()? pickPhoto,
 }) async {
   final result = await showModalBottomSheet<InvitationFormResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => _InvitationFormSheet(
-        service: service, eventId: eventId, invitation: invitation),
+        service: service,
+        eventId: eventId,
+        invitation: invitation,
+        pickPhoto: pickPhoto),
   );
   return result ?? (changed: false, created: null);
 }
@@ -34,9 +39,13 @@ class _InvitationFormSheet extends StatefulWidget {
   final EventInvitationsService service;
   final int eventId;
   final EventInvitation? invitation;
+  final Future<XFile?> Function()? pickPhoto;
 
   const _InvitationFormSheet(
-      {required this.service, required this.eventId, this.invitation});
+      {required this.service,
+      required this.eventId,
+      this.invitation,
+      this.pickPhoto});
 
   @override
   State<_InvitationFormSheet> createState() => _InvitationFormSheetState();
@@ -59,11 +68,19 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   Map<String, String> _honorDefaults = {};
   String _oldCivilityDefault = '';
   bool _saving = false;
+  Uint8List? _photoBytes;
+  String? _photoName;
+  bool _removePhoto = false;
   bool get _editing => widget.invitation != null;
   bool get _isHonor => _type == 'honneur';
   bool get _canSubmit =>
       _name.text.trim().isNotEmpty &&
       (_isHonor || _phone.text.trim().isNotEmpty);
+  ImageProvider? get _photoImage {
+    if (_photoBytes != null) return MemoryImage(_photoBytes!);
+    final url = widget.invitation?.photoUrl;
+    return !_removePhoto && url != null ? NetworkImage(url) : null;
+  }
 
   @override
   void initState() {
@@ -122,12 +139,46 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
   String? _clean(TextEditingController c) =>
       c.text.trim().isEmpty ? null : c.text.trim();
 
+  Future<void> _pickPhoto() async {
+    try {
+      final file = await (widget.pickPhoto?.call() ??
+          ImagePicker().pickImage(source: ImageSource.gallery));
+      if (file == null || !mounted) return;
+      final extension = file.name.split('.').last.toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
+        FeedbackOverlay.showError(context,
+            title: 'Format non pris en charge',
+            subtitle: 'Choisissez une image JPG, PNG ou WebP.');
+        return;
+      }
+      if (await file.length() > 5 * 1024 * 1024) {
+        if (!mounted) return;
+        FeedbackOverlay.showError(context,
+            title: 'Photo trop volumineuse',
+            subtitle: 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _photoBytes = bytes;
+        _photoName = file.name;
+        _removePhoto = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackOverlay.showError(context,
+          title: 'Photo inaccessible',
+          subtitle: 'Impossible de lire la photo sélectionnée.');
+    }
+  }
+
   Future<void> _submit() async {
     if (!_canSubmit || _saving) return;
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
     try {
-      final EventInvitation saved;
+      EventInvitation saved;
       if (_isHonor && _editing) {
         saved = await widget.service.updateHonor(
             widget.eventId, widget.invitation!.id,
@@ -158,6 +209,29 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
             email: _clean(_email),
             category: _clean(_category),
             standNumber: _clean(_stand));
+      }
+      if (!mounted) return;
+      if (!_editing && _isHonor && !saved.createdNow) {
+        navigator.pop((changed: true, created: saved));
+        return;
+      }
+      try {
+        if (_isHonor && _photoBytes != null) {
+          final url = await widget.service
+              .uploadPhoto(widget.eventId, saved.id, _photoBytes!, _photoName!);
+          saved = saved.withPhotoUrl(url);
+        } else if (_isHonor && _removePhoto) {
+          await widget.service.removePhoto(widget.eventId, saved.id);
+          saved = saved.withPhotoUrl(null);
+        }
+      } catch (e) {
+        if (!mounted) return;
+        FeedbackOverlay.showError(context,
+            title: _editing ? 'Invité enregistré' : 'Invitation créée',
+            subtitle:
+                'La photo n’a pas pu être enregistrée. Modifiez l’invitation pour réessayer. ${EventInvitationsService.errorMessage(e)}');
+        navigator.pop((changed: true, created: null));
+        return;
       }
       if (!mounted) return;
       FeedbackOverlay.showSuccess(
@@ -298,6 +372,54 @@ class _InvitationFormSheetState extends State<_InvitationFormSheet> {
                         'Proposition KART modifiable ; affichée sur la page et dans WhatsApp.',
                   ),
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: colors.onSurface.withValues(alpha: 0.08),
+                      foregroundImage: _photoImage,
+                      onForegroundImageError:
+                          _photoImage == null ? null : (_, __) {},
+                      child: const Icon(Icons.person_outline),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          OutlinedButton(
+                            onPressed: _saving ? null : _pickPhoto,
+                            child: Text(_photoBytes != null ||
+                                    (!_removePhoto &&
+                                        widget.invitation?.photoUrl != null)
+                                ? 'Remplacer'
+                                : 'Ajouter une photo'),
+                          ),
+                          if (_photoBytes != null ||
+                              (!_removePhoto &&
+                                  widget.invitation?.photoUrl != null))
+                            TextButton(
+                              onPressed: _saving
+                                  ? null
+                                  : () => setState(() {
+                                        _photoBytes = null;
+                                        _photoName = null;
+                                        _removePhoto =
+                                            widget.invitation?.photoUrl != null;
+                                      }),
+                              child: const Text('Retirer'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('JPG, PNG ou WebP · 5 Mo maximum',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.6))),
               ],
               const SizedBox(height: 12),
               if (!_isHonor) ...[

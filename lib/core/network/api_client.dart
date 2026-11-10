@@ -222,6 +222,9 @@ class RetryOnUnauthorizedInterceptor extends Interceptor {
     try {
       final response = await _dio.fetch(options.copyWith(
         headers: {...options.headers, 'Authorization': 'Bearer $token'},
+        data: options.data is FormData
+            ? (options.data as FormData).clone()
+            : options.data,
         extra: {...options.extra, 'authRetried': true},
       ));
       handler.resolve(response);
