@@ -112,6 +112,25 @@ class EventInvitationsService {
         response.data['data'] as Map<String, dynamic>);
   }
 
+  Future<String> uploadPhoto(
+      int eventId, int invitationId, Uint8List bytes, String filename) async {
+    final response = await ApiClient.dio.post(
+      '${_base(eventId)}/$invitationId/photo',
+      data: FormData.fromMap({
+        'photo': MultipartFile.fromBytes(bytes, filename: filename),
+      }),
+    );
+    final url = response.data['data']['photo_url'];
+    if (url is! String || url.isEmpty) {
+      throw const FormatException('La réponse ne contient pas la photo.');
+    }
+    return url;
+  }
+
+  Future<void> removePhoto(int eventId, int invitationId) async {
+    await ApiClient.dio.delete('${_base(eventId)}/$invitationId/photo');
+  }
+
   Future<Map<String, String>> honorDefaultMessages(int eventId) async {
     final response =
         await ApiClient.dio.get('/events/$eventId/invitation-settings');

@@ -27,6 +27,7 @@ class _FakeApi implements HttpClientAdapter {
   final Map<String, List<(int, Object?)>> routes;
   final List<String> calls = [];
   final List<String?> authorizations = [];
+  final List<List<int>> requestBodies = [];
 
   _FakeApi(this.routes);
 
@@ -35,6 +36,13 @@ class _FakeApi implements HttpClientAdapter {
     final key = '${options.method} ${options.uri.path.replaceFirst(RegExp(r'^.*/api'), '')}';
     calls.add(key);
     authorizations.add(options.headers['Authorization'] as String?);
+    final bytes = <int>[];
+    if (requestStream != null) {
+      await for (final chunk in requestStream) {
+        bytes.addAll(chunk);
+      }
+    }
+    requestBodies.add(bytes);
     final queue = routes[key];
     final (status, body) = queue == null || queue.isEmpty
         ? (404, {'message': 'absent'})
@@ -110,6 +118,40 @@ void main() {
 
       await expectLater(dio.get('/me'), throwsA(isA<DioException>()));
       expect(api.calls.length, 2);
+    });
+
+    test('rejoue la création d’une invitation après un 401', () async {
+      final api = _FakeApi({
+        'POST /events/1/invitations/honor': [
+          unauthenticated,
+          (201, {'data': {'id': 12}})
+        ],
+      });
+      final dio = dioWith(api, () async => '7|jeton-fictif');
+      final response = await dio.post('/events/1/invitations/honor',
+          data: {'name': 'Awa Exemple', 'civility': 'Mme'});
+      expect(response.statusCode, 201);
+      expect(api.calls.length, 2);
+    });
+
+    test('rejoue l’envoi multipart d’une photo après un 401', () async {
+      final api = _FakeApi({
+        'POST /events/1/invitations/12/photo': [
+          unauthenticated,
+          (200, {'data': {'photo_url': '/photo.webp'}})
+        ],
+      });
+      final dio = dioWith(api, () async => '7|jeton-fictif');
+      final response = await dio.post('/events/1/invitations/12/photo',
+          data: FormData.fromMap({
+            'photo': MultipartFile.fromBytes([1, 2, 3], filename: 'photo.png')
+          }));
+      expect(response.statusCode, 200);
+      expect(api.calls.length, 2);
+      for (final body in api.requestBodies) {
+        expect(latin1.decode(body), contains('name="photo"'));
+        expect(body, containsAllInOrder([1, 2, 3]));
+      }
     });
 
     test('déconnecté (aucun jeton) ou autre 401 : pas de reprise', () async {

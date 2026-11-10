@@ -140,6 +140,11 @@ class InvitationListTile extends StatelessWidget {
           CircleAvatar(
             radius: 20,
             backgroundColor: _themeBlue.withValues(alpha: 0.12),
+            foregroundImage: invitation.photoUrl == null
+                ? null
+                : NetworkImage(invitation.photoUrl!),
+            onForegroundImageError:
+                invitation.photoUrl == null ? null : (_, __) {},
             child: Text(
               invitation.initials,
               style: const TextStyle(

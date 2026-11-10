@@ -14,6 +14,7 @@ class EventInvitation {
   final String? guestTitle;
   final String? honorMessage;
   final String? shortUrl;
+  final String? photoUrl;
   final bool createdNow;
 
   /// Numéro de stand d'un exposant (imprimé en grand sur son badge).
@@ -38,6 +39,7 @@ class EventInvitation {
     this.guestTitle,
     this.honorMessage,
     this.shortUrl,
+    this.photoUrl,
     this.createdNow = true,
     this.standNumber,
     required this.status,
@@ -65,6 +67,7 @@ class EventInvitation {
       guestTitle: json['guest_title'] as String?,
       honorMessage: json['honor_message'] as String?,
       shortUrl: json['short_url'] as String?,
+      photoUrl: json['photo_url'] as String?,
       createdNow: json['created'] != false,
       standNumber: json['stand_number'] as String?,
       status: InvitationStatus.fromApi(json['status'] as String?),
@@ -75,6 +78,30 @@ class EventInvitation {
       message: json['message'] as String?,
     );
   }
+
+  EventInvitation withPhotoUrl(String? photoUrl) => EventInvitation(
+        id: id,
+        type: type,
+        name: name,
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+        email: email,
+        category: category,
+        civility: civility,
+        guestTitle: guestTitle,
+        honorMessage: honorMessage,
+        shortUrl: shortUrl,
+        photoUrl: photoUrl,
+        createdNow: createdNow,
+        standNumber: standNumber,
+        status: status,
+        sentAt: sentAt,
+        openedAt: openedAt,
+        needsReminder: needsReminder,
+        whatsappUrl: whatsappUrl,
+        message: message,
+      );
 
   /// Même règle que le filtre du serveur (EventInvitationController) :
   /// « Envoyée » = déjà envoyée (sent_at), « Ouverte » = déjà ouverte,

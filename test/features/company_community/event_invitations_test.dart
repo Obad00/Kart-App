@@ -222,6 +222,36 @@ void main() {
   });
 
   group('Invitation d’honneur', () {
+    test('envoie et retire la photo par les routes de l’invitation', () async {
+      final api = _useApi({
+        'POST /events/1/invitations/3/photo': (
+          200,
+          {
+            'data': {'id': 3, 'photo_url': 'https://example.test/photo.webp'}
+          }
+        ),
+        'DELETE /events/1/invitations/3/photo': (
+          200,
+          {
+            'data': {'id': 3, 'photo_url': null}
+          }
+        ),
+      });
+      final service = EventInvitationsService();
+      expect(
+          await service.uploadPhoto(
+              1, 3, Uint8List.fromList([1, 2, 3]), 'portrait.png'),
+          'https://example.test/photo.webp');
+      final form = api.bodies['POST /events/1/invitations/3/photo'] as FormData;
+      expect(form.files.single.key, 'photo');
+      expect(form.files.single.value.filename, 'portrait.png');
+      await service.removePhoto(1, 3);
+      expect(api.calls, [
+        'POST /events/1/invitations/3/photo',
+        'DELETE /events/1/invitations/3/photo'
+      ]);
+    });
+
     test('charge les messages proposés et crée via la route honor', () async {
       final api = _useApi({
         'GET /events/1/invitation-settings': (
