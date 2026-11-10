@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:phone_form_field/phone_form_field.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../../../core/theme/kart_tokens.dart';
 import 'nfc_card_widgets.dart';
@@ -59,11 +61,28 @@ class NfcOrderSheet extends StatefulWidget {
 
 class _NfcOrderSheetState extends State<NfcOrderSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final _phone = TextEditingController(text: widget.initialPhone ?? '');
+  late final _phone = PhoneController(initialValue: _initialPhone());
   final _address = TextEditingController();
   final _notes = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  PhoneNumber _initialPhone() {
+    const defaultCountry = IsoCode.SN;
+    final initialPhone = widget.initialPhone?.trim();
+    if (initialPhone == null || initialPhone.isEmpty) {
+      return const PhoneNumber(isoCode: defaultCountry, nsn: '');
+    }
+
+    try {
+      return PhoneNumber.parse(
+        initialPhone,
+        destinationCountry: defaultCountry,
+      );
+    } on PhoneNumberException {
+      return const PhoneNumber(isoCode: defaultCountry, nsn: '');
+    }
+  }
 
   @override
   void dispose() {
@@ -81,7 +100,7 @@ class _NfcOrderSheetState extends State<NfcOrderSheet> {
       _error = null;
     });
     final error = await widget.onSubmit(
-      phone: _phone.text.trim(),
+      phone: _phone.value.international,
       address: _address.text.trim(),
       notes: _notes.text.trim(),
     );
@@ -144,21 +163,28 @@ class _NfcOrderSheetState extends State<NfcOrderSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Nous vous contacterons pour la livraison.',
+                  'Choisissez le pays et saisissez votre numéro. Nous vous contacterons pour la livraison.',
                   style: TextStyle(color: t.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PhoneFormField(
+                  key: const ValueKey('nfc-order-phone'),
                   controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 30,
                   style: fieldStyle,
                   decoration: _decoration(t, 'Téléphone', Icons.phone_outlined)
                       .copyWith(counterText: ''),
-                  validator: (value) =>
-                      (value == null || value.trim().length < 6)
-                          ? 'Indiquez un numéro où vous joindre.'
-                          : null,
+                  shouldLimitLengthByCountry: true,
+                  validator: PhoneValidator.compose([
+                    PhoneValidator.required(
+                      context,
+                      errorText: 'Indiquez un numéro où vous joindre.',
+                    ),
+                    PhoneValidator.valid(
+                      context,
+                      errorText:
+                          'Ce numéro semble invalide. Vérifiez le pays et le numéro.',
+                    ),
+                  ]),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
