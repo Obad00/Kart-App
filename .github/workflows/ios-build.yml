@@ -162,7 +162,11 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Version figée : la stable suivante (3.50) exige Gradle >= 9.3.1,
+          # le projet est en Gradle 8.14 / AGP 8.11. Monter de version
+          # seulement après avoir mis à jour et testé la chaîne Android.
           channel: "stable"
+          flutter-version: "3.47.9"
           architecture: arm64
 
       - name: Flutter precache iOS
