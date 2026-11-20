@@ -1,8 +1,11 @@
-/// JobMatch est désormais ouvert à tous les comptes, quel que soit le plan
-/// (anciennement réservé au plan 'pro' — cf. historique git si besoin de
-/// réintroduire une restriction). On garde cette fonction (plutôt que de
-/// supprimer tous ses appels) pour ne pas avoir à retoucher la logique
-/// d'affichage/index des onglets partout où elle est utilisée.
+/// JobMatch est fermé : KART se concentre sur les cartes et le networking.
+/// Le code de lib/features/jobmatch reste en place mais n'est plus
+/// accessible : barre du bas à 4 onglets (Carte, Contacts, Explorer,
+/// Profil), liens kart://jobmatch et notifications JobMatch vers l'accueil.
+/// Le backend ferme aussi la fonction (jobmatch.enabled = false).
+///
+/// Le paramètre [plan] est gardé pour ne pas retoucher les appels (index
+/// des onglets calculés partout à partir de cette fonction).
 bool canAccessJobMatch(String? plan) {
-  return true;
+  return false;
 }

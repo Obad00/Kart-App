@@ -46,7 +46,7 @@ class PushNotificationService with WidgetsBindingObserver {
   static const _androidChannel = AndroidNotificationChannel(
     'kart_default_channel',
     'Notifications',
-    description: 'Demandes de mise en relation et offres JobMatch',
+    description: 'Demandes de mise en relation, contacts et rappels',
     importance: Importance.high,
   );
 
@@ -375,6 +375,11 @@ class PushNotificationService with WidgetsBindingObserver {
 
         case 'jobmatch_new_match':
         case 'jobmatch_new_interest':
+          // JobMatch fermé : une ancienne notification ouvre l'accueil.
+          if (!canAccessJobMatch(authProvider.user?.plan)) {
+            navigator.pushNamedAndRemoveUntil('/home', (route) => false, arguments: {'tab': 0});
+            break;
+          }
           // Nouvelle candidature — match complet ou simple "j'aime" du
           // candidat (côté recruteur) — même tableau de bord Matchs. Ce
           // second type existe côté backend (JobMatchController::swipe())
@@ -424,6 +429,10 @@ class PushNotificationService with WidgetsBindingObserver {
 
         case 'jobmatch_new_suggestions':
           // Digest quotidien (côté candidat) — fil d'offres.
+          if (!canAccessJobMatch(authProvider.user?.plan)) {
+            navigator.pushNamedAndRemoveUntil('/home', (route) => false, arguments: {'tab': 0});
+            break;
+          }
           navigator.pushNamedAndRemoveUntil(
             '/home',
             (route) => false,

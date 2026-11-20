@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../shared/widgets/glass_app_bar.dart';
-import '../../jobmatch/widgets/job_details_sheet.dart';
 import '../models/company_job.dart';
 import '../services/company_discovery_service.dart';
 import '../../../core/ui/feedback/feedback_overlay.dart';
@@ -252,20 +251,6 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
           const SizedBox(height: 10),
           _buildInfoRow(colors, Icons.location_on_outlined, detail.address!),
         ],
-        const SizedBox(height: 24),
-        Text(
-          detail.jobs.isEmpty
-              ? 'Aucune offre publiée pour le moment'
-              : 'Offres publiées (${detail.jobs.length})',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: colors.onSurface.withValues(alpha: 0.5),
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ...detail.jobs.map((job) => _buildJobRow(colors, job, detail.name)),
       ],
     );
   }
@@ -308,75 +293,6 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJobRow(ColorScheme colors, CompanyJob job, String companyName) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => showJobDetailsSheet(
-          context,
-          title: job.title,
-          companyName: companyName,
-          location: job.isRemote ? 'À distance' : job.location,
-          description: job.description,
-        ),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: colors.onSurface.withValues(alpha: 0.02),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colors.onSurface.withValues(alpha: 0.06)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: _themeBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.work_outline_rounded,
-                    size: 16, color: _themeBlue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      job.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        if (job.isRemote) 'À distance' else job.location,
-                        job.contractType,
-                      ].where((e) => e != null && e.isNotEmpty).join(' · '),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.onSurface.withValues(alpha: 0.55),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

@@ -145,7 +145,10 @@ class _HomeShellState extends State<HomeShell>
       }
       if (!mounted) return;
 
-      if (widget.openDashboardTab != null) {
+      // JobMatch fermé : un ancien lien vers son tableau de bord n'ouvre
+      // plus rien de particulier (accueil normal).
+      if (widget.openDashboardTab != null &&
+          canAccessJobMatch(context.read<AuthProvider>().user?.plan)) {
         // Vient d'un deep link (mail d'intérêt candidat ou de match) :
         // priorité à la navigation demandée, pas de tour guidé cette
         // fois-ci pour ne pas superposer deux overlays. Le tour de la
@@ -977,7 +980,7 @@ class _ProfileReminderDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Un profil complet augmente vos chances d\'être remarqué par les recruteurs.',
+                  'Un profil complet vous rend plus facile à trouver dans Explorer.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,

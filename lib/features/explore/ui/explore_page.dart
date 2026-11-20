@@ -17,7 +17,6 @@ import '../../company_community/services/company_community_service.dart';
 import '../../company_community/ui/company_event_participants_page.dart';
 import '../../company_community/ui/company_events_list_page.dart';
 import '../../company_community/widgets/company_event_card.dart';
-import '../../jobmatch/ui/jobmatch_feed_page.dart';
 import '../models/community.dart';
 import '../providers/community_provider.dart';
 import '../providers/connection_badge_provider.dart';
@@ -90,9 +89,7 @@ class _ExplorePageState extends State<ExplorePage> {
   final _filterTourKey = GlobalKey();
 
   // Puce active sous la recherche — filtre quels carrousels sont affichés
-  // ('tous' = tout). 'opportunites' ne filtre rien : elle navigue
-  // directement vers JobMatch (cf. _onOpportunitiesTap), Explorer n'ayant
-  // pas sa propre liste d'opportunités.
+  // ('tous' = tout).
   String _activeChip = 'tous';
 
   bool _showFor(Set<String> chips) =>
@@ -247,29 +244,6 @@ class _ExplorePageState extends State<ExplorePage> {
         builder: (_) => ChangeNotifierProvider.value(
           value: _discoveryProvider,
           child: const CompaniesDiscoverPage(),
-        ),
-      ),
-    );
-  }
-
-  /// Puce "Opportunités" — Explorer n'a pas sa propre liste d'offres,
-  /// JobMatch (onglet "Offres", réservé au plan Pro) en tient déjà lieu.
-  void _onOpportunitiesTap(BuildContext context) {
-    HapticFeedback.selectionClick();
-    if (!context.read<AuthProvider>().isPro) {
-      FeedbackOverlay.showInfo(context, title: 'Réservé au plan Pro', subtitle: 'Les opportunités JobMatch sont réservées au plan Pro.');
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // JobMatchFeedPage n'a volontairement pas son propre Scaffold
-        // (elle compte sur celui de HomeShell quand elle est un onglet) —
-        // ouverte seule ici, il lui en faut un pour avoir un fond thémé
-        // (sinon fond blanc par défaut, quel que soit le thème sombre/clair).
-        builder: (context) => Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: const JobMatchFeedPage(),
         ),
       ),
     );
@@ -763,13 +737,6 @@ class _ExplorePageState extends State<ExplorePage> {
             active: _activeChip == 'entreprises',
             onTap: () => setState(() => _activeChip = 'entreprises'),
           ),
-          const SizedBox(width: 8),
-          _CategoryChip(
-            label: 'Opportunités',
-            icon: Icons.work_outline_rounded,
-            active: false,
-            onTap: () => _onOpportunitiesTap(context),
-          ),
         ],
       ),
     );
@@ -1131,7 +1098,7 @@ class _ExplorePageState extends State<ExplorePage> {
             children: [
               ExploreSectionHeader(
                 title: 'Entreprises à découvrir',
-                subtitle: 'Des entreprises qui recrutent et collaborent',
+                subtitle: 'Des entreprises à suivre et à contacter',
                 onSeeAll: _openCompaniesDiscover,
               ),
               SizedBox(
