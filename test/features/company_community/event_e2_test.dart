@@ -110,7 +110,7 @@ void main() {
     expect(exhibitor.last, isFalse);
   });
 
-  testWidgets('exposant : le numéro de stand est proposé et envoyé', (tester) async {
+  testWidgets('exposant : le numéro de stand (chiffres) est saisi et envoyé', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.light(),
       home: Scaffold(
@@ -125,7 +125,10 @@ void main() {
     await tester.tap(find.text('ouvrir'));
     await _settle(tester);
     await tester.pumpAndSettle();
-    expect(find.text('Numéro de stand (imprimé sur le badge)'), findsNothing);
+    // Depuis 4bffe4a, le numéro de stand se saisit pour toute invitation
+    // (il suffit à classer l'invité comme exposant), sans attendre le
+    // choix de la catégorie.
+    expect(find.widgetWithText(TextField, 'Numéro de stand (facultatif)'), findsOneWidget);
 
     await tester.enterText(find.widgetWithText(TextField, 'Nom complet'), 'Moussa Exemple');
     await tester.enterText(find.widgetWithText(TextField, 'Téléphone WhatsApp'), '77 000 00 02');
@@ -133,13 +136,21 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Exposant'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Numéro de stand (imprimé sur le badge)'), 'B12');
-    await tester.tap(find.text('Ajouter'));
+    // Chiffres seulement, comme le backend (regex ^[0-9]+$) : une lettre
+    // saisie est ignorée par le champ.
+    await tester.enterText(find.widgetWithText(TextField, 'Numéro de stand (facultatif)'), 'B12');
+    // Téléphone saisi : le bouton propose aussi WhatsApp (cab143f). La feuille
+    // enregistre puis se ferme ; c'est l'écran appelant qui ouvre WhatsApp.
+    // Formulaire plus long (champ stand toujours présent) : on fait défiler
+    // jusqu'au bouton, comme sur un téléphone.
+    await tester.ensureVisible(find.text('Ajouter et ouvrir WhatsApp'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajouter et ouvrir WhatsApp'));
     await _settle(tester);
 
     final body = api.bodies['POST /events/1/invitations'] as Map;
     expect(body['category'], 'Exposant');
-    expect(body['stand_number'], 'B12');
+    expect(body['stand_number'], '12');
     // Laisse le message de succès se refermer (minuteur).
     await tester.pump(const Duration(seconds: 6));
   });
