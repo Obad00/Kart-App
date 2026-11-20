@@ -71,6 +71,12 @@ class DeepLinkService {
 
     if (uri.host != 'jobmatch') return;
 
+    // JobMatch fermé : tout lien kart://jobmatch… ouvre l'accueil.
+    if (!canAccessJobMatch(null)) {
+      _openHome();
+      return;
+    }
+
     // kart://jobmatch/liked — mail envoyé quand un candidat like une offre.
     if (uri.pathSegments.contains('liked')) {
       _openDashboard(tabIndex: 1); // Aimées
@@ -155,6 +161,17 @@ class DeepLinkService {
         // Onglet "Offres" (JobMatch) : index 2 depuis le retrait de Scan de
         // la barre du bas (Carte=0, Contacts=1, Offres=2, Explorer=3, Profil=4).
         arguments: {'tab': 2, 'openDashboardTab': tabIndex},
+      );
+    });
+  }
+
+  /// Accueil de l'app (onglet Carte).
+  void _openHome() {
+    _navigateWhenReady((context, navigator) {
+      navigator.pushNamedAndRemoveUntil(
+        '/home',
+        (route) => false,
+        arguments: {'tab': 0},
       );
     });
   }

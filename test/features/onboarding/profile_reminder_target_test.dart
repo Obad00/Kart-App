@@ -10,9 +10,10 @@ User _user(String plan, {String? next}) => User.fromJson({
     });
 
 void main() {
-  test("rappel : l'onglet Profil, qui suit l'onglet Offres quand il existe", () {
+  test("JobMatch fermé : barre à 4 onglets, Profil en position 3 pour tous les plans", () {
     for (final plan in ['free', 'pro', 'enterprise']) {
-      expect(profileReminderTarget({'item': 'photo'}, _user(plan)).tab, canAccessJobMatch(plan) ? 4 : 3);
+      expect(canAccessJobMatch(plan), isFalse);
+      expect(profileReminderTarget({'item': 'photo'}, _user(plan)).tab, 3);
     }
   });
 
