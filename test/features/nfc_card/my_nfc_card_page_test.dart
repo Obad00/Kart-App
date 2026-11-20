@@ -241,8 +241,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // Téléphone du compte prérempli ; pas de champ quantité ni de prix.
-      expect(find.widgetWithText(TextFormField, '+221771112233'),
-          findsOneWidget);
+      // Champ international (bd8949d) : le pays (+221) est choisi à part,
+      // la zone de saisie ne contient que le numéro national.
+      final phoneInput = tester.widget<TextField>(find.descendant(
+        of: find.byKey(const ValueKey('nfc-order-phone')),
+        matching: find.byType(TextField),
+      ));
+      // Le pays (Sénégal) est vérifié plus bas : la commande part en
+      // +221771112233.
+      expect(phoneInput.controller!.text.replaceAll(RegExp(r'\D'), ''),
+          '771112233');
       expect(find.textContaining('Quantité'), findsNothing);
       expect(find.textContaining('FCFA'), findsNothing);
 
